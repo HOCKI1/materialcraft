@@ -13,6 +13,13 @@ use std::io::{Cursor, Read};
 
 pub const EXT: &str = "mcraft";
 pub const SBS_ENTRY: &str = "package.sbs";
+/// Most members one archive may hold; a header count is checked before any member is read.
+const MAX_ENTRIES: usize = 100_000;
+/// Largest member read.
+const MAX_ENTRY_BYTES: u64 = 256 << 20;
+/// Most bytes all members may expand to together. Without a total, many individually allowed
+/// members could expand far past what one open should spend (audit: MaterialCraft #1).
+const MAX_TOTAL_BYTES: u64 = 1 << 30;
 
 fn bad(message: impl Into<String>) -> FormatError {
     FormatError::BadPackage(message.into())
@@ -76,10 +83,14 @@ fn resolve(owner: &str, reference: &str) -> Result<String> {
 
 pub fn read(bytes: &[u8], identity: &str) -> Result<sbs::SbsRead> {
     let mut zip = zip::ZipArchive::new(Cursor::new(bytes)).map_err(|error| bad(error.to_string()))?;
+    if zip.len() > MAX_ENTRIES {
+        return Err(bad(format!("archive has more than {MAX_ENTRIES} entries")));
+    }
     let mut files = BTreeMap::new();
     let mut seen = BTreeSet::new();
+    let mut total = 0u64;
     for index in 0..zip.len() {
-        let mut entry = zip.by_index(index).map_err(|error| bad(error.to_string()))?;
+        let entry = zip.by_index(index).map_err(|error| bad(error.to_string()))?;
         let name = entry.name().to_string();
         let path = name.trim_end_matches('/');
         if path.is_empty()
@@ -96,7 +107,14 @@ pub fn read(bytes: &[u8], identity: &str) -> Result<sbs::SbsRead> {
         }
 
         let mut content = Vec::new();
-        entry.read_to_end(&mut content).map_err(|error| bad(error.to_string()))?;
+        entry.take(MAX_ENTRY_BYTES + 1).read_to_end(&mut content).map_err(|error| bad(error.to_string()))?;
+        if content.len() as u64 > MAX_ENTRY_BYTES {
+            return Err(bad(format!("archive entry `{name}` is too large")));
+        }
+        total = total.saturating_add(content.len() as u64);
+        if total > MAX_TOTAL_BYTES {
+            return Err(bad("archive expands past its total size limit"));
+        }
         files.insert(name, content);
     }
     let roots: Vec<_> = files.keys().filter(|name| !name.contains('/') && name.to_ascii_lowercase().ends_with(".sbs")).cloned().collect();

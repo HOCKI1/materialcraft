@@ -1,7 +1,7 @@
 use super::base_parameters::read_base_params;
 use super::component_usage;
 use super::connection::connect_all;
-use super::constant::MAX_NODES;
+use super::constant::{MAX_NODES, MAX_WIRES};
 use super::constant::{NODE_HALF_SIZE, SELF_DEPENDENCY};
 use super::embedded::decode_embedded;
 use super::filter_map::{BASE_PARAMS, FilterMap, HANDLED_PARAMS, filter_by_sbs_name};
@@ -27,6 +27,7 @@ pub(super) struct SbsReader<'text, 'warnings> {
     pub(super) graph_names: HashMap<String, String>,
     pub(super) resource_names: HashMap<String, String>,
     pub(super) node_count: usize,
+    pub(super) wire_count: usize,
 }
 
 impl<'text> SbsReader<'text, '_> {
@@ -341,6 +342,11 @@ impl<'text> SbsReader<'text, '_> {
                     }
                 };
 
+                if self.wire_count >= MAX_WIRES {
+                    self.warnings.add(format!("graph `{name}`: the {MAX_WIRES} wire limit was reached; later wires were dropped"));
+                    return wires;
+                }
+                self.wire_count += 1;
                 wires.push(Connection { from: from.id, from_port, to: to.id, to_port });
             }
         }
