@@ -36,7 +36,7 @@ fn read_file(fs: &Filesystem, path: &str) -> Result<Vec<u8>, AutomationError> {
 /// Read a local file under the same bound as capability workspaces: trusted access widens where a
 /// path may point, not how much memory one read may take.
 fn read_trusted(path: &str) -> Result<Vec<u8>, AutomationError> {
-    let mut file = File::open(path).map_err(|e| AutomationError::Io(format!("cannot read {path}: {e}")))?;
+    let file = File::open(path).map_err(|e| AutomationError::Io(format!("cannot read {path}: {e}")))?;
     let metadata = file.metadata().map_err(|e| AutomationError::Io(format!("cannot read {path}: {e}")))?;
     if !metadata.is_file() {
         return Err(bad(format!("not a regular file: `{path}`")));

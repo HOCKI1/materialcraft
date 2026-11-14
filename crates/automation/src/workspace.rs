@@ -29,7 +29,7 @@ impl AuthorizedWorkspace {
     pub fn read(&self, path: &str) -> Result<Vec<u8>, AutomationError> {
         let rel = relative_path(path)?;
         let root = self.read.as_ref().ok_or_else(|| denied("read"))?;
-        let mut file = root.open(&rel).map_err(|e| file_error("read", path, e))?;
+        let file = root.open(&rel).map_err(|e| file_error("read", path, e))?;
         let metadata = file.metadata().map_err(|e| file_error("read", path, e))?;
         if !metadata.is_file() {
             return Err(bad(format!("not a regular file: `{path}`")));
