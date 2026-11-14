@@ -9,7 +9,7 @@ use super::{
 use crate::{FormatError, Result};
 use materialcraft_core::Package;
 use roxmltree::Node as XmlNode;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 pub fn read_sbs(bytes: &[u8], name: &str, linked: &dyn Fn(&str) -> Option<Vec<u8>>) -> Result<SbsRead> {
     if bytes.len() as u64 > MAX_SBS_BYTES {
@@ -39,6 +39,7 @@ pub fn read_sbs(bytes: &[u8], name: &str, linked: &dyn Fn(&str) -> Option<Vec<u8
         dependencies: HashMap::new(),
         graph_names: HashMap::new(),
         resource_names: HashMap::new(),
+        used_resource_names: HashSet::new(),
         node_count: 0,
         wire_count: 0,
     };

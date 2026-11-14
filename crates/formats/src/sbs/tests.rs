@@ -255,6 +255,19 @@ fn linked_resources_load_through_the_callback() {
 }
 
 #[test]
+fn duplicate_resource_identifiers_get_unique_names() {
+    let resources: String = (0..2_000)
+        .map(|_| "<resource><identifier v=\"img\"/><type v=\"bitmap\"/><format v=\"png\"/><source><binembedded><strdata v=\"AAAA\"/></binembedded></source></resource>")
+        .collect();
+    let xml = format!("<package><content>{resources}</content></package>");
+    let read = read_sbs(xml.as_bytes(), "many.sbs", &no_linked_files).unwrap();
+    let names: std::collections::HashSet<&str> = read.pkg.resources.iter().map(|resource| resource.name.as_str()).collect();
+    assert_eq!(names.len(), read.pkg.resources.len(), "resource names stay unique");
+    assert!(read.pkg.resources[0].name == "img");
+    assert!(read.pkg.resources.iter().skip(1).all(|resource| resource.name.starts_with("img_")));
+}
+
+#[test]
 fn embedded_data_round_trips_and_checks_its_length() {
     let data: Vec<u8> = (0..5000u32).map(|i| (i * 7 % 251) as u8).collect();
     let encoded = encode_embedded(&data).unwrap();
