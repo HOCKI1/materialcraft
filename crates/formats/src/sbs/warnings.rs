@@ -5,6 +5,8 @@ use std::collections::HashMap;
 pub(super) struct Warnings {
     pub(super) lines: Vec<(String, usize)>,
     pub(super) line_index: HashMap<String, usize>,
+    /// Messages over the limit: they are counted but never stored (audit: MaterialCraft #2).
+    dropped: usize,
 }
 
 impl Warnings {
@@ -14,18 +16,39 @@ impl Warnings {
             line.1 += 1;
             return;
         }
+        if self.lines.len() >= MAX_WARNINGS {
+            self.dropped += 1;
+            return;
+        }
 
         self.line_index.insert(message.clone(), self.lines.len());
         self.lines.push((message, 1));
     }
 
     pub(super) fn finish(self) -> Vec<String> {
-        let total = self.lines.len();
+        let total = self.lines.len() + self.dropped;
         let mut out: Vec<String> =
             self.lines.into_iter().take(MAX_WARNINGS).map(|(line, count)| if count > 1 { format!("{line} (×{count})") } else { line }).collect();
         if total > MAX_WARNINGS {
             out.push(format!("…and {} more warnings", total - MAX_WARNINGS));
         }
         out
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn warning_messages_are_capped_as_they_arrive() {
+        let mut w = Warnings::default();
+        for i in 0..MAX_WARNINGS + 5 {
+            w.add(format!("warning {i}"));
+        }
+        assert_eq!(w.lines.len(), MAX_WARNINGS);
+        let out = w.finish();
+        assert_eq!(out.len(), MAX_WARNINGS + 1);
+        assert_eq!(out.last().unwrap(), "…and 5 more warnings");
     }
 }
