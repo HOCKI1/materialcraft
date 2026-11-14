@@ -45,9 +45,7 @@ fn read_trusted(path: &str) -> Result<Vec<u8>, AutomationError> {
         return Err(bad(format!("file too large: `{path}` is {} bytes (limit {MAX_READ_BYTES})", metadata.len())));
     }
     let mut bytes = Vec::new();
-    file.take(MAX_READ_BYTES + 1)
-        .read_to_end(&mut bytes)
-        .map_err(|e| AutomationError::Io(format!("cannot read {path}: {e}")))?;
+    file.take(MAX_READ_BYTES + 1).read_to_end(&mut bytes).map_err(|e| AutomationError::Io(format!("cannot read {path}: {e}")))?;
     if bytes.len() as u64 > MAX_READ_BYTES {
         return Err(bad(format!("file too large: `{path}` exceeds the {MAX_READ_BYTES}-byte limit")));
     }
