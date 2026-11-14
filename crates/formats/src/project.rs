@@ -90,7 +90,7 @@ pub fn read(bytes: &[u8], identity: &str) -> Result<sbs::SbsRead> {
     let mut seen = BTreeSet::new();
     let mut total = 0u64;
     for index in 0..zip.len() {
-        let mut entry = zip.by_index(index).map_err(|error| bad(error.to_string()))?;
+        let entry = zip.by_index(index).map_err(|error| bad(error.to_string()))?;
         let name = entry.name().to_string();
         let path = name.trim_end_matches('/');
         if path.is_empty()
