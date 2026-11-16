@@ -9,6 +9,8 @@ const CANVAS_ID: &str = "materialcraft_canvas";
 const LOADING_ID: &str = "materialcraft_loading";
 const STATUS_ID: &str = "materialcraft_status";
 const PROGRESS_ID: &str = "materialcraft_progress";
+/// Where `index.html` copies the SBS library's `resources/`, relative to the page
+const LIBRARY_URL: &str = "sbs";
 
 pub fn start() {
     eframe::WebLogger::init(log::LevelFilter::Info).ok();
@@ -38,6 +40,8 @@ pub fn start() {
 
 async fn run(canvas: web_sys::HtmlCanvasElement) -> Result<(), String> {
     // The WebAssembly has downloaded and compiled when this runs.
+    step(0.3, "Downloading the material library…").await;
+    download_library().await;
     step(0.5, "Preparing a new package…").await;
     let session = materialcraft_engine::new_session();
     step(0.8, "Starting the renderer…").await;
@@ -60,6 +64,39 @@ async fn run(canvas: web_sys::HtmlCanvasElement) -> Result<(), String> {
         )
         .await
         .map_err(|e| e.as_string().unwrap_or_else(|| format!("{e:?}")))
+}
+
+/// Fetch the SBS library files that ship beside the wasm (`index.html` copies them to
+/// [`LIBRARY_URL`]) before the first cook needs one. A file that fails to download is logged and
+/// reported by the nodes that use it; it doesn't stop startup.
+async fn download_library() {
+    use materialcraft_formats::sbs::library;
+    let Some(window) = web_sys::window() else { return };
+
+    // Every request starts before the first is awaited, so they download in parallel
+    let requests: Vec<_> = library::external_assets()
+        .iter()
+        .map(|relative| {
+            let url = String::from(js_sys::encode_uri(&format!("{LIBRARY_URL}/{relative}")));
+            (*relative, wasm_bindgen_futures::JsFuture::from(window.fetch_with_str(&url)))
+        })
+        .collect();
+    for (relative, request) in requests {
+        if let Err(e) = fetch_bytes(request).await.and_then(|bytes| library::install(relative, bytes)) {
+            log::warn!("couldn't download sbs://{relative}: {e}");
+        }
+    }
+}
+
+async fn fetch_bytes(request: wasm_bindgen_futures::JsFuture) -> Result<Vec<u8>, String> {
+    let response: web_sys::Response = request.await.and_then(|r| r.dyn_into()).map_err(|e| format!("{e:?}"))?;
+    if !response.ok() {
+        return Err(format!("HTTP {}", response.status()));
+    }
+
+    let buffer = response.array_buffer().map_err(|e| format!("{e:?}"))?;
+    let buffer = wasm_bindgen_futures::JsFuture::from(buffer).await.map_err(|e| format!("{e:?}"))?;
+    Ok(js_sys::Uint8Array::new(&buffer).to_vec())
 }
 
 /// Show a startup step on the loading screen and let the browser paint it before the next
