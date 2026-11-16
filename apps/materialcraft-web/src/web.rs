@@ -11,6 +11,9 @@ const STATUS_ID: &str = "materialcraft_status";
 const PROGRESS_ID: &str = "materialcraft_progress";
 /// Where `index.html` copies the SBS library's `resources/`, relative to the page
 const LIBRARY_URL: &str = "sbs";
+/// How long startup waits for the library files; a response that stalls would otherwise keep the
+/// loading screen up for good. Two minutes fits the 14 MB of bitmaps on a slow connection
+const LIBRARY_DOWNLOAD_TIMEOUT_MS: i32 = 120_000;
 
 pub fn start() {
     eframe::WebLogger::init(log::LevelFilter::Info).ok();
@@ -67,18 +70,28 @@ async fn run(canvas: web_sys::HtmlCanvasElement) -> Result<(), String> {
 }
 
 /// Fetch the SBS library files that ship beside the wasm (`index.html` copies them to
-/// [`LIBRARY_URL`]) before the first cook needs one. A file that fails to download is logged and
-/// reported by the nodes that use it; it doesn't stop startup.
+/// [`LIBRARY_URL`]) before the first cook needs one. A file that fails to download, or is still
+/// downloading after [`LIBRARY_DOWNLOAD_TIMEOUT_MS`], is logged and reported by the nodes that use
+/// it; it doesn't stop startup.
 async fn download_library() {
     use materialcraft_formats::sbs::library;
     let Some(window) = web_sys::window() else { return };
+
+    // One deadline covers every request and body; aborting rejects whatever is still pending
+    let controller = web_sys::AbortController::new().ok();
+    let init = web_sys::RequestInit::new();
+    init.set_signal(controller.as_ref().map(|c| c.signal()).as_ref());
+    let abort = controller.map(|c| Closure::<dyn FnMut()>::new(move || c.abort()));
+    let timer = abort
+        .as_ref()
+        .and_then(|abort| window.set_timeout_with_callback_and_timeout_and_arguments_0(abort.as_ref().unchecked_ref(), LIBRARY_DOWNLOAD_TIMEOUT_MS).ok());
 
     // Every request starts before the first is awaited, so they download in parallel
     let requests: Vec<_> = library::external_assets()
         .iter()
         .map(|relative| {
             let url = String::from(js_sys::encode_uri(&format!("{LIBRARY_URL}/{relative}")));
-            (*relative, wasm_bindgen_futures::JsFuture::from(window.fetch_with_str(&url)))
+            (*relative, wasm_bindgen_futures::JsFuture::from(window.fetch_with_str_and_init(&url, &init)))
         })
         .collect();
     for (relative, request) in requests {
@@ -86,6 +99,12 @@ async fn download_library() {
             log::warn!("couldn't download sbs://{relative}: {e}");
         }
     }
+
+    // The closure must outlive the timer, so cancel the timer before dropping it
+    if let Some(timer) = timer {
+        window.clear_timeout_with_handle(timer);
+    }
+    drop(abort);
 }
 
 async fn fetch_bytes(request: wasm_bindgen_futures::JsFuture) -> Result<Vec<u8>, String> {
