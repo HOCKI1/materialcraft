@@ -17,13 +17,33 @@ pub struct ExportParams {
     /// Pixels of the larger side, rounded down to a power of two, 16 to 8192 (default: the graph's size)
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub size: Option<u32>,
-    /// Graph index (default: the open graph)
+    /// Graph index or full SBS path. Defaults to the open graph.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub graph: Option<u32>,
+    pub graph: Option<serde_json::Value>,
     /// Output identifiers to write (default: every connected output)
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub outputs: Option<Vec<String>>,
     /// Color space per output identifier: srgb, linear or raw (default: sRGB for color usages, raw for data)
     #[serde(default, rename = "colorSpaces", skip_serializing_if = "Option::is_none")]
     pub color_spaces: Option<std::collections::BTreeMap<String, String>>,
+    /// Export profile: materialx for OpenPBR with baked textures, maps for labeled textures.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub profile: Option<String>,
+    /// Optional named preset, applied before explicit values.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub preset: Option<String>,
+    /// Height range in scene units for MaterialX displacement.
+    #[serde(default, rename = "displacementScale", skip_serializing_if = "Option::is_none")]
+    pub displacement_scale: Option<f32>,
+    /// Typed exposed parameter overrides for this cook.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(schema_with = "values_schema")]
+    pub values: Option<std::collections::BTreeMap<String, serde_json::Value>>,
+    /// Image input identifier to path below the read root.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub inputs: Option<std::collections::BTreeMap<String, String>>,
+}
+
+fn values_schema(_: &mut schemars::SchemaGenerator) -> schemars::Schema {
+    schemars::json_schema!({"type":["object","null"],"additionalProperties":{}})
 }

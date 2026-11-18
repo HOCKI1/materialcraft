@@ -1,0 +1,49 @@
+//! Exercise the distribution workflow through the public CLI, including reopening the archive in fresh processes.
+use std::path::Path;
+use std::process::Command;
+
+use materialcraft_engine::formats;
+use serde_json::{Value, json};
+
+fn run(dir: &Path, args: &[&str]) -> Value {
+    let output = Command::new(env!("CARGO_BIN_EXE_materialcraft-cli")).current_dir(dir).args(args).output().unwrap();
+    assert!(output.status.success(), "{args:?}: {}", String::from_utf8_lossy(&output.stderr));
+    serde_json::from_slice(&output.stdout).unwrap()
+}
+
+#[test]
+fn a_published_graph_bakes_openpbr_variations_after_the_project_is_removed() {
+    let dir = std::env::temp_dir().join(format!("materialcraft-cli-published-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    run(&dir, &["new", "pbr", "source.sbs", "--name", "Oak", "--size", "32"]);
+    run(&dir, &["run", "source.sbs", "graph.exposed.add", r#"{"id":"tint","bind":{"node":1,"param":"color"}}"#, "-o", "studio.mcraft"]);
+    run(&dir, &["publish", "studio.mcraft", "oak.mcmat", "--graph", "Oak"]);
+    std::fs::remove_file(dir.join("studio.mcraft")).unwrap();
+    std::fs::remove_file(dir.join("source.sbs")).unwrap();
+    let initial = run(&dir, &["info", "oak.mcmat"]);
+    assert_eq!(initial["parameters"][0]["id"], "tint");
+    for (folder, size, tint) in [("small", 32, "#ff0000"), ("large", 64, "#0000ff")] {
+        let report =
+            run(&dir, &["export", "oak.mcmat", "--out", folder, "--profile", "materialx", "--size", &size.to_string(), "--set", &format!("tint={tint}")]);
+        let maps = report["maps"].as_array().unwrap();
+        let base = maps.iter().find(|m| m["usage"] == "baseColor").unwrap();
+        let relative = base["file"].as_str().unwrap();
+        assert_eq!(base["size"], json!([size, size]));
+        let root = dir.join(folder);
+        let xml = std::fs::read_to_string(root.join("material.mtlx")).unwrap();
+        assert!(xml.contains("<open_pbr_surface") && xml.contains("<normalmap") && xml.contains("<displacement"));
+        assert!(xml.contains(&format!("value=\"{relative}\"")) && !xml.contains(dir.to_string_lossy().as_ref()));
+        let map = formats::decode(&std::fs::read(root.join(relative)).unwrap(), false).unwrap();
+        let pixel = map.get(0, 0, false);
+        let expected = if size == 32 { [1.0, 0.0, 0.0] } else { [0.0, 0.0, 1.0] };
+        assert_eq!(&pixel[..3], &expected);
+        let height = maps.iter().find(|m| m["usage"] == "height").unwrap()["file"].as_str().unwrap();
+        let displacement = formats::decode(&std::fs::read(root.join(height)).unwrap(), true).unwrap();
+        assert!((displacement.get(0, 0, false)[0] + 0.5).abs() < 1e-5);
+        assert!(report["unmapped"].as_array().unwrap().iter().any(|id| id == "ambientocclusion"));
+    }
+    let rectangular = run(&dir, &["cook", "oak.mcmat", "--size", "64x32"]);
+    assert_eq!(rectangular["outputs"][0]["size"], json!([64, 32]));
+    assert_eq!(run(&dir, &["info", "oak.mcmat"]), initial);
+    std::fs::remove_dir_all(&dir).unwrap();
+}

@@ -85,3 +85,51 @@ fn both_formats_save_and_reopen_using_separate_workspace_capabilities() {
     drop(app);
     std::fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn scoped_publication_resolves_linked_graphs_and_images_using_the_granted_read_root() {
+    use materialcraft_engine::core::{Graph, GraphInstance, GraphPort, Value};
+    use materialcraft_engine::{formats, samples};
+    let dir = std::env::temp_dir().join(format!("materialcraft-publish-workspace-{}", std::process::id()));
+    let input = dir.join("input");
+    let output = dir.join("published");
+    std::fs::create_dir_all(input.join("parts")).unwrap();
+    std::fs::create_dir_all(&output).unwrap();
+    let mut helpers = Package::new("Helpers");
+    helpers.graphs.push(samples::template("pbr", "Finish", 4).unwrap());
+    let helper = formats::sbs::write_sbs(&helpers).unwrap();
+    std::fs::write(input.join("parts/finish.sbs"), &helper).unwrap();
+    std::fs::write(dir.join("outside.sbs"), &helper).unwrap();
+    for (project, dependency) in [("surface.sbs", "parts/finish.sbs"), ("missing.sbs", "../outside.sbs")] {
+        let mut graph = Graph::new("Oak");
+        let call = graph.add_node("graph_instance", [0.; 2]);
+        graph.node_mut(call).unwrap().instance = Some(GraphInstance {
+            package: dependency.into(),
+            graph: "Finish".into(),
+            inputs: vec![],
+            outputs: vec![GraphPort { identifier: "basecolor".into(), type_code: 2 }],
+            defaults: Default::default(),
+            label: String::new(),
+        });
+        let node = graph.add_node("output", [200., 0.]);
+        graph.node_mut(node).unwrap().params.extend([("identifier".into(), Value::Text("color".into())), ("usage".into(), Value::Enum(0))]);
+        graph.connect(call, "basecolor", node, "input").unwrap();
+        let mut package = Package::new("Surface");
+        package.graphs.push(graph);
+        std::fs::write(input.join(project), formats::sbs::write_sbs(&package).unwrap()).unwrap();
+        let fs = AuthorizedWorkspace::new(Some(&input), Some(&output)).unwrap();
+        let mut app = Headless::new(Session::new(Package::new("Empty")), Filesystem::Workspace(fs));
+        app.load(project).unwrap();
+        let result = app.export_material(&json!({"path":format!("{project}.mcmat")}));
+        if project == "surface.sbs" {
+            assert!(result.is_ok(), "{result:?}");
+            let (pkg, entry) = formats::material::read_material(&std::fs::read(output.join("surface.sbs.mcmat")).unwrap()).unwrap();
+            assert_eq!(pkg.graph(entry).unwrap().name, "Oak");
+            assert_eq!(pkg.graphs.len(), 2);
+        } else {
+            assert!(result.is_err());
+            assert!(!output.join("missing.sbs.mcmat").exists());
+        }
+    }
+    std::fs::remove_dir_all(dir).unwrap();
+}

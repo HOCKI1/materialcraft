@@ -51,7 +51,34 @@ fn references(package: &Package) -> Vec<String> {
 
 /// Seed the registry with already parsed library packages before traversing dependencies. The
 /// registry stays flat so shared dependencies are parsed once and cannot form Arc ownership cycles.
-pub(crate) fn load_references(package: &mut Package, mut pending: Vec<String>) -> Vec<String> {
+pub(crate) fn load_references(package: &mut Package, pending: Vec<String>) -> Vec<String> {
+    resolve(package, pending, &load_file)
+}
+
+pub(crate) fn load_scoped(package: &mut Package, read: &dyn Fn(&str) -> Option<Vec<u8>>) -> Vec<String> {
+    resolve(package, references(package), &|path| {
+        if path.starts_with("sbs://") {
+            return load_file(path);
+        }
+        let bytes = read(path).ok_or_else(|| format!("missing or inaccessible dependency `{path}`"))?;
+        let assets = |reference: &str| read(&document_path::resolve(path, reference));
+        crate::file_cmds::read_package_bytes(&bytes, path, &assets).map_err(|error| error.to_string())
+    })
+}
+
+fn load_file(path: &str) -> Result<materialcraft_formats::sbs::SbsRead, String> {
+    let bytes = if path.starts_with("sbs://") {
+        materialcraft_formats::sbs::library::read(path)?
+    } else {
+        #[cfg(target_arch = "wasm32")]
+        return Err("external file is unavailable in the browser".into());
+        #[cfg(not(target_arch = "wasm32"))]
+        crate::linked_resource::read_regular(std::path::Path::new(path)).map_err(|error| error.to_string())?
+    };
+    crate::file_cmds::read_package_bytes(&bytes, path, &crate::file_cmds::linked_files(path)).map_err(|error| error.to_string())
+}
+
+fn resolve(package: &mut Package, mut pending: Vec<String>, read: &dyn Fn(&str) -> Result<materialcraft_formats::sbs::SbsRead, String>) -> Vec<String> {
     use std::{collections::BTreeSet, sync::Arc};
     let mut visited = BTreeSet::new();
     let mut warnings = Vec::new();
@@ -65,27 +92,17 @@ pub(crate) fn load_references(package: &mut Package, mut pending: Vec<String>) -
             continue;
         }
 
-        let mut read = || -> std::result::Result<Package, String> {
-            if path.starts_with("sbs://") {
-                let bytes = materialcraft_formats::sbs::library::read(&path)?;
-                let read = materialcraft_formats::sbs::read_sbs(&bytes, &path, &crate::file_cmds::linked_files(&path)).map_err(|error| error.to_string())?;
+        if visited.len() > 4096 {
+            warnings.push("linked material exceeds the package dependency limit".into());
+            break;
+        }
+        match read(&path) {
+            Ok(read) => {
                 warnings.extend(read.warnings);
-                return Ok(read.pkg);
-            }
-
-            #[cfg(target_arch = "wasm32")]
-            return Err("external file is unavailable in the browser".into());
-            #[cfg(not(target_arch = "wasm32"))]
-            {
-                let bytes = std::fs::read(&path).map_err(|error| error.to_string())?;
-                let read = materialcraft_formats::sbs::read_sbs(&bytes, &path, &crate::file_cmds::linked_files(&path)).map_err(|error| error.to_string())?;
-                warnings.extend(read.warnings);
-                Ok(read.pkg)
-            }
-        };
-        match read() {
-            Ok(mut source) => {
-                normalize_references(&mut source, &path);
+                let source = read.pkg;
+                for (name, dependency) in &source.dependencies {
+                    package.dependencies.entry(name.clone()).or_insert_with(|| dependency.clone());
+                }
                 pending.extend(references(&source));
                 package.dependencies.insert(path, Arc::new(source));
             }

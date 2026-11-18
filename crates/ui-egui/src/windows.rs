@@ -457,8 +457,8 @@ pub fn function_summary(app: &mut MaterialCraftApp, ui: &mut Ui, node: NodeId, p
     });
 }
 
-/// Project formats offered by File ▸ Open.
-pub const OPEN_EXTS: &[&str] = &["sbs", "mcraft"];
+/// Authoring and published material formats offered by File ▸ Open.
+pub const OPEN_EXTS: &[&str] = &["sbs", "mcraft", "mcmat"];
 
 pub(crate) fn package_filters(open: bool, archive: bool) -> Vec<(&'static str, &'static [&'static str])> {
     let mut filters: Vec<(&str, &[&str])> = vec![("SBS XML Package (*.sbs)", &["sbs"]), ("MaterialCraft Project (*.mcraft)", &["mcraft"])];
@@ -466,7 +466,8 @@ pub(crate) fn package_filters(open: bool, archive: bool) -> Vec<(&'static str, &
         filters.reverse();
     }
     if open {
-        filters.insert(0, ("All formats (*.sbs *.mcraft)", OPEN_EXTS));
+        filters.push(("MaterialCraft Material (*.mcmat)", &["mcmat"]));
+        filters.insert(0, ("All formats (*.sbs *.mcraft *.mcmat)", OPEN_EXTS));
     }
     filters
 }

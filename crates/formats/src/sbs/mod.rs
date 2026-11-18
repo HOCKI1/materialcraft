@@ -49,6 +49,7 @@ mod tests;
 mod read;
 mod write;
 
+mod presets;
 mod preview_binding;
 
 mod resource;

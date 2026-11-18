@@ -41,7 +41,7 @@ fn the_graph_menu_opens_the_window_on_the_matching_tab() {
     open_from_the_graph_menu(&mut harness, "Export material...");
     assert!(harness.state().ui.windows.export);
     assert_eq!(harness.state().ui.export_tab, ExportTab::Mcmat);
-    assert!(harness.query(By::new().role(Role::ComboBox).label("Normal orientation")).is_some(), "the #190 options are listed");
+    assert!(harness.query(By::new().role(Role::ComboBox).label("Root graph")).is_some(), "the publishing dialog identifies its root graph");
 
     harness.get(By::new().label("Close")).click();
     harness.run_steps(3);
@@ -94,4 +94,32 @@ fn checking_outputs_in_the_tree_updates_the_window_copy() {
     harness.get(By::new().role(Role::CheckBox).label(graph.as_str())).click();
     harness.run_steps(2);
     assert!(harness.state().ui.export_draft.as_ref().unwrap().skipped_outputs.is_empty(), "the graph's checkbox checks all its outputs");
+}
+
+#[test]
+fn publishes_the_graph_chosen_in_the_dialog() {
+    let folder = tempfile::tempdir().unwrap();
+    let archive = folder.path().join("picked.mcmat");
+    let mut harness = harness();
+    let mut other = harness.state().session.graph().unwrap().clone();
+    other.name = "Chosen".into();
+    other.folder = "Materials".into();
+    harness.state_mut().session.pkg.graphs.push(other);
+    harness.run_steps(5);
+    open_from_the_graph_menu(&mut harness, "Export material...");
+    harness.get(By::new().role(Role::ComboBox).label("Root graph")).click();
+    harness.run_steps(2);
+    harness.get_by_label("Materials/Chosen").click();
+    harness.run_steps(2);
+    harness.state_mut().ui.export_draft.as_mut().unwrap().material.archive = archive.to_string_lossy().into_owned();
+    harness.get(By::new().role(Role::Button).label("Export")).click();
+    harness.run_steps(3);
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(30);
+    while !archive.exists() && std::time::Instant::now() < deadline {
+        harness.run_steps(1);
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
+    let (package, entry) = materialcraft_engine::formats::material::read_material(&std::fs::read(archive).unwrap()).unwrap();
+    assert_eq!(package.graph(entry).unwrap().sbs_path(), "Chosen");
+    assert_ne!(harness.state().session.graph().unwrap().name, "Chosen");
 }

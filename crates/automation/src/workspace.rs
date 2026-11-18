@@ -17,12 +17,28 @@ pub const MAX_READ_BYTES: u64 = 2 << 30;
 #[derive(Clone, Default)]
 pub struct AuthorizedWorkspace {
     read: Option<Arc<Dir>>,
+    read_path: Option<PathBuf>,
     write: Option<Arc<Dir>>,
 }
 
 impl AuthorizedWorkspace {
     pub fn new(read_root: Option<&Path>, write_root: Option<&Path>) -> Result<Self, AutomationError> {
-        Ok(Self { read: open_root(read_root, "read")?, write: open_root(write_root, "write")? })
+        let read = open_root(read_root, "read")?;
+        let read_path = read_root.map(std::fs::canonicalize).transpose().map_err(|e| bad(e.to_string()))?;
+        Ok(Self { read, read_path, write: open_root(write_root, "write")? })
+    }
+
+    /// Engine identities are absolute. Actual dependency reads still go through the directory capability.
+    pub(crate) fn document_path(&self, path: &str) -> Result<PathBuf, AutomationError> {
+        Ok(self.read_path.as_ref().ok_or_else(|| denied("read"))?.join(relative_path(path)?))
+    }
+
+    pub(crate) fn read_dependency(&self, path: &str) -> Option<Vec<u8>> {
+        if path.starts_with("sbs://") {
+            return materialcraft_engine::formats::sbs::library::read(path).ok();
+        }
+        let relative = Path::new(path).strip_prefix(self.read_path.as_ref()?).ok()?;
+        self.read(&relative.to_str()?.replace('\\', "/")).ok()
     }
 
     /// Read one regular file below the read root
@@ -167,6 +183,7 @@ fn file_error(op: &str, path: &str, e: std::io::Error) -> AutomationError {
 pub fn authorize_command(id: &str, params: &Value) -> Result<(), AutomationError> {
     let has_path = ["path", "dir"].iter().any(|k| params.get(k).is_some_and(|v| !v.is_null()));
     let ok = match id {
+        "material.cook" => !has_path && params.get("inputs").is_none_or(|v| v.is_null() || v.as_object().is_some_and(|o| o.is_empty())),
         "file.new" | "file.newPackage" | "file.newAtomicSample" => !has_path,
         _ => !id.starts_with("file.") && !has_path,
     };

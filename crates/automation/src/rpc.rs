@@ -291,17 +291,15 @@ mod tests {
     fn material_export_writes_a_portable_material_below_the_write_root() {
         let (inside, _, h) = workspace_session("mat-ok", true);
         std::fs::create_dir(inside.join("out")).unwrap();
-        let r = call(&h, "material.export", json!({"path": "out/brick", "size": 32})).unwrap();
+        let r = call(&h, "material.export", json!({"path": "out/brick"})).unwrap();
         assert_eq!(r["path"], "out/brick.mcmat");
         let bytes = std::fs::read(inside.join("out/brick.mcmat")).unwrap();
         assert_eq!(r["bytes"], bytes.len());
-        let (m, source) = materialcraft_engine::formats::material::read_material(&bytes).unwrap();
-        assert_eq!(m.size, [32, 32]);
-        assert!(m.maps.iter().any(|e| e.usage == "height"));
-        assert!(!source.is_empty());
+        let (package, entry) = materialcraft_engine::formats::material::read_material(&bytes).unwrap();
+        assert!(package.graph(entry).unwrap().nodes.iter().any(|node| node.def == "output"));
         assert_eq!(std::fs::read_dir(inside.join("out")).unwrap().count(), 1, "no temporary files left behind");
         // An explicit extension is kept (case-insensitively) and the file can be opened again.
-        let r = call(&h, "material.export", json!({"path": "again.MCMAT", "size": 16})).unwrap();
+        let r = call(&h, "material.export", json!({"path": "again.MCMAT"})).unwrap();
         assert_eq!(r["path"], "again.MCMAT");
         assert!(call(&h, "package.open", json!({"path": "again.MCMAT"})).is_ok());
     }
@@ -332,13 +330,13 @@ mod tests {
         let (_inside, outside, h) = workspace_session("mat-escape", true);
         let abs = outside.join("abs.mcmat").display().to_string();
         for p in ["../outside/m.mcmat", "a/../../outside/m.mcmat", "/tmp/m.mcmat", "a\\b.mcmat", "C:/m.mcmat", "./m.mcmat", abs.as_str()] {
-            let e = call(&h, "material.export", json!({"path": p, "size": 16}));
+            let e = call(&h, "material.export", json!({"path": p}));
             assert!(e.is_err(), "accepted {p:?}");
         }
         #[cfg(unix)]
         {
             std::os::unix::fs::symlink(&outside, _inside.join("link")).unwrap();
-            assert!(call(&h, "material.export", json!({"path": "link/m.mcmat", "size": 16})).is_err());
+            assert!(call(&h, "material.export", json!({"path": "link/m.mcmat"})).is_err());
         }
         assert_eq!(std::fs::read_dir(&outside).unwrap().count(), 0, "nothing written outside the root");
         // The generic command path stays closed too: host paths are still refused.

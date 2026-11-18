@@ -149,7 +149,8 @@ cargo run --release -p materialcraft-cli -- new wood wood.sbs
 cargo run --release -p materialcraft-cli -- render wood.sbs wood.png --scene sphere --full --hq
 cargo run --release -p materialcraft-cli -- export wood.sbs textures --format png --depth 16
 cargo run --release -p materialcraft-cli -- export my.sbs out --set wear=0.7    # with a graph input "wear" set first
-cargo run --release -p materialcraft-cli -- run my.sbs file.exportMaterial '{"path": "my.mcmat", "size": 2048}'   # for TextureCraft
+cargo run --release -p materialcraft-cli -- publish my.sbs my.mcmat --graph Materials/Oak
+cargo run --release -p materialcraft-cli -- export my.mcmat build/oak --profile materialx --size 2048 --set wear=0.7
 cd apps/materialcraft-web && trunk serve                      # web build
 cargo xtask ci                                                # fmt, clippy, tests, layering, wasm
 ```

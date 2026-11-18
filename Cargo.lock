@@ -937,9 +937,18 @@ dependencies = [
 ]
 
 [[package]]
-name = "craft-mcmat"
+name = "craft-materialx"
 version = "0.1.0"
 source = "git+https://github.com/storytold/craft-libs?rev=453b0da782ccef39be9a6dac8d27c80b553ef1cc#453b0da782ccef39be9a6dac8d27c80b553ef1cc"
+dependencies = [
+ "craft-xml",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "craft-mcmat"
+version = "0.1.0"
+source = "git+https://github.com/storytold/craft-libs?rev=b0f25d641840bea1dda99c1e5e0c8db9221bcf28#b0f25d641840bea1dda99c1e5e0c8db9221bcf28"
 dependencies = [
  "craft-zip",
  "serde",
@@ -1112,7 +1121,7 @@ dependencies = [
 [[package]]
 name = "craft-zip"
 version = "0.1.0"
-source = "git+https://github.com/storytold/craft-libs?rev=453b0da782ccef39be9a6dac8d27c80b553ef1cc#453b0da782ccef39be9a6dac8d27c80b553ef1cc"
+source = "git+https://github.com/storytold/craft-libs?rev=b0f25d641840bea1dda99c1e5e0c8db9221bcf28#b0f25d641840bea1dda99c1e5e0c8db9221bcf28"
 dependencies = [
  "flate2",
  "thiserror 2.0.21",
@@ -2851,6 +2860,7 @@ dependencies = [
 name = "materialcraft-engine"
 version = "0.4.1"
 dependencies = [
+ "craft-materialx",
  "craft-texture",
  "image",
  "materialcraft-core",
@@ -2858,6 +2868,7 @@ dependencies = [
  "materialcraft-formats",
  "materialcraft-geom",
  "materialcraft-nodes",
+ "rustix 1.1.6",
  "serde",
  "serde_json",
  "sha2",

@@ -36,7 +36,7 @@ impl ExportRequest {
 
     /// Read `file.export` params, checking them against the session's package
     pub fn from_params(s: &Session, p: &J) -> Result<Self> {
-        let graph_index = u64p(p, "graph").map_or(s.graph, |index| index as usize);
+        let graph_index = crate::graph_cmds::graph_index(s, p)?;
         let graph = s.pkg.graph(graph_index)?;
 
         let format = strp(p, "format").unwrap_or("png").trim_start_matches('.').to_ascii_lowercase();
@@ -121,7 +121,7 @@ fn known_output<'a>(identifier: &'a str, identifiers: &[String], graph: &str) ->
 }
 
 /// `size`: the larger side in pixels (0 = the graph's size) or `[width, height]`
-fn export_size(value: Option<&J>) -> Result<Option<ExportSize>> {
+pub(crate) fn export_size(value: Option<&J>) -> Result<Option<ExportSize>> {
     let pixels = |value: &J| value.as_u64().or_else(|| value.as_f64().filter(|f| f.is_finite() && *f >= 0.0).map(|f| f.round() as u64));
     let clamp = |pixels: u64| pixels.min(u64::from(u32::MAX)) as u32;
 

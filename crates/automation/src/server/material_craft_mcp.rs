@@ -225,9 +225,9 @@ impl MaterialCraftMcp {
         to_result(self.call("outputs.export", params(&p)).await)
     }
 
-    #[tool(description = "Cook a graph at full size and write it as a portable .mcmat material (cooked maps, exposed inputs, \
-        source package) to a path relative to the write root, for TextureCraft. Optional graph, size and exposed input values. \
-        Returns {path, bytes}.")]
+    #[tool(
+        description = "Publish one root graph and its source dependencies as a procedural v3 .mcmat below the write root. Use outputs_export to bake with parameter values, image inputs and a requested size."
+    )]
     async fn material_export(&self, Parameters(p): Parameters<MaterialExportParams>) -> Result<CallToolResult, McpError> {
         to_result(self.call("material.export", params(&p)).await)
     }
@@ -302,7 +302,7 @@ mod tests {
         let base = std::env::temp_dir().join(format!("mc-mcp-{}-material", std::process::id()));
         let _ = std::fs::remove_dir_all(&base);
         std::fs::create_dir_all(&base).unwrap();
-        let args = || Parameters(MaterialExportParams { path: "m".into(), graph: None, size: Some(16), values: None });
+        let args = || Parameters(MaterialExportParams { path: "m".into(), graph: None });
 
         let denied = MaterialCraftMcp::headless(Headless::new(materialcraft_engine::sample_session(), Filesystem::Denied));
         assert_eq!(denied.material_export(args()).await.unwrap().is_error, Some(true));
@@ -311,7 +311,7 @@ mod tests {
         let mcp = MaterialCraftMcp::headless(Headless::new(materialcraft_engine::sample_session(), Filesystem::Workspace(ws)));
         assert_eq!(mcp.material_export(args()).await.unwrap().is_error, Some(false));
         assert!(base.join("m.mcmat").is_file());
-        let escape = Parameters(MaterialExportParams { path: "../m.mcmat".into(), graph: None, size: Some(16), values: None });
+        let escape = Parameters(MaterialExportParams { path: "../m.mcmat".into(), graph: None });
         assert_eq!(mcp.material_export(escape).await.unwrap().is_error, Some(true));
         assert!(!base.parent().unwrap().join("m.mcmat").exists());
     }

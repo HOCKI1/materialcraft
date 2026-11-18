@@ -339,9 +339,15 @@ impl<'text> SbsReader<'text, '_> {
                 step: None,
             };
             super::parameter_widget::read(input, &mut exposed);
+            if let Some(current) =
+                child_element(input, "materialcraftValue").and_then(sbs_constant).and_then(|raw| to_param_value(&exposed.default, &raw, exposed.options.len()))
+            {
+                graph.inputs.insert(exposed.id.clone(), current);
+            }
             graph.exposed.push(exposed);
         }
 
+        super::presets::read(element, graph);
         image_inputs
     }
 

@@ -91,15 +91,9 @@ fn unwired_options_say_they_are_not_available_yet() {
     let directory = temp("unwired");
     let planned = ExportSettings { destination: directory.display().to_string(), format: "dds".into(), ..ExportSettings::default() };
 
-    for (tab, settings) in [(ExportTab::MaterialX, ExportSettings::default()), (ExportTab::Mcmat, ExportSettings::default()), (ExportTab::FromGraph, planned)] {
-        app.ui.export_tab = tab;
-        let toasts = app.toasts.len();
-
-        assert!(!export(&mut app, &settings), "{tab:?} keeps the window open");
-
-        let toast = app.toasts.get(toasts).map(|toast| toast.text.clone()).unwrap_or_default();
-        assert!(toast.contains("isn't available yet"), "{tab:?}: {toast}");
-    }
+    app.ui.export_tab = ExportTab::FromGraph;
+    assert!(!export(&mut app, &planned));
+    assert!(app.toasts.last().unwrap().text.contains("isn't available yet"));
     assert!(!directory.exists(), "nothing is written");
 }
 

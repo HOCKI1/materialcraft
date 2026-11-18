@@ -59,12 +59,14 @@ pub(crate) fn specs() -> Vec<CommandSpec> {
     ]
 }
 
-fn graph_index(s: &Session, p: &J) -> Result<usize> {
+pub(crate) fn graph_index(s: &Session, p: &J) -> Result<usize> {
     match p.get("graph") {
         None | Some(J::Null) => Ok(s.graph),
-        Some(J::String(name)) => s.pkg.graph_by_name(name).map(|(i, _)| i).ok_or_else(|| bad("graph", format!("no graph `{name}`"))),
+        Some(J::String(name)) => {
+            s.pkg.graph_by_name(name).map(|(i, _)| i).ok_or_else(|| bad("graph", format!("unknown or ambiguous graph `{name}`; use its full SBS path")))
+        }
         Some(v) => {
-            let i = v.as_u64().ok_or_else(|| bad("graph", "`graph` is an index or a name"))? as usize;
+            let i = v.as_u64().and_then(|i| usize::try_from(i).ok()).ok_or_else(|| bad("graph", "`graph` is an index or an SBS path"))?;
             s.pkg.graph(i)?;
             Ok(i)
         }
