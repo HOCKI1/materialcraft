@@ -55,6 +55,8 @@ impl ChannelRange {
         let span = in_high - in_low;
         // Coincident endpoints use the slope of a 0.0001-wide interval. Narrow nonzero spans retain their own slope.
         let scale = if span == 0.0 { 10_000.0 } else { span.recip() };
+        // The texture evaluator flushes a subnormal slope before it multiplies the input.
+        let scale = if scale.is_subnormal() { 0.0_f32.copysign(scale) } else { scale };
         let mid = if in_mid.is_finite() { in_mid.clamp(0.0, 1.0) } else { 0.5 };
         let gamma = if mid <= 0.5 { (9.0 - 16.0 * mid).recip() } else { 16.0 * mid - 7.0 };
         Self { in_low, scale, gamma, out_low, out_span: out_high - out_low }
@@ -73,6 +75,12 @@ impl ChannelRange {
 #[cfg(test)]
 mod levels_tests {
     use super::levels_fn;
+
+    #[test]
+    fn enormous_ranges_flush_the_reciprocal_before_scaling_the_pixel() {
+        assert!(levels_fn(3.0, 0.0, 0.5, 2.0_f32.powi(125), 0.0, 1.0) > f32::MIN_POSITIVE);
+        assert_eq!(levels_fn(3.0, 0.0, 0.5, 2.0_f32.powi(127), 0.0, 1.0).to_bits(), 0);
+    }
 
     #[test]
     fn levels_remaps_the_input_range_midtones_and_output_range() {

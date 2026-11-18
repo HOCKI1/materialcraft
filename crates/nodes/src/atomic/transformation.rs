@@ -115,6 +115,38 @@ mod tests {
     use std::collections::BTreeMap;
 
     #[test]
+    fn large_affine_offsets_preserve_the_last_visible_mip_texels() {
+        let color = [23.0, 139.0, 211.0, 255.0].map(|v| v / 255.0);
+        let inputs = [Some(Image::filled(128, 128, Kind::Color, color).with_integer_sampling(true))];
+        for (scale, offset, wrap, target) in [(256.0, [127.5, -127.5], 1, (0, 127)), (1024.0, [-492.5, 511.5], 2, (125, 0))] {
+            let vars = BTreeMap::from([("$tiling".into(), Value::Int(wrap))]);
+            let params = resolve_params(
+                &definition(),
+                &BTreeMap::from([
+                    ("matrix".into(), Value::Float4([scale, 0.0, 0.0, scale])),
+                    ("offset".into(), Value::Float2(offset)),
+                    ("matte".into(), Value::Color([0.0, 0.0, 0.0, 1.0])),
+                ]),
+            );
+            let context = CookContext {
+                input_formats: &[OutputFormat::U8],
+                w: 128,
+                h: 128,
+                seed: 0,
+                format: OutputFormat::U8,
+                tile: false,
+                inputs: &inputs,
+                params: &params,
+                resource: &|_| None,
+                vars: &vars,
+            };
+            let image = crate::output_precision::apply(transformation(&context).unwrap().remove(0), OutputFormat::U8);
+            assert_eq!(image.get(target.0, target.1, false).map(|v| (v * 255.0).round() as u8), [11, 69, 105, 255]);
+            assert_eq!(image.get(80, 80, false), [0.0, 0.0, 0.0, 1.0]);
+        }
+    }
+
+    #[test]
     fn bilinear_transform_filters_the_matte_at_each_untiled_edge() {
         let params = resolve_params(&definition(), &BTreeMap::from([("offset".into(), Value::Float2([0.25 / 4.0, 0.375 / 4.0]))]));
         let inputs = [Some(Image::filled(4, 4, Kind::Color, [1.0; 4]).with_integer_sampling(true))];

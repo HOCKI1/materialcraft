@@ -57,6 +57,16 @@ fn integer_levels_bounds_the_four_endpoints_before_applying_gamma() {
 }
 
 #[test]
+fn additive_blend_bounds_global_opacity_and_fuses_the_background_weight() {
+    let inputs = [Some(Image::gray(1, 1, |_, _| 9830.0 / 65535.0)), Some(Image::gray(1, 1, |_, _| 2753.0 / 65535.0))];
+    for (opacity, bits) in [(0.55, 0x3dfefcff), (1.3, 0x3e449cc5)] {
+        let params = [("mode", Value::Enum(1)), ("opacity", Value::Float(opacity))];
+        let image = cook("blend", &inputs, &params, [1, 1], false);
+        assert_eq!(image.get_gray(0, 0, false).to_bits(), bits);
+    }
+}
+
+#[test]
 fn levels_scales_narrow_and_coincident_ranges_independently() {
     let pixel = [0xbfd95555, 0xbf9aaaab, 0xbf380000, 0xbe6aaaab].map(f32::from_bits);
     let input = Image::filled(1, 1, Kind::Color, pixel);

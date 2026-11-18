@@ -253,6 +253,62 @@ Literal-only pixel graphs at 16², seed 23, give 512/768 exact pixels for each l
 
 The shared-lookup ridged root still matches 5,160/16,384 at changed roughness in F32, maximum 1.78813934e−7. Its one-octave .7 control still matches 1,847/4,096, maximum 2.38418579e−7. For positive normal x on the signed field, the reference's general power agrees with exp(y×ln(x)) on all 32,614 pixels. On .7 with exponent 1 it returns `3f333334`. Further work on general power and natural exponential is tracked with the [octave controls](#ridged-noise-octave-isolation).
 
+### Large transform offsets and additive blends
+
+| Root | Measured cases | Exact pixels (maximum error zero) |
+|---|---:|---:|
+| 3D viewer panoramic LOD | 20 | 219,392/219,392 |
+| Channel mixer | 18 | 171,264/171,264 |
+| Horizon occlusion subsample | 19 | 171,520/171,520 |
+| Second PBR render panoramic LOD | 18 | 186,624/186,624 |
+| Orthographic vector shadow pass | 28 | 211,456/211,456 |
+| Premultiplied to straight | 19 | 172,288/172,288 |
+| Irradiance panoramic LOD | 18 | 186,624/186,624 |
+| Shape splatter data extract (seven outputs) | 19 | 1,206,016/1,206,016 |
+
+**Panoramic LOD.** At 128², the image feeding the first incorrect transform already matched every texel. A scale of 256 with offset (127.5,−127.5) had been evaluated with offset (33,−33). This moved one strip of the image from row 127 to row 80. Affine offsets and matrices now retain their finite authored values. The sampler bounds coordinates before it indexes the image, and mip reduction stops at the existing limit. The viewer total includes the ten [original panorama cases](#panoramic-lod), the independent 32² F32 case and nine additional inputs. The four 64² archived format comparisons repeat cases in the original ten and count once.
+
+The nine additional comparisons bind the [original color fields](#signed-levels-driven-grayscale-weights-and-grayscale-gradients) to the single image input. Use small/16² F32/seed 31, full/64² U8, U16, F16 and F32/71, large/128² F32/177, rectangular/32² F32/283, signed/128² F32/309 and full/64² F32/509. The other two exact panorama roots each add four archived renders and five previous precision and independent-input cases.
+
+The first PBR render panorama remains open. The four original F32 renders match 182/16,384, 734/65,536, 182/16,384 and 340/16,384, maximum 1.78813934e−7. The five previous precision and independent cases and nine original color fields give 38,653/71,936. U8 and F16 match every pixel, U16 matches 8,163/8,192 with maximum one level, and F32 matches 14,106/47,360 with maximum 2.38418579e−7. At 128² the first minifying transform matches 12,935/16,384 for the large field and 10,444/16,384 for the signed field. Its input matches, and float mip filtering remains under test.
+
+**Transform controls.** Use a flat 128² RGBA8 input (23,139,211,255), black opaque matte and seed 337 in all four output formats. Repeat with the signed-field hash from the [3D gradient probe](#3d-linear-gradient), taking the low byte of each hash as the input, at seed 571 in U8 and F32. For each row below, matrix entries follow SBS column order. Independent horizontal and vertical wrapping are given as X or Y.
+
+| Matrix | Offset | Wrap | Filter |
+|---|---|---|---|
+| Identity | (36.125,−65.375) | XY | Bilinear |
+| Identity | (−127.25,64.125) | XY | Nearest |
+| diag(128,128) | (63.5,−63.5) | X | Bilinear |
+| diag(256,256) | (127.5,−127.5) | X | Bilinear |
+| diag(512,512) | (255.5,−252.5) | X | Bilinear |
+| diag(1024,1024) | (−492.5,511.5) | Y | Bilinear |
+| (2,512,0,1) | (38.125,.125) | Neither | Nearest |
+
+The 42 transforms match 687,744/688,128 pixels. The only differences are 128 F32 field pixels each with scales 128, 256 and 1024, maximum 5.96046448e−8. The flat 256-scale case stores (11,69,105,255) on row 127 and opaque black on row 80. The 1024-scale case gives the same half-intensity color on column 125.
+
+**Channel mixer and blend.** All 18 [channel mixer cases](#integer-levels-endpoints-and-channel-mixing) now match. Add and subtract bound the global opacity before applying the mask. In source-alpha interpretation, take the complement of transparency for the mask and foreground alpha. Calculate the background weight as a fused subtraction from one. Multiply the combined foreground color by its weight, then add the weighted background with one fused operation. For foreground 9,830/65,535, background 2,753/65,535 and opacity .55, the F32 output is 3dfefcff. At opacity 1.3 it is 3e449cc5.
+
+At 64² use grayscale U16 foreground (9053x+3581y+43xy+9830) mod 65536 and background (4519x+9721y+19xy+2753) mod 65536. For signed F32 input, convert each stored level to float, divide by 16384 and subtract 1.5. Run add and subtract with opacity −.3, 0, .2, .55, 1 and 1.3 in each of the four output formats, seed 443. All 393,216 grayscale pixels match. The 120 RGBA cases on the [varying-alpha fields](#color-burn-and-color-dodge) add 491,520 exact pixels. These include varying inputs, opaque inputs, white masks, constants, black foreground, transparent background, signed RGB and byte, word and half storage. Add uses all six opacities, and subtract uses −.3, .55 and 1.3. Repeated RGBA captures at the same settings are included in the 216 direct comparisons. Maximum error is zero. The subnormal Levels range probe in the [integer endpoint controls](#integer-levels-endpoints-and-channel-mixing) now matches 32,768/32,768. The texture evaluator flushes a subnormal reciprocal range to signed zero before multiplying.
+
+**Horizon occlusion subsample.** Let H=(13x+31y+7xy+47j) mod 1024 divided by 1023, with j=0 for input and 1 for mip input. For normalized pixel-center coordinates u,v, set B=max(0,1−3sqrt((u−.35−.15j)²+(v−.625+.15j)²)). Each F32 input is .375H+.625B. The additional cases below match 39,424/39,424 grayscale pixels. The 64² F32 case contains 172 distinct values.
+
+| Output, seed | Source sides (input/mip) | Angle, mip, jitter, XY multiplier |
+|---|---|---|
+| 16² F32, 41 | 16/16 | Defaults |
+| 64² U8/U16/F16/F32, 73, repeat F32 at 137 | 64/32 | .1875, 3, .3125, (.75,1.25) |
+| 128² F32, 197 | 128/64 | −.375, 1, 1, (1.375,.625) |
+| 32² F32, 211 | 32×16 / 16×8 | .8125, 2, 0, (.625,1.125) |
+| 32² F32, 317 | 32/32, constant .25/.75 | .25, 4, .75, (1.25,.75) |
+| 16² F32, 419 | 16/32, both 3H−1.5 | .125, 2, .5, (1,.75) |
+
+**Premultiplied color and orthographic shadow.** For the ten original F32 input sets use the same H with j=0 through 3. The outputs are 16² F32/31, 64² in four formats/73, 128² F32/163, rectangular 32×16 sources to 32² F32/229, 32² F32 black-alpha/317, 32² F32 signed/431, and a repeat of 64² F32/137. For premultiplied color, choose A from (0,1/65535,.03125,.125,.375,.625,.875,1) by (x+3y) mod 8. RGB is A times the first three H channels. Set pixel (0,0) in the small field to (.75,.25,.125,0). Use all-zero A for the black-alpha control. For signed input replace A by 3A−1, RGB by (3H−1.25)A, and pixel (1,0) by (.25,−.125,.75,0).
+
+For the shadow pass use H as RGBA noise. Use (u,v,H₂,1) for the light coordinates. Normal XY before encoding are (.7cos(2πu),.7sin(2πv)), with positive unit-length Z. Environment RGB is (.35+.28j)(.25+1.5Hⱼ), A=1. The sequence/sample settings for small, the four formats, large, rectangular, flat, signed and repeat are defaults, 3/8, 6/4, 0/3, 2/2, 5/6 and 3/8. The flat case uses zero light coordinates and environment (.5,.75,1.25,1). The signed case uses 3H−1 for the environment. Eight of these ten reference images are opaque black. Both the rectangular case (88 distinct colors) and flat-environment case (26 colors) exercise nonzero output.
+
+The nine independent lighting controls match 39,168/39,168, maximum 0. Use sequence zero with the previous sources. At 16²/53, 128²/149 and signed 32²/211 supply zero light coordinates and 3, 4 and 2 samples respectively. At 64²/73 in four formats, repeated in F32/389, supply (.015625u,.015625v,0,0) and four samples. At 32²/251 use rectangular inputs, light (.125+.25u,.5+.0625v,0,1) and three samples. The 128² reference has 68 distinct colors and its blue channel reaches 9.03062534.
+
+**Shape splatter data extract.** Read `position`, `uv_texture_space`, `bounding_box_size`, `uv_shape_space`, `pattern_id`, `shape_angle`, `shape_index` from the two data textures. Each of the seven ports matches 172,288/172,288 pixels, maximum zero. For slot s=0 or 1 and normalized pixel-center coordinates u,v, define Hⱼ=(19x+37y+11xy+53(j+4s)) mod 1024 divided by 1023. Write (H₀,u,H₂,H₃) for slot 0 and (H₀,v,H₂,H₃) for slot 1. Output cases are 16² F32/seed 17, 64² in four formats/97, 128² F32/137, 32² F32/197 with a 32×16 first input, flat 32² F32/281, signed 32² F32/337 and repeat 64² F32/419. The flat inputs are (.25,.5,.75,1) and (.875,.625,.375,.125). The signed case uses 3 times each channel minus one. Four archived cases and five previous format and independent-source cases complete the 19 configurations.
+
 ### Integer Levels endpoints and channel mixing
 
 **Integer Levels.** The 60 signed controls and the 24 mixed, narrow and signed-range controls from the [Levels endpoint table](#levels-endpoints-camera-tangents-and-uniform-exponentials) now match **344,064/344,064 RGBA pixels**, maximum zero. For an integer destination, bound each input and output endpoint to [0,1] before computing the curve. The intermediate-clamp switch still controls the position on the curve. For F16 and F32, retain finite endpoints outside the slider range.

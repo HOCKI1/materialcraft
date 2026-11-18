@@ -27,6 +27,7 @@ fn blend(context: &CookContext) -> CookResult {
     let background = background.unwrap_or_else(|| Image::filled(context.w, context.h, kind, [0.0, 0.0, 0.0, 1.0]));
     let mask = context.sized(2).map(|m| m.to_gray());
     let (mode, opacity) = (context.i("mode"), context.f("opacity"));
+    let opacity = if matches!(mode, 1 | 2) { opacity.clamp(0.0, 1.0) } else { opacity };
     let color_blending = context.i("color_blending");
     let blend_alpha = context.b("alpha") && !foreground.is_gray();
     let clamp =
@@ -35,7 +36,7 @@ fn blend(context: &CookContext) -> CookResult {
         let (x, y) = (x as i64, y as i64);
         let m = mask.as_ref().map_or(1.0, |m| m.get_gray(x, y, false));
         // These modes read the mask through its transparency before applying global opacity.
-        let m = if (mode == 0 && color_blending == 0) || matches!(mode, 7 | 8) { 1.0 - (1.0 - m) } else { m };
+        let m = if ((0..=2).contains(&mode) && color_blending == 0) || matches!(mode, 7 | 8) { 1.0 - (1.0 - m) } else { m };
         ops::blend_px(mode, background.get(x, y, false), foreground.get(x, y, false), opacity * m, color_blending, blend_alpha, clamp)
     })])
 }

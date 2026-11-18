@@ -48,9 +48,10 @@ pub fn clamp_params(definition: &NodeDefinition, params: &mut BTreeMap<String, V
             continue;
         }
 
-        // Levels endpoints have fixed evaluation cost and float images can span the entire finite range.
-        let levels_endpoint = definition.id == "levels" && matches!(parameter.id, "in_low" | "in_high" | "out_low" | "out_high");
-        let ranged = parameter.min < parameter.max && !levels_endpoint;
+        // HDR endpoints and affine coordinates can exceed the slider range. Neither controls an allocation.
+        let unbounded =
+            matches!((definition.id, parameter.id), ("levels", "in_low" | "in_high" | "out_low" | "out_high") | ("transformation", "matrix" | "offset"));
+        let ranged = parameter.min < parameter.max && !unbounded;
         let span = parameter.max - parameter.min;
         let (lo, hi) = if ranged { (parameter.min - HARD_SPAN * span, parameter.max + HARD_SPAN * span) } else { (f32::MIN, f32::MAX) };
 
