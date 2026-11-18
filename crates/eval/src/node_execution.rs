@@ -45,7 +45,8 @@ pub(crate) fn cook_node(
     let mut variables = std::borrow::Cow::Borrowed(graph_variables);
     let mut input_error = None;
     for port in input_ports {
-        let source = prepared.index.input_of(node.id, &port.id).and_then(|connection| {
+        let connection = prepared.index.input_of(node.id, &port.id);
+        let source = connection.and_then(|connection| {
             let result = cooked.nodes.get(&connection.from)?;
             let index = prepared.ports(connection.from).1.iter().position(|output| output.id == connection.from_port)?;
             Some((result.outputs.get(index)?, result.key ^ hash_of(&index), result.output_base(index)?.format))
@@ -77,8 +78,15 @@ pub(crate) fn cook_node(
                 input_error = Some(format!("input `{}` requires an image", port.id));
             }
 
-            inputs.push(output.and_then(NodeOutput::as_image).cloned());
-            input_formats.push(source.map_or(materialcraft_core::OutputFormat::F32, |source| source.2));
+            let wired = if options.depth != 0 && node.def == "pixel_processor" {
+                connection.and_then(|edge| prepared.index.node(edge.from)).and_then(|bridge| wired_texture(options, bridge))
+            } else {
+                None
+            };
+            let stored = output.and_then(NodeOutput::as_image).map(|image| (image, source.map_or(OutputFormat::F32, |source| source.2)));
+            let image = wired.or(stored);
+            inputs.push(image.map(|(image, _)| image.clone()));
+            input_formats.push(image.map_or(OutputFormat::F32, |(_, format)| format));
         }
 
         incoming.push(source.map(|(output, _, format)| (output, format)));
@@ -133,11 +141,11 @@ pub(crate) fn cook_node(
     let tile = base.tiling[0] && base.tiling[1];
 
     // Input nodes read the caller's image for their identifier
-    let input_image = node
-        .def
-        .starts_with("input_")
-        .then(|| identifier(node))
-        .and_then(|name| Some((options.inputs.get(&name)?, options.input_formats.get(&name).copied().unwrap_or(OutputFormat::F32))));
+    let input_image = node.def.starts_with("input_").then(|| identifier(node)).and_then(|name| {
+        let format = options.input_formats.get(&name).copied();
+        let tiling = if options.depth != 0 && format.is_some() { base.tiling } else { [false; 2] };
+        Some((options.inputs.get(&name)?, format.unwrap_or(OutputFormat::F32), tiling))
+    });
     let resource_hash = match parameters.get("resource") {
         Some(Value::Text(name)) => package.resource(name).map_or(0, |r| r.bytes.content_hash()),
         _ => 0,
@@ -159,7 +167,7 @@ pub(crate) fn cook_node(
         subgraph_hash,
         // A cached graph instance includes results evaluated with its host environment
         (node.def == "graph_instance").then(|| serde_json::to_string(&options.environment).unwrap_or_default()),
-        input_image.map(|(image, format)| (image_key(image, cache), format)),
+        input_image.map(|(image, format, tiling)| (image_key(image, cache), format, tiling)),
         variable_key(node, &parameters, variables),
     ));
     if let Some(outputs) = lock(cache).get(key) {
@@ -187,9 +195,9 @@ pub(crate) fn cook_node(
         && let Some(Some((NodeOutput::Value(value), _))) = incoming.first()
     {
         Ok(vec![NodeOutput::Value(value.clone())])
-    } else if let Some((image, format)) = input_image {
+    } else if let Some((image, format, tiling)) = input_image {
         let kind = if node.def == "input_grayscale" { Kind::Gray } else { Kind::Color };
-        let image = cook_bound_image(image.clone(), (w, h), kind, format, base.format);
+        let image = cook_bound_image(image.clone(), (w, h), kind, format, base.format, tiling);
         Ok(vec![NodeOutput::Image(image)])
     } else if node.def == materialcraft_core::MISSING_NODE {
         let name = if node.label.is_empty() { "this node" } else { node.label.as_str() };
@@ -242,13 +250,25 @@ pub(crate) fn cook_node(
     }
 }
 
-fn cook_bound_image(mut image: Image, size: (u32, u32), kind: Kind, mut source_format: OutputFormat, output_format: OutputFormat) -> Image {
+// A pixel function inside an instance samples a compatible caller texture at its original size and depth.
+fn wired_texture<'a>(options: &'a Options<'_>, bridge: &Node) -> Option<(&'a Image, OutputFormat)> {
+    let kind = match bridge.def.as_str() {
+        "input_color" => Kind::Color,
+        "input_grayscale" => Kind::Gray,
+        _ => return None,
+    };
+    let name = identifier(bridge);
+    let image = options.inputs.get(&name)?;
+    (!bridge.disabled && image.kind() == kind).then_some((image, *options.input_formats.get(&name)?))
+}
+
+fn cook_bound_image(mut image: Image, size: (u32, u32), kind: Kind, mut source_format: OutputFormat, output_format: OutputFormat, tiling: [bool; 2]) -> Image {
     let next = |current: u32, target: u32| {
         if current < target { current.saturating_mul(2).min(target) } else { current.div_ceil(2).max(target) }
     };
     loop {
         if (image.width(), image.height()) != size {
-            image = materialcraft_nodes::resize_input_level(&image, next(image.width(), size.0), next(image.height(), size.1), source_format);
+            image = materialcraft_nodes::resize_input_level(&image, next(image.width(), size.0), next(image.height(), size.1), source_format, tiling);
         }
         // The first filtered level supplies RGB for conversion. Later levels read the stored gray texels.
         if image.kind() != kind {

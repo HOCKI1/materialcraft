@@ -1,9 +1,9 @@
 use craft_texture::Image;
 use materialcraft_core::OutputFormat;
 
-/// Resample a single stored input level with clamped edges at destination pixel centers.
-pub fn resize_input_level(image: &Image, width: u32, height: u32, format: OutputFormat) -> Image {
-    Image::generate_uv(width, height, image.kind(), |u, v| sample(image, [u, v], [false; 2], format, None))
+/// Resample one stored input level at destination pixel centers.
+pub fn resize_input_level(image: &Image, width: u32, height: u32, format: OutputFormat, tiling: [bool; 2]) -> Image {
+    Image::generate_uv(width, height, image.kind(), |u, v| sample(image, [u, v], tiling, format, None))
 }
 
 /// Bilinear texture filtering. Untiled axes clamp unless the caller supplies a border color.
@@ -134,7 +134,10 @@ mod tests {
         context.position[0] -= 1.0;
         assert_eq!(pixel(&context), expected);
         context.tile = false;
-        assert_eq!(pixel(&context), Value::Float4([32768.0 / 65535.0, 0.0, 32768.0 / 65535.0, 0.0]));
+        assert_eq!(pixel(&context), expected);
+        graph.nodes.last_mut().unwrap().value = Some(Value::Int2([0, 0]));
+        let nearest = compile(&graph, 0).unwrap();
+        assert_eq!(nearest.evaluate(&context, &mut EvaluationState::default()).unwrap(), Value::Float4([0.0, 0.0, 1.0, 0.0]));
     }
 
     #[test]

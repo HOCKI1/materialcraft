@@ -407,6 +407,50 @@ fn bound_image_resizing_reads_the_upstream_float_format_inside_instances() {
 }
 
 #[test]
+fn wired_input_sampling_keeps_the_source_texture_and_stores_the_direct_output() {
+    use materialcraft_core::{FunctionGraph, OutputFormat, ParameterInheritance, SizeMode};
+    let (mut parent, instance) = instancing("Parent", "TwoReads");
+    let source = parent.add_node("input_grayscale", [0.0; 2]);
+    let base = &mut parent.node_mut(source).unwrap().base;
+    base.size_mode = SizeMode::Absolute;
+    base.size = [3, 3];
+    base.format = OutputFormat::U8;
+    parent.connect(source, "output", instance, "input").unwrap();
+    let mut child = Graph::new("TwoReads");
+    child.absolute_output_size = Some([4, 4]);
+    let bridge = child.add_node("input_grayscale", [0.0; 2]);
+    child.node_mut(bridge).unwrap().base.format = OutputFormat::F16;
+    let reader = child.add_node("pixel_processor", [0.0; 2]);
+    let node = child.node_mut(reader).unwrap();
+    node.base.format = OutputFormat::F32;
+    node.params.insert("color_mode".into(), Value::Bool(false));
+    child.connect(bridge, "output", reader, "input0").unwrap();
+    for (name, source) in [("output", reader), ("passed", bridge)] {
+        let output = child.add_node("output", [0.0; 2]);
+        child.node_mut(output).unwrap().params.insert("identifier".into(), Value::Text(name.into()));
+        child.connect(source, "output", output, "input").unwrap();
+    }
+    let mut package = Package::new("Wired sampling");
+    package.graphs.extend([parent, child]);
+    let mut options = Options::new(&no_res);
+    options.inputs.insert("input".into(), Image::gray(8, 8, |x, _| (x % 2) as f32));
+    let cache = Mutex::new(Cache::default());
+    for (filter, tile, sample, direct_edge) in [(0, true, 0.0, 0.25), (1, true, 16384.0 / 65535.0, 0.25), (1, false, 16384.0 / 65535.0, 0.0)] {
+        let base = &mut package.graphs[1].node_mut(bridge).unwrap().base;
+        base.tiling_mode = ParameterInheritance::Absolute;
+        base.tiling = [tile, false];
+        let mut function = FunctionGraph::default();
+        let pos = function.add("get_float2", &[], Some(Value::Text("$pos".into())));
+        function.output = Some(function.add("samplelum", &[pos], Some(Value::Int2([0, filter]))));
+        package.graphs[1].node_mut(reader).unwrap().params.insert("function".into(), Value::Function(Box::new(function)));
+        let cooked = cook(&package, 0, &options, &cache);
+        assert_eq!(cooked.nodes[&instance].error, None);
+        assert_eq!(cooked.image(instance, 0).unwrap().get(1, 0, false)[0], sample);
+        assert_eq!(cooked.image(instance, 1).unwrap().get(0, 0, false)[0], direct_edge);
+    }
+}
+
+#[test]
 fn input_nodes_read_bound_preview_images() {
     let mut p = Package::new("p");
     let mut g = Graph::new("g");

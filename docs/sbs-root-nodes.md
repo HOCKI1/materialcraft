@@ -64,7 +64,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [angle_to_vector.sbs/angle_to_vector](../assets/sbs/angle_to_vector.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [anisotropic_blur.sbs/anisotropic_blur](../assets/sbs/anisotropic_blur.sbs) | 1 | No | [In progress · first directional pass differs](parity-fixes.md#anisotropic-blur) |
 | [anisotropic_blur.sbs/anisotropic_blur_grayscale](../assets/sbs/anisotropic_blur.sbs) | 1 | No | [In progress · rotated kernel differs](parity-fixes.md#anisotropic-blur) |
-| [atlas_spliter.sbs/crop_and_transform_sub](../assets/sbs/atlas_spliter.sbs) | 7 | Yes | [In progress · wired 256² crop differs at 255 edge pixels, rotation still differs](parity-fixes.md#resizing-images-bound-to-graph-inputs) |
+| [atlas_spliter.sbs/crop_and_transform_sub](../assets/sbs/atlas_spliter.sbs) | 7 | Yes | [In progress · wired default crop exact at 64²–256², rotated edge differs](parity-fixes.md#wired-graph-textures-and-pixel-sampling) |
 | [atlas_spliter.sbs/max_ba](../assets/sbs/atlas_spliter.sbs) | 1 | Yes | [Parity: 3 cases](parity-fixes.md#verified-cases) |
 | [auto_crop.sbs/min_max](../assets/sbs/auto_crop.sbs) | 1 | Yes | [Parity: 3 cases](parity-fixes.md#verified-cases) |
 | [auto_levels.sbs/auto_levels](../assets/sbs/auto_levels.sbs) | 1 | No | [Parity: 3 cases](parity-fixes.md#verified-cases) |
@@ -537,7 +537,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [spline_tools.sbs/-----WIP-----/displace_spline_by_spline_wip](../assets/sbs/spline_tools.sbs) | 4 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [spline_tools.sbs/internal_tools/2dtransform_spline_sub](../assets/sbs/spline_tools.sbs) | 3 | Yes | [Too hard: value-input case not verified](parity-fixes.md#remaining-differences) |
 | [spline_tools.sbs/internal_tools/append_splines_sub](../assets/sbs/spline_tools.sbs) | 6 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
-| [spline_tools.sbs/internal_tools/compute_bridge_distance](../assets/sbs/spline_tools.sbs) | 3 | Yes | [In progress · one wired spline exact, two splines differ](parity-fixes.md#height-distance-texture-mapping-skew-and-weave) |
+| [spline_tools.sbs/internal_tools/compute_bridge_distance](../assets/sbs/spline_tools.sbs) | 3 | Yes | [In progress · both wired counts exact at 32² and 64², four float differences at 16²](parity-fixes.md#wired-graph-textures-and-pixel-sampling) |
 | [spline_tools.sbs/internal_tools/compute_spline_distance_iteration](../assets/sbs/spline_tools.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [spline_tools.sbs/internal_tools/compute_spline_length_init](../assets/sbs/spline_tools.sbs) | 2 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [spline_tools.sbs/internal_tools/compute_spline_tangents](../assets/sbs/spline_tools.sbs) | 3 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |

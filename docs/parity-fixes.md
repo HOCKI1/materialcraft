@@ -115,6 +115,24 @@ With the inputs and settings under [panoramic LOD](#panoramic-lod), the four 64�
 
 The rotated 3D planar projection runs still differ. At 128² the grayscale output matches 16,335/16,384 in LUM16, maximum 226 levels, and color matches 16,378/16,384 in RGBA8, maximum one level. At 64² both roots match 4,094/4,096 in U8 and 4,093/4,096 in each of U16, F16 and F32. The respective maxima are 1, 32, .00048828125 and .000488288701. All three default and changed-seed runs for each root match 98,304/98,304 pixels. With the [shared lookup](#basic-and-ridged-3d-perlin), ridged 3D Perlin matches all four eight-bit cases. Its changed U16, F16 and F32 runs match 16,337, 16,380 and 5,160 of 16,384 pixels, with maxima 1, .00048828125 and 1.78813935e-7.
 
+### Wired graph textures and pixel sampling
+
+An original two-graph package returns two outputs from the child. One child output returns its color input directly, the other reads it using a Pixel Processor. The parent supplies the 128² RGBA8 atlas field above at a fixed 128². Give the child input a parent-relative size and set its precision explicitly. Read the stored bridge from the direct output and the sampled value from an RGBA32F output. Each pixel comparison includes all four components and checks the reported dimensions and depth.
+
+| Controls | Output comparisons | Exact pixels / total | Maximum error |
+|---|---:|---:|---:|
+| Nearest and bilinear at pixel centers, U8/U16/F16/F32 bridge, sides 64/128/256, seed zero | 48 | 1,376,256/1,376,256 | 0 |
+| Bilinear at 32² seed 42 and 512² seed zero, same four bridge formats | 16 | 2,105,344/2,105,344 | 0 |
+| At 256² and F32, change the tiling on the parent input, child input or processor to none, horizontal or vertical | 18 | 1,179,648/1,179,648 | 0 |
+
+The directly returned bridge resizes through stored factor-two levels using its own horizontal and vertical tiling flags. The sampled color input retains the source dimensions and precision inside the graph instance. For example, at 64² the first red value is 48/255 when sampled nearest and 24/255 through the direct U16 bridge. At 256², both axes wrap for the bilinear sampler. The first atlas texel receives a green contribution of 16,384/65,535 from the opposite edge.
+
+For a separate single-graph control, nearest- or bilinear-sample the same fixed 128² input at `$pos + (−.3125,.1875)`. Set the processor output to RGBA32F, side 256 and seed 42. Repeat with its tiling set to none, horizontal, vertical and both. All **524,288/524,288** pixels match, maximum zero. The explicit image read repeats both axes in all eight cases.
+
+In the [atlas crop wrapper](#atlas-crop-with-wired-value-inputs), default rotation at 256² now matches **65,536/65,536** RGBA32F pixels, maximum zero. With .125 turns the 256² case matches 65,408/65,536, maximum .994125247. At 128² it matches 16,320/16,384 with seed zero or 42, maximum 1. At 64², 4,064/4,096 match, maximum .996078432 in the authored float output. The remaining rotation differences follow one edge of the sampled shape.
+
+For the [spline distance controls](#height-distance-texture-mapping-skew-and-weave), both wired counts now match 1,024/1,024 at 32² seed 42 and 4,096/4,096 at 64² seed 137 in LUM32F. At 16² seed zero, count 1 matches 256/256 and count 2 matches 252/256, maximum 5.96046448e-8.
+
 ### Pixel Processor random draws
 
 Emit four independent calls to `rand(1)` as RGBA32F. In the reference app the four values recover a unique initial 24-bit state at each of **27,968/27,968 pixels**. Advance the state with `s=(3626811*s+51137) mod 2^24` and return `floor(s/2)/2^23`. The four outputs then match at every pixel, maximum error zero. Use square canvases of sides 8, 16, 32, 64 and 128 at seed zero, also 32² at seeds 1, 2, 42 and 137, and 32×16 and 16×32 at seeds zero and 42. The first 32² pixel starts from 9,091,073 at seed zero and 3,342,178 at seed 42.

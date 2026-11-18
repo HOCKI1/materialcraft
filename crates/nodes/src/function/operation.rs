@@ -121,13 +121,15 @@ pub(crate) fn evaluate(
 
             let setting = instruction.value.as_ref().map(integers).transpose()?.unwrap_or([0, 0, 0, 0]);
             let index = usize::try_from(setting[0]).map_err(|_| "negative image index")?;
+            // Pixel samplers repeat both texture axes independently of the processor's output tiling.
+            let repeat = context.scope == super::FunctionScope::PixelProcessor || context.tile;
             let pixel = match context.images.get(index).and_then(Option::as_ref) {
                 Some(image) if setting[1] == 0 => {
-                    image.get((position[0] * image.width() as f32).floor() as i64, (position[1] * image.height() as f32).floor() as i64, context.tile)
+                    image.get((position[0] * image.width() as f32).floor() as i64, (position[1] * image.height() as f32).floor() as i64, repeat)
                 }
                 Some(image) if context.scope == super::FunctionScope::PixelProcessor => {
                     let format = context.image_formats.get(index).copied().unwrap_or(materialcraft_core::OutputFormat::F32);
-                    crate::texture_sampler::sample(image, [position[0], position[1]], [context.tile; 2], format, None)
+                    crate::texture_sampler::sample(image, [position[0], position[1]], [true; 2], format, None)
                 }
                 Some(image) => image.sample_stored(position[0], position[1], context.tile),
                 None => [0.0; 4],
