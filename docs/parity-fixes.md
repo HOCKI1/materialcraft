@@ -155,6 +155,23 @@ Separate original value graphs read `$pos`, `$size`, `$sizelog2`, `$depth`, `$de
 
 A Value Processor also averages a sampled color’s three channels in the order measured under [grayscale sampling](#grayscale-sampling-of-color-inputs). Using the same four RGBA fields, sample at (39.5+.1875,77.5+.5625)/128. Repeat with a uniform (.25,.5,.75,1). Compare the single Float or Float4 as IEEE float32 components in nearest and bilinear modes. 23/32 values match across the two input fields, with maximum component error 5.84125519e-06. The remaining differences occur in RGBA8 normalization and bilinear filtering.
 
+### Skipped loops and path buffers
+
+A loop runs its initializer before testing its exit condition. If the condition is already true, or the iteration allowance is zero, its result is the zero of its declared result type. A loop that enters the body returns its last body value. MaterialCraft previously returned the initializer on a skipped loop. A Boolean initializer followed by a float body consequently stopped both path roots with a type error.
+
+Use a standalone loop with a scalar body of 9 and an initializer of 7, true, (3,5,7,9) or an unwired initializer. Set the exit condition to true, false or pixel X ≥ .5, with iteration allowances 0, 1 or 2. Eight pixel functions at 16² seed 7 and 32² seed 91 match **10,240/10,240 LUM32F pixels**. The eight matching value functions give **16/16** exact typed results. Changing the result type to Boolean, integer pair or float pair with a true or false condition gives another **12/12** exact typed results. Three 32² uniform-parameter image probes match **3,072/3,072 pixels**. All maxima are zero. The regression also reads a variable assigned by the initializer after the loop. Direct Boolean or vector outputs from a grayscale Pixel Processor are a separate open conversion case.
+
+| Path root | Inputs and controls | Exact pixels / total | Maximum error |
+|---|---|---:|---:|
+| `Impl/sort_by_blue` | Four original 16² RGBA32F cases with seed 0 or 42, including changed settings | 1,024/1,024 | 0 |
+| Same | 64² seed 42, passthrough enabled, count 32, U8/U16/F16/F32 | 16,384/16,384 | 0 |
+| Same | Passthrough disabled, count 7 at 16² seed 17; count 19 at 32² seed 71 in four formats and 64² seed 137 F32 | 8,448/8,448 | 0 |
+| `Impl/compute_paths_lengths` | Four original 16² cases, including the 1×1 passthrough result, plus four 1×1 results at requested 64² seed 42 | 773/773 | 0 |
+| Same | Five-point transformed path at 16² seed 17 F32, intermediate lengths disabled | 256/256 | 0 |
+| Same | Intermediate lengths enabled and passthrough disabled, five or seven points, seed 17, 71 or 137 | Execution budget reached | Unavailable |
+
+The sort holdout uses RGBA bytes ((17x+13y+5) mod 256, (29x−13y) mod 256, 23×((3x+7y) mod 11), (7x+5y+11) mod 256). Its outputs contain seven or nineteen distinct RGBA tuples. Across the fourteen sort cases **25,856/25,856 pixels** match. The length holdout starts with the original five- or seven-point closed path buffer and replaces each vertex (x,y) by (.0625+.625x+.1875y, .125+.0625x+.6875y). Set scale to (1.25,.8125). Both the resized 16² path buffer and independently sized buffers with header texel spacing 1/side reach the local execution limit with intermediate lengths enabled. The reference app returns a grayscale image. An error image supplies no comparable samples.
+
 ### Grayscale sampling of color inputs
 
 Feed an original 128² image to a Pixel Processor and read input zero with the grayscale sampler at pixel-center UV plus (.1875,.5625) texels. Use seed 42 and a LUM32F output. With nearest and bilinear filtering, RGBA8, RGBA16, RGBA16F and RGBA32F each match 16,384/16,384 pixels per mode. On the signed F32 input, reading only red previously matched zero pixels in both modes. Maximum errors were 4.95148039 and 3.83905315. Adding green and blue first, then red, and multiplying by the float32 reciprocal of three after sampling matches all eight color cases exactly.

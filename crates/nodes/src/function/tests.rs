@@ -376,6 +376,25 @@ fn time_and_tiling_variables_have_typed_defaults_and_host_overrides() {
 }
 
 #[test]
+fn skipped_processor_loop_runs_its_initializer_and_returns_a_typed_zero() {
+    let mut graph = FunctionGraph::default();
+    let yes = graph.add_constant(Value::Bool(true));
+    let initialize = graph.add("set", &[yes], Some(Value::Text("started".into())));
+    let body = graph.add_constant(Value::Float2([4.0, 5.0]));
+    let result = graph.add("while", &[initialize, yes, body], Some(Value::Int(2)));
+    let started = graph.add("get_bool", &[], Some(Value::Text("started".into())));
+    let after = graph.add("sequence", &[result, started], None);
+    for scope in [super::FunctionScope::Node, super::FunctionScope::PixelProcessor, super::FunctionScope::ValueProcessor, super::FunctionScope::FxMap] {
+        let context =
+            EvaluationContext { scope, position: [0.0; 2], size: [16.0; 2], images: &[], image_formats: &[], tile: true, variables: &BTreeMap::new() };
+        for (output, expected) in [(result, Value::Float2([0.0; 2])), (after, Value::Bool(true))] {
+            graph.output = Some(output);
+            assert_eq!(compile(&graph, 0).unwrap().evaluate(&context, &mut EvaluationState::default()).unwrap(), expected);
+        }
+    }
+}
+
+#[test]
 fn loops_recompute_state_and_have_a_budget() {
     let mut graph = FunctionGraph::default();
     let zero = graph.add_constant(Value::Int(0));

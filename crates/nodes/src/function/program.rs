@@ -170,7 +170,10 @@ impl Program {
                     state.steps.push(Enter(self.input(index, 1)?));
                 }
                 LoopStart(index) => {
-                    let last = state.values.pop().ok_or("missing loop initialization")?;
+                    let initializer = state.values.pop().ok_or("missing loop initialization")?;
+                    // The initializer may assign a different type. A skipped body has its own typed zero.
+                    let last = materialcraft_core::ValueType::from_code(self.instruction(index)?.type_code)
+                        .map_or(initializer, materialcraft_core::ValueType::default_value);
                     self.clear_loop_results(index, state)?;
                     state.steps.push(LoopCondition { instruction: index, iteration: 0, last });
                     state.steps.push(Enter(self.input(index, 1)?));

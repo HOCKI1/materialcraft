@@ -35,7 +35,7 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **192 Parity**, **24 In progress** and **330 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **193 Parity**, **25 In progress** and **328 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
 
 [Grayscale sampler measurements](parity-fixes.md#grayscale-sampling-of-color-inputs)
 
@@ -385,12 +385,12 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [panorama_straighten_horizon.sbs/panorama_straighten_horizon](../assets/sbs/panorama_straighten_horizon.sbs) | 1 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [paper_path.sbs/paper_path](../assets/sbs/paper_path.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [parquet_1.sbs/parquet_1](../assets/sbs/parquet_1.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [paths_tools.sbs/Impl/compute_paths_lengths](../assets/sbs/paths_tools.sbs) | 1 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [paths_tools.sbs/Impl/compute_paths_lengths](../assets/sbs/paths_tools.sbs) | 1 | Yes | [In progress · 1,029 exact pixels, intermediate lengths reach the execution limit](parity-fixes.md#skipped-loops-and-path-buffers) |
 | [paths_tools.sbs/Impl/facets_to_paths_impl_link_template](../assets/sbs/paths_tools.sbs) | 1 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [paths_tools.sbs/Impl/facets_to_paths_impl_stitch_template](../assets/sbs/paths_tools.sbs) | 1 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [paths_tools.sbs/Impl/get_number_of_valid_paths](../assets/sbs/paths_tools.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [paths_tools.sbs/Impl/mask_to_facets](../assets/sbs/paths_tools.sbs) | 1 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [paths_tools.sbs/Impl/sort_by_blue](../assets/sbs/paths_tools.sbs) | 1 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [paths_tools.sbs/Impl/sort_by_blue](../assets/sbs/paths_tools.sbs) | 1 | Yes | [Parity · 14 cases, 25,856 exact pixels](parity-fixes.md#skipped-loops-and-path-buffers) |
 | [paths_tools.sbs/Utils/RelativeToInputPP](../assets/sbs/paths_tools.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [paths_tools.sbs/paths_polygon](../assets/sbs/paths_tools.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [paths_tools.sbs/paths_trace](../assets/sbs/paths_tools.sbs) | 2 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
