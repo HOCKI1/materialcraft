@@ -93,6 +93,43 @@ fn subpixel_quadrants_do_not_accumulate_at_shared_edges() {
 }
 
 #[test]
+fn quadrant_offsets_use_canvas_units_at_each_depth() {
+    for (depth, origin, side) in [(1, [16_i64, 48], 8), (2, [8, 56], 4), (3, [4, 60], 2)] {
+        for property in ["branchoffset", "frameoffset"] {
+            let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
+            for index in 0..depth {
+                let child = graph.add(PatternNodeKind::Quadrant).unwrap();
+                graph.nodes[index].children[2] = Some(child);
+            }
+            let leaf = &mut graph.nodes[depth].parameters;
+            leaf.insert("patterntype".into(), Value::Int(2));
+            leaf.insert("patternsize".into(), Value::Float2([0.25; 2]));
+            leaf.insert(property.into(), Value::Float2([0.25, 0.125]));
+            let image = cook("fx_map", BTreeMap::from([("pattern".into(), Value::PatternGraph(Box::new(graph)))]), &[]);
+            let [cx, cy] = [origin[0] + 16, (origin[1] + 8) % 64];
+            for y in 0..64 {
+                for x in 0..64 {
+                    let inside = (x - cx + side / 2).rem_euclid(64_i64) < side && (y - cy + side / 2).rem_euclid(64_i64) < side;
+                    assert_eq!(image.get_gray(x, y, false), if inside { 1.0 } else { 0.0 }, "{property} at depth {depth}, ({x},{y})");
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn gaussian_stamp_reaches_zero_at_the_edge_of_the_unit_disk() {
+    let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
+    graph.nodes[0].parameters.insert("patterntype".into(), Value::Int(6));
+    let image = cook("fx_map", BTreeMap::from([("pattern".into(), Value::PatternGraph(Box::new(graph)))]), &[]);
+    assert_eq!(image.get_gray(0, 0, false), 0.0);
+    for (x, expected) in [(0, 0.000006), (8, 0.002491), (16, 0.073742), (24, 0.542005), (31, 0.994580)] {
+        let value = image.get_gray(x, 31, false);
+        assert!((value - expected).abs() < 1.0e-6, "x={x}, {value} vs {expected}");
+    }
+}
+
+#[test]
 fn grayscale_max_patterns_do_not_accumulate_opacity() {
     let mut graph = PatternGraph::with_root(PatternNodeKind::Iterate);
     let child = graph.add(PatternNodeKind::Quadrant).unwrap();

@@ -35,7 +35,7 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **170 Parity**, **14 In progress** and **362 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **170 Parity**, **17 In progress** and **359 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
 
 ## Complete inventory
 
@@ -60,10 +60,10 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [3d_viewer.sbs/ibl_specular_contrib_anisotropic/panoramic_lod](../assets/sbs/3d_viewer.sbs) | 1 | Yes | [In progress · input resizing and transform filtering measured](parity-fixes.md#panoramic-lod) |
 | [3d_volume_mask.sbs/3d_volume_mask](../assets/sbs/3d_volume_mask.sbs) | 1 | No | [In progress · box rotation and feathering differ](parity-fixes.md#3d-volume-mask-and-worley-noise) |
 | [3d_worley_noise.sbs/3D_worley_noise](../assets/sbs/3d_worley_noise.sbs) | 1 | No | [In progress · random sequence differs before distance evaluation](parity-fixes.md#3d-volume-mask-and-worley-noise) |
-| [alveolus.sbs/alveolus](../assets/sbs/alveolus.sbs) | 0 | Yes | [Too hard: cell field mismatch](parity-fixes.md#remaining-differences) |
+| [alveolus.sbs/alveolus](../assets/sbs/alveolus.sbs) | 0 | Yes | [In progress · 64² format sweep exact, larger fields differ](parity-fixes.md#alveolus-quadrant-placement-and-falloff) |
 | [angle_to_vector.sbs/angle_to_vector](../assets/sbs/angle_to_vector.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
-| [anisotropic_blur.sbs/anisotropic_blur](../assets/sbs/anisotropic_blur.sbs) | 1 | No | [Too hard: blur kernel](parity-fixes.md#remaining-differences) |
-| [anisotropic_blur.sbs/anisotropic_blur_grayscale](../assets/sbs/anisotropic_blur.sbs) | 1 | No | [Too hard: blur kernel](parity-fixes.md#remaining-differences) |
+| [anisotropic_blur.sbs/anisotropic_blur](../assets/sbs/anisotropic_blur.sbs) | 1 | No | [In progress · first directional pass differs](parity-fixes.md#anisotropic-blur) |
+| [anisotropic_blur.sbs/anisotropic_blur_grayscale](../assets/sbs/anisotropic_blur.sbs) | 1 | No | [In progress · rotated kernel differs](parity-fixes.md#anisotropic-blur) |
 | [atlas_spliter.sbs/crop_and_transform_sub](../assets/sbs/atlas_spliter.sbs) | 7 | Yes | [Too hard: typed-input comparison](parity-fixes.md#remaining-differences) |
 | [atlas_spliter.sbs/max_ba](../assets/sbs/atlas_spliter.sbs) | 1 | Yes | [Parity: 3 cases](parity-fixes.md#verified-cases) |
 | [auto_crop.sbs/min_max](../assets/sbs/auto_crop.sbs) | 1 | Yes | [Parity: 3 cases](parity-fixes.md#verified-cases) |

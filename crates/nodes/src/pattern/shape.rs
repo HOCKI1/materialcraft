@@ -12,7 +12,10 @@ pub(super) fn coverage(pattern: i32, x: f32, y: f32, variation: f32) -> Result<f
         }
         3 => radial,
         4 => radial * radial,
-        5 => (-4.0 * radius_squared).exp(),
+        5 => {
+            const FALLOFF: f32 = 11.1;
+            ((-FALLOFF * radius_squared).exp() - (-FALLOFF).exp()).max(0.0)
+        }
         6 => (1.0 - radius_squared.sqrt()).max(0.0).powi(4),
         7 => (1.0 - x.abs().max(y.abs())).max(0.0),
         8 => {

@@ -99,6 +99,32 @@ Each format column compares all channels of 4,096 pixels. Clone uses 128² input
 
 Both roots in `height_to_normal_world_units.sbs` match **131,072/131,072 RGBA pixels each** across eight cases. For a square grayscale height input, store `(17*x+31*y) mod 256` at each integer coordinate. Use default settings at 128² and 256², repeat 128² with seed 42, then set `surface_size=100`, `height_depth=8`, `normal_format=0` and `sampling=1` at 128² with seed zero. Each root matches 16,384, 65,536, 16,384 and 16,384 RGBA8 pixels respectively. Keep those changed settings and the 128² input, then cook at 64² with seed 42. U8, U16, F16 and F32 each match 4,096/4,096 pixels for both roots. Every maximum error is zero. Each 64² output contains 49 distinct normals.
 
+### Alveolus quadrant placement and falloff
+
+In an original blank 64² pattern graph, follow the lower-left quadrant one, two or three times and draw a square of size (.25, .25) at the leaf. With zero offsets its centers are (16, 48), (8, 56) and (4, 60) in pixel-edge coordinates. Applying (.25, .125) to either the branch offset or the pattern offset moves the center by (16, 8) texels at every depth, with tiling at the image bounds. The size still shrinks at each depth. A separate unit Gaussian stamp shows a circular cutoff and a falloff of approximately `max(0, exp(-11.1*r²) - exp(-11.1))` in local coordinates. At 64², unit opacity and F32, the maximum difference between that analytic profile and the observed red channel is 3.5e-7.
+
+The corrected offsets and Gaussian profile bring the default Alveolus pattern stage from **0/8,192** LUM16 pixels (maximum error 55,100) to **8,096/8,192** (maximum error 1). The following table compares the final output bridge. This generator uses no input image.
+
+| Case | Size | Seed | Output format | Exact pixels / total | Maximum error |
+|---|---:|---:|---|---:|---:|
+| Defaults | 128² | 0 and 42 | LUM16 | 16,192/16,384 each | 2 |
+| Defaults | 256² | 0 | LUM16 | 64,896/65,536 | 2 |
+| `Gradient_Filled_Cells=true`, `Interstice_Width=.1` | 128² | 0 | LUM16 | 16,264/16,384 | 1,000 |
+| Same changed parameters | 64² | 42 | LUM8, LUM16, LUM16F, LUM32F | 4,096/4,096 each | 0 |
+
+### Anisotropic blur
+
+For the grayscale root bind `(17*x+31*y) mod 256`. For the color root use the same value in R, `U` in G, `255-V` in B and 255 in A. The definitions of `U` and `V` are under [color conversion, checker and clone](#color-conversion-checker-and-clone). At 128² the color input bridge matches all 16,384 pixels. The first directional pass already differs.
+
+| Case | Color exact / total | Gray exact / total | Maximum error, color / gray |
+|---|---:|---:|---:|
+| Defaults, 128², eight-bit | 11,526/16,384 | 11,526/16,384 | 1 / 1 |
+| Angle .125 turns, anisotropy .8, 128², eight-bit | 3,228/16,384 | 3,310/16,384 | 16 / 16 |
+| Quality 1, intensity 4, 256², eight-bit | 65,536/65,536 | 65,536/65,536 | 0 / 0 |
+| Same 256² input and changed settings at 64², seed 42, U8, U16, F16, F32 | 4,096/4,096 each | 4,096/4,096 each | 0 / 0 |
+
+At the first directional pass the default color case matches 11,944/16,384 pixels with maximum error 1. With angle .125 it matches 2,997/16,384 with maximum error 21. A separate F32 impulse at (64,64) on a 128² field, intensity 10 and angle .125, has nonzero samples on both sides of the diagonal.
+
 ## 2026-11-17 root comparisons
 
 The clean-room comparisons below use the 16.0.7 reference app with the Direct3D 11 backend and a release MaterialCraft CPU cook. They compare the raw output bridge at its stored precision. A pixel counts only when every channel agrees. Integer errors are in stored levels. Floating errors are absolute. Each case starts from the graph defaults. Where a row selects another storage format, set the final processor's format to absolute in both apps before cooking.

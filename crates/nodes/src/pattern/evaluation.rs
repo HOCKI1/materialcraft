@@ -94,7 +94,7 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
             PatternNodeKind::Dot => {}
             PatternNodeKind::Quadrant => {
                 let offset = vector("branchoffset");
-                visit.center = [visit.center[0] + offset[0] * visit.extent, visit.center[1] + offset[1] * visit.extent];
+                visit.center = [visit.center[0] + offset[0], visit.center[1] + offset[1]];
                 let pattern = integer("patterntype");
                 let pattern = if pattern == 1 { integer("imageindex").max(1).saturating_add(255) } else { pattern };
                 if pattern != 0 {
@@ -106,7 +106,7 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
                     };
 
                     stamps.push(PatternStamp {
-                        center: [visit.center[0] + offset[0] * visit.extent, visit.center[1] + offset[1] * visit.extent],
+                        center: [visit.center[0] + offset[0], visit.center[1] + offset[1]],
                         size: vector("patternsize").map(|size| size * visit.extent),
                         rotation: scalar("patternrotation"),
                         color,
