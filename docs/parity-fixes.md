@@ -282,6 +282,34 @@ For each vertex root use the original five-point path for defaults and A and the
 
 For the color mipmap use (N,O)=(2,1),(3,0),(4,1), init .375, .75 and 1.125, blend .8125, finally (.75,.125,.6875,1), and empty (.1875,.3125,.625,.25). The 64² F32 output has 2,558 distinct tuples. The default 16² parent produces 16×32 and the 128² B parent produces 128×256. Counts use the stored output extents and precision for each render.
 
+### Plane light, splatter, symmetry and waveform comparisons
+
+| Root | Renders | Exact pixels / compared | Maximum U8 / U16 levels | Maximum F16 / F32 error |
+|---|---:|---:|---:|---:|
+| Panorama plane light | 18 | 170,458/171,264 | 0 / 0 | 0 / 1.21593475e-05 |
+| Splatter blend, grayscale | 18 | 170,610/171,264 | 77 / 19923 | 0.303955078 / 0.780312974 |
+| Splatter blend, color | 23 | 203,407/204,032 | 90 / 23114 | 0.352539062 / 0.566889435 |
+| Symmetry slice | 18 | 156,022/171,264 | 7 / 1632 | 0.0249023438 / 0.0248995423 |
+| Waveform v2 | 18 | 142,662/171,264 | 255 / 65535 | 1 / 1 |
+| Waveform 1 | 18 | 142,630/171,264 | 255 / 65535 | 2 / 2 |
+| Weave 4 | 18 | 170,018/171,264 | 0 / 1 | 0 / 0.765621424 |
+
+Each root includes the archived outputs, the four-format sweep, an independent 32² render and nine further original renders. The color splatter count also includes five earlier changed-input controls. Use the [modular image fields, A/B/C settings, sizes and seeds](#normal-maps-panoramas-and-primitive-shapes) for the additional renders except symmetry slice. Number the changed settings k=1,2,3 for A/B/C.
+
+| Root | Additional changed settings |
+|---|---|
+| Plane light | World position (−.75,.4375,1.25), UV (.3125,.28125), rotation (.0625k,−.125,.1875), scale .6875, size (.75,1.25). Use world position mode in B and alternate up vector in C. Set color mode and pattern to k mod 3, color (.75,.34375,.625), temperature 4375 and exposure 1.25. Disable background input in C and enable ground clipping in B. |
+| Splatter blend | Set pattern count to 3, 8 and 5, and color-input opacity to .375, .75 and 1. For grayscale set luminance adjustment −.1875 and luminance random .3125k. For color set random pattern assignment .375, HSL adjustment (.1875,−.125,.25), HSL random (.125,.25,.375). Use normal processing and the alternate input normal format in B. |
+| Waveform v2 | Set sample count to 17, 31 and 24, function to k mod 3, scale to 4+k, amplitude limits .1875 and .8125, noise .125k, pattern to 3, 6 and 4, pattern variation .125k and disorder .15625k. |
+| Waveform 1 | Use the same sample counts, noise and patterns, size limits .1875 and .8125 and wave number k+2. |
+| Weave 4 | Use tiling 3, 5 and 7. Enable rotation in A and C. |
+
+For symmetry, use the 16² default at seed 17, then the modular RGBA field at 64² in all four formats with seed 73, 128² F32/181, signed 32² F32/293, a 32×16 input at 32² F32/449, and the 64² F32 repeat at seed 661. In this order the changed (symmetry mode, transfer mode, blend, flip side, flip side 2) settings are (1,0,.25,true,false), (2,1,.71875,false,true), (0,1,.5,true,true) and (2,0,1,false,false). Repeat the first setting at seed 661. The first differing pattern buffer at 64² matches 3,840/4,096 U8 texels, maximum one level. At (28,0) MaterialCraft stores 114 and the reference stores 113.
+
+The plane-light Pixel Processor at 64² F32 matches 4,020/4,096 pixels, maximum 1.21593475e−5. At (14,6) its red channel is 2.48438478 in MaterialCraft and 2.48438454 in the reference. In both splatter graphs the signed case first differs in the same 256² RGBA16 Pixel Processor. Every pixel differs, maximum 65,415 levels. At (0,0) MaterialCraft stores (51546,38154,36337,11593) and the reference stores (3600,46195,62868,47648).
+
+In the 64² F32 waveform captures, the earliest differing stage is the pattern generator. Waveform v2 matches 3,908/4,096 pixels there, maximum 1. Waveform 1 matches 4,040/4,096, maximum 2. On the signed Weave 4 case, the first 8² U16 pattern differs at (7,0) and (3,4). Both reference texels are 65,535 and both MaterialCraft texels are zero.
+
 ### High-pass, anisotropic noise and triangle-grid controls
 
 | Root | Renders | Exact pixels / compared | Maximum error |

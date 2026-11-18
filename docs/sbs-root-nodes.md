@@ -35,7 +35,7 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **295 Parity**, **39 In progress** and **212 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **295 Parity**, **45 In progress** and **206 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
 
 [Grayscale sampler measurements](parity-fixes.md#grayscale-sampling-of-color-inputs) · [Value sampling across 240 typed comparisons](parity-fixes.md#value-processor-texture-filtering)
 
@@ -385,7 +385,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [panorama_position.sbs/panorama_3d_position](../assets/sbs/panorama_position.sbs) | 0 | No | [Parity · 18 renders, all 171,264 pixels exact](parity-fixes.md#normal-maps-panoramas-and-primitive-shapes) |
 | [panorama_rotation.sbs/panorama_rotation](../assets/sbs/panorama_rotation.sbs) | 1 | No | [Parity · 206,336 exact pixels in 26 renders](parity-fixes.md#segment-mapping-and-normal-graph-rechecks) |
 | [panorama_shape.sbs/panorama_line_light](../assets/sbs/panorama_shape.sbs) | 3 | No | [In progress · 171,207/171,264 pixels, first difference in the pixel processor](parity-fixes.md#normal-maps-panoramas-and-primitive-shapes) |
-| [panorama_shape.sbs/panorama_plane_light](../assets/sbs/panorama_shape.sbs) | 3 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [panorama_shape.sbs/panorama_plane_light](../assets/sbs/panorama_shape.sbs) | 3 | No | [In progress · 170,458/171,264 exact pixels in 18 renders](parity-fixes.md#plane-light-splatter-symmetry-and-waveform-comparisons) |
 | [panorama_shape.sbs/panorama_shape](../assets/sbs/panorama_shape.sbs) | 1 | No | [Parity · 18 renders, all 171,264 pixels exact](parity-fixes.md#normal-maps-panoramas-and-primitive-shapes) |
 | [panorama_shape.sbs/panorama_shape_2](../assets/sbs/panorama_shape.sbs) | 2 | No | [Parity · 18 renders, all 171,264 pixels exact](parity-fixes.md#normal-maps-panoramas-and-primitive-shapes) |
 | [panorama_shape.sbs/panorama_sphere_light](../assets/sbs/panorama_shape.sbs) | 2 | No | [Parity · 171,264 exact pixels in 18 renders](parity-fixes.md#segment-mapping-and-normal-graph-rechecks) |
@@ -520,8 +520,8 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [shape.sbs/shape_base](../assets/sbs/shape.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [shape_mapper.sbs/shape_mapper](../assets/sbs/shape_mapper.sbs) | 1 | No | [Parity · 310,784/310,784 pixels](parity-fixes.md#wired-spline-helpers-and-shape-mapping) |
 | [shape_splatter.sbs/min_max](../assets/sbs/shape_splatter.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
-| [shape_splatter.sbs/shape_splatter_blend](../assets/sbs/shape_splatter.sbs) | 12 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [shape_splatter.sbs/shape_splatter_blend_color](../assets/sbs/shape_splatter.sbs) | 12 | No | [In progress · three pixels differ with independent patterns](parity-fixes.md#height-distance-texture-mapping-skew-and-weave) |
+| [shape_splatter.sbs/shape_splatter_blend](../assets/sbs/shape_splatter.sbs) | 12 | No | [In progress · 170,610/171,264 exact pixels in 18 renders](parity-fixes.md#plane-light-splatter-symmetry-and-waveform-comparisons) |
+| [shape_splatter.sbs/shape_splatter_blend_color](../assets/sbs/shape_splatter.sbs) | 12 | No | [In progress · 203,407/204,032 exact pixels in 23 renders](parity-fixes.md#plane-light-splatter-symmetry-and-waveform-comparisons) |
 | [shape_splatter.sbs/shape_splatter_data_extract](../assets/sbs/shape_splatter.sbs) | 2 | No | [Parity · 19 cases on seven outputs, 1,206,016 exact pixels](parity-fixes.md#large-transform-offsets-and-additive-blends) |
 | [shape_splatter.sbs/shape_splatter_to_mask](../assets/sbs/shape_splatter.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [shape_splatter_v2.sbs/bitonic_sort/graph/bitonic_sort_iteration](../assets/sbs/shape_splatter_v2.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
@@ -567,7 +567,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [swirl.sbs/swirl](../assets/sbs/swirl.sbs) | 1 | No | [Parity · 171,264/171,264 pixels in 18 renders](parity-fixes.md#quad-swirl-trapezoid-and-vector-morph-comparisons) |
 | [swirl.sbs/swirl_grayscale](../assets/sbs/swirl.sbs) | 1 | No | [Parity · 171,264/171,264 pixels in 18 renders](parity-fixes.md#quad-swirl-trapezoid-and-vector-morph-comparisons) |
 | [symmetry.sbs/symmetry](../assets/sbs/symmetry.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
-| [symmetry_slice.sbs/symmetry_slice](../assets/sbs/symmetry_slice.sbs) | 1 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [symmetry_slice.sbs/symmetry_slice](../assets/sbs/symmetry_slice.sbs) | 1 | No | [In progress · 156,022/171,264 exact pixels in 18 renders](parity-fixes.md#plane-light-splatter-symmetry-and-waveform-comparisons) |
 | [templates.sbs/Templates/Standard_Materials/Extended_Material](../assets/sbs/templates.sbs) | 0 | Yes | [Parity: 3 cases](parity-fixes.md#verified-cases) |
 | [templates.sbs/Templates/Standard_Materials/Simple_Material](../assets/sbs/templates.sbs) | 0 | Yes | [Parity: 3 cases](parity-fixes.md#verified-cases) |
 | [threshold.sbs/threshold](../assets/sbs/threshold.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
@@ -586,12 +586,12 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [vector_morph.sbs/vector_morph](../assets/sbs/vector_morph.sbs) | 2 | No | [Parity · 171,264/171,264 pixels in 18 renders](parity-fixes.md#quad-swirl-trapezoid-and-vector-morph-comparisons) |
 | [vector_morph.sbs/vector_morph_grayscale](../assets/sbs/vector_morph.sbs) | 2 | No | [Parity · 171,264/171,264 pixels in 18 renders](parity-fixes.md#quad-swirl-trapezoid-and-vector-morph-comparisons) |
 | [vertical_noise.sbs/vertical_noise](../assets/sbs/vertical_noise.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [waveform_01_v2.sbs/waveform_01_v2](../assets/sbs/waveform_01_v2.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [waveform_1.sbs/waveform_1](../assets/sbs/waveform_1.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [waveform_01_v2.sbs/waveform_01_v2](../assets/sbs/waveform_01_v2.sbs) | 0 | No | [In progress · 142,662/171,264 exact pixels in 18 renders](parity-fixes.md#plane-light-splatter-symmetry-and-waveform-comparisons) |
+| [waveform_1.sbs/waveform_1](../assets/sbs/waveform_1.sbs) | 0 | Yes | [In progress · 142,630/171,264 exact pixels in 18 renders](parity-fixes.md#plane-light-splatter-symmetry-and-waveform-comparisons) |
 | [weave_1.sbs/weave_1](../assets/sbs/weave_1.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [weave_2.sbs/weave_2](../assets/sbs/weave_2.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [weave_3.sbs/weave_3](../assets/sbs/weave_3.sbs) | 0 | Yes | [Parity · 13 cases, 163,840 exact pixels](parity-fixes.md#height-distance-texture-mapping-skew-and-weave) |
-| [weave_4.sbs/weave_4](../assets/sbs/weave_4.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [weave_4.sbs/weave_4](../assets/sbs/weave_4.sbs) | 0 | Yes | [In progress · 170,018/171,264 exact pixels in 18 renders](parity-fixes.md#plane-light-splatter-symmetry-and-waveform-comparisons) |
 | [white_noise.sbs/white_noise](../assets/sbs/white_noise.sbs) | 0 | Yes | [Parity: 3 cases](parity-fixes.md#verified-cases) |
 | [white_noise.sbs/white_noise_fast](../assets/sbs/white_noise.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [white_noise_v2.sbs/white_noise_v2](../assets/sbs/white_noise_v2.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
