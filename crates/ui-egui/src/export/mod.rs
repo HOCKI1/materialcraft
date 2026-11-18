@@ -41,6 +41,7 @@ enum Action {
 pub(crate) fn open(app: &mut MaterialCraftApp, tab: ExportTab) {
     let mut draft = app.ui.export.clone();
     draft.material.root = app.session.graph().ok().filter(|g| g.function.is_none()).map(Graph::sbs_path).unwrap_or_default();
+    draft.material.document = app.session.has_package().then_some(app.session.document_id);
     app.ui.export_draft = Some(draft);
     app.ui.export_tab = tab;
     app.ui.windows.export = true;
@@ -357,6 +358,11 @@ fn export_images(app: &mut MaterialCraftApp, settings: &ExportSettings, graphs: 
 
 fn publish(app: &mut MaterialCraftApp, settings: &ExportSettings) -> bool {
     let material = &settings.material;
+    // Graph paths are only unique within a package. Never resolve a stale dialog against another one.
+    if !app.session.has_package() || material.document != Some(app.session.document_id) {
+        app.toast(tr("The export package changed. Reopen the Export window"), true);
+        return false;
+    }
     let Some((index, graph)) = app.session.pkg.graph_by_name(&material.root) else {
         app.toast(tr("Choose a root graph"), true);
         return false;

@@ -105,3 +105,52 @@ fn the_format_list_drops_tiff_and_lists_dds_as_planned() {
     assert_eq!(ExportFormat::find("dds").map(|format| format.available), Some(false));
     assert_eq!(ExportFormat::find("png").map(ExportFormat::title).as_deref(), Some("PNG (*.png)"));
 }
+
+#[test]
+#[cfg(not(target_arch = "wasm32"))]
+fn material_dialog_rejects_another_package_with_the_same_graph_path() {
+    for tab in [ExportTab::Mcmat, ExportTab::MaterialX] {
+        let mut app = app();
+        open(&mut app, tab);
+        let draft = app.ui.export_draft.clone().unwrap();
+        let original = app.session.document_id;
+        app.run("file.newPackage", json!({})).unwrap();
+        app.run("file.new", json!({"name": draft.material.root, "template": "empty"})).unwrap();
+        assert!(app.session.pkg.graph_by_name(&draft.material.root).is_some());
+        assert!(!publish(&mut app, &draft));
+        assert!(app.toasts.last().unwrap().text.contains("export package changed"));
+        assert!(app.material_export_job.is_none());
+        // Switching back preserves the original dialog and reaches destination validation.
+        app.run("package.activate", json!({"document": original})).unwrap();
+        assert!(!publish(&mut app, &draft));
+        assert!(app.toasts.last().unwrap().text.contains("export destination"));
+    }
+}
+
+#[test]
+fn material_dialog_does_not_restore_a_closed_package_identity() {
+    let mut app = app();
+    open(&mut app, ExportTab::Mcmat);
+    let draft = app.ui.export_draft.clone().unwrap();
+    app.run("package.closeAll", json!({"discard": true})).unwrap();
+    assert!(!publish(&mut app, &draft));
+    assert!(app.toasts.last().unwrap().text.contains("export package changed"));
+    app.run("file.new", json!({"name": draft.material.root, "template": "empty"})).unwrap();
+    assert!(!publish(&mut app, &draft));
+    assert!(app.toasts.last().unwrap().text.contains("export package changed"));
+    open(&mut app, ExportTab::Mcmat);
+    let reopened = app.ui.export_draft.as_ref().unwrap();
+    assert_eq!(reopened.material.document, Some(app.session.document_id));
+    assert_ne!(reopened.material.document, draft.material.document);
+}
+
+#[test]
+fn material_dialog_identity_is_not_saved_in_preferences() {
+    let mut app = app();
+    open(&mut app, ExportTab::Mcmat);
+    let draft = app.ui.export_draft.as_ref().unwrap();
+    let stored = serde_json::to_value(draft).unwrap();
+    assert!(stored["material"].get("document").is_none());
+    let restored: ExportSettings = serde_json::from_value(stored).unwrap();
+    assert_eq!(restored.material.document, None);
+}

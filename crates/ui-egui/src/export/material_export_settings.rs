@@ -16,6 +16,9 @@ pub struct MaterialExportSettings {
     pub texture_depth: TextureDepth,
     #[serde(skip)]
     pub root: String,
+    /// The open package this dialog was created for; never restore an identity from preferences.
+    #[serde(skip)]
+    pub document: Option<u64>,
     /// Height in scene units of a white displacement texel
     pub displacement_scale: f32,
 }
@@ -29,6 +32,7 @@ impl Default for MaterialExportSettings {
             normal_y_down: None,
             texture_depth: TextureDepth::default(),
             root: String::new(),
+            document: None,
             displacement_scale: 1.0,
         }
     }
