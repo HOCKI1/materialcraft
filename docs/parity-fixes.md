@@ -253,6 +253,25 @@ Literal-only pixel graphs at 16², seed 23, give 512/768 exact pixels for each l
 
 The shared-lookup ridged root still matches 5,160/16,384 at changed roughness in F32, maximum 1.78813934e−7. Its one-octave .7 control still matches 1,847/4,096, maximum 2.38418579e−7. For positive normal x on the signed field, the reference's general power agrees with exp(y×ln(x)) on all 32,614 pixels. On .7 with exponent 1 it returns `3f333334`. Further work on general power and natural exponential is tracked with the [octave controls](#ridged-noise-octave-isolation).
 
+### Alpha maximum and one-texel reductions
+
+The alpha-maximum helper matches **36/36 RGBA output pixels in 33 renders**, maximum error zero. Its output has one texel for inputs through 256² and four for a 512² input. The 128² position and alpha field previously selected a different tuple with maximum component error .968627451. Reading the whole reduction chain on this input showed that the final processor received an exact 2×2 image. At requested exponent −1 it samples the lower-right texel. The earlier cook treated the one-texel allocation as logical exponent zero.
+
+For the 128² field at seed 347, take u and v at texel centers and H=((59x+41y+5xy) mod 1021)/1020. Store (u,v,H,.125+.625H) as RGBA32F, replacing alpha at (3,125) by .9375. For fourteen further renders, use original RGBA8 fields with channels x mod 253, y mod 251, (31x+29y) mod 251 and (47x+59y+13xy) mod 191. Set a marked texel in quadrant j to (29+53j,211−47j,37+59j,255). Number quadrants in row-major order. Place the mark one eighth or seven eighths of the way across each axis. Use a 16² field at seed 73, four 128² fields at seeds 137, 173, 277 and 373, and a 64² southwest field in all four formats at seed 433. Also test 256² northeast/577, 512² southeast/661, 128×64 northwest/739 at a 128² parent, 128² with opposing northwest and southeast marks/809, and 128² southwest/953. These cases improved from 11/17 to 17/17 output pixels. The 128² northwest field returns RGBA8 levels (75,69,59,190) expressed as F32. The two-mark field returns (188,70,214,255).
+
+| Direct controls | Renders | Exact pixels or typed values / compared | Maximum error |
+|---|---:|---:|---:|
+| Pixel size, logarithm and sample displacement | 72 | 3,333/3,333 | 0 |
+| Pixel canvas, absolute, parent and first input | 12 | 86,420/86,420 | 0 |
+| Filter size relative to a one-texel input | 16 | 1,088/1,088 | 0 |
+| Uniform color function | 8 | 148/148 | 0 |
+| Stamp opacity | 24 | 444/444 | 0 |
+| Typed value function | 24 | 24/24 | 0 |
+
+At parent sides 16, 32, 64, 128, 256 and 512, request offsets (−8,−8), (−5,−5), (−8,−2) and (−2,−8), seed 127. Return the two size components and the two pixel-center coordinates in RGBA32F. Repeat with the base-two size logarithm. For the third output, sample a linear F32 image at the pixel center plus (.25,.25) divided by the reported size. Set the source channels to (x/N,y/N,((17x+23y+9xy) mod 251)/250,1). The raster clamps each axis to one texel while the logarithm keeps the requested negative exponent. For exponents −1, −2, −3 and −4 the reported size is −2³¹, 2³⁰, 2²⁹ and 2²⁸. The position still uses physical texel centers.
+
+The propagation controls use parents of 16, 64, 128 and 256 at seed 131. Follow the (−8,−2) processor with a transform whose width offset relative to input is −1, 0, +1 or +3. For example, at parent 128 and offset +3 the transform is four texels wide. Uniform color encodes the two logarithms as .5 + log₂(size)/16 and the two reported sizes as .5 + size/2³². Test relative (−8,−2) and absolute (−2,3). A separate diagnostic that assigns a variable inside the pixel-ratio function, then reads it in another parameter, matches 64/296 pixels in sixteen renders. The reference returns zero for that read. This side effect remains open.
+
 ### Material bundles and the eighth irradiance pass
 
 | Root | Recorded renders | Exact output pixels / compared | Maximum stored error |

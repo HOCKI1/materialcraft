@@ -45,6 +45,7 @@ impl<'a> PreparedGraph<'a> {
         // Only bypassed generators take their image dimensions from the input
         if !node.disabled && definition.is_some_and(|definition| definition.generator) {
             base.size = self.parent_base.size;
+            base.size_underflow = self.parent_base.size_underflow;
         }
 
         Some(base)

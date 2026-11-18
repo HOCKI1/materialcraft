@@ -48,6 +48,40 @@ fn cooks_and_caches() {
 }
 
 #[test]
+fn subtexel_size_exponents_survive_allocation_and_cache_reuse() {
+    use materialcraft_core::{FunctionGraph, OutputFormat, SizeMode};
+
+    let mut function = FunctionGraph::default();
+    let size = function.add("get_float2", &[], Some(Value::Text("$size".into())));
+    let log = function.add("get_float2", &[], Some(Value::Text("$sizelog2".into())));
+    function.output = Some(function.add("vector4", &[size, log], None));
+    let mut graph = Graph::new("Reduction");
+    graph.size = [7; 2];
+    graph.format = OutputFormat::F32;
+    let processor = graph.add_node("pixel_processor", [0.0; 2]);
+    let node = graph.node_mut(processor).unwrap();
+    node.params.insert("function".into(), Value::Function(Box::new(function)));
+    node.params.insert("color_mode".into(), Value::Bool(true));
+    node.base.size_mode = SizeMode::RelativeToParent;
+    let transform = graph.add_node("transformation", [120.0, 0.0]);
+    graph.node_mut(transform).unwrap().base.size = [3, 0];
+    graph.connect(processor, "output", transform, "input").unwrap();
+    let mut package = Package::new("Reduction");
+    package.graphs.push(graph);
+    let cache = Mutex::new(Cache::default());
+
+    for (offset, first, log, next_width) in [(-8, -2147483648.0, -1.0, 4), (-9, 1073741824.0, -2.0, 2), (-10, 536870912.0, -3.0, 1)] {
+        package.graphs[0].node_mut(processor).unwrap().base.size = [offset, -2];
+        let cooked = cook(&package, 0, &Options::new(&no_res), &cache);
+        assert!(cooked.nodes.values().all(|result| result.error.is_none() && !result.cached));
+        let image = cooked.image(processor, 0).unwrap();
+        assert_eq!((image.width(), image.height()), (1, 32));
+        assert_eq!(image.get(0, 0, false), [first, 32.0, log, 5.0]);
+        assert_eq!(cooked.image(transform, 0).unwrap().width(), next_width);
+    }
+}
+
+#[test]
 fn processor_tiling_variable_tracks_both_axes_and_invalidates_cached_values() {
     let mut function = materialcraft_core::FunctionGraph::default();
     function.output = Some(function.add("get_integer1", &[], Some(Value::Text("$tiling".into()))));

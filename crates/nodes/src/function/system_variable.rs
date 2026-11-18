@@ -82,8 +82,22 @@ impl SystemVariable {
         let value = match self {
             Self::Position => Value::Float2(context.position),
             Self::Depth | Self::DepthPow2 | Self::Number if context.scope == FunctionScope::ValueProcessor => Value::Float(0.0),
-            Self::Size => Value::Float2(context.size),
-            Self::SizeLog2 => Value::Float2(context.size.map(f32::log2)),
+            Self::Size | Self::SizeLog2 => {
+                let requested = match context.variables.get("$sizelog2") {
+                    Some(Value::Float2(exponents)) => *exponents,
+                    _ => [0.0; 2],
+                };
+                Value::Float2(std::array::from_fn(|axis| {
+                    if requested[axis] < 0.0 && context.size[axis] == 1.0 {
+                        // The raster has one texel, but functions retain the signed size exponent.
+                        if self == Self::SizeLog2 { requested[axis] } else { 1_i32.wrapping_shl(requested[axis] as i32 as u32) as f32 }
+                    } else if self == Self::SizeLog2 {
+                        context.size[axis].log2()
+                    } else {
+                        context.size[axis]
+                    }
+                }))
+            }
             _ => context.variables.get(self.name()).cloned().unwrap_or_else(|| match self {
                 Self::Tiling => Value::Int(if context.tile { 3 } else { 0 }),
                 Self::DepthPow2 => Value::Float(1.0),

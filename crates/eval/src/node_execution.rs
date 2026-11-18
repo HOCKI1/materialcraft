@@ -161,7 +161,7 @@ pub(crate) fn cook_node(
     let key = hash_of(&(
         &node.def,
         serde_json::to_string(&parameters).unwrap_or_default(),
-        (w, h, seed, tile, node.disabled, base.size, base.format, base.tiling, base.pixel_ratio, base.pixel_size.map(f32::to_bits)),
+        (w, h, seed, tile, node.disabled, base.size, base.size_underflow, base.format, base.tiling, base.pixel_ratio, base.pixel_size.map(f32::to_bits)),
         &input_keys,
         resource_hash,
         subgraph_hash,

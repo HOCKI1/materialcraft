@@ -117,7 +117,8 @@ pub(crate) fn cook_instance(
                 .ok_or_else(|| format!("the source output `{}` is missing", port.id))?;
             let output = result.outputs.first().ok_or_else(|| format!("the source output `{}` is empty", port.id))?;
             let source_base = result.base;
-            let port_base = crate::ResolvedBaseParameters { size: source_base.size, format: source_base.format, ..base };
+            let port_base =
+                crate::ResolvedBaseParameters { size: source_base.size, size_underflow: source_base.size_underflow, format: source_base.format, ..base };
             Ok((output.clone(), port_base))
         })
         .collect()

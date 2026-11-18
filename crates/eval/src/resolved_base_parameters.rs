@@ -5,6 +5,9 @@ use std::collections::BTreeMap;
 #[serde(rename_all = "camelCase")]
 pub struct ResolvedBaseParameters {
     pub size: [u32; 2],
+    /// Negative requested exponents on axes whose allocated texture is one texel.
+    #[serde(skip)]
+    pub size_underflow: [i32; 2],
     pub seed: u32,
     pub format: OutputFormat,
     pub tiling: [bool; 2],
@@ -17,6 +20,7 @@ impl ResolvedBaseParameters {
         let parent = options.parent_base;
         Self {
             size: parent.map_or_else(|| graph.size_px(), |base| graph.output_size_px(base.size)),
+            size_underflow: parent.filter(|_| graph.absolute_output_size.is_none()).map_or([0; 2], |base| base.size_underflow),
             seed: parent.map_or(graph.seed as u32, |base| base.seed),
             format: parent.map_or(graph.format, |base| base.format),
             tiling: graph.tiling_mode.resolve(graph.tiling, options.parent_tiling, options.parent_tiling.unwrap_or(graph.tiling)),
@@ -26,10 +30,14 @@ impl ResolvedBaseParameters {
     }
 
     pub(crate) fn resolve(base: &BaseParameters, input: Option<Self>, parent: Self) -> Self {
-        let size_base = BaseParameter::OutputSize.inheritance(base).resolve([1; 2], input.map(|base| base.size), parent.size);
+        let dimensions = |base: Self| (base.size, base.size_underflow);
+        let (size_base, underflow) = BaseParameter::OutputSize.inheritance(base).resolve(([1; 2], [0; 2]), input.map(dimensions), dimensions(parent));
+        let shift: [i32; 2] = std::array::from_fn(|axis| underflow[axis].saturating_add(base.size[axis].clamp(-12, 13)));
 
         // Internal images may be one texel; the editor minimum would break size functions
-        let size = std::array::from_fn(|axis| (f64::from(size_base[axis]) * 2f64.powi(base.size[axis].clamp(-12, 13))).round().clamp(1.0, 8192.0) as u32);
+        let size = std::array::from_fn(|axis| (f64::from(size_base[axis]) * 2f64.powi(shift[axis])).round().clamp(1.0, 8192.0) as u32);
+        let size_underflow =
+            std::array::from_fn(|axis| if size_base[axis].is_power_of_two() { shift[axis].saturating_add(size_base[axis].ilog2() as i32).min(0) } else { 0 });
 
         // Images carry size and format, but do not carry a random stream
         // Relative seed modes use the graph seed without accumulating upstream seeds
@@ -37,6 +45,7 @@ impl ResolvedBaseParameters {
         let inherited_pixel_size = base.pixel_size_mode.resolve([1.0; 2], input.map(|base| base.pixel_size), parent.pixel_size);
         Self {
             size,
+            size_underflow,
             seed: inherited_seed.wrapping_add(base.seed as u32),
             format: BaseParameter::Format.inheritance(base).resolve(base.format, input.map(|base| base.format), parent.format),
             tiling: base.tiling_mode.resolve(base.tiling, input.map(|base| base.tiling), parent.tiling),
@@ -46,8 +55,19 @@ impl ResolvedBaseParameters {
     }
 
     pub(crate) fn variables(self, variables: &mut BTreeMap<String, Value>) {
+        self.size_variables(variables);
         variables.insert("$tiling".into(), Value::Int(i32::from(self.tiling[0]) | (i32::from(self.tiling[1]) << 1)));
         variables.insert("$pixelratio".into(), Value::Int(self.pixel_ratio));
+    }
+
+    fn size_variables(self, variables: &mut BTreeMap<String, Value>) {
+        if self.size_underflow == [0; 2] {
+            variables.remove("$sizelog2");
+        } else {
+            let exponents =
+                std::array::from_fn(|axis| if self.size_underflow[axis] < 0 { self.size_underflow[axis] as f32 } else { (self.size[axis] as f32).log2() });
+            variables.insert("$sizelog2".into(), Value::Float2(exponents));
+        }
     }
 }
 
@@ -92,7 +112,9 @@ pub(crate) fn evaluate(
         if let Some(function) = base.functions.get(&parameter) {
             resolved.variables(variables.to_mut());
             let size = if parameter == BaseParameter::OutputSize && parameter.inheritance(base) != ParameterInheritance::Absolute {
-                parameter.inheritance(base).resolve(parent.size, input.map(|base| base.size), parent.size)
+                let inherited = parameter.inheritance(base).resolve(parent, input, parent);
+                inherited.size_variables(variables.to_mut());
+                inherited.size
             } else {
                 resolved.size
             };
