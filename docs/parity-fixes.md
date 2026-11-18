@@ -253,6 +253,26 @@ Literal-only pixel graphs at 16², seed 23, give 512/768 exact pixels for each l
 
 The shared-lookup ridged root still matches 5,160/16,384 at changed roughness in F32, maximum 1.78813934e−7. Its one-octave .7 control still matches 1,847/4,096, maximum 2.38418579e−7. For positive normal x on the signed field, the reference's general power agrees with exp(y×ln(x)) on all 32,614 pixels. On .7 with exponent 1 it returns `3f333334`. Further work on general power and natural exponential is tracked with the [octave controls](#ridged-noise-octave-isolation).
 
+### Wired spline helpers and shape mapping
+
+| Root | Renders | Exact pixels / compared | Exact integers / compared | Maximum integer-image / F32 error |
+|---|---:|---:|---:|---:|
+| Shape mapper | 29 | 310,784/310,784 | — | 0 / 0 |
+| 2D spline transform | 64 | 87,552/87,552 | 18/18 | 0 / 0 |
+| Bridge distance | 33 | 54,528/54,528 | — | 0 / 0 |
+| Initial spline length | 27 | 43,776/43,776 | — | 0 / 0 |
+| Spline tangents | 27 | 43,296/43,776 | — | 63578 / 1.95677358 |
+
+The spline cases add three original coordinate and tangent buffers, with counts 1, 3 and 2 supplied through Integer value processors wherever the graph accepts a count. At 16² (circle) or 32×16 (line and signed curve), populate rows 0 to 2 and leave later rows zero. Let θ=2π(x+.5)/width. The circle and signed coordinates are (.5+(.25−y/32)cos θ, .375+(.1875+y/64)sin θ+y/16, 1, −1), with tangent (−sin θ,cos θ,0,1). For the signed curve, transform its x component to 2.5x−.875 and negate its y component in row 1. For the line use D=(x+.5)/width−.5 and slope S=.5 in the first half, −.25 in the second. Its coordinates are (.5+D,.375+S×D+y/16,1,−1), tangent (1,S,0,1).
+
+The spline transform uses matrix (1.125,−.25,.375,.75) on the circle, and (0,−1,1,0) on the other buffers. Set offset (.1875,−.3125) and switch on reverse direction for both curved inputs. For distance and length, feed parent size (2,1) with non-square correction enabled on curved buffers, or (.75,1.5) with correction disabled on the line. Use tangent mode 1 on curved inputs and 0 on the line. Render 16² F32/seed 89, 32²/197 with four requested formats and 64² F32/439. For the integer port use one render per size. Its nine wired results are three 1s, three 3s and three 2s. The transformed 32² line contains 97 different stored coordinate tuples.
+
+The transform's wired image ports and bridge distance retain F32 storage inside their wrapper. Their direct four-format runs verify U8, U16, F16 and F32. The six earlier [wired bridge distance cases](#height-distance-texture-mapping-skew-and-weave) now match all 10,752 pixels. With three splines the tangent helper matches 7,971/8,448 on the line, including 955/1,024 in F32 at 32². Its 64² F32 line reaches error 1.95677358. Both curved inputs match 8,448/8,448 on this helper.
+
+For shape mapper, the five earlier comparison sizes and four-format inputs are listed in the [inventory comparison](#four-format-inventory-comparison). Add an F32 coordinate grid with R=x and an alternating-column pattern x mod 2 at 128², plus coordinate fields at 16², 256², 64×32 into 64² and a 128² repeat. At 64² store .1875x−2.125 in all four output formats. The seeds for 16², 128² grid, 128² binary, 256², signed 64², rectangular input and the repeat are 89, 131, 233, 331, 421, 509 and 601. Use defaults at 16² and otherwise radius .3125, width .6875, seven patterns, five segments, rotation .1875 and alternate flipping. Use shape 0 for the rectangular case and 1 elsewhere, nearest filtering for the binary case.
+
+For ten further shape mapper renders use H=(((59x+41y+5xy) mod 1021)/1020+u+2v)/4, where u,v are source texel centers. Use defaults at 16²/83, four formats at 64²/167, F32 at 128²/347, a 32×16 input at 32²/499, signed 32²/631 with 3H−1.375, 64²/787 and 64²/827. Set radius .375, width .71875, rotation .09375, nine patterns and seven segments. Use shape 0 and disable non-square expansion for the rectangular input. Use shape 1 elsewhere. Link segments and pattern count for the signed input. Disable alternate flipping and select nearest filtering at seed 787. Together the ten smooth-field renders match all 43,264 stored pixels.
+
 ### Five-texel blur kernels
 
 | Original controls with 1.5 < radius ≤ 2.5 | Renders | Exact RGBA pixels / compared | Maximum error |

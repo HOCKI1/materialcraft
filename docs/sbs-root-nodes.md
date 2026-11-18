@@ -35,7 +35,7 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **255 Parity**, **35 In progress** and **256 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **259 Parity**, **35 In progress** and **252 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
 
 [Grayscale sampler measurements](parity-fixes.md#grayscale-sampling-of-color-inputs) · [Value sampling across 240 typed comparisons](parity-fixes.md#value-processor-texture-filtering)
 
@@ -516,7 +516,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [scratches_2.sbs/scratches_2](../assets/sbs/scratches_2.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [scratches_4.sbs/scratches_4](../assets/sbs/scratches_4.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [shape.sbs/shape_base](../assets/sbs/shape.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [shape_mapper.sbs/shape_mapper](../assets/sbs/shape_mapper.sbs) | 1 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [shape_mapper.sbs/shape_mapper](../assets/sbs/shape_mapper.sbs) | 1 | No | [Parity · 310,784/310,784 pixels](parity-fixes.md#wired-spline-helpers-and-shape-mapping) |
 | [shape_splatter.sbs/min_max](../assets/sbs/shape_splatter.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [shape_splatter.sbs/shape_splatter_blend](../assets/sbs/shape_splatter.sbs) | 12 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [shape_splatter.sbs/shape_splatter_blend_color](../assets/sbs/shape_splatter.sbs) | 12 | No | [In progress · three pixels differ with independent patterns](parity-fixes.md#height-distance-texture-mapping-skew-and-weave) |
@@ -543,12 +543,12 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [splatter_color.sbs/splatter_color](../assets/sbs/splatter_color.sbs) | 2 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [spline_tools.sbs/-----WIP-----/circular_array_wip](../assets/sbs/spline_tools.sbs) | 2 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [spline_tools.sbs/-----WIP-----/displace_spline_by_spline_wip](../assets/sbs/spline_tools.sbs) | 4 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
-| [spline_tools.sbs/internal_tools/2dtransform_spline_sub](../assets/sbs/spline_tools.sbs) | 3 | Yes | [Too hard: value-input case not verified](parity-fixes.md#remaining-differences) |
+| [spline_tools.sbs/internal_tools/2dtransform_spline_sub](../assets/sbs/spline_tools.sbs) | 3 | Yes | [Parity · 87,570/87,570 pixels and values](parity-fixes.md#wired-spline-helpers-and-shape-mapping) |
 | [spline_tools.sbs/internal_tools/append_splines_sub](../assets/sbs/spline_tools.sbs) | 6 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
-| [spline_tools.sbs/internal_tools/compute_bridge_distance](../assets/sbs/spline_tools.sbs) | 3 | Yes | [In progress · both wired counts exact at 32² and 64², four float differences at 16²](parity-fixes.md#wired-graph-textures-and-pixel-sampling) |
+| [spline_tools.sbs/internal_tools/compute_bridge_distance](../assets/sbs/spline_tools.sbs) | 3 | Yes | [Parity · 54,528/54,528 pixels](parity-fixes.md#wired-spline-helpers-and-shape-mapping) |
 | [spline_tools.sbs/internal_tools/compute_spline_distance_iteration](../assets/sbs/spline_tools.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
-| [spline_tools.sbs/internal_tools/compute_spline_length_init](../assets/sbs/spline_tools.sbs) | 2 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [spline_tools.sbs/internal_tools/compute_spline_tangents](../assets/sbs/spline_tools.sbs) | 3 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [spline_tools.sbs/internal_tools/compute_spline_length_init](../assets/sbs/spline_tools.sbs) | 2 | Yes | [Parity · 43,776/43,776 pixels](parity-fixes.md#wired-spline-helpers-and-shape-mapping) |
+| [spline_tools.sbs/internal_tools/compute_spline_tangents](../assets/sbs/spline_tools.sbs) | 3 | Yes | [In progress · 43,296/43,776 pixels](parity-fixes.md#wired-spline-helpers-and-shape-mapping) |
 | [spline_tools.sbs/internal_tools/get_spline_point_data](../assets/sbs/spline_tools.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [spline_tools.sbs/internal_tools/modify_spline_property_sub](../assets/sbs/spline_tools.sbs) | 4 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [spline_tools.sbs/internal_tools/normalize_spline_distance](../assets/sbs/spline_tools.sbs) | 1 | Yes | [Parity · 16 cases, 52,480 exact pixels](parity-fixes.md#tile-edge-masks-and-normalized-spline-distances) |
