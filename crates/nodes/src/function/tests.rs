@@ -49,6 +49,50 @@ fn scoped_operation(scope: super::FunctionScope, op: &str, operands: &[Value], l
 }
 
 #[test]
+fn runtime_arithmetic_flushes_subnormal_operands_and_results_with_their_signs() {
+    for scope in [super::FunctionScope::Node, super::FunctionScope::ValueProcessor, super::FunctionScope::PixelProcessor, super::FunctionScope::FxMap] {
+        for (op, a, b, expected) in [
+            ("add", 0x00800001, 0x80800000, 0),
+            ("sub", 0x00800001, 0x00800000, 0),
+            ("mul", 0x807fffff, 0x40000000, 0x80000000),
+            ("mul", 0x00800000, 0x3f000000, 0),
+            ("div", 0x00800000, 0x40000000, 0),
+            ("div", 0x00800000, 0x807fffff, f32::NEG_INFINITY.to_bits()),
+        ] {
+            let args = [Value::Float(f32::from_bits(a)), Value::Float(f32::from_bits(b))];
+            let actual = scoped_operation(scope, op, &args, false);
+            assert!(matches!(actual, Value::Float(value) if value.to_bits() == expected), "{scope:?} {op}: {actual:?}");
+        }
+    }
+    let a = Value::Float2([f32::from_bits(0x00400000), f32::MIN_POSITIVE]);
+    let b = Value::Float2([f32::from_bits(0x00400000), 0.5]);
+    assert_eq!(pixel_operation("dot", &[a, b], false), Value::Float(0.0));
+}
+
+#[test]
+fn uniform_logarithms_and_powers_use_their_measured_domains() {
+    for (op, input, exponent, bits) in [
+        ("log", -1.0, None, 0),
+        ("log", f32::from_bits(1), None, 0),
+        ("log", 0.5625, None, 0xbf134b11),
+        ("log", 0.75, None, 0xbe934b11),
+        ("pow", 0.0, Some(-2.0), 0),
+        ("pow", -2.0, Some(0.5), 0),
+        ("pow", -2.0, Some(-3.0), 0xbe000000),
+        ("pow", 0.3, Some(2.4), 0x3d63befe),
+        ("pow", 0.563_981_1, Some(2.4), 0x3e8182ad),
+        ("pow", 0.95, Some(-4.125), 0x3f9e2948),
+    ] {
+        let mut inputs = vec![Value::Float(input)];
+        inputs.extend(exponent.map(Value::Float));
+        for scope in [super::FunctionScope::Node, super::FunctionScope::ValueProcessor] {
+            let Value::Float(value) = scoped_operation(scope, op, &inputs, false) else { panic!("expected a scalar") };
+            assert_eq!(value.to_bits(), bits, "{op}({input}, {exponent:?})");
+        }
+    }
+}
+
+#[test]
 fn runtime_pixel_square_root_normalizes_exponents_and_rounds_halfway_down() {
     for (input, expected) in [
         (0x3f801000, 0x3f8007ff),
@@ -316,9 +360,10 @@ fn pixel_division_multiplies_by_the_reciprocal() {
     let operands = [Value::Float(-2.7353475), Value::Float(1.7320508)];
     assert_eq!(pixel_operation("div", &operands, false), Value::Float(f32::from_bits(0xbfca24fb)));
     assert_eq!(pixel_operation("div", &operands, true), Value::Float(f32::from_bits(0xbfca24fc)));
-    // Taking a reciprocal of this subnormal would overflow before the quotient can be computed.
+    // The runtime flushes both operands of this quotient, giving zero divided by zero.
     let tiny = Value::Float(f32::from_bits(1));
-    assert_eq!(pixel_operation("div", &[tiny.clone(), tiny], false), Value::Float(1.0));
+    let Value::Float(quotient) = pixel_operation("div", &[tiny.clone(), tiny], false) else { panic!("expected float") };
+    assert!(quotient.is_nan());
 }
 
 #[test]

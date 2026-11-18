@@ -253,6 +253,33 @@ Literal-only pixel graphs at 16², seed 23, give 512/768 exact pixels for each l
 
 The shared-lookup ridged root still matches 5,160/16,384 at changed roughness in F32, maximum 1.78813934e−7. Its one-octave .7 control still matches 1,847/4,096, maximum 2.38418579e−7. For positive normal x on the signed field, the reference's general power agrees with exp(y×ln(x)) on all 32,614 pixels. On .7 with exponent 1 it returns `3f333334`. Further work on general power and natural exponential is tracked with the [octave controls](#ridged-noise-octave-isolation).
 
+### Surface irradiance and uniform power
+
+Surface irradiance matches **47,360/47,360 RGBA pixels in 71 renders**, maximum error zero. The total includes repeated controls. There are 31,232 F32 pixels and 5,376 each in U8, U16 and F16. The eight original polar/index combinations, the four 64² format checks and the independent 32² field all match.
+
+The mixed albedo (.27,.54,.88) isolated the green component. With the .54 control, the uniform expression ((c+.055)/1.055) raised to 2.4 produces F32 bits 3e8182ad. The logarithm and power controls each match 278,528/278,528 F32 pixels from 17 scalar inputs. MaterialCraft now range-reduces the uniform logarithm in base two and approximates the reduced natural logarithm with a polynomial fitted to the mathematical function. Products and sums round separately. On the broader field x=.5+i/16,384 for i=0…8,191, 8,104/8,192 distinct results match, or 1,037,312/1,048,576 pixels with each column repeated 128 times. Maximum error is 5.96046448e−8.
+
+The [3D surface render inputs](#3d-surface-and-volume-render-passes) define the ramp. For the flat control, use position bytes (128,128,128,255), environment bytes (64,128,192,255) and zero noise. The axis control additionally uses an F32 normal (.5,.5,1,1) and sample table (.25,.25,1,1). The original 21 controls cross these three environments with seven combinations of index and albedo at 16². For nine further renders use the following settings.
+
+| Input | Size / output | Seed | Index | Albedo |
+|---|---|---:|---:|---|
+| Ramp | 16² F32 | 31 | 3 | (.0625,.4,.75) |
+| Flat | 32² in all four formats | 139 | 1 | (.375,.75,.8125) |
+| Ramp | 64² F32 | 233 | 4 | (.9,.3,.6) |
+| Axis | 32² F32 | 307 | 6 | (.27,.54,.88) |
+| Flat | 16² F32 | 503 | 7 | (.031,.04045,.045) |
+| Flat | 32² F32 | 239 | 1 | (.375,.75,.8125) |
+
+For the final eleven F32 renders, keep the axis field and index 6. At 16², set each of the three channels of (.27,.54,.88) in isolation, then use each component as a neutral gray. At 32² use (.203125,.3125,.45625), (.6125,.776,.928), (.1546875,.478,.832), white and (.01,.03,.04). Seeds run from 473 through 483 in that order. All 6,656 pixels match.
+
+**Function controls.** In 16² parameter, pixel, stamp and typed-value graphs, 18 exposed logarithm arguments give 13,824/13,824 exact image pixels and 18/18 typed floats. The 25 exposed power pairs give 19,200/19,200 pixels and 25/25 floats. Five literal logarithms and four literal powers give 6,912/6,912 pixels and 9/9 floats. All maximum errors are zero. Cases include signed zero, the nearest floats on each side of the minimum positive normal, negative bases with positive and negative integer exponents, negative bases with fractional exponents, and zero to the zeroth power.
+
+At the subnormal boundary, runtime addition, subtraction, multiplication and division use signed zero for subnormal operands and results. On seven 32² F32 fields, those operations, a fused product and sum, a sum of two products and a two-channel dot product match 7,168/7,168 raw pixels, including signed zeros and nonfinite bit patterns. Maximum finite error is zero. Four further 16×16-output probes over sixteen scalar pairs match 16,384/16,384 pixel-processor outputs. For minimal discriminators use 2⁻¹²⁶ × .5, −2⁻¹²⁷ × 8, the smallest subnormal divided by itself and the product of 2⁻¹²⁶ and .5 added to 2⁻¹²⁶ in one fused operation. A plain stamp reading the twelve near-zero inputs still matches 1,792/3,072 F32 pixels, maximum 1.17549421e−38. Nonfinite typed values could not be compared through the JSON transport.
+
+**Remaining roots.** The 3D volume mask matches 466,232/467,456 pixels in 35 renders. All integer and half outputs match, and 113,976/115,200 F32 pixels match with maximum error 3.81469727e−6. In eleven of these controls use an F32 position field ((x+.5)/N,(y+.5)/N,((11x+23y+3xy) mod 127)/126,1), scale .375, size (.75,1,.625) and world position (.375,.5625,.6875). The 64² box at rotation (.125,−.1875,.0625), feather .15625 and seed 197 matches every U8, U16 and F16 pixel and 4,061/4,096 F32 pixels. The F32 repeat at seed 613 has the same count and maximum of 1.90734863e−6.
+
+Blackbody matches 34,048/42,496 pixels in 19 renders, including all 4,352 pixels in each of U8, U16 and F16. F32 matches 20,992/29,440 with maximum error 1.19209290e−7. Use temperatures 1733, 2718.5, 5555, 6500, 7111.25, 9900.5 and 18000 at sizes 16, 32, 16, 64, 32, 16 and 16, with seeds 29, 197, 113, 137, 371, 89 and 83 respectively. Run all four formats at 5555 and F32 at every other temperature.
+
 ### Stored precision in transform mip levels
 
 | Root | Cases | Exact RGBA pixels / compared | Maximum error |
@@ -389,7 +416,7 @@ The **uniform natural exponential** uses the same [seventh-degree polynomial](#n
 
 To reproduce the parameter cases, broadcast exp(start+column×step) down each column, with arguments, multiplication and addition in F32. The first 24 (start,step) pairs are (0,1/128), (−1,1/128), (−8,1/8), (−.5,1/32768), (.625,1/16384), (−4,1/37), (−3,1/19), (32,1/64), (−31,1/64), (.0625,1/128), (.125,1/128), (.28125,1/1024), (.5,1/512), (.8125,1/2048), (.03125,1/128), (.3,1/128), (.4,1/256), (.9,1/4096), (.2,1/32768), (1,1/64), (3,1/16), (.6,1/2048), (.25,1/256), (.5625,1/1024). The next 16 use (j×ln(2)/16,ln(2)/2048) for j=0…15. The ten wide pairs are (−99,1/32), (−90,1/64), (−88.5,1/128), (−87.75,1/256), (−24,1/31), (−3,1/63), (.2,1/59), (17,1/32), (81,1/32), (87.5,1/64). The twelve independent pairs are (.500032187,.0000311367), (.5316711,.0013927), (.5062,.0029721), (.904311,.00049123), (.7009667,.0011769), (.222237,.0003721), (1.103987,.0139583), (3.14159,.053537), (13.175,.0002953), (.43291,.027716), (−89.112,.02023), (84.67,.032698).
 
-**Surface irradiance** retains 2,304/5,376 exact pixels in the 21 parameter and environment comparisons, maximum 2.98023224e−8. The natural logarithm used in the uniform albedo power remains open.
+Before the uniform power correction, surface irradiance matched 2,304/5,376 pixels in the 21 parameter and environment comparisons, maximum 2.98023224e−8. The current run matches all 5,376. [Surface irradiance and uniform power](#surface-irradiance-and-uniform-power)
 
 ### Signed Levels, driven grayscale weights and grayscale gradients
 

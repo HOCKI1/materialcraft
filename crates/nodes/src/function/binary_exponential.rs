@@ -56,6 +56,23 @@ pub(super) fn ln(value: f32) -> f32 {
     log2(value) * std::f32::consts::LN_2
 }
 
+pub(super) fn uniform_ln(value: f32) -> f32 {
+    if !value.is_finite() {
+        return value.ln();
+    }
+    if value < f32::MIN_POSITIVE {
+        return 0.0;
+    }
+    let bits = value.to_bits();
+    let exponent = (bits >> 23) as i32 - 126;
+    let mantissa = f32::from_bits((126 << 23) | (bits & MANTISSA));
+    let u = 1.0 - mantissa;
+    // Fit the remainder of -ln(1-u) = u(1+uP(u)) over [0, 0.5]. Uniform products and sums round separately.
+    let coefficients = [-2.507_298, 1.991_688_4, -0.599_022_4, 0.341_097_44, 0.175_831_17, 0.251_863_93, 0.333_263_6, 0.500_000_9];
+    let remainder = coefficients.into_iter().fold(1.761_320_2, |p, c| p * u + c);
+    -u * (1.0 + u * remainder) + exponent as f32 * std::f32::consts::LN_2
+}
+
 pub(crate) fn signed_pixel_power(value: f32, exponent: f32) -> f32 {
     exp2(log2(value.abs()) * exponent).copysign(value)
 }
@@ -88,18 +105,22 @@ pub(super) fn exp(value: f32, pixel: bool) -> f32 {
     if result.is_subnormal() { 0.0 } else { result }
 }
 
-pub(super) fn power(base: f32, exponent: f32) -> f32 {
+pub(super) fn power(base: f32, exponent: f32, pixel: bool) -> f32 {
+    if !pixel && (!base.is_finite() || !exponent.is_finite()) {
+        return base.powf(exponent);
+    }
     if base.abs() < f32::MIN_POSITIVE {
         return 0.0;
     }
+    let magnitude = |x| exp(exponent * if pixel { ln(x) } else { uniform_ln(x) }, pixel);
     if base > 0.0 {
-        return exp(exponent * ln(base), true);
+        return magnitude(base);
     }
     if exponent.fract() != 0.0 {
         return 0.0;
     }
-    let magnitude = exp(exponent * ln(base.abs()), true);
-    if exponent.abs() % 2.0 == 1.0 { -magnitude } else { magnitude }
+    let result = magnitude(base.abs());
+    if exponent.abs() % 2.0 == 1.0 { -result } else { result }
 }
 
 pub(super) fn exp2(value: f32) -> f32 {

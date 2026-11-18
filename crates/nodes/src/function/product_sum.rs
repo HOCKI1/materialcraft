@@ -1,4 +1,4 @@
-use super::{instruction::Instruction, value_type};
+use super::{arithmetic::flush_subnormal, instruction::Instruction, value_type};
 use materialcraft_core::Value;
 
 pub(super) struct ProductSum {
@@ -16,14 +16,15 @@ impl ProductSum {
         if width != value_type::dimensions(c) || (width != value_type::dimensions(b) && !(self.scale_vector && value_type::dimensions(b) == 1)) {
             return Err("float operands must have the same dimensions".into());
         }
-        let a = value_type::floats(a)?;
-        let b = value_type::floats(b)?;
-        let c = value_type::floats(c)?;
+        let a = value_type::floats(a)?.map(flush_subnormal);
+        let b = value_type::floats(b)?.map(flush_subnormal);
+        let c = value_type::floats(c)?.map(flush_subnormal);
         let result: [f32; 4] = std::array::from_fn(|i| match (subtract, self.product_on_right) {
             (true, true) => (-a[i]).mul_add(b[i], c[i]),
             (true, false) => a[i].mul_add(b[i], -c[i]),
             (false, _) => a[i].mul_add(b[i], c[i]),
-        });
+        })
+        .map(flush_subnormal);
         value_type::intermediate_float_value(result.get(..width).ok_or("invalid product-sum dimensions")?)
     }
 }

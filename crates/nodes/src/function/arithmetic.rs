@@ -1,6 +1,11 @@
 use super::value_type::{dimensions, floats, integer_value, integers, intermediate_float_value as float_value};
 use materialcraft_core::Value;
 
+/// Runtime arithmetic treats subnormals as signed zero at its inputs and rounded results.
+pub(super) fn flush_subnormal(value: f32) -> f32 {
+    if value.is_subnormal() { 0.0_f32.copysign(value) } else { value }
+}
+
 pub(crate) fn evaluate(instruction: &super::instruction::Instruction, args: &[Value], random: &mut u32, scope: super::FunctionScope) -> Result<Value, String> {
     let op = instruction.definition.id;
     let pixel_math = scope == super::FunctionScope::PixelProcessor && !instruction.literal;
@@ -49,8 +54,10 @@ pub(crate) fn evaluate(instruction: &super::instruction::Instruction, args: &[Va
     if op == "dot" {
         if pixel_math && count >= 2 {
             // The second product rounds first. Each remaining channel contributes one fused operation.
-            let xy = left[0].mul_add(right[0], left[1] * right[1]);
-            let sum = left.iter().zip(right).take(count).skip(2).fold(xy, |sum, (a, b)| a.mul_add(b, sum));
+            let left = left.map(flush_subnormal);
+            let right = right.map(flush_subnormal);
+            let xy = flush_subnormal(left[0].mul_add(right[0], flush_subnormal(left[1] * right[1])));
+            let sum = left.iter().zip(right).take(count).skip(2).fold(xy, |sum, (a, b)| flush_subnormal(a.mul_add(b, sum)));
             return float_value(&[sum]);
         }
         return float_value(&[left.iter().zip(right).take(count).map(|(a, b)| a * b).sum()]);
@@ -73,9 +80,11 @@ pub(crate) fn evaluate(instruction: &super::instruction::Instruction, args: &[Va
         return float_value(&[left[0] * angle_component(angle, true), left[0] * angle_component(angle, false)]);
     }
 
+    let flush_arithmetic = !instruction.literal && matches!(op, "add" | "sub" | "mul" | "mulscalar" | "div");
     let mut result = [0.0; 4];
     for (((result, left), right), factor) in result.iter_mut().zip(left).zip(right).zip(factor).take(count) {
-        *result = match op {
+        let (left, right) = if flush_arithmetic { (flush_subnormal(left), flush_subnormal(right)) } else { (left, right) };
+        let value = match op {
             "add" => left + right,
             "sub" => left - right,
             "mul" | "mulscalar" => left * right,
@@ -93,11 +102,10 @@ pub(crate) fn evaluate(instruction: &super::instruction::Instruction, args: &[Va
             "sqrt" => left.sqrt(),
             "exp" => super::binary_exponential::exp(left, pixel_math),
             "log" if pixel_math => super::binary_exponential::ln(left),
-            "log" => left.ln(),
+            "log" => super::binary_exponential::uniform_ln(left),
             "log2" if pixel_math => super::binary_exponential::log2(left),
             "log2" => left.log2(),
-            "pow" if pixel_math => super::binary_exponential::power(left, right),
-            "pow" => left.powf(right),
+            "pow" => super::binary_exponential::power(left, right, pixel_math),
             "pow2" if pixel_math => super::binary_exponential::exp2(left),
             "pow2" => left.exp2(),
             "sin" => angle_component(left, false),
@@ -114,6 +122,7 @@ pub(crate) fn evaluate(instruction: &super::instruction::Instruction, args: &[Va
             "rand" => crate::random::image_function(random) * left,
             _ => return Err(format!("unknown arithmetic operation `{op}`")),
         };
+        *result = if flush_arithmetic { flush_subnormal(value) } else { value };
     }
 
     float_value(result.get(..count).ok_or("invalid float dimensions")?)

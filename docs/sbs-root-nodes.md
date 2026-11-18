@@ -35,7 +35,7 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **227 Parity**, **24 In progress** and **295 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **228 Parity**, **24 In progress** and **294 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
 
 [Grayscale sampler measurements](parity-fixes.md#grayscale-sampling-of-color-inputs) · [Value sampling across 240 typed comparisons](parity-fixes.md#value-processor-texture-filtering)
 
@@ -58,7 +58,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [3d_simplex_noise.sbs/3d_simplex_noise](../assets/sbs/3d_simplex_noise.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [3d_texture_jump_flood.sbs/3d_texture_jump_flood_iteration](../assets/sbs/3d_texture_jump_flood.sbs) | 1 | Yes | [Parity: 5 cases](parity-fixes.md#verified-cases) |
 | [3d_texture_position.sbs/3d_texture_position](../assets/sbs/3d_texture_position.sbs) | 0 | No | [Parity: native 4K atlas](parity-fixes.md#verified-cases) |
-| [3d_texture_render.sbs/3d_texture_surface_render_irradiance](../assets/sbs/3d_texture_render.sbs) | 6 | Yes | [In progress · direction-dependent float error](parity-fixes.md#3d-surface-and-volume-render-passes) |
+| [3d_texture_render.sbs/3d_texture_surface_render_irradiance](../assets/sbs/3d_texture_render.sbs) | 6 | Yes | [Parity · 47,360 exact pixels in 71 renders](parity-fixes.md#surface-irradiance-and-uniform-power) |
 | [3d_texture_render.sbs/3d_texture_surface_render_position](../assets/sbs/3d_texture_render.sbs) | 1 | Yes | [In progress · earlier camera cases exact, constant-zero field isolates a residual](parity-fixes.md#levels-endpoints-camera-tangents-and-uniform-exponentials) |
 | [3d_texture_render.sbs/3d_texture_volume_render_ibl_pass](../assets/sbs/3d_texture_render.sbs) | 6 | Yes | [In progress · quantified dithering and density differences](parity-fixes.md#3d-surface-and-volume-render-passes) |
 | [3d_texture_render.sbs/3d_texture_volume_render_light_pass](../assets/sbs/3d_texture_render.sbs) | 4 | Yes | [In progress · nonzero-density lighting differs](parity-fixes.md#3d-surface-and-volume-render-passes) |
@@ -66,7 +66,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [3d_texture_transform.sbs/3d_texture_offset_color](../assets/sbs/3d_texture_transform.sbs) | 1 | No | [Parity: 5 cases](parity-fixes.md#verified-cases) |
 | [3d_texture_transform.sbs/3d_texture_offset_grayscale](../assets/sbs/3d_texture_transform.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [3d_viewer.sbs/ibl_specular_contrib_anisotropic/panoramic_lod](../assets/sbs/3d_viewer.sbs) | 1 | Yes | [Parity · 20 cases, 219,392 exact pixels](parity-fixes.md#large-transform-offsets-and-additive-blends) |
-| [3d_volume_mask.sbs/3d_volume_mask](../assets/sbs/3d_volume_mask.sbs) | 1 | No | [In progress · box rotation and feathering differ](parity-fixes.md#3d-volume-mask-and-worley-noise) |
+| [3d_volume_mask.sbs/3d_volume_mask](../assets/sbs/3d_volume_mask.sbs) | 1 | No | [In progress · 466,232/467,456 pixels, F32 error](parity-fixes.md#surface-irradiance-and-uniform-power) |
 | [3d_worley_noise.sbs/3D_worley_noise](../assets/sbs/3d_worley_noise.sbs) | 1 | No | [In progress · random draws measured, per-pixel starting state differs](parity-fixes.md#pixel-processor-random-draws) |
 | [alveolus.sbs/alveolus](../assets/sbs/alveolus.sbs) | 0 | Yes | [In progress · 64² format sweep exact, larger fields differ](parity-fixes.md#alveolus-quadrant-placement-and-falloff) |
 | [angle_to_vector.sbs/angle_to_vector](../assets/sbs/angle_to_vector.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
@@ -80,7 +80,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [bevel_smooth.sbs/blur_gaussian_grayscale](../assets/sbs/bevel_smooth.sbs) | 1 | Yes | [Too hard: nonzero blur](parity-fixes.md#remaining-differences) |
 | [bevel_smooth.sbs/debug/bevel_smooth_debug_position](../assets/sbs/bevel_smooth.sbs) | 1 | Yes | [Too hard: stamp coverage](parity-fixes.md#remaining-differences) |
 | [bevel_smooth.sbs/jump_flood_segment_iteration](../assets/sbs/bevel_smooth.sbs) | 1 | Yes | [Too hard: segment selection](parity-fixes.md#remaining-differences) |
-| [blackbody.sbs/blackbody](../assets/sbs/blackbody.sbs) | 0 | No | [Too hard: float rounding](parity-fixes.md#remaining-differences) |
+| [blackbody.sbs/blackbody](../assets/sbs/blackbody.sbs) | 0 | No | [In progress · 34,048/42,496 pixels, F32 error](parity-fixes.md#surface-irradiance-and-uniform-power) |
 | [blend.sbs/add](../assets/sbs/blend.sbs) | 3 | Yes | [Parity: 5 cases](parity-fixes.md#verified-cases) |
 | [blend.sbs/add_sub](../assets/sbs/blend.sbs) | 3 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [blend.sbs/color](../assets/sbs/blend.sbs) | 3 | No | [Parity · 18 cases, 171,264 exact pixels](parity-fixes.md#gradient-interpolation-color-blend-and-chrominance) |
