@@ -49,6 +49,22 @@ fn scoped_operation(scope: super::FunctionScope, op: &str, operands: &[Value], l
 }
 
 #[test]
+fn runtime_pixel_natural_exponential_reduces_to_a_positive_interval() {
+    for (input, expected) in [
+        (2.0, 0x40ec7325),
+        (f32::from_bits(0xbf317219), 0x3effffff),
+        (f32::from_bits(0xc2aeac4f), 0x00800026),
+        (f32::from_bits(0xc2aeac50), 0),
+        (f32::from_bits(0x42b17217), 0x7f7fff84),
+        (f32::from_bits(0x42b17218), 0x7f800000),
+    ] {
+        let Value::Float(value) = pixel_operation("exp", &[Value::Float(input)], false) else { panic!("expected a scalar") };
+        assert_eq!(value.to_bits(), expected, "exp({input})");
+    }
+    assert_eq!(pixel_operation("pow", &[Value::Float(0.7), Value::Float(4.0)], false), Value::Float(f32::from_bits(0x3e75dccb)));
+}
+
+#[test]
 fn runtime_pixel_power_uses_the_natural_logarithm_and_the_sign_of_integer_powers() {
     for (base, exponent, expected) in [
         (0.7, 1.0, 0x3f333334),

@@ -57,8 +57,23 @@ pub(super) fn ln(value: f32) -> f32 {
 }
 
 pub(super) fn exp(value: f32) -> f32 {
-    let result = value.exp();
-    if result.is_nan() || result.is_subnormal() { 0.0 } else { result }
+    if value < -88.0 || value.is_nan() {
+        return 0.0;
+    }
+    if value > 89.0 {
+        return f32::INFINITY;
+    }
+    const LOG_HIGH: f32 = std::f32::consts::LN_2;
+    const LOG_LOW: f32 = (LN_2 - LOG_HIGH as f64) as f32;
+    let exponent = (value * std::f32::consts::LOG2_E).floor();
+    let remainder = (-exponent).mul_add(LOG_LOW, (-exponent).mul_add(LOG_HIGH, value));
+    // A seventh-degree fit on [0, ln(2)]. Each multiply-add rounds exactly once.
+    let coefficients = [0.001_304_379_3, 0.008_378_831, 0.041_653_905, 0.166_668_42, 0.499_999_9, 1.0, 1.0];
+    let significand = coefficients.into_iter().fold(0.000_275_553_82_f32, |p, c| p.mul_add(remainder, c));
+    // The scale itself can be 2^128 while the product still fits in float32.
+    let scale = f64::from_bits(((exponent as i32 + 1023) as u64) << 52);
+    let result = (f64::from(significand) * scale) as f32;
+    if result.is_subnormal() { 0.0 } else { result }
 }
 
 pub(super) fn power(base: f32, exponent: f32) -> f32 {

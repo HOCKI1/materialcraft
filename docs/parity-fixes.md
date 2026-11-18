@@ -247,6 +247,25 @@ Literal-only pixel graphs at 16², seed 23, give 512/768 exact pixels for each l
 
 The shared-lookup ridged root still matches 5,160/16,384 at changed roughness in F32, maximum 1.78813934e−7. Its one-octave .7 control still matches 1,847/4,096, maximum 2.38418579e−7. For positive normal x on the signed field, the reference's general power agrees with exp(y×ln(x)) on all 32,614 pixels. On .7 with exponent 1 it returns `3f333334`. Further work on general power and natural exponential is tracked with the [octave controls](#ridged-noise-octave-isolation).
 
+### Natural exponential and ridged noise
+
+Ridged noise with the [original shared lookup](#basic-and-ridged-3d-perlin) matches **253,184/253,184 pixels across 29 cases**, maximum error zero. The seven original cases contribute 163,840 pixels, the [thirteen octave controls](#ridged-noise-octave-isolation) contribute 53,248, and the nine cases below contribute 36,096. The octave with roughness .7 and levels 1–4 now matches all 4,096 LUM32F pixels. The runtime power of .7 to the fourth has bits `3e75dccb` in both apps.
+
+| Position dimensions | Seed | Levels | Roughness | Stored outputs | Exact / total |
+|---|---:|---|---:|---|---:|
+| 16² | 41 | 1–4 | .3125 | F32 | 256/256 |
+| 64² | 71 | 1–4 | .7 | U8, U16, F16, F32 | 4,096/4,096 each |
+| 32² | 137 | 2–6 | .61 | F32 | 1,024/1,024 |
+| 32² | 211 | 3 only | .825 | F32 | 1,024/1,024 |
+| 128² | 311 | 1–7 | .375 | F32 | 16,384/16,384 |
+| 32², signed position | 42 | 1–5 | .82 | F32 | 1,024/1,024 |
+
+For the first five rows, use opaque RGBA8 positions with RGB equal to `(7x+13y+3xy, 29x−5y+39, 11y+17x+61)` modulo 256. The signed field uses opaque RGBA32F. Set RGB to `(((17x+3y) mod 67)−9, ((11y−3x) mod 73)−11, ((5xy+19) mod 79)−13)/63`. With each app's own shipped lookup, the seed-zero position ramp at 128² and 256² gives **176/16,384 (maximum 139 levels), 768/65,536 (maximum 154 levels)** for ridged noise. Basic Perlin gives 173/16,384 (maximum 203 levels), 663/65,536 (maximum 203 levels) on the same two ramps. Both roots remain open.
+
+The runtime natural exponential reduces the argument by an integral multiple of ln(2) using two fused subtractions, then evaluates a seventh-degree polynomial on the reduced interval. At pixel index `i` in eight consecutive 1024² fields numbered `j=0..7`, set `t=(j×2^20+i)/2^23`. Both exp(t) and exp(−t) match at every index, **16,777,216/16,777,216 raw float components**, maximum error zero. The two separate square-root controls in those fields match 13,947,413/16,777,216, maximum 1.19209290e−7.
+
+Ten 256² single-channel exponential fields match **655,360/655,360 LUM32F pixels**. Seven use the signed, exceptional, wide-exponent, near-one, fractional, power-of-two and roughness inputs under [runtime pixel logarithms and powers of two](#runtime-pixel-logarithms-and-powers-of-two). For the last three, use a nearest-sampled linear float input at seed 163. Draw 65,536 float32 values uniformly on [−90,90] or [0,ln(2)] with NumPy PCG64 seeds 6841 and 6842, respectively, casting to float32 after drawing. For the boundary field, round `(i mod 257−128)×ln(2)` to float32 and add `floor(i/257) mod 25−12` to its unsigned bit pattern. General power matches **458,752/458,752** pixels on the seven paired-input fields. All finite maximum errors are zero. Counts include bitwise tests for signed zero and nonfinite results.
+
 ### General pixel power and ridged noise
 
 Using the original 1024×16 lookup in both apps, all seven [ridged noise comparisons](#basic-and-ridged-3d-perlin) now match **163,840/163,840 pixels**, maximum error zero. This includes changed roughness .7 at 128² in LUM8, LUM16, LUM16F and LUM32F. The [thirteen octave controls](#ridged-noise-octave-isolation) improve from 29,604/53,248 to 51,030/53,248. Twelve match every pixel. With roughness .7 and levels 1–4 the result is 1,878/4,096, maximum 1.19209290e−7. The earlier stock-lookup difference remains independently reproducible.
