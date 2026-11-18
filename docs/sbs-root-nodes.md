@@ -35,7 +35,7 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **287 Parity**, **37 In progress** and **222 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **290 Parity**, **37 In progress** and **219 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
 
 [Grayscale sampler measurements](parity-fixes.md#grayscale-sampling-of-color-inputs) · [Value sampling across 240 typed comparisons](parity-fixes.md#value-processor-texture-filtering)
 
@@ -237,7 +237,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [height_to_normal_world_units.sbs/height_to_normal_world_units](../assets/sbs/height_to_normal_world_units.sbs) | 1 | Yes | [Parity · eight cases in four formats](parity-fixes.md#height-to-normal-in-world-units) |
 | [height_to_normal_world_units.sbs/height_to_normal_world_units_2](../assets/sbs/height_to_normal_world_units.sbs) | 1 | No | [Parity · eight cases in four formats](parity-fixes.md#height-to-normal-in-world-units) |
 | [highpass.sbs/highpass](../assets/sbs/highpass.sbs) | 1 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [highpass.sbs/highpass_grayscale](../assets/sbs/highpass.sbs) | 1 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [highpass.sbs/highpass_grayscale](../assets/sbs/highpass.sbs) | 1 | No | [Parity · 18 renders, all 171,264 pixels exact](parity-fixes.md#high-pass-anisotropic-noise-and-triangle-grid-controls) |
 | [histogram_range.sbs/histogram_range](../assets/sbs/histogram_range.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [histogram_scan.sbs/histogram_scan](../assets/sbs/histogram_scan.sbs) | 1 | No | [Parity · 171,264 exact pixels across 18 renders](parity-fixes.md#color-conversion-gradient-height-and-histogram-controls) |
 | [histogram_scan_non_uniform.sbs/histogram_scan_non_uniform](../assets/sbs/histogram_scan_non_uniform.sbs) | 3 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
@@ -286,7 +286,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [multiangle_to_normal.sbs/angle_to_normal](../assets/sbs/multiangle_to_normal.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [multiangle_to_normal.sbs/angle_weight](../assets/sbs/multiangle_to_normal.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [noise_anisotropic_noise.sbs/anisotropic_noise](../assets/sbs/noise_anisotropic_noise.sbs) | 0 | Yes | [Parity · 18 renders, all 171,264 pixels exact](parity-fixes.md#quarter-turn-directional-blur) |
-| [noise_anisotropic_noise_v2.sbs/anisotropic_noise_v2](../assets/sbs/noise_anisotropic_noise_v2.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [noise_anisotropic_noise_v2.sbs/anisotropic_noise_v2](../assets/sbs/noise_anisotropic_noise_v2.sbs) | 0 | No | [Parity · 18 renders, all 171,264 pixels exact](parity-fixes.md#high-pass-anisotropic-noise-and-triangle-grid-controls) |
 | [noise_bnw_spots_1.sbs/bnw_spots_1](../assets/sbs/noise_bnw_spots_1.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [noise_bnw_spots_1_v2.sbs/bnw_spots_1](../assets/sbs/noise_bnw_spots_1_v2.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [noise_bnw_spots_3.sbs/bnw_spots_3](../assets/sbs/noise_bnw_spots_3.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
@@ -431,7 +431,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [pattern_tile_random_2.sbs/functions/debug_find_cell](../assets/sbs/pattern_tile_random_2.sbs) | 0 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [pattern_tile_random_2.sbs/tile_random_2](../assets/sbs/pattern_tile_random_2.sbs) | 5 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [pattern_tile_sampler.sbs/arrow](../assets/sbs/pattern_tile_sampler.sbs) | 0 | Yes | [Parity · seven 512×512 runs, four formats](parity-fixes.md#transform-edges-and-floating-point-filtering) |
-| [pattern_triangle_grid.sbs/triangle_grid_base](../assets/sbs/pattern_triangle_grid.sbs) | 3 | Yes | [Too hard: measurement timeout](parity-fixes.md#remaining-differences) |
+| [pattern_triangle_grid.sbs/triangle_grid_base](../assets/sbs/pattern_triangle_grid.sbs) | 3 | Yes | [Parity · 18 renders, all 171,264 pixels exact](parity-fixes.md#high-pass-anisotropic-noise-and-triangle-grid-controls) |
 | [pattern_weave_1.sbs/weave_1](../assets/sbs/pattern_weave_1.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [pattern_weave_2.sbs/weave_2](../assets/sbs/pattern_weave_2.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [pavement_1.sbs/pavement_1](../assets/sbs/pavement_1.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |

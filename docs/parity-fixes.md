@@ -253,6 +253,20 @@ Literal-only pixel graphs at 16², seed 23, give 512/768 exact pixels for each l
 
 The shared-lookup ridged root still matches 5,160/16,384 at changed roughness in F32, maximum 1.78813934e−7. Its one-octave .7 control still matches 1,847/4,096, maximum 2.38418579e−7. For positive normal x on the signed field, the reference's general power agrees with exp(y×ln(x)) on all 32,614 pixels. On .7 with exponent 1 it returns `3f333334`. Further work on general power and natural exponential is tracked with the [octave controls](#ridged-noise-octave-isolation).
 
+### High-pass, anisotropic noise and triangle-grid controls
+
+| Root | Renders | Exact pixels / compared | Maximum error |
+|---|---:|---:|---:|
+| Grayscale high-pass | 18 | 171,264/171,264 | 0 |
+| Anisotropic noise v2 | 18 | 171,264/171,264 | 0 |
+| Triangle grid base | 18 | 171,264/171,264 | 0 |
+
+Each root includes four archived renders, the four-format sweep, the independent 32² case and nine additional renders. Use the [modular fields and size/seed matrix](#normal-maps-panoramas-and-primitive-shapes) for the nine. For the high-pass source use the gray field H and set radius to 3, 11.25 and 24 for A, B and C. The 64² F32 output contains 212 distinct gray values.
+
+For anisotropic noise v2 use X/Y counts (5,13), (7,19) and (3,23). Enable rotation and Y count by resolution only in B, and non-square expansion only in A and C. Set smoothness/interpolation to (.625,.5), (.375,.1875) and (1,.75). Use disorder 0, .34375 and .6875 and disorder speed .8125. The 64² F32 render contains 764 distinct gray values.
+
+For the triangle grid bind the procedural height, vector map and color inputs. For k=1,2,3 use X count 4+k, Y count 3+k, triangulation k mod 2, vector-map displacement .0625k and rotation .09375k. Set random position multiplier .375, rotation disorder .15625 and random height .3125. The color-output selector is an integer enum. Use 1 in A/B and 0 in C. The 64² F32 render contains 40 distinct RGBA tuples. An earlier probe passed a Boolean to this selector and was rerun with the declared integer type.
+
 ### Environment rotation and wired irradiance samples
 
 | Root | Successful renders | Exact RGBA pixels / compared | Maximum U8 / U16 levels | Maximum F16 / F32 error |
