@@ -136,6 +136,7 @@ fn material_dialog_does_not_restore_a_closed_package_identity() {
     assert!(!publish(&mut app, &draft));
     assert!(app.toasts.last().unwrap().text.contains("export package changed"));
     app.run("file.new", json!({"name": draft.material.root, "template": "empty"})).unwrap();
+    app.toasts.clear();
     assert!(!publish(&mut app, &draft));
     assert!(app.toasts.last().unwrap().text.contains("export package changed"));
     open(&mut app, ExportTab::Mcmat);

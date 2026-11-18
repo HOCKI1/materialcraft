@@ -94,6 +94,22 @@ mod tests {
     }
 
     #[test]
+    fn inline_budget_failure_does_not_substitute_a_different_linked_asset() {
+        let content = inline(b"four").replace("</resource>", "<filepath v=\"resources/member.png\"/></resource>");
+        let material = make_material(&content);
+        let read = read_source(&material, 3).unwrap();
+        assert!(read.warnings.iter().any(|warning| warning.contains("resource budget")));
+        assert!(read.pkg.resources.is_empty());
+        let read = read_source(&material, 4).unwrap();
+        assert!(read.warnings.is_empty());
+        assert_eq!(read.pkg.resources[0].bytes.as_slice(), b"four");
+        let damaged = content.replace("<strdata v=", "<unused v=");
+        let read = read_source(&make_material(&damaged), 3).unwrap();
+        assert!(read.warnings.is_empty());
+        assert_eq!(read.pkg.resources[0].bytes.as_slice(), b"abc");
+    }
+
+    #[test]
     fn inline_and_member_assets_share_the_exact_budget_in_either_order() {
         for content in [format!("{}{}", inline(b"four"), linked("member")), format!("{}{}", linked("member"), inline(b"four"))] {
             let material = make_material(&content);

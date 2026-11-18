@@ -7,10 +7,34 @@ pub(super) fn base64_engine() -> base64::engine::GeneralPurpose {
 }
 
 pub(super) fn decode_embedded(strdata: &str) -> std::result::Result<Vec<u8>, String> {
-    decode_embedded_bounded(strdata, crate::MAX_RESOURCE)
+    decode_embedded_bounded(strdata, crate::MAX_RESOURCE).map_err(|error| error.to_string())
 }
 
-pub(super) fn decode_embedded_bounded(strdata: &str, remaining: u64) -> std::result::Result<Vec<u8>, String> {
+#[derive(Debug)]
+pub(super) enum EmbeddedError {
+    Damaged(String),
+    Budget,
+}
+impl From<String> for EmbeddedError {
+    fn from(message: String) -> Self {
+        Self::Damaged(message)
+    }
+}
+impl From<&str> for EmbeddedError {
+    fn from(message: &str) -> Self {
+        Self::Damaged(message.into())
+    }
+}
+impl std::fmt::Display for EmbeddedError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Damaged(message) => f.write_str(message),
+            Self::Budget => f.write_str("embedded resource exceeds the remaining material resource budget"),
+        }
+    }
+}
+
+pub(super) fn decode_embedded_bounded(strdata: &str, remaining: u64) -> std::result::Result<Vec<u8>, EmbeddedError> {
     let raw = base64_engine().decode(strdata.split_whitespace().collect::<String>()).map_err(|e| format!("bad base64: {e}"))?;
     let (length, compressed) = raw.split_at_checked(4).ok_or("too short")?;
     let length = u32::from_be_bytes([length[0], length[1], length[2], length[3]]) as usize;
@@ -20,7 +44,7 @@ pub(super) fn decode_embedded_bounded(strdata: &str, remaining: u64) -> std::res
 
     // Check before inflating: a small inline payload can expand past the package budget.
     if length as u64 > remaining {
-        return Err("embedded resource exceeds the remaining material resource budget".into());
+        return Err(EmbeddedError::Budget);
     }
 
     let mut out = Vec::new();
@@ -29,7 +53,7 @@ pub(super) fn decode_embedded_bounded(strdata: &str, remaining: u64) -> std::res
     let mut decoder = flate2::read::ZlibDecoder::new(compressed).take(length as u64 + 1);
     decoder.read_to_end(&mut out).map_err(|e| format!("bad compressed data: {e}"))?;
     if out.len() != length {
-        return Err(format!("{} bytes where {length} were declared", out.len()));
+        return Err(format!("{} bytes where {length} were declared", out.len()).into());
     }
 
     Ok(out)
@@ -77,8 +101,8 @@ mod tests {
         // Deliberately invalid zlib data: the budget guard must run before decompression.
         let raw = [0, 0, 0, 4, 255];
         let encoded = base64_engine().encode(raw);
-        assert!(decode_embedded_bounded(&encoded, 3).unwrap_err().contains("remaining material resource budget"));
-        assert!(!decode_embedded_bounded(&encoded, 4).unwrap_err().contains("remaining material resource budget"));
+        assert!(decode_embedded_bounded(&encoded, 3).unwrap_err().to_string().contains("remaining material resource budget"));
+        assert!(!decode_embedded_bounded(&encoded, 4).unwrap_err().to_string().contains("remaining material resource budget"));
         assert_eq!(decode_embedded_bounded(&encode_embedded(b"four").unwrap(), 4).unwrap(), b"four");
     }
 

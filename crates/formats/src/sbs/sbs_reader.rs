@@ -3,7 +3,7 @@ use super::component_usage;
 use super::connection::connect_all;
 use super::constant::{MAX_NODES, MAX_WIRES};
 use super::constant::{NODE_HALF_SIZE, SELF_DEPENDENCY};
-use super::embedded::{decode_embedded, decode_embedded_bounded};
+use super::embedded::{EmbeddedError, decode_embedded, decode_embedded_bounded};
 use super::filter_map::{BASE_PARAMS, FilterMap, HANDLED_PARAMS, filter_by_sbs_name};
 use super::function_graph;
 use super::input_bridge::InputBridge;
@@ -112,7 +112,7 @@ impl<'text> SbsReader<'text, '_> {
             let encoded = child_value(embedded, "strdata").unwrap_or("");
             let decoded = match self.resource_budget {
                 Some(budget) => decode_embedded_bounded(encoded, budget.get()),
-                None => decode_embedded(encoded),
+                None => decode_embedded(encoded).map_err(EmbeddedError::Damaged),
             };
             match decoded {
                 Ok(data) if !font || !data.is_empty() => {
@@ -123,6 +123,12 @@ impl<'text> SbsReader<'text, '_> {
                     bytes = Some(data);
                 }
                 Ok(_) => why_missing = "its embedded font data is empty".into(),
+                Err(EmbeddedError::Budget) => {
+                    // A valid inline asset wins over linked data. Never silently change
+                    // the material when retaining that asset would exhaust its budget.
+                    self.warnings.add(format!("resource `{path}`: {}", EmbeddedError::Budget));
+                    return unique_name(&mut self.used_resource_names, if identifier.is_empty() { "resource" } else { identifier });
+                }
                 Err(e) => why_missing = format!("its embedded data is damaged ({e})"),
             }
         }
