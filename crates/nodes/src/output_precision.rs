@@ -3,6 +3,9 @@ use materialcraft_core::OutputFormat;
 use std::sync::Arc;
 
 fn store_half(pixel: f32) -> f32 {
+    if !pixel.is_finite() {
+        return if pixel.is_nan() { half::f16::from_bits(0x7fff).to_f32() } else { pixel };
+    }
     let value = pixel.clamp(-65504.0, 65504.0);
     let rounded = half::f16::from_f32(value);
     if rounded.to_f32().abs() > value.abs() { half::f16::from_bits(rounded.to_bits().saturating_sub(1)).to_f32() } else { rounded.to_f32() }

@@ -26,6 +26,43 @@ fn cook(def: &NodeDefinition, inputs: &[Option<Image>], size: u32) -> CookResult
 }
 
 #[test]
+fn pixel_processor_stores_undefined_channels_at_output_precision() {
+    use materialcraft_core::{FunctionGraph, OutputFormat};
+
+    let definition = find("pixel_processor").unwrap();
+    let mut graph = FunctionGraph::default();
+    let pos = graph.add("get_float2", &[], Some(Value::Text("$pos".into())));
+    let input = graph.add("samplecol", &[pos], Some(Value::Int2([0, 0])));
+    let divisor = graph.add_constant(Value::Float4([0.0, 0.0, 0.0, 2.0]));
+    graph.output = Some(graph.add("div", &[input, divisor], None));
+    let params = resolve_params(definition, &BTreeMap::from([("function".into(), Value::Function(Box::new(graph)))]));
+    let inputs = [Some(Image::filled(2, 2, Kind::Color, [0.0, 1.0, -1.0, 0.5]))];
+    let vars = BTreeMap::new();
+    for (format, expected) in [
+        (OutputFormat::F32, [0x7fff_ffff, 0x7f80_0000, 0xff80_0000, 0x3e80_0000]),
+        (OutputFormat::F16, [half::f16::from_bits(0x7fff).to_f32().to_bits(), 0x7f80_0000, 0xff80_0000, 0x3e80_0000]),
+        (OutputFormat::U16, [0, 1.0_f32.to_bits(), 0, (16384.0_f32 / 65535.0).to_bits()]),
+        (OutputFormat::U8, [0, 1.0_f32.to_bits(), 0, (64.0_f32 / 255.0).to_bits()]),
+    ] {
+        let context = CookContext {
+            w: 2,
+            h: 2,
+            inputs: &inputs,
+            input_formats: &[OutputFormat::F32],
+            seed: 0,
+            tile: true,
+            params: &params,
+            vars: &vars,
+            resource: &|_| None,
+            format,
+        };
+        let image = (definition.cook)(&context).unwrap().remove(0);
+        let stored = output_precision::apply(image, format);
+        assert_eq!(stored.get(0, 0, false).map(f32::to_bits), expected, "{format:?}");
+    }
+}
+
+#[test]
 fn bilinear_transform_selects_and_stores_the_requested_mip_level() {
     let definition = find("transformation").unwrap();
     let inputs = [Some(Image::gray(16, 16, |x, y| if x % 4 == 0 && y % 4 == 0 { 1.0 } else { 0.0 }).with_integer_sampling(true))];

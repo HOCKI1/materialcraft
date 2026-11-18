@@ -4,17 +4,10 @@ use craft_texture::{Image, Kind, Limits};
 use materialcraft_core::Value;
 use rayon::prelude::*;
 
-fn pixel(value: Value, gray: bool, format: materialcraft_core::OutputFormat) -> Result<[f32; 4], String> {
+fn pixel(value: Value, gray: bool) -> Result<[f32; 4], String> {
     let values = super::value_type::floats(&value)?;
-    let integer = matches!(format, materialcraft_core::OutputFormat::U8 | materialcraft_core::OutputFormat::U16 | materialcraft_core::OutputFormat::Inherit);
 
-    // Integer texture storage converts NaN to black and saturates infinities
-    // Rejecting those values before storage breaks zero-softness masks
-    if !integer && values.iter().take(super::value_type::dimensions(&value)).any(|value| !value.is_finite()) {
-        return Err("pixel function produced a non-finite output".into());
-    }
-
-    Ok(if gray {
+    let color = if gray {
         let intensity = if super::value_type::dimensions(&value) == 4 {
             // RGBA results on a grayscale processor use equal RGB weights
             // Preserve the fused accumulation order at floating-point outputs
@@ -31,7 +24,9 @@ fn pixel(value: Value, gray: bool, format: materialcraft_core::OutputFormat) -> 
             3 => [values[0], values[1], values[2], 1.0],
             _ => values,
         }
-    })
+    };
+    // Texture storage has a defined NaN bit pattern even when the host operation's payload varies.
+    Ok(color.map(|v| if v.is_nan() { f32::from_bits(0x7fff_ffff) } else { v }))
 }
 
 pub(crate) fn pixel_processor(context: &CookContext) -> CookResult {
@@ -55,7 +50,7 @@ pub(crate) fn pixel_processor(context: &CookContext) -> CookResult {
                 variables: context.vars,
             };
 
-            let result = pixel(program.evaluate_pixel(&evaluation, state)?, gray, context.format)?;
+            let result = pixel(program.evaluate_pixel(&evaluation, state)?, gray)?;
             target.copy_from_slice(result.get(..channels).ok_or("invalid output channels")?);
         }
 
