@@ -190,7 +190,7 @@ pub(crate) fn cook_node(
         let value = variables.get(&identifier(node)).or_else(|| parameters.get("default")).cloned().unwrap_or(Value::Float(0.0));
         Ok(vec![NodeOutput::Value(value)])
     } else if node.def == "value_processor" {
-        evaluate_value(&parameters, variables, seed, [w, h], &inputs, tile).map(|value| vec![NodeOutput::Value(value)])
+        evaluate_value(&parameters, variables, seed, [w, h], &inputs, &input_formats, tile).map(|value| vec![NodeOutput::Value(value)])
     } else if matches!(node.def.as_str(), "output" | "dot")
         && let Some(Some((NodeOutput::Value(value), _))) = incoming.first()
     {

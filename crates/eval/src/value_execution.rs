@@ -1,5 +1,5 @@
 use craft_texture::Image;
-use materialcraft_core::Value;
+use materialcraft_core::{OutputFormat, Value};
 use std::collections::BTreeMap;
 
 pub(crate) fn evaluate_value(
@@ -8,6 +8,7 @@ pub(crate) fn evaluate_value(
     seed: u32,
     size: [u32; 2],
     images: &[Option<Image>],
+    image_formats: &[OutputFormat],
     tile: bool,
 ) -> Result<Value, String> {
     use materialcraft_nodes::function::{EvaluationContext, EvaluationState, FunctionScope, compile};
@@ -18,7 +19,7 @@ pub(crate) fn evaluate_value(
 
     let program = compile(graph, seed)?;
     let context = EvaluationContext {
-        image_formats: &[],
+        image_formats,
         scope: FunctionScope::ValueProcessor,
         position: [0.0; 2],
         size: size.map(|side| side as f32),

@@ -153,7 +153,17 @@ Use the byte field (17x+31y) mod 256 at 128² and 256² with seed zero, and at 1
 
 Separate original value graphs read `$pos`, `$size`, `$sizelog2`, `$depth`, `$depthpow2` and `$number`. At 16² and 128² with seed zero and 64² with seed 42, the position and three depth or iteration values are zero. The size values follow the canvas and its base-two logarithm. Is Defined reports true for the position, size and three depth or iteration names and false for an unbound probe name. Unbound numeric and Boolean reads return a typed zero. These scalar and vector controls match **50/50 typed values** with maximum error zero.
 
-A Value Processor also averages a sampled color’s three channels in the order measured under [grayscale sampling](#grayscale-sampling-of-color-inputs). Using the same four RGBA fields, sample at (39.5+.1875,77.5+.5625)/128. Repeat with a uniform (.25,.5,.75,1). Compare the single Float or Float4 as IEEE float32 components in nearest and bilinear modes. 23/32 values match across the two input fields, with maximum component error 5.84125519e-06. The remaining differences occur in RGBA8 normalization and bilinear filtering.
+A Value Processor also averages a sampled color’s three channels in the order measured under [grayscale sampling](#grayscale-sampling-of-color-inputs). Using the same four RGBA fields, sample at (39.5+.1875,77.5+.5625)/128. Repeat with a uniform (.25,.5,.75,1). Compare the single Float or Float4 as IEEE float32 components in nearest and bilinear modes. Before correcting normalization and filtering, 23/32 values matched across the two input fields, with maximum component error 5.84125519e-06.
+
+### Value Processor texture filtering
+
+The 32 scalar and color comparisons above now match **32/32 typed values**. Two independent 128² coordinate sets add **192/192 Float4 values**. Two more sets at 2² and 32² give **16/16 Float4 values**. Maximum component error is zero across all 240 comparisons. Both maximum-coordinate roots still match all 24 previously measured Float2 results.
+
+A value function wraps both texture axes even when output tiling is disabled. For bilinear sampling, multiply the UV by the stored dimensions, subtract .5 and keep the full float32 fractional texel position. In each row compute a×(1−t)+b×t with two rounded products and a sum, then do the same vertically. For U8 or U16, interpolate stored integer channel levels as float32 and finally multiply by the float32 reciprocal of 255 or 65,535. A nearest read normalizes the selected stored level with the same reciprocal. Floating textures already carry their sample values.
+
+Use the four original color fields described under [grayscale sampling](#grayscale-sampling-of-color-inputs), both filtering modes and output tiling disabled. For the first set choose (x,y,a,b) from (7,13,0,0), (83,127,48,144), (42,78,19,61), (17,93,128,128), (0,62,−93,181), (126,7,201,113), (77,0,−171,−35), (128,67,47,23), (−2,132,105,151), (31,40,1,255), (4,1,77,99), (76,30,45,85). The UV is (x+.5+a/256,y+.5+b/256)/128. For the second set use (((227j mod 1447)−153)/1009, ((281j mod 1867)−413)/1031) for j=0…11. In both sets alternate seeds 0 and 42.
+
+For the small independent field, take row-major RGBA byte tuples (19,67,129,251), (85,222,17,9), (255,128,74,66) and (3,102,39,109). For U16, multiply each level by 251. For F16 and F32, use (level−97.125)/13.375. Sample at (−.317,1.093), seed 17, directly from a 2² bridge and again after the bridge resizes the field to 32². With the 2² byte field, the four bilinear component bit patterns are `3e8013a0 3f2bd646 3e0f43a5 3e744cb7`.
 
 ### Luminosity, axial gradients, color lookup and luminance merge
 

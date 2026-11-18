@@ -127,6 +127,10 @@ pub(crate) fn evaluate(
             let repeat = context.scope == super::FunctionScope::PixelProcessor || context.tile;
             let image = context.images.get(index).and_then(Option::as_ref);
             let pixel = match image {
+                Some(image) if context.scope == super::FunctionScope::ValueProcessor => {
+                    let format = context.image_formats.get(index).copied().unwrap_or(materialcraft_core::OutputFormat::F32);
+                    crate::texture_sampler::sample_value(image, [position[0], position[1]], format, setting[1] != 0)
+                }
                 Some(image) if setting[1] == 0 => {
                     image.get((position[0] * image.width() as f32).floor() as i64, (position[1] * image.height() as f32).floor() as i64, repeat)
                 }

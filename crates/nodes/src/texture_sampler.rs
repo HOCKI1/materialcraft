@@ -6,6 +6,47 @@ pub fn resize_input_level(image: &Image, width: u32, height: u32, format: Output
     Image::generate_uv(width, height, image.kind(), |u, v| sample(image, [u, v], tiling, format, None))
 }
 
+/// A value function filters the stored channel levels using full-precision texel fractions.
+pub(crate) fn sample_value(image: &Image, uv: [f32; 2], format: OutputFormat, bilinear: bool) -> [f32; 4] {
+    if !uv.iter().all(|v| v.is_finite()) {
+        return [0.0, 0.0, 0.0, 1.0];
+    }
+    let offset = if bilinear { 0.5 } else { 0.0 };
+    let axis = |v: f32, size: u32| {
+        let extent = size as f32;
+        let scaled = v * extent;
+        // At extreme magnitudes the UV is a whole number of repeats. Keep neighboring indices bounded.
+        let texel = if scaled.is_finite() { scaled - offset } else { -offset };
+        let first = texel.floor();
+        ((first % extent) as i64, texel - first)
+    };
+    let (x, dx) = axis(uv[0], image.width());
+    let (y, dy) = axis(uv[1], image.height());
+    let levels = match format {
+        OutputFormat::U8 => Some(255.0_f32),
+        OutputFormat::U16 => Some(65535.0_f32),
+        _ => None,
+    };
+    let fetch = |x, y| {
+        let pixel = image.get(x, y, true);
+        levels.map_or(pixel, |maximum| pixel.map(|v| (v * maximum).round()))
+    };
+    let a = fetch(x, y);
+    let filtered = if bilinear {
+        let b = fetch(x + 1, y);
+        let c = fetch(x, y + 1);
+        let d = fetch(x + 1, y + 1);
+        std::array::from_fn(|i| {
+            let top = a[i] * (1.0 - dx) + b[i] * dx;
+            let bottom = c[i] * (1.0 - dx) + d[i] * dx;
+            top * (1.0 - dy) + bottom * dy
+        })
+    } else {
+        a
+    };
+    levels.map_or(filtered, |maximum| filtered.map(|v| v * maximum.recip()))
+}
+
 /// Bilinear texture filtering. Untiled axes clamp unless the caller supplies a border color.
 pub(crate) fn sample(image: &Image, uv: [f32; 2], tiling: [bool; 2], format: OutputFormat, matte: Option<[f32; 4]>) -> [f32; 4] {
     if !uv.iter().all(|v| v.is_finite()) {
@@ -104,6 +145,36 @@ mod tests {
     use craft_texture::{Image, Kind};
     use materialcraft_core::{FunctionGraph, Value};
     use std::collections::BTreeMap;
+
+    #[test]
+    fn value_sampler_repeats_and_filters_at_full_coordinate_precision() {
+        use materialcraft_core::OutputFormat;
+
+        let colors = [[19., 67., 129., 251.], [85., 222., 17., 9.], [255., 128., 74., 66.], [3., 102., 39., 109.]];
+        let bytes = Image::generate(2, 2, Kind::Color, |x, y| colors[(2 * y + x) as usize].map(|n| n / 255.0)).with_integer_sampling(true);
+        let floats = Image::generate(2, 2, Kind::Color, |x, y| colors[(2 * y + x) as usize].map(|n| (n - 97.125) / 13.375));
+        let images = [Some(bytes), Some(floats)];
+        let context = EvaluationContext {
+            scope: FunctionScope::ValueProcessor,
+            position: [0.0; 2],
+            size: [16.0; 2],
+            images: &images,
+            image_formats: &[OutputFormat::U8, OutputFormat::F32],
+            tile: false,
+            variables: &BTreeMap::new(),
+        };
+        for (slot, filtering, expected) in [
+            (0, 0, [0x3eaaaaab, 0x3f5edee0, 0x3d888889, 0x3d109091]),
+            (0, 1, [0x3e8013a0, 0x3f2bd646, 0x3e0f43a5, 0x3e744cb7]),
+            (1, 1, [0xc01f84ad, 0x40b124ef, 0xc093048e, 0xc02da496]),
+        ] {
+            let mut graph = FunctionGraph::default();
+            let uv = graph.add_constant(Value::Float2([-0.317, 1.093]));
+            graph.output = Some(graph.add("samplecol", &[uv], Some(Value::Int2([slot, filtering]))));
+            let program = compile(&graph, 0).unwrap();
+            assert_eq!(program.evaluate(&context, &mut EvaluationState::default()).unwrap(), Value::Float4(expected.map(f32::from_bits)));
+        }
+    }
 
     #[test]
     fn pixel_sampler_rounds_the_four_integer_texel_weights_together() {

@@ -37,7 +37,7 @@ Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed va
 
 The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **198 Parity**, **25 In progress** and **323 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
 
-[Grayscale sampler measurements](parity-fixes.md#grayscale-sampling-of-color-inputs)
+[Grayscale sampler measurements](parity-fixes.md#grayscale-sampling-of-color-inputs) · [Value sampling across 240 typed comparisons](parity-fixes.md#value-processor-texture-filtering)
 
 ## Complete inventory
 

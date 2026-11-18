@@ -451,6 +451,36 @@ fn wired_input_sampling_keeps_the_source_texture_and_stores_the_direct_output() 
 }
 
 #[test]
+fn value_processor_reads_the_upstream_channel_format_after_a_cache_hit() {
+    use materialcraft_core::{FunctionGraph, OutputFormat};
+
+    let mut function = FunctionGraph::default();
+    let uv = function.add_constant(Value::Float2([0.5, 0.5]));
+    function.output = Some(function.add("samplelum", &[uv], Some(Value::Int2([0, 0]))));
+    let mut graph = Graph::new("Value sample");
+    graph.size = [4; 2];
+    let input = graph.add_node("input_grayscale", [0.0; 2]);
+    let processor = graph.add_node("value_processor", [0.0; 2]);
+    graph.node_mut(processor).unwrap().params.insert("function".into(), Value::Function(Box::new(function)));
+    graph.connect(input, "output", processor, "input0").unwrap();
+    let mut package = Package::new("Value sample");
+    package.graphs.push(graph);
+    let mut options = Options::new(&no_res);
+    let channel = 222.0_f32 / 255.0;
+    options.inputs.insert("input".into(), Image::gray(16, 16, |_, _| channel));
+    let cache = Mutex::new(Cache::default());
+    for (format, expected) in [(OutputFormat::U8, 222.0 * (1.0 / 255.0)), (OutputFormat::F32, channel)] {
+        package.graphs[0].node_mut(input).unwrap().base.format = format;
+        let result = cook(&package, 0, &options, &cache);
+        assert_eq!(result.nodes[&processor].error, None);
+        assert_eq!(result.value(processor, 0), Some(&Value::Float(expected)));
+        let cached = cook(&package, 0, &options, &cache);
+        assert!(cached.nodes[&processor].cached);
+        assert_eq!(cached.value(processor, 0), Some(&Value::Float(expected)));
+    }
+}
+
+#[test]
 fn input_nodes_read_bound_preview_images() {
     let mut p = Package::new("p");
     let mut g = Graph::new("g");
