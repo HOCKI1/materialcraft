@@ -253,6 +253,27 @@ Literal-only pixel graphs at 16², seed 23, give 512/768 exact pixels for each l
 
 The shared-lookup ridged root still matches 5,160/16,384 at changed roughness in F32, maximum 1.78813934e−7. Its one-octave .7 control still matches 1,847/4,096, maximum 2.38418579e−7. For positive normal x on the signed field, the reference's general power agrees with exp(y×ln(x)) on all 32,614 pixels. On .7 with exponent 1 it returns `3f333334`. Further work on general power and natural exponential is tracked with the [octave controls](#ridged-noise-octave-isolation).
 
+### Stored precision in transform mip levels
+
+| Root | Cases | Exact RGBA pixels / compared | Maximum error |
+|---|---:|---:|---:|
+| Composite transform filter | 18 | 171,264/171,264 | 0 |
+| First PBR renderer, panoramic LOD | 18 | 186,624/186,624 | 0 |
+| Second PBR renderer, LOD | 18 | 171,264/171,264 | 0 |
+
+The first PBR panorama matches all four archived renders, all four changed output formats, the independent 32² input and nine additional color fields. All measured intermediate images now match on the full, large and signed fields. Its 18 cases include 162,048 F32 pixels and 8,192 pixels in each other format. The earlier large-offset controls now match 688,128/688,128 pixels across 42 transforms. The [panorama comparison](#large-transform-offsets-and-additive-blends) gives the inputs, matrices, wrapping and seeds.
+
+An equal-weight 2×2 reduction is enough to reproduce the previous discrepancy. Each mip level filters at the preceding level's storage precision, then stores the reduced image at the transform's output precision. Both nearest and bilinear final sampling use those same levels. For a float input, align the tap significands to the largest participating exponent before summing. The [floating texture sampling controls](#transform-edges-and-floating-point-filtering) describe the filter. For example, four F32 texels with bits 4012ab5d, bf9f3b55, 4075821b and c02f817b reduce to 3f090e53 in row-major order. A half source with F32 bits 3fa2e000, 3cd0c000, 404e0000 and c0180000 reduces to 3f092000.
+
+| Direct transform controls | Cases | Exact RGBA pixels / compared | Maximum error |
+|---|---:|---:|---:|
+| One, two or three mip levels | 120 | 215,040/215,040 | 0 |
+| Untiled matte after reduction | 24 | 98,304/98,304 | 0 |
+
+For the 120 cases, use an identity matrix, zero offset, both axes tiled and a fixed 128² RGBA source. Run nearest and bilinear transforms at 64², 32² and 16². For each combination of four source and four destination formats, take the [signed-field hash](#3d-linear-gradient) per channel. Use the low eight or sixteen bits for integer inputs, or 8H/2³²−4 for F16 and F32, seed 557. For both floating-point source and destination formats also use ((13x+31y+7xy+47c) mod 1024 / 128−3) × 2^((x+3y) mod 13−6), seed 659. The first four texels are (−0,0,−0,0), (.25,1,−4,−.5), (1,−2,.125,.875) and (−1,4,−.25,.75). For the 24 matte cases, use the 64² output with U8, F16 and F32 sources, both filters, offset (4,−4), no tiling and matte (.5,.123456,−.312345,1.144445). Once a mip level has been generated, the transform reads its border at destination precision.
+
+For the composite transform and the second renderer's LOD, the original four renders provide 114,688 pixels per root and the previous four-format and independent inputs add 17,408. For nine further cases, define channel c as ((97x+43y+7xy+143c+9xc) mod 1024)/1023 in an original RGBA32F image. Use 16² F32/seed 43, 64² in all four formats/73, 128² F32/197, 32×16 input at 32² F32/239, signed 32² F32/311 with 3H−1.25, and a repeat of 64² F32 at seed 401. The LOD graph has no exposed numeric control. For the composite filter use defaults at 16², and otherwise matrix (1.25,.375,−.125,.875), offset (.1875,−.4375), bilinear. At 128² use (−1,0,0,.5), offset (−.0625,.25), nearest. For signed input use (2.5,−.75,.25,1.125), offset (.25,−.125), bilinear. Each graph matches all 39,168 additional pixels.
+
 ### Large transform offsets and additive blends
 
 | Root | Measured cases | Exact pixels (maximum error zero) |

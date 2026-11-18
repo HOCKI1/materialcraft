@@ -32,8 +32,8 @@ fn transformation(context: &CookContext) -> CookResult {
     let nearest = context.i("filtering") == 1;
     let levels = mip_level(&input, matrix, context);
     let source_format = context.input_formats.first().copied().unwrap_or(if input.integer_sampling() { OutputFormat::U16 } else { OutputFormat::F32 });
-    let sample_format = if !nearest && levels > 0 && (input.width() > 1 || input.height() > 1) { context.format } else { source_format };
-    let input = reduce_mip(input, levels, nearest, context.format);
+    let sample_format = if levels > 0 && (input.width() > 1 || input.height() > 1) { context.format } else { source_format };
+    let input = reduce_mip(input, levels, source_format, context.format);
     let matte = crate::output_precision::store_pixel(context.v4("matte"), sample_format);
 
     // Keep independent wrap axes for panoramic images
@@ -71,37 +71,18 @@ fn mip_level(input: &Image, matrix: [f32; 4], context: &CookContext) -> u32 {
     dx.max(dy).max(1.0).log2().round().clamp(0.0, 13.0) as u32
 }
 
-fn reduce_mip(mut input: Image, levels: u32, nearest: bool, format: OutputFormat) -> Image {
-    let nearest_maximum = match format {
-        OutputFormat::U8 => Some(255.0),
-        OutputFormat::Inherit | OutputFormat::U16 => Some(65535.0),
-        OutputFormat::F16 | OutputFormat::F32 => None,
-    };
-
+fn reduce_mip(mut input: Image, levels: u32, mut source_format: OutputFormat, format: OutputFormat) -> Image {
     for _ in 0..levels {
         if input.width() <= 1 && input.height() <= 1 {
             break;
         }
 
-        // Bilinear samples of either normalized source depth return a 16-bit value.
-        let maximum = if nearest { nearest_maximum } else { input.integer_sampling().then_some(65535.0) };
+        // Both final filters read the same mip chain. Each reduction samples at the preceding level's precision.
         input = Image::generate(input.width().div_ceil(2), input.height().div_ceil(2), input.kind(), |x, y| {
-            let (x, y) = (i64::from(x) * 2, i64::from(y) * 2);
-            let pixels = [input.get(x, y, false), input.get(x + 1, y, false), input.get(x, y + 1, false), input.get(x + 1, y + 1, false)];
-            std::array::from_fn(|channel| {
-                if let Some(maximum) = maximum {
-                    let sum: u32 = pixels.iter().map(|pixel| (pixel[channel].clamp(0.0, 1.0) * maximum).round() as u32).sum();
-                    ((sum + 2) / 4) as f32 / maximum
-                } else {
-                    // Average in f64 so finite HDR texels cannot overflow the sum
-                    (pixels.iter().map(|pixel| f64::from(pixel[channel])).sum::<f64>() * 0.25) as f32
-                }
-            })
+            crate::texture_sampler::mip_texel(&input, x, y, source_format)
         });
-        if !nearest {
-            // Each reduction is stored at the transform's output precision before the next read.
-            input = crate::output_precision::apply(input, format);
-        }
+        input = crate::output_precision::apply(input, format);
+        source_format = format;
     }
 
     input
@@ -113,6 +94,19 @@ mod tests {
     use crate::resolve_params;
     use materialcraft_core::Value;
     use std::collections::BTreeMap;
+
+    #[test]
+    fn mip_reductions_use_the_precision_of_each_source_level() {
+        for (format, bits, expected) in [
+            (OutputFormat::F16, [0x3fa2e000, 0x3cd0c000, 0x404e0000, 0xc0180000], 0x3f092000),
+            (OutputFormat::F32, [0x4012ab5d, 0xbf9f3b55, 0x4075821b, 0xc02f817b], 0x3f090e53),
+            (OutputFormat::U8, [0x3f62e2e3, 0x3ec8c8c9, 0x3f46c6c7, 0x3f068687], 0x3f2525a5),
+        ] {
+            let input = Image::gray(2, 2, |x, y| f32::from_bits(bits[(2 * y + x) as usize])).with_integer_sampling(format == OutputFormat::U8);
+            let output = reduce_mip(input, 1, format, OutputFormat::F32);
+            assert_eq!(output.get_gray(0, 0, false).to_bits(), expected);
+        }
+    }
 
     #[test]
     fn large_affine_offsets_preserve_the_last_visible_mip_texels() {

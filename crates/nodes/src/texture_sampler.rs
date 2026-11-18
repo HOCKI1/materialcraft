@@ -52,7 +52,17 @@ pub(crate) fn sample(image: &Image, uv: [f32; 2], tiling: [bool; 2], format: Out
     if !uv.iter().all(|v| v.is_finite()) {
         return matte.unwrap_or([0.0, 0.0, 0.0, 1.0]);
     }
-    let taps = taps(image, uv, tiling);
+    filter_taps(image, taps(image, uv, tiling), tiling, format, matte)
+}
+
+/// Reduce a 2×2 source footprint with equal weights and clamped edges.
+pub(crate) fn mip_texel(image: &Image, x: u32, y: u32, format: OutputFormat) -> [f32; 4] {
+    let (x, y) = (i64::from(x) * 2, i64::from(y) * 2);
+    let taps = [(x, y, 64), (x + 1, y, 64), (x, y + 1, 64), (x + 1, y + 1, 64)];
+    filter_taps(image, taps, [false; 2], format, None)
+}
+
+fn filter_taps(image: &Image, taps: [(i64, i64, u32); 4], tiling: [bool; 2], format: OutputFormat, matte: Option<[f32; 4]>) -> [f32; 4] {
     if image.integer_sampling() {
         return sample_normalized(image, taps, tiling, matte);
     }

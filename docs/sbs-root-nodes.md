@@ -35,7 +35,7 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **224 Parity**, **25 In progress** and **297 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **227 Parity**, **24 In progress** and **295 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
 
 [Grayscale sampler measurements](parity-fixes.md#grayscale-sampling-of-color-inputs) · [Value sampling across 240 typed comparisons](parity-fixes.md#value-processor-texture-filtering)
 
@@ -150,7 +150,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [composite.sbs/composite/blends/blend_matte_fg_passthrough](../assets/sbs/composite.sbs) | 2 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [composite.sbs/composite/filters/filter_mask](../assets/sbs/composite.sbs) | 2 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [composite.sbs/composite/filters/filter_split_rgb_a](../assets/sbs/composite.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
-| [composite.sbs/composite/filters/filter_transformation](../assets/sbs/composite.sbs) | 1 | Yes | [Too hard: pixel differences](parity-fixes.md#remaining-differences) |
+| [composite.sbs/composite/filters/filter_transformation](../assets/sbs/composite.sbs) | 1 | Yes | [Parity · 18 cases, 171,264 exact pixels](parity-fixes.md#stored-precision-in-transform-mip-levels) |
 | [composite.sbs/composite/filters/filter_transformation_grayscale](../assets/sbs/composite.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [constant_values.sbs/constant_boolean](../assets/sbs/constant_values.sbs) | 0 | No | [Parity: 3 typed values](parity-fixes.md#verified-cases) |
 | [constant_values.sbs/float/constant_float](../assets/sbs/constant_values.sbs) | 0 | No | [Parity: 3 typed values](parity-fixes.md#verified-cases) |
@@ -441,7 +441,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [pbr_render.sbs/chroma_shift](../assets/sbs/pbr_render.sbs) | 1 | Yes | [Parity · 13 cases, 163,840 exact pixels](parity-fixes.md#height-distance-texture-mapping-skew-and-weave) |
 | [pbr_render.sbs/environment_map_rescale](../assets/sbs/pbr_render.sbs) | 1 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [pbr_render.sbs/get_max_coords/get_max_coord](../assets/sbs/pbr_render.sbs) | 1 | Yes | [Parity · 12 typed coordinate comparisons](parity-fixes.md#value-processor-coordinates) |
-| [pbr_render.sbs/ibl_specular_contrib_anisotropic/panoramic_lod](../assets/sbs/pbr_render.sbs) | 1 | Yes | [In progress · first float transform differs after mip reduction](parity-fixes.md#large-transform-offsets-and-additive-blends) |
+| [pbr_render.sbs/ibl_specular_contrib_anisotropic/panoramic_lod](../assets/sbs/pbr_render.sbs) | 1 | Yes | [Parity · 18 cases, 186,624 exact pixels](parity-fixes.md#stored-precision-in-transform-mip-levels) |
 | [pbr_render.sbs/position_to_normal](../assets/sbs/pbr_render.sbs) | 2 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [pbr_render.sbs/raytrace_position](../assets/sbs/pbr_render.sbs) | 4 | Yes | [Too hard: cook timeout](parity-fixes.md#remaining-differences) |
 | [pbr_render.sbs/raytraced_irradiance_pass_8](../assets/sbs/pbr_render.sbs) | 10 | Yes | [Too hard: cook timeout](parity-fixes.md#remaining-differences) |
@@ -453,7 +453,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [pbr_render2.sbs/get_max_coords/get_max_coord](../assets/sbs/pbr_render2.sbs) | 1 | Yes | [Parity · 12 typed coordinate comparisons](parity-fixes.md#value-processor-coordinates) |
 | [pbr_render2.sbs/height_adjust](../assets/sbs/pbr_render2.sbs) | 3 | Yes | [Parity: 3 cases](parity-fixes.md#verified-cases) |
 | [pbr_render2.sbs/ibl_specular_contrib_anisotropic/panoramic_lod](../assets/sbs/pbr_render2.sbs) | 1 | Yes | [Parity · 18 cases, 186,624 exact pixels](parity-fixes.md#large-transform-offsets-and-additive-blends) |
-| [pbr_render2.sbs/lod](../assets/sbs/pbr_render2.sbs) | 1 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [pbr_render2.sbs/lod](../assets/sbs/pbr_render2.sbs) | 1 | Yes | [Parity · 18 cases, 171,264 exact pixels](parity-fixes.md#stored-precision-in-transform-mip-levels) |
 | [pbr_render2.sbs/position_to_normal](../assets/sbs/pbr_render2.sbs) | 2 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [pbr_render2.sbs/raytrace_position](../assets/sbs/pbr_render2.sbs) | 4 | Yes | [Too hard: cook timeout](parity-fixes.md#remaining-differences) |
 | [pbr_render2.sbs/raytraced_irradiance_is_pass_8](../assets/sbs/pbr_render2.sbs) | 9 | Yes | [Too hard: cook timeout](parity-fixes.md#remaining-differences) |
