@@ -4,6 +4,7 @@ use materialcraft_core::Value;
 pub(crate) fn evaluate(instruction: &super::instruction::Instruction, args: &[Value], random: &mut u32, scope: super::FunctionScope) -> Result<Value, String> {
     let op = instruction.definition.id;
     let pixel_math = scope == super::FunctionScope::PixelProcessor && !instruction.literal;
+    let angle_component = |angle, cosine| super::trigonometry::component(angle, cosine, scope, instruction.literal);
     let first = args.first().ok_or("missing arithmetic operand")?;
     let count = dimensions(first);
     let integer = matches!(first, Value::Int(_) | Value::Int2(_) | Value::Int3(_) | Value::Int4(_));
@@ -69,9 +70,7 @@ pub(crate) fn evaluate(instruction: &super::instruction::Instruction, args: &[Va
         }
 
         let angle = right[0];
-        let (cosine, sine) =
-            if pixel_math { (super::trigonometry::component(angle, true), super::trigonometry::component(angle, false)) } else { (angle.cos(), angle.sin()) };
-        return float_value(&[left[0] * cosine, left[0] * sine]);
+        return float_value(&[left[0] * angle_component(angle, true), left[0] * angle_component(angle, false)]);
     }
 
     let mut result = [0.0; 4];
@@ -96,10 +95,8 @@ pub(crate) fn evaluate(instruction: &super::instruction::Instruction, args: &[Va
             "log2" => left.log2(),
             "pow" => left.powf(right),
             "pow2" => left.exp2(),
-            "sin" if pixel_math => super::trigonometry::component(left, false),
-            "cos" if pixel_math => super::trigonometry::component(left, true),
-            "sin" => left.sin(),
-            "cos" => left.cos(),
+            "sin" => angle_component(left, false),
+            "cos" => angle_component(left, true),
             "tan" => left.tan(),
             "lerp" if pixel_math => (right - left).mul_add(factor, left),
             "lerp" => left + (right - left) * factor,

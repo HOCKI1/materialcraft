@@ -238,6 +238,26 @@ Use the position ramp and original 1024×16 lookup under [basic and ridged 3D Pe
 
 Selecting only level 2, 3 or 7 at roughness .7 gives 2,040, 1,871 and 1,841 exact pixels out of 4,096, each with maximum 2.38418579e−7. With the same lookup at 128² and roughness .7, U16, F16 and F32 still match 16,337, 16,380 and 5,160 of 16,384, respectively.
 
+### Uniform angles and planar projection
+
+The grayscale and color 3D planar projection roots each match **168,960/168,960 pixels in 15 cases**, maximum error zero. Their eight [position-ramp and rotated-texture cases](#grayscale-and-color-3d-planar-projection) match 131,072/131,072 per root including the .125-turn 128² case. An additional seven cases match 37,888/37,888 per root. Replaying both first-pass sizes and the separate [four-format and 32² comparisons](#four-format-inventory-comparison) also matches all 81,920 and 17,408 pixels per root, respectively.
+
+For the seven cases generate new linear byte fields at each output size N. Position is (floor(255x/(N−1)),floor(255y/(N−1)),128+floor(63sin(2πx/N)cos(2πy/N)),255). World normal is (128+round(24sin(2πx/N)),128+round(24cos(2πy/N)),250,255). Let z=(29x+7y+3xy) mod 256. Grayscale texture is z and color texture is (z,43x−17y,11x+3y,23x+13y+7), reduced modulo 256. Set scale .53 and size (1,.75). Rotate −.1875 turns at 32² F32 seed 41 and 64² U8/U16/F16/F32 seed 71. Rotate .3125 turns at 128² F32 seed 211. At 64² F32 seed 313 set projection input 1, rotation .0675, target position (.375,.625,.5), target normal (.5,.5,1), and normal threshold .1.
+
+The rotation discrepancy came from computing trigonometry in the processor's output-size parameter. Node parameters, value processors, and pattern parameters use a common runtime approximation. Scale radians by float32(1/(2π)) and add .25 for sine or .5 for cosine. Subtract the nearest even integer, take the absolute value, multiply by four and subtract one to obtain x. Evaluate the odd-power series through x⁷, rounding each product and each sum separately. For k=π/2 the first three coefficients are k, −k³/6 and k⁵/120. The seventh-order coefficient targets 1−2⁻²³ at x=1, using the preceding coefficients before conversion to float32. A literal sine or cosine still uses the ordinary floating-point operation.
+
+| Original function probe | Measurements | Exact / compared | Maximum error |
+|---|---:|---:|---:|
+| Output-size parameter computing 128 angles per graph | 94 images at 128², 12,032 angle evaluations | 1,540,096/1,540,096 LUM32F pixels | 0 |
+| Single parameter, Cartesian components, and literal expressions | 58 images at 16² | 14,848/14,848 LUM32F pixels | 0 |
+| Value processor with the same expressions | 58 typed floats | 58/58 | 0 |
+| Pattern opacity, scalar or Cartesian component, with matching gray or color declarations | 52 images at 16² | 13,312/13,312 LUM32F or RGBA32F pixels | 0 |
+| Pixel function reading an exposed angle directly | 30 images at 16² | 7,680/7,680 LUM32F pixels | 0 |
+
+For the 128-column probe compute angle=float32(start+float32(i×step)), with i=0..127. Assign each result to its own variable in the output-size function. In the pixel function return the variable indexed by the output column. Use the nine (start,step) pairs (0,1/80), (0,1/8192), (.75,1/4096), (−16,.25), (float32(π/2)−64/2²⁰,2⁻²⁰), (−64/2²⁴,2⁻²⁴), (−987654,16037.125), (−1.5625,1/80) and (−2π,π/32), seed 41. For each operation initialize NumPy default_rng(431) and draw 32 more starts uniformly on [−20,20), each followed by a step uniformly on [−1,1) for the first 16 or [−.0001,.0001) for the rest. Use seed 257 for the graphs. The remaining six pairs at seed 73 are (2³⁰,65536), (−2³³,2¹⁸), (10²⁰,2×10¹⁷), (0,−2⁻³¹), (.75,2⁻²⁶) and (1.5,2⁻²⁵). Inputs and step constants are float32.
+
+The single-angle parameter and typed probes use .625, .125, −.125, .38, 0, 1, −.0078125, π/4, −π/4, 2π, −974634.875, 10⁻⁷ and 10⁹ with alternating seeds 42 and 17. Cartesian radius is −1.25. Literal expressions use .625, π/4 or 2π at seed 73. For the pattern, give a single square size (1,1), seed 17 and F32 precision. Set opacity to sine, cosine, or the corresponding Cartesian component with radius .875. Use .125, .625, π/4, 1, 10⁻⁷ and .38, plus literal-only .625. The independent pixel-parameter probes add .7 and π at seed 71 and agree with the [runtime pixel quarter wave](#runtime-pixel-sine-cosine-and-atlas-rotation). A grayscale pattern producer with a color output declaration had incompatible channel counts in a separate control. Its reference output was RGBA32F and MaterialCraft returned one channel.
+
 ### Runtime pixel sine, cosine and atlas rotation
 
 Sine and cosine match **1,443,840/1,443,840 LUM32F pixels** across 30 original Pixel Processor cases. Exactness includes signed zero and all 84 nonfinite output components. Maximum finite error is zero. Direct Cartesian coordinates and separately multiplying the radius by the cosine and sine match another **197,632/197,632 component pixels**. With radius −1.25 and angle float32(π/4), the two coordinate components have bits `bf62462e bf624630`.

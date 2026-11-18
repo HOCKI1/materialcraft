@@ -1,4 +1,4 @@
-//! Runtime pixel sine and cosine from a fixed-point quarter wave.
+//! Runtime sine and cosine for pixel and uniform function scopes.
 
 use super::fixed_point::square_fraction;
 use std::sync::LazyLock;
@@ -50,7 +50,17 @@ fn phase(bits: u32) -> u32 {
     shifted.unwrap_or(0) & (4 * QUARTER - 1)
 }
 
-pub(super) fn component(angle: f32, cosine: bool) -> f32 {
+pub(super) fn component(angle: f32, cosine: bool, scope: super::FunctionScope, literal: bool) -> f32 {
+    if literal {
+        return if cosine { angle.cos() } else { angle.sin() };
+    }
+    match scope {
+        super::FunctionScope::PixelProcessor => pixel_component(angle, cosine),
+        super::FunctionScope::Node | super::FunctionScope::ValueProcessor | super::FunctionScope::FxMap => uniform_component(angle, cosine),
+    }
+}
+
+fn pixel_component(angle: f32, cosine: bool) -> f32 {
     if !angle.is_finite() {
         return f32::NAN;
     }
@@ -65,4 +75,20 @@ pub(super) fn component(angle: f32, cosine: bool) -> f32 {
     let nearest = exact as f32;
     let magnitude = if f64::from(nearest) > exact { f32::from_bits(nearest.to_bits().saturating_sub(1)) } else { nearest };
     if (phase & (2 * QUARTER) != 0) ^ (!cosine && angle.is_sign_negative()) { -magnitude } else { magnitude }
+}
+
+fn uniform_component(angle: f32, cosine: bool) -> f32 {
+    const QUADRANT: f64 = std::f64::consts::FRAC_PI_2;
+    const CUBIC: f64 = -QUADRANT * QUADRANT * QUADRANT / 6.0;
+    const FIFTH: f64 = -CUBIC * QUADRANT * QUADRANT / 20.0;
+    // The measured seventh-order term targets one minus a float epsilon at the quadrant endpoint.
+    const SEVENTH: f32 = (1.0 - f32::EPSILON as f64 - QUADRANT - CUBIC - FIFTH) as f32;
+    let turns = angle * (std::f32::consts::FRAC_1_PI * 0.5) + if cosine { 0.5 } else { 0.25 };
+    let x = 4.0 * (turns - turns.round_ties_even()).abs() - 1.0;
+    let square = x * x;
+    let cube = x * square;
+    let fifth = cube * square;
+    let seventh = fifth * square;
+    // Each odd power and each sum rounds separately.
+    x * std::f32::consts::FRAC_PI_2 + cube * CUBIC as f32 + fifth * FIFTH as f32 + seventh * SEVENTH
 }

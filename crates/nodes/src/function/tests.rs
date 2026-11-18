@@ -26,6 +26,10 @@ fn operation(name: &str, arguments: &[Value], setting: Option<Value>) -> Result<
 }
 
 fn pixel_operation(op: &str, operands: &[Value], literal: bool) -> Value {
+    scoped_operation(super::FunctionScope::PixelProcessor, op, operands, literal)
+}
+
+fn scoped_operation(scope: super::FunctionScope, op: &str, operands: &[Value], literal: bool) -> Value {
     let mut graph = FunctionGraph::default();
     let mut variables = BTreeMap::new();
     let mut inputs = Vec::new();
@@ -40,15 +44,7 @@ fn pixel_operation(op: &str, operands: &[Value], literal: bool) -> Value {
         inputs.push(input);
     }
     graph.output = Some(graph.add(op, &inputs, None));
-    let context = EvaluationContext {
-        image_formats: &[],
-        scope: super::FunctionScope::PixelProcessor,
-        position: [0.5; 2],
-        size: [1.0; 2],
-        images: &[],
-        tile: true,
-        variables: &variables,
-    };
+    let context = EvaluationContext { image_formats: &[], scope, position: [0.5; 2], size: [1.0; 2], images: &[], tile: true, variables: &variables };
     compile(&graph, 0).unwrap().evaluate_pixel(&context, &mut EvaluationState::default()).unwrap()
 }
 
@@ -86,6 +82,36 @@ fn runtime_pixel_cartesian_multiplies_the_radius_by_each_quarter_wave() {
     let result = pixel_operation("cartesian", &[Value::Float(0.875), Value::Float(0.625)], true);
     let Value::Float2(xy) = result else { panic!("expected a coordinate") };
     assert_eq!(xy.map(f32::to_bits), [0x3f35a7de, 0x3f030fd1]);
+}
+
+#[test]
+fn parameter_and_value_angles_fold_the_phase_before_the_polynomial() {
+    use super::FunctionScope::{Node, ValueProcessor};
+    for scope in [Node, ValueProcessor] {
+        for (angle, sine, cosine) in [
+            (0.625, 0x3f15c8f2, 0x3f4f9b7a),
+            (-std::f32::consts::FRAC_PI_4, 0xbf350503, 0x3f350503),
+            (1e-7, 0x34490fdb, 0x3f800000),
+            (1e9, 0xbf800000, 0xbf800000),
+        ] {
+            for (op, expected) in [("sin", sine), ("cos", cosine)] {
+                let Value::Float(v) = scoped_operation(scope, op, &[Value::Float(angle)], false) else { panic!("expected a scalar") };
+                assert_eq!(v.to_bits(), expected, "{scope:?} {op}({angle})");
+            }
+        }
+        assert_eq!(scoped_operation(scope, "sin", &[Value::Float(0.625)], true), Value::Float(f32::from_bits(0x3f15c8ef)));
+    }
+}
+
+#[test]
+fn pattern_angles_and_uniform_cartesian_use_the_same_components() {
+    use super::FunctionScope::{FxMap, Node, ValueProcessor};
+    for scope in [Node, ValueProcessor, FxMap] {
+        let angle = Value::Float(0.625);
+        assert_eq!(scoped_operation(scope, "cos", std::slice::from_ref(&angle), false), Value::Float(f32::from_bits(0x3f4f9b7a)));
+        let Value::Float2(result) = scoped_operation(scope, "cartesian", &[Value::Float(0.875), angle], false) else { panic!("expected a coordinate") };
+        assert_eq!(result.map(f32::to_bits), [0x3f35a80b, 0x3f030fd4]);
+    }
 }
 
 #[test]
