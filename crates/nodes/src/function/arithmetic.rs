@@ -1,7 +1,9 @@
 use super::value_type::{dimensions, floats, integer_value, integers, intermediate_float_value as float_value};
 use materialcraft_core::Value;
 
-pub(crate) fn evaluate(op: &str, args: &[Value], random: &mut u32, scope: super::FunctionScope) -> Result<Value, String> {
+pub(crate) fn evaluate(instruction: &super::instruction::Instruction, args: &[Value], random: &mut u32, scope: super::FunctionScope) -> Result<Value, String> {
+    let op = instruction.definition.id;
+    let pixel_math = scope == super::FunctionScope::PixelProcessor && !instruction.literal;
     let first = args.first().ok_or("missing arithmetic operand")?;
     let count = dimensions(first);
     let integer = matches!(first, Value::Int(_) | Value::Int2(_) | Value::Int3(_) | Value::Int4(_));
@@ -44,6 +46,12 @@ pub(crate) fn evaluate(op: &str, args: &[Value], random: &mut u32, scope: super:
     }
 
     if op == "dot" {
+        if pixel_math && count >= 2 {
+            // The second product rounds first. Each remaining channel contributes one fused operation.
+            let xy = left[0].mul_add(right[0], left[1] * right[1]);
+            let sum = left.iter().zip(right).take(count).skip(2).fold(xy, |sum, (a, b)| a.mul_add(b, sum));
+            return float_value(&[sum]);
+        }
         return float_value(&[left.iter().zip(right).take(count).map(|(a, b)| a * b).sum()]);
     }
 
@@ -69,6 +77,8 @@ pub(crate) fn evaluate(op: &str, args: &[Value], random: &mut u32, scope: super:
             "add" => left + right,
             "sub" => left - right,
             "mul" | "mulscalar" => left * right,
+            // Outside the normal reciprocal range, an intermediate overflow or underflow can lose a finite quotient.
+            "div" if pixel_math && right.recip().is_normal() => left * right.recip(),
             "div" => left / right,
             // Floored modulo wraps negative coordinates; remainder keeps their sign
             "mod" => left - right * (left / right).floor(),
@@ -87,6 +97,7 @@ pub(crate) fn evaluate(op: &str, args: &[Value], random: &mut u32, scope: super:
             "sin" => left.sin(),
             "cos" => left.cos(),
             "tan" => left.tan(),
+            "lerp" if pixel_math => (right - left).mul_add(factor, left),
             "lerp" => left + (right - left) * factor,
             "rand" if scope == super::FunctionScope::Node => crate::random::node_function(random) * left,
             "rand" if scope == super::FunctionScope::FxMap => crate::random::pattern_function(random) * left,

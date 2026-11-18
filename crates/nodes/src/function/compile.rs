@@ -107,6 +107,7 @@ fn compile_nested(graph: &FunctionGraph, seed: u32, depth: usize, remaining: &mu
                             inputs: Vec::new(),
                             value: Some(value),
                             type_code,
+                            literal: true,
                             repeated: Vec::new(),
                             call: None,
                         });
@@ -146,8 +147,13 @@ fn compile_nested(graph: &FunctionGraph, seed: u32, depth: usize, remaining: &mu
         let input_type = |index: usize| inputs.get(index).and_then(|index| instructions.get(*index)).map_or(256, |instruction| instruction.type_code);
         let inferred = super::inferred_type::inferred_type(&node.op, value.as_ref(), input_type);
         let type_code = call.as_ref().map_or_else(|| if node.type_code == 0 { inferred } else { node.type_code }, |call| call.program.output_type());
+        let literal = definition.id.starts_with("const_")
+            || (call.is_none()
+                && !inputs.is_empty()
+                && !matches!(definition.id, "rand" | "samplelum" | "samplecol" | "set" | "while")
+                && inputs.iter().all(|index| instructions.get(*index).is_some_and(|input| input.literal)));
         indices.insert(id, instructions.len());
-        instructions.push(Instruction { id, definition, inputs, value, type_code, repeated: Vec::new(), call });
+        instructions.push(Instruction { id, definition, inputs, value, type_code, literal, repeated: Vec::new(), call });
     }
 
     // Instructions come after their inputs, so walking back from a loop reaches its whole condition and body

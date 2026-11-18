@@ -17,6 +17,58 @@ fn operation(name: &str, arguments: &[Value], setting: Option<Value>) -> Result<
     evaluate(&graph, &BTreeMap::new())
 }
 
+fn pixel_operation(op: &str, operands: &[Value], literal: bool) -> Value {
+    let mut graph = FunctionGraph::default();
+    let mut variables = BTreeMap::new();
+    let mut inputs = Vec::new();
+    for (i, operand) in operands.iter().enumerate() {
+        let input = if literal {
+            graph.add_constant(operand.clone())
+        } else {
+            let name = format!("input{i}");
+            variables.insert(name.clone(), operand.clone());
+            graph.add(&format!("get_float{}", super::value_type::dimensions(operand)), &[], Some(Value::Text(name)))
+        };
+        inputs.push(input);
+    }
+    graph.output = Some(graph.add(op, &inputs, None));
+    let context =
+        EvaluationContext { scope: super::FunctionScope::PixelProcessor, position: [0.5; 2], size: [1.0; 2], images: &[], tile: true, variables: &variables };
+    compile(&graph, 0).unwrap().evaluate_pixel(&context, &mut EvaluationState::default()).unwrap()
+}
+
+#[test]
+fn pixel_dot_rounds_in_channel_order() {
+    // One sampled texel distinguishes the accumulation orders in all three widths.
+    let [x, y, z, w] = [0xc07089a0, 0x3fa2fba9, 0xbe30266f, 0xbcf10944].map(f32::from_bits);
+    for (left, right, dynamic_bits, literal_bits) in [
+        (Value::Float2([x, y]), Value::Float2([0.2126, 0.7152]), 0x3de49f4e, 0x3de49f50),
+        (Value::Float3([x, y, z]), Value::Float3([0.2126, 0.7152, 0.0722]), 0x3dcb2fab, 0x3dcb2fad),
+        (Value::Float4([x, y, z, w]), Value::Float4([0.2126, 0.7152, 0.0722, -0.39]), 0x3de2afee, 0x3de2aff0),
+    ] {
+        let operands = [left, right];
+        assert_eq!(pixel_operation("dot", &operands, false), Value::Float(f32::from_bits(dynamic_bits)));
+        assert_eq!(pixel_operation("dot", &operands, true), Value::Float(f32::from_bits(literal_bits)));
+    }
+}
+
+#[test]
+fn pixel_division_multiplies_by_the_reciprocal() {
+    let operands = [Value::Float(-2.7353475), Value::Float(1.7320508)];
+    assert_eq!(pixel_operation("div", &operands, false), Value::Float(f32::from_bits(0xbfca24fb)));
+    assert_eq!(pixel_operation("div", &operands, true), Value::Float(f32::from_bits(0xbfca24fc)));
+    // Taking a reciprocal of this subnormal would overflow before the quotient can be computed.
+    let tiny = Value::Float(f32::from_bits(1));
+    assert_eq!(pixel_operation("div", &[tiny.clone(), tiny], false), Value::Float(1.0));
+}
+
+#[test]
+fn pixel_lerp_fuses_the_scaled_difference() {
+    let operands = [0xc04928a6, 0xbfc9a1db, 0xbefff6a8].map(|bits| Value::Float(f32::from_bits(bits)));
+    assert_eq!(pixel_operation("lerp", &operands, false), Value::Float(f32::from_bits(0xc07b52ad)));
+    assert_eq!(pixel_operation("lerp", &operands, true), Value::Float(f32::from_bits(0xc07b52ae)));
+}
+
 #[test]
 fn system_variables_resolve_with_their_declared_types() {
     for (operation, name, expected) in [

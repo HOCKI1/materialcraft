@@ -35,16 +35,16 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covers all **546 roots**: **166 Parity** and **380 Too hard**. Parity applies only to the recorded cases; it is not a claim of complete functional parity.
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **166 Parity**, **3 In progress** and **377 Too hard**. Exact counts, output formats and remaining differences for the reopened roots are in the [November 17 comparisons](parity-fixes.md#2026-11-17-root-comparisons).
 
 ## Complete inventory
 
 | SBS package / graph path | Input pins | Hidden in library | Parity status |
 |---|---:|---|---|
-| [3d_gradient.sbs/3d_linear_gradient](../assets/sbs/3d_gradient.sbs) | 1 | No | [Too hard: remaining float rounding](parity-fixes.md#remaining-differences) |
-| [3d_perlin_noise.sbs/3D_perlin_noise](../assets/sbs/3d_perlin_noise.sbs) | 1 | No | [Too hard: 3 pixels remain](parity-fixes.md#remaining-differences) |
+| [3d_gradient.sbs/3d_linear_gradient](../assets/sbs/3d_gradient.sbs) | 1 | No | [In progress · default UV and world exact, contrast differs](parity-fixes.md#3d-linear-gradient) |
+| [3d_perlin_noise.sbs/3D_perlin_noise](../assets/sbs/3d_perlin_noise.sbs) | 1 | No | [In progress · lookup and arithmetic differences measured](parity-fixes.md#basic-and-ridged-3d-perlin) |
 | [3d_perlin_noise.sbs/3D_perlin_noise_fractal](../assets/sbs/3d_perlin_noise.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
-| [3d_perlin_noise.sbs/3D_ridged_noise_fractal](../assets/sbs/3d_perlin_noise.sbs) | 1 | No | [Too hard: 3 pixels remain](parity-fixes.md#remaining-differences) |
+| [3d_perlin_noise.sbs/3D_ridged_noise_fractal](../assets/sbs/3d_perlin_noise.sbs) | 1 | No | [In progress · shared lookup exact in LUM8, higher precision differs](parity-fixes.md#basic-and-ridged-3d-perlin) |
 | [3d_planar_projection.sbs/3d_planar_projection](../assets/sbs/3d_planar_projection.sbs) | 3 | No | [Too hard: sampling boundaries](parity-fixes.md#remaining-differences) |
 | [3d_planar_projection.sbs/3d_planar_projection_color](../assets/sbs/3d_planar_projection.sbs) | 3 | No | [Too hard: sampling boundaries](parity-fixes.md#remaining-differences) |
 | [3d_simplex_noise.sbs/3d_simplex_noise](../assets/sbs/3d_simplex_noise.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |

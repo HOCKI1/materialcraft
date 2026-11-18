@@ -131,6 +131,6 @@ pub(crate) fn evaluate(
 
             if op == "samplelum" { Value::Float(pixel[0]) } else { Value::Float4(pixel) }
         }
-        _ => return super::arithmetic::evaluate(op, arguments, random, context.scope),
+        _ => return super::arithmetic::evaluate(instruction, arguments, random, context.scope),
     })
 }

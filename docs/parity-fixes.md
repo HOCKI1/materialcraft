@@ -57,7 +57,48 @@ The first pass classifies all 546 roots: 166 Parity and 380 Too hard. These meas
 
 - **2026-11-13 - Unconnected output images:** Unconnected output bridges now produce transparent RGBA instead of grayscale. The importer separately retains each output's declared image type so saving an unconnected output preserves the graph interface. Both material templates match all 1,179,648 RGBA8 pixels across six recorded cases. All 2,560 direct grayscale/color declaration probe pixels also match, and both declared image types survive save/reload.
 
+## 2026-11-17 root comparisons
+
+The clean-room comparisons below use the 16.0.7 reference app with the Direct3D 11 backend and a release MaterialCraft CPU cook. They compare the raw output bridge at its stored precision. A pixel counts only when every channel agrees. Integer errors are in stored levels. Floating errors are absolute. Each case starts from the graph defaults. Where a row selects another storage format, set the final processor's format to absolute in both apps before cooking.
+
+### 3D linear gradient
+
+Bind a linear RGBA8 position map at the output size `N`. At zero-based texel `(x,y)`, set R and G to the nearest integers to `255*x/(N-1)` and `255*y/(N-1)`, with ties to even. Set B to 128 and A to 255. Use the default UV points, or set `points_position_mode=1` for world mode. The oblique case sets the world points to `(.2,.1,.3)` and `(.8,.9,.6)` and contrast to .35. The float output includes values outside the unit interval.
+
+| Case | Size | Seed | Format | Exact pixels / total | Maximum error |
+|---|---:|---:|---|---:|---:|
+| Default UV | 256² / 512² | 0 | LUM32F | 65,536/65,536 and 262,144/262,144 | 0 |
+| Default world points | 256² / 512² | 0 | LUM32F | 65,536/65,536 and 262,144/262,144 | 0 |
+| Default UV | 128² | 42 | LUM32F | 16,384/16,384 | 0 |
+| UV, contrast .6 | 256² / 512² | 0 | LUM32F | 26,043/65,536 and 104,172/262,144 | 2.384186e-7 |
+| Oblique | 256² / 512² | 0 | LUM32F | 38,634/65,536 and 154,536/262,144 | 1.192093e-7 |
+| Oblique | 128² | 42 | LUM8 | 16,384/16,384 | 0 |
+| Oblique | 128² | 42 | LUM16 | 16,379/16,384 | 1 |
+| Oblique | 128² | 42 | LUM16F | 16,367/16,384 | 2.44140625e-4 |
+
+At 256² the two default cases previously matched 46,763 and 32,755 float pixels. A separate pair of 128² probes for each of float2, float3 and float4 isolated the dot product. Use a varying signed RGBA32F input and dot its leading lanes with themselves or with the corresponding prefix of `(.2126,.7152,.0722,-.39)`. The measured accumulation starts with the rounded Y product and fuses X, then Z and W when present. All 98,304 sampled dot and squared-length results now agree exactly. Literal-only dot, division and interpolation expressions retain their separately measured rounding.
+
+For the signed test image, number RGBA components in row-major order starting at zero. Compute `v = i*747796405 + 2891336453`, then `v = ((v >> ((v >> 28)+4)) ^ v)*277803737` with unsigned 32-bit wrap at both steps. Store `8*((v ^ (v >> 22))/2^32)-4` as float32. Interpolating R to G with B as the factor and dividing R by the float32 value 1.7320508 each match 16,384/16,384 pixels with zero error. With G as the divisor, 14,372/16,384 match and the maximum error is 4.8828125e-4. Multiplying R by a separately captured reference reciprocal of G reproduces all 16,384 reference quotients. A standalone `R*G-B` probe matches 11,721/16,384 with a maximum error of 1.907349e-6. Fusing that product and subtraction reproduces every reference pixel. At 256² the contrast-.6 reference output is exactly a fused `gradient*2.5-.75` on the zero-contrast reference image. Separate graph operations and reciprocal approximation remain open. The unconnected Position case from the first pass also remains open.
+
+### Basic and ridged 3D Perlin
+
+Use the same position ramp. For a controlled comparison, bind an original 1024×16 grayscale lookup to the internal bitmap in both apps. With one Python `random.Random(104729)` instance, shuffle a fresh list of integers 0 through 1023 for each successive row. Write each entry as the nearest integer to `65535*entry/1023` in a linear 16-bit PNG. Both internal lookup outputs matched all 16,384 levels with zero error. The changed parameter is `scale=6` for basic Perlin and `roughness=.7` for ridged Perlin. Use an 8-bit parent format.
+
+| Case | Size | Seed | Format | Basic exact / total | Basic max | Ridged exact / total | Ridged max |
+|---|---:|---:|---|---:|---:|---:|---:|
+| Default | 128² | 0 | LUM8 | 16,383/16,384 | 1 | 16,384/16,384 | 0 |
+| Default | 256² | 0 | LUM8 | 65,534/65,536 | 1 | 65,536/65,536 | 0 |
+| Default | 128² | 42 | LUM8 | 16,384/16,384 | 0 | 16,384/16,384 | 0 |
+| Changed | 128² | 0 | LUM8 | 16,384/16,384 | 0 | 16,384/16,384 | 0 |
+| Changed | 128² | 42 | LUM16 | 16,360/16,384 | 1 | 16,304/16,384 | 1 |
+| Changed | 128² | 42 | LUM16F | 16,384/16,384 | 0 | 16,378/16,384 | 4.8828125e-4 |
+| Changed | 128² | 42 | LUM32F | 12,105/16,384 | 5.066395e-7 | 3,119/16,384 | 4.172326e-7 |
+
+The changed float case previously matched 10,399 pixels for basic Perlin and 3,926 for ridged Perlin. Whole-graph rounding remains visible in both. A separate seed-zero comparison used each app's shipped lookup, with MaterialCraft's tracked CC0 image read from Git. Basic Perlin matched 173/16,384 at 128² and 662/65,536 at 256², with maximum errors of 203 levels at both sizes. Ridged Perlin matched 176/16,384 and 768/65,536, with maximum errors of 139 and 154 levels. The shared lookup isolates an asset-dependent difference from the arithmetic.
+
 ## Remaining differences
+
+The following entries record the first pass. The dated comparisons above give the newer results for revisited roots.
 
 - **`3d_gradient.sbs/3d_linear_gradient` - Too hard for this pass:** Corrected the wrong channel mapping and normalized-integer bilinear sampling offset. Compared generated position maps in UV and world modes, with zero and nonzero contrast, at 256 and 512 pixels (eight cases). Remaining 32-bit differences reach 7.153e-7; some values straddle a 16-bit rounding boundary by one level. The default world-mode case matches every pixel after 16-bit conversion at both sizes, but full float parity is not established. Further work needs matching the reference shader arithmetic rounding. An unconnected Position input yields NaNs in the reference app; MaterialCraft retains its actionable non-finite arithmetic error. Moving to the next node.
 
