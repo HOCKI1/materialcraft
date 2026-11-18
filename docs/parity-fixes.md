@@ -253,6 +253,30 @@ Literal-only pixel graphs at 16², seed 23, give 512/768 exact pixels for each l
 
 The shared-lookup ridged root still matches 5,160/16,384 at changed roughness in F32, maximum 1.78813934e−7. Its one-octave .7 control still matches 1,847/4,096, maximum 2.38418579e−7. For positive normal x on the signed field, the reference's general power agrees with exp(y×ln(x)) on all 32,614 pixels. On .7 with exponent 1 it returns `3f333334`. Further work on general power and natural exponential is tracked with the [octave controls](#ridged-noise-octave-isolation).
 
+### Quad, swirl, trapezoid and vector morph comparisons
+
+| Root | Renders | Exact pixels / compared | Maximum U8 / U16 levels | Maximum F16 / F32 error |
+|---|---:|---:|---:|---:|
+| quad transform | 23 | 204,032/204,032 | 0 / 0 | 0 / 0 |
+| quad transform grayscale | 23 | 204,032/204,032 | 0 / 0 | 0 / 0 |
+| swirl | 18 | 171,264/171,264 | 0 / 0 | 0 / 0 |
+| swirl grayscale | 18 | 171,264/171,264 | 0 / 0 | 0 / 0 |
+| trapezoid transform | 18 | 171,262/171,264 | 1 / 0 | 0 / 0.00343325734 |
+| trapezoid transform grayscale | 18 | 171,262/171,264 | 1 / 0 | 0 / 0.000473022461 |
+| vector morph | 18 | 171,264/171,264 | 0 / 0 | 0 / 0 |
+| vector morph grayscale | 18 | 171,264/171,264 | 0 / 0 | 0 / 0 |
+
+Every row includes the four original defaults, seed and parameter renders, the 64² four-format comparison, the independent 32² field and nine additional controls at 16² to 128². Use the [polar-field formula, rectangular edge pattern, signed range and seeds](#segment-mapping-and-normal-graph-rechecks). For color vector morph, number the image first and the vector field second. For grayscale vector morph, number the vector field first. Each quad row also includes the five [previous quad controls](#height-distance-texture-mapping-skew-and-weave). The 128² changed corners that formerly differed at six pixels now match all 16,384.
+
+| Root pair | Controls after the default case |
+|---|---|
+| Quad | p00=(.0625,.125), p01=(.1875,.84375), p10=(.90625,.078125), p11=(.75,.9375). Disable tiling only for the signed input. |
+| Swirl | Matrix (1.25,.1875,−.25,.875), offset (.15625,−.3125), amount 2.75. At 128² use −1.375. |
+| Trapezoid | Top stretch .3125 and bottom stretch −.1875. At 128² use top stretch −.5. For signed input use bottom stretch .75. |
+| Vector morph | Amount 3.125, or −1.375 for signed input. |
+
+The trapezoid pair each has two remaining differences across the archived and new comparisons. The [four-format inventory](#four-format-inventory-comparison) lists the original changed settings and port names.
+
 ### Radial stamp profiles and pattern generators
 
 A single stamp in an original grayscale pattern graph isolates the local profile. For each shape, use a centered stamp of size (1,1), then a quarter-turn, then size (1.375,.6875) at .0625 turns with offset (.109375,−.1875). Render at 16² F32/seed 433, 32² F32/127, 64² in U8, U16, F16 and F32/733, and 128² F32/983. The counts compare stored pixels for all 21 renders per shape.

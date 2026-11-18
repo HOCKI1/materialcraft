@@ -35,7 +35,7 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **249 Parity**, **35 In progress** and **262 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **255 Parity**, **35 In progress** and **256 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
 
 [Grayscale sampler measurements](parity-fixes.md#grayscale-sampling-of-color-inputs) · [Value sampling across 240 typed comparisons](parity-fixes.md#value-processor-texture-filtering)
 
@@ -471,8 +471,8 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [pow.sbs/pow](../assets/sbs/pow.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [pow.sbs/pow_grayscale](../assets/sbs/pow.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [pre_multiply_straight.sbs/premult_to_straight](../assets/sbs/pre_multiply_straight.sbs) | 1 | No | [Parity · 19 cases, 172,288 exact pixels](parity-fixes.md#large-transform-offsets-and-additive-blends) |
-| [quad_transform.sbs/quad_transform](../assets/sbs/quad_transform.sbs) | 1 | No | [In progress · six float pixels differ on the independent field](parity-fixes.md#height-distance-texture-mapping-skew-and-weave) |
-| [quad_transform.sbs/quad_transform_grayscale](../assets/sbs/quad_transform.sbs) | 1 | No | [In progress · six float pixels differ on the independent field](parity-fixes.md#height-distance-texture-mapping-skew-and-weave) |
+| [quad_transform.sbs/quad_transform](../assets/sbs/quad_transform.sbs) | 1 | No | [Parity · 204,032/204,032 pixels in 23 renders](parity-fixes.md#quad-swirl-trapezoid-and-vector-morph-comparisons) |
+| [quad_transform.sbs/quad_transform_grayscale](../assets/sbs/quad_transform.sbs) | 1 | No | [Parity · 204,032/204,032 pixels in 23 renders](parity-fixes.md#quad-swirl-trapezoid-and-vector-morph-comparisons) |
 | [quantize.sbs/quantize](../assets/sbs/quantize.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [quantize.sbs/quantize_grayscale](../assets/sbs/quantize.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [quantize_2.sbs/quantize_grayscale](../assets/sbs/quantize_2.sbs) | 2 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
@@ -562,8 +562,8 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [stripes.sbs/stripes](../assets/sbs/stripes.sbs) | 0 | Yes | [In progress · 55 hard stripe edges differ in four formats](parity-fixes.md#facet-masks-and-stripe-boundaries) |
 | [summed_area_table.sbs/summed_area_table_iteration](../assets/sbs/summed_area_table.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [summed_area_table_2.sbs/summed_area_table_iteration](../assets/sbs/summed_area_table_2.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
-| [swirl.sbs/swirl](../assets/sbs/swirl.sbs) | 1 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [swirl.sbs/swirl_grayscale](../assets/sbs/swirl.sbs) | 1 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [swirl.sbs/swirl](../assets/sbs/swirl.sbs) | 1 | No | [Parity · 171,264/171,264 pixels in 18 renders](parity-fixes.md#quad-swirl-trapezoid-and-vector-morph-comparisons) |
+| [swirl.sbs/swirl_grayscale](../assets/sbs/swirl.sbs) | 1 | No | [Parity · 171,264/171,264 pixels in 18 renders](parity-fixes.md#quad-swirl-trapezoid-and-vector-morph-comparisons) |
 | [symmetry.sbs/symmetry](../assets/sbs/symmetry.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [symmetry_slice.sbs/symmetry_slice](../assets/sbs/symmetry_slice.sbs) | 1 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [templates.sbs/Templates/Standard_Materials/Extended_Material](../assets/sbs/templates.sbs) | 0 | Yes | [Parity: 3 cases](parity-fixes.md#verified-cases) |
@@ -575,14 +575,14 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [tile_random.sbs/tile_random_color](../assets/sbs/tile_random.sbs) | 2 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [tile_sampler.sbs/arrow](../assets/sbs/tile_sampler.sbs) | 0 | Yes | [Parity · seven 512×512 runs, four formats](parity-fixes.md#transform-edges-and-floating-point-filtering) |
 | [tileable_material_to_mesh_material.sbs/tileable_material_to_mesh_material](../assets/sbs/tileable_material_to_mesh_material.sbs) | 5 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [trapezoid_transform.sbs/trapezoid_transform](../assets/sbs/trapezoid_transform.sbs) | 1 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [trapezoid_transform.sbs/trapezoid_transform_grayscale](../assets/sbs/trapezoid_transform.sbs) | 1 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [trapezoid_transform.sbs/trapezoid_transform](../assets/sbs/trapezoid_transform.sbs) | 1 | No | [In progress · 171,262/171,264 pixels in 18 renders](parity-fixes.md#quad-swirl-trapezoid-and-vector-morph-comparisons) |
+| [trapezoid_transform.sbs/trapezoid_transform_grayscale](../assets/sbs/trapezoid_transform.sbs) | 1 | No | [In progress · 171,262/171,264 pixels in 18 renders](parity-fixes.md#quad-swirl-trapezoid-and-vector-morph-comparisons) |
 | [uv_mapper.sbs/uv_mapper_color_sub](../assets/sbs/uv_mapper.sbs) | 2 | Yes | [Parity · 13 cases, 163,840 exact pixels](parity-fixes.md#height-distance-texture-mapping-skew-and-weave) |
 | [uv_mapper.sbs/uv_mapper_grayscale_sub](../assets/sbs/uv_mapper.sbs) | 2 | Yes | [Parity · 13 cases, 163,840 exact pixels](parity-fixes.md#height-distance-texture-mapping-skew-and-weave) |
 | [value_get_size.sbs/get_size_color](../assets/sbs/value_get_size.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [value_get_size.sbs/get_size_grayscale](../assets/sbs/value_get_size.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
-| [vector_morph.sbs/vector_morph](../assets/sbs/vector_morph.sbs) | 2 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [vector_morph.sbs/vector_morph_grayscale](../assets/sbs/vector_morph.sbs) | 2 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [vector_morph.sbs/vector_morph](../assets/sbs/vector_morph.sbs) | 2 | No | [Parity · 171,264/171,264 pixels in 18 renders](parity-fixes.md#quad-swirl-trapezoid-and-vector-morph-comparisons) |
+| [vector_morph.sbs/vector_morph_grayscale](../assets/sbs/vector_morph.sbs) | 2 | No | [Parity · 171,264/171,264 pixels in 18 renders](parity-fixes.md#quad-swirl-trapezoid-and-vector-morph-comparisons) |
 | [vertical_noise.sbs/vertical_noise](../assets/sbs/vertical_noise.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [waveform_01_v2.sbs/waveform_01_v2](../assets/sbs/waveform_01_v2.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [waveform_1.sbs/waveform_1](../assets/sbs/waveform_1.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
