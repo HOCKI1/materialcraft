@@ -5,8 +5,15 @@ use materialcraft_core::Value;
 use materialcraft_nodes::{CookContext, find, resolve_params};
 
 fn cook(mask: Image, source: Option<Image>, tile: bool, combine: bool, distance: f32) -> Image {
+    cook_metric(mask, source, tile, combine, distance, 0)
+}
+
+fn cook_metric(mask: Image, source: Option<Image>, tile: bool, combine: bool, distance: f32, metric: u32) -> Image {
     let def = find("distance").unwrap();
-    let params = resolve_params(def, &BTreeMap::from([("distance".into(), Value::Float(distance)), ("combine".into(), Value::Bool(combine))]));
+    let params = resolve_params(
+        def,
+        &BTreeMap::from([("distance".into(), Value::Float(distance)), ("combine".into(), Value::Bool(combine)), ("metric".into(), Value::Enum(metric))]),
+    );
     let (w, h) = (mask.width(), mask.height());
     let inputs = [Some(mask), source];
     let vars = BTreeMap::new();
@@ -38,24 +45,40 @@ fn tiled_distance_spreads_source_across_stationary_gradient() {
 
 #[test]
 fn distance_spreads_source_beyond_the_old_walk_limit() {
-    let mask = Image::gray(1024, 1, |x, _| if x == 0 { 1.0 } else { 0.0 });
+    let mask = Image::gray(512, 512, |x, y| if x == 0 && y == 0 { 1.0 } else { 0.0 });
     let output = cook(mask.clone(), Some(mask), false, false, 256.0);
-    assert_eq!(output.get_gray(1023, 0, false), 1.0);
+    assert_eq!(output.get_gray(511, 0, false), 1.0);
 }
 
 #[test]
-fn distance_preserves_source_alpha_range_and_combine() {
-    for tile in [false, true] {
-        let mask = Image::gray(9, 3, |x, y| if x == 0 && y == 1 { 1.0 } else { 0.0 });
-        let source = Image::generate(9, 3, Kind::Color, |x, y| if x == 0 && y == 1 { [0.8, 0.4, 0.2, 0.6] } else { [0.1, 0.1, 0.1, 1.0] });
-        for combine in [false, true] {
-            let output = cook(mask.clone(), Some(source.clone()), tile, combine, 512.0 / 9.0); // two pixels
-            assert_eq!(output.get(0, 1, false), [0.8, 0.4, 0.2, 0.6]);
-            let expected = if combine { [0.4, 0.2, 0.1, 0.6] } else { [0.8, 0.4, 0.2, 0.6] };
-            assert_eq!(output.get(1, 1, false), expected);
-            assert_eq!(output.get(4, 1, false), [0.0; 4]);
-            assert_eq!(output.get(8, 1, false), if tile { expected } else { [0.0; 4] });
-        }
+fn distance_spreads_rgb_and_attenuates_the_alpha_channel() {
+    let mask = Image::gray(32, 32, |x, y| if x == 16 && y == 16 { 0.5 } else { 0.0 });
+    let source =
+        Image::generate(32, 32, Kind::Color, |x, y| std::array::from_fn(|c| ((13 * x + 7 * y + 5 * x * y + 19 * c as u32) % 127) as f32 / 64.0 - 0.375));
+    let output = cook(mask.clone(), Some(source.clone()), true, true, 31.0);
+    assert_eq!(output.get(17, 16, false).map(f32::to_bits), [0x3f50_0000, 0x3f8e_0000, 0x3fb4_0000, 0xbe55_a8ec]);
+    assert_eq!(output.get(0, 0, false), [-0.375, -0.078125, 0.21875, 0.0]);
+    let copy = cook(mask, Some(source.clone()), true, false, 31.0);
+    assert_eq!(copy.get(17, 16, false), source.get(16, 16, false));
+    assert_eq!(copy.get(0, 0, false), source.get(0, 0, false));
+}
+
+#[test]
+fn alternative_distance_metrics_use_the_quantized_site_center() {
+    let mask = Image::gray(64, 128, |x, y| if (x, y) == (1, 2) { 1.0 } else { 0.0 });
+    for (metric, bits) in [(1, 0x3f29_5041u32), (2, 0x3f54_a816)] {
+        let image = cook_metric(mask.clone(), None, false, true, 47.25, metric);
+        assert_eq!(image.get_gray(3, 4, false).to_bits(), bits);
+    }
+}
+
+#[test]
+fn zero_distance_and_a_positive_subpixel_distance_have_distinct_site_values() {
+    let mask = Image::gray(32, 32, |x, y| if (x, y) == (1, 2) { 1.0 } else { 0.0 });
+    for (strength, expected) in [(0.0, 0.0), (0.125, 1.0), (f32::MIN_POSITIVE, 1.0)] {
+        let image = cook(mask.clone(), None, true, true, strength);
+        assert_eq!(image.get_gray(1, 2, false), expected);
+        assert_eq!(image.get_gray(2, 2, false), 0.0);
     }
 }
 
@@ -66,7 +89,8 @@ fn distance_handles_empty_full_masks_and_no_source() {
         let full = Image::filled(7, 5, Kind::Gray, [1.0; 4]);
         let source = Image::generate(7, 5, Kind::Color, |x, y| [x as f32 / 7.0, y as f32 / 5.0, 0.4, 0.7]);
 
-        assert!(cook(empty.clone(), Some(source.clone()), tile, false, 256.0).data().iter().all(|&v| v == 0.0));
+        let background = cook(empty.clone(), Some(source.clone()), tile, false, 256.0);
+        assert_eq!(background.get(3, 2, false), if tile { source.get(3, 2, false) } else { source.get(0, 0, false) });
         assert_eq!(cook(full, Some(source), tile, true, 256.0).get(3, 2, false), [3.0 / 7.0, 2.0 / 5.0, 0.4, 0.7]);
         assert!(cook(empty, None, tile, true, 256.0).data().iter().all(|&v| v == 0.0));
 

@@ -365,6 +365,23 @@ fn native_function_fixture_retains_operation_types_and_ports() {
 }
 
 #[test]
+fn distance_metric_survives_a_package_round_trip() {
+    let mut package = Package::new("Distances");
+    let mut graph = Graph::new("Distances");
+    for metric in [1, 2] {
+        let node = graph.add_node("distance", [0.0; 2]);
+        graph.node_mut(node).unwrap().params.insert("metric".into(), Value::Enum(metric));
+    }
+    package.graphs.push(graph);
+    let bytes = write_sbs(&package).unwrap();
+    let document = roxmltree::Document::parse(std::str::from_utf8(&bytes).unwrap()).unwrap();
+    assert_eq!(document.descendants().filter(|n| n.has_tag_name("name") && n.attribute("v") == Some("distancemode")).count(), 2);
+    let read = read_sbs(&bytes, "distances.sbs", &no_linked_files).unwrap();
+    let metrics: Vec<_> = read.pkg.graphs[0].nodes.iter().filter_map(|n| n.params.get("metric").and_then(Value::as_i32)).collect();
+    assert_eq!(metrics, [1, 2]);
+}
+
+#[test]
 fn image_output_types_follow_color_mode_and_blended_inputs() {
     let mut package = Package::new("Channels");
     let mut graph = Graph::new("Channels");

@@ -35,7 +35,7 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **299 Parity**, **42 In progress** and **205 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **299 Parity**, **44 In progress** and **203 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
 
 [Grayscale sampler measurements](parity-fixes.md#grayscale-sampling-of-color-inputs) · [Value sampling across 240 typed comparisons](parity-fixes.md#value-processor-texture-filtering)
 
@@ -293,8 +293,8 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [noise_bnw_spots_3_v2.sbs/bnw_spots_3](../assets/sbs/noise_bnw_spots_3_v2.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [noise_cells_1.sbs/cells_1](../assets/sbs/noise_cells_1.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [noise_cells_1_v2.sbs/cells_1](../assets/sbs/noise_cells_1_v2.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [noise_cells_4.sbs/cells_4](../assets/sbs/noise_cells_4.sbs) | 1 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [noise_cells_4_v2.sbs/cells_4](../assets/sbs/noise_cells_4_v2.sbs) | 1 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [noise_cells_4.sbs/cells_4](../assets/sbs/noise_cells_4.sbs) | 1 | Yes | [In progress · 17 renders, 19,151/173,312 exact pixels](parity-fixes.md#connected-distance-sources-and-cellular-patterns) |
+| [noise_cells_4_v2.sbs/cells_4](../assets/sbs/noise_cells_4_v2.sbs) | 1 | No | [In progress · 17 renders, 15,949/173,312 exact pixels](parity-fixes.md#connected-distance-sources-and-cellular-patterns) |
 | [noise_clouds_1.sbs/clouds_1](../assets/sbs/noise_clouds_1.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [noise_clouds_1_v2.sbs/clouds_1](../assets/sbs/noise_clouds_1_v2.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [noise_clouds_2.sbs/clouds_2](../assets/sbs/noise_clouds_2.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |

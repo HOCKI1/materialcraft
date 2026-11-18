@@ -392,6 +392,34 @@ For each of the three shapes, repeat the linear sweep on each axis using these s
 | 64 | (.8125,1,.625) | .34375 | .375 | (0,0,.25) | 269 |
 | 32 | (1,.3125,.75) | .75 | .21875 | (.0625,−.125,.1875) | 312 |
 
+### Connected distance sources and cellular patterns
+
+A connected distance source supplies the nearest qualifying site's texel inside the radius and the current texel beyond it. With Combine enabled the gray channel or the alpha channel is attenuated. RGB remains the sampled site's color inside the radius and the current texel's color outside. The 120 gray and RGBA controls below previously matched 64,706/184,320 pixels. Maximum errors were 255 U8 levels, 65,535 U16 levels and 1.859375 in F16 and F32.
+
+| Original distance controls | Renders | Exact pixels / compared | Maximum error |
+|---|---:|---:|---:|
+| Matching gray and RGBA source formats | 120 | 184,320/184,320 | 0 |
+| Three metrics and four tiling settings | 168 | 630,766/630,784 | 0.096614778 |
+| Empty, isolated and full masks at small distances | 54 | 202,752/202,752 | 0 |
+| Sparse-site radius sweep and connected-source cutoffs | 120 | 950,270/950,272 | 0.765625 |
+
+Use both a grayscale source and a matching RGBA source. At pixel (x,y), use channel c=((13x+7y+5xy+19c) mod 127)/64−.375, with c=0 for luminance. Repeat the nine layouts and strengths from the [32² mask controls](#directional-distance-and-mask-propagation) with both axes tiled and Combine on and off. Also run 64×32 with both axes open and Combine on, and 32×64 with both tiled and Combine off. The two centered horizontal sites are at x=W/4 and 3W/4. Run each case in F32 at seed 431+29j from j=0, and repeat the single-center and sparse cases in U8, U16 and F16.
+
+For the metric row use 64×128 mask-only, 64×32 RGBA and 32² grayscale. Combine is on. Use both open and both tiled with Euclidean, Manhattan and Chebyshev distance, then wrap each axis alone with Euclidean distance. Use F32, seed 197+29j, and strengths 31, 0, 47.25, 159.75, 41.375, 367 and 16. The masks are empty, a site at (1,2) twice, full, sparse, and centered twice. Use (13x+23y+11xy) mod 109=0 for the standalone sparse mask and (13x+11y+7xy) mod 67=0 for the sources. Two grayscale Manhattan cutoff pixels differ only in the sign of zero. The other 16 differences occur on sparse wrapped fields. All 114,688 RGBA pixels in this matrix match. For the small-distance row use both open and both tiled, the same three sizes, Euclidean distance and strengths 0, .125 and 2 at seeds 541, 578 and 615 for each mask.
+
+For the last row, run the sparse standalone mask at radii 1.25, 2.875, 3.875, 4, 4.25, 5.5, 6.75, 7.875, 8, 8.125, 8.6875, 9.875, 10.34375, 11.5, 12.75, 14.125, 15, 15.875, 16, 16.125, 19.75 and 23.875 pixels at seeds 283+17j. Use 128² tiled Euclidean and 64×128 open fields for all three metrics. All 901,120 mask pixels match. The connected controls use Combine off on 64×32 RGBA and 32² gray, both open and both tiled. At seeds 653+17j use an empty mask at strength 31, a corner, empty and full mask at zero, a corner at 1, a sparse mask at 413 and .25, and a center at 4096. Two RGBA texels differ on the tiled rectangular sparse field at strength 413.
+
+The open-field results require a final unit propagation step. The measured tiled square cases retain their original winners without it. At zero distance the mask gradient is black. For a positive subpixel radius, qualifying sites are white. When the source is connected and an open field is empty, the result copies its first texel. The 32 directional-distance root renders retain all 342,528 exact pixels.
+
+| Cellular root | Renders | Exact pixels / compared | Maximum U8 / U16 / F16 / F32 error |
+|---|---:|---:|---|
+| Cells 4 | 17 | 19,151/173,312 | 231 / 65462 / 0.9066162109 / 1 |
+| Cells 4 v2 | 17 | 15,949/173,312 | 253 / 58223 / 0.8881835938 / 1 |
+
+For the additional cellular controls use the eight [banded-input cases](#panoramic-line-light-and-horizon-across-the-seam). Use defaults at 16². At 64², 128² and with rectangular input, respectively, set scale to 9, 17 and 6, disorder to .21875, .75 and .4375, source selection to 1, 2 and 1 and the additional random seed to 17, 255 and 41. Disable non-square expansion only for the rectangular input. The second version also sets disorder speed to .75, 1.625 and .3125. The totals include the original defaults, changed parameters, four formats and independent 32² fields.
+
+Read the input bridge and each reachable filter's first output. At 64² in U16 the first version's two grayscale FX-Maps each match 3,935/4,096 before Distance. Their maxima are 63,743 and 65,535 levels. At 128² the maps match 15,914 and 15,823 of 16,384, both with maximum 65,535 levels. The second version's RGBA16 FX-Map is the first difference at both sizes, with 3,941/4,096 and 15,811/16,384 exact and maximum 65,535 levels. The input bridges match. Both cellular roots remain in progress.
+
 ### Directional distance and mask propagation
 
 Directional distance matches **342,528/342,528 pixels** in 32 renders across the value and UV outputs. The maximum error is zero in all four storage formats. The previous batch matched 342,473 pixels. Its first differing buffer was the distance primitive receiving a mask with its source disconnected.
