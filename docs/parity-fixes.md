@@ -19,7 +19,7 @@ The first pass classifies all 546 roots: 166 Parity and 380 Too hard. These meas
 
 - **2026-11-13 - Omitted function sampler settings:** Corrected Sample Color/Gray defaults to image zero with nearest filtering. Explicit bilinear settings are retained. Both original omitted-setting probes match all 32,768 float pixels. This removes the shifted edges of the 3D volume mask: default outputs at 128x128 and 256x256 and the changed-scale 128x128 case now match every sixteen-bit pixel.
 
-- **2026-11-13 - Finite results after undefined pixel intermediates:** Pixel Processor arithmetic and vector operations now retain IEEE intermediate values so a later min/max can clamp division by zero to a finite result. Non-finite final pixels still return an actionable error. Parameter and pattern functions are checked at their public evaluation boundary. Four original clamp probes (positive infinity, negative infinity, NaN, and finite division) match all 1,024 float pixels. Box-mask cases previously failed at the exact sampled center; they now cook successfully, with the residual conversion differences recorded below.
+- **2026-11-13 - Finite results after undefined pixel intermediates:** Pixel Processor arithmetic and vector operations now retain IEEE intermediate values so a later min/max can clamp division by zero to a finite result. Non-finite final pixels still return an actionable error. Parameter and pattern functions are checked at their public evaluation boundary. Four original clamp probes (positive infinity, negative infinity, NaN, and finite division) match all 1,024 float pixels. Cylinder-mask cases previously failed at the exact sampled center; they now cook successfully, with the residual conversion differences recorded below.
 
 - **2026-11-13 - Independent transform wrapping:** Transformation 2D now uses horizontal and vertical tiling flags independently, with matching per-axis image sampling. Previously a horizontal-only panorama lost horizontal wrapping because the two flags collapsed to one boolean. All 131,072 RGBA8 pixels across eight original transform probes match exactly, covering both one-axis modes, positive/negative offsets, matte edges, and varying alpha. The panorama helper improves, but its remaining minification/filtering differences are recorded below.
 
@@ -252,6 +252,43 @@ For the exposed scalar controls use .5, .625, .7, 1, 1.125, 1.25, 2, 4 and 1.375
 Literal-only pixel graphs at 16², seed 23, give 512/768 exact pixels for each logarithm on .5, .7 and 1. At .7 their maximum errors are 5.96046448e−8 for log2 and 2.98023224e−8 for ln. Literal powers of two match 768/768 at −.5, 1.375 and 2, maximum zero.
 
 The shared-lookup ridged root still matches 5,160/16,384 at changed roughness in F32, maximum 1.78813934e−7. Its one-octave .7 control still matches 1,847/4,096, maximum 2.38418579e−7. For positive normal x on the signed field, the reference's general power agrees with exp(y×ln(x)) on all 32,614 pixels. On .7 with exponent 1 it returns `3f333334`. Further work on general power and natural exponential is tracked with the [octave controls](#ridged-noise-octave-isolation).
+
+### Volume-mask shapes and axis sweeps
+
+The shape menu assigns 0 to cube, 1 to cylinder and 2 to sphere. Cube is the default. Some earlier case names called shape 1 a box and called the default a sphere. The corrected shape names above and below use the actual control value.
+
+| Control | Renders | Exact pixels / compared | Maximum float error |
+|---|---:|---:|---:|
+| Cylinder along X | 9 | 57,111/58,368 | 9.53674316e-07 |
+| Cylinder along Y | 9 | 57,165/58,368 | 9.53674316e-07 |
+| Cylinder along Z | 9 | 58,368/58,368 | 0 |
+| Six settings on X, Y and Z, cube | 18 | 129,024/129,024 | 0 |
+| Six settings on X, Y and Z, cylinder | 18 | 128,359/129,024 | 7.15255737e-07 |
+| Six settings on X, Y and Z, sphere | 18 | 111,882/129,024 | 9.53674316e-07 |
+
+Including the earlier 35 cases, **1,008,141/1,029,632 pixels** match in 116 renders. U8, U16 and F16 match every measured pixel. F32 matches 619,021/640,512 with maximum error 3.81469727e−6. The new cylinder cases with equal X/Y radii match in both radial directions. Unequal radial extents expose a float discrepancy with rotation set to zero. The axial Z sweep matches all 58,368 pixels. All 18 cube cases match, including tilted nonuniform cubes.
+
+Use a linear RGBA32F position input. For side N and integer pixel coordinates (x,y), set one component to (x+Ny+.5)/N². Set the other position components to .5 and alpha to one. Choose world-space positioning and change the center and extent on the swept axis only. The other center components are .5 and the other extents are one. Run the following cylinder cases on each axis with zero rotation.
+
+| N | Center | Extent | Scale | Feather | Seed | Outputs |
+|---:|---:|---:|---:|---:|---:|---|
+| 128 | .5 | 1 | .5 | .5 | 41 | F32 |
+| 128 | .5 | .625 | .375 | .15625 | 71 | F32 |
+| 64 | .3125 | .8125 | .34375 | .375 | 131 | U8, U16, F16, F32 |
+| 32 | .6875 | .3125 | .75 | .21875 | 227 | F32 |
+| 64 | .5 | .75 | .5 | .25 | 431 | F32, replace the swept component by .6875+(x+64y−2048)×2⁻²¹ |
+| 64 | .3125 | .8125 | .34375 | .375 | 577 | F32 |
+
+For each of the three shapes, repeat the linear sweep on each axis using these six F32 settings. Center the swept component at .5 for N=128, .3125 for N=64 and .6875 for N=32. The rotations are in turns.
+
+| N | Size | Scale | Feather | Rotation | Seed |
+|---:|---|---:|---:|---|---:|
+| 128 | (1,1,1) | .375 | .15625 | (0,0,0) | 97 |
+| 128 | (.625,.625,1) | .375 | .15625 | (0,0,0) | 140 |
+| 64 | (.8125,1,.625) | .34375 | .375 | (0,0,0) | 183 |
+| 32 | (1,.3125,.75) | .75 | .21875 | (0,0,0) | 226 |
+| 64 | (.8125,1,.625) | .34375 | .375 | (0,0,.25) | 269 |
+| 32 | (1,.3125,.75) | .75 | .21875 | (.0625,−.125,.1875) | 312 |
 
 ### Normal maps, panoramas and primitive shapes
 
@@ -675,7 +712,7 @@ For the final eleven F32 renders, keep the axis field and index 6. At 16², set 
 
 At the subnormal boundary, runtime addition, subtraction, multiplication and division use signed zero for subnormal operands and results. On seven 32² F32 fields, those operations, a fused product and sum, a sum of two products and a two-channel dot product match 7,168/7,168 raw pixels, including signed zeros and nonfinite bit patterns. Maximum finite error is zero. Four further 16×16-output probes over sixteen scalar pairs match 16,384/16,384 pixel-processor outputs. For minimal discriminators use 2⁻¹²⁶ × .5, −2⁻¹²⁷ × 8, the smallest subnormal divided by itself and the product of 2⁻¹²⁶ and .5 added to 2⁻¹²⁶ in one fused operation. A plain stamp reading the twelve near-zero inputs still matches 1,792/3,072 F32 pixels, maximum 1.17549421e−38. Nonfinite typed values could not be compared through the JSON transport.
 
-**Remaining roots.** The 3D volume mask matches 466,232/467,456 pixels in 35 renders. All integer and half outputs match, and 113,976/115,200 F32 pixels match with maximum error 3.81469727e−6. In eleven of these controls use an F32 position field ((x+.5)/N,(y+.5)/N,((11x+23y+3xy) mod 127)/126,1), scale .375, size (.75,1,.625) and world position (.375,.5625,.6875). The 64² box at rotation (.125,−.1875,.0625), feather .15625 and seed 197 matches every U8, U16 and F16 pixel and 4,061/4,096 F32 pixels. The F32 repeat at seed 613 has the same count and maximum of 1.90734863e−6.
+**Remaining roots.** The 3D volume mask matches 466,232/467,456 pixels in 35 renders. All integer and half outputs match, and 113,976/115,200 F32 pixels match with maximum error 3.81469727e−6. In eleven of these controls use an F32 position field ((x+.5)/N,(y+.5)/N,((11x+23y+3xy) mod 127)/126,1), scale .375, size (.75,1,.625) and world position (.375,.5625,.6875). The 64² cylinder at rotation (.125,−.1875,.0625), feather .15625 and seed 197 matches every U8, U16 and F16 pixel and 4,061/4,096 F32 pixels. The F32 repeat at seed 613 has the same count and maximum of 1.90734863e−6.
 
 Blackbody matches 34,048/42,496 pixels in 19 renders, including all 4,352 pixels in each of U8, U16 and F16. F32 matches 20,992/29,440 with maximum error 1.19209290e−7. Use temperatures 1733, 2718.5, 5555, 6500, 7111.25, 9900.5 and 18000 at sizes 16, 32, 16, 64, 32, 16 and 16, with seeds 29, 197, 113, 137, 371, 89 and 83 respectively. Run all four formats at 5555 and F32 at every other temperature.
 
@@ -1808,7 +1845,7 @@ For an independent mip-level check, generate a 128² RGBA grid using the row-maj
 
 ### 3D volume mask and Worley noise
 
-Use the first-pass linear position texture. For side `N`, store RGBA8 `(floor(255*x/(N-1)),floor(255*y/(N-1)),128,255)`. The mask's rotated case uses box shape 1, rotation `(.1,.2,.3)`, size `(.8,.6,1)` and feather width .1. The Worley border case sets style 1, border width .2 and roundness .1. For its 64² output-format sweep, round the two position channels to nearest instead of flooring. Each cell gives exact pixels / total (maximum error).
+Use the first-pass linear position texture. For side `N`, store RGBA8 `(floor(255*x/(N-1)),floor(255*y/(N-1)),128,255)`. The mask's rotated case uses cylinder shape 1, rotation `(.1,.2,.3)`, size `(.8,.6,1)` and feather width .1. The Worley border case sets style 1, border width .2 and roundness .1. For its 64² output-format sweep, round the two position channels to nearest instead of flooring. Each cell gives exact pixels / total (maximum error).
 
 | Case | Volume mask | Worley noise |
 |---|---:|---:|
@@ -1822,7 +1859,7 @@ Use the first-pass linear position texture. For side `N`, store RGBA8 `(floor(25
 | Same sizes and seed, LUM16F | 16,349/16,384 (.0078125) | 4/4,096 (.53833008) |
 | Same sizes and seed, LUM32F | 664/16,384 (.000015258789) | 0/4,096 (.53847277) |
 
-**Mask.** The 128² box with default rotation, size and feathering gives 16,379/16,384 exact LUM16 pixels, with maximum error 1. The RGBA16 position bridge matches all 16,384 pixels. In LUM32F, changing only box rotation gives 564/16,384 (1.907349e-6), only size gives 14,088/16,384 (9.536743e-7), and only feather width gives 13,716/16,384 (3.814697e-6). A sphere with `position_input=1` and `position_worldspace=(.375,.375,.5)` matches 16,384/16,384 float pixels exactly.
+**Mask.** The 128² cylinder with default rotation, size and feathering gives 16,379/16,384 exact LUM16 pixels, with maximum error 1. The RGBA16 position bridge matches all 16,384 pixels. In LUM32F, changing only cylinder rotation gives 564/16,384 (1.907349e-6), only size gives 14,088/16,384 (9.536743e-7), and only feather width gives 13,716/16,384 (3.814697e-6). A cube with `position_input=1` and `position_worldspace=(.375,.375,.5)` matches 16,384/16,384 float pixels exactly.
 
 **Worley.** With a constant input position of `(0,0,0,255)`, no LUM32F pixel matches in the 32² default case at seed 0 (maximum .02120566) or seed 42 (.07068205). The graph's internal random table uses four draws. A standalone Pixel Processor writing four successive `rand(1)` values to RGBA16 reproduces a discrepancy before any cell-distance calculation. It gives 0/1,024 exact pixels at 32², seed 0 (maximum 65,122), 0/16,384 at 128², seed 0 (65,136), and 0/16,384 at 128², seed 42 (65,348). At seed 0 the first reference pixel changes with resolution, from `(47238,35719,5497,27913)` to `(37730,56747,64327,4184)`. MaterialCraft returns `(42015,40251,56435,61318)` at both sizes. The random sequence and any residual differences in the distance calculation remain open.
 
@@ -1854,7 +1891,7 @@ The following entries record the first pass. The dated comparisons above give th
 
 - **`3d_texture_render.sbs/position_debug` - Too hard for this pass:** Initial zero/positive/midpoint fields and checker fields produce constant images and are insufficient for a parity mark. A generated signed sphere-distance atlas and original position map produce nonconstant 256x256 RGBA32F outputs. Center and changed debug-selection cases each match 65,519/65,536 pixels; 17 pixels per case differ by up to 1.0. Both internal 4096x4096 processors cook at full native size.
 
-- **`3d_volume_mask.sbs/3d_volume_mask` - Too hard for this pass:** Corrected omitted nearest sampling and finite clamping after division by zero. Default 128x128, default 256x256, and changed-scale 128x128 outputs are exact (98,304 sixteen-bit pixels). Box mode has four one-level differences; rotated, resized, narrow-feather box mode has 58 one-level differences. All five cases cook successfully.
+- **`3d_volume_mask.sbs/3d_volume_mask` - Too hard for this pass:** Corrected omitted nearest sampling and finite clamping after division by zero. Default 128x128, default 256x256, and changed-scale 128x128 outputs are exact (98,304 sixteen-bit pixels). Cylinder mode has four one-level differences; rotated, resized, narrow-feather cylinder mode has 58 one-level differences. All five cases cook successfully.
 
 - **`3d_worley_noise.sbs/3D_worley_noise` - Too hard for this pass:** All cooks succeed, but the noise field differs substantially. Defaults at 128x128/256x256, seed 42, scale 6, and border style have only 1, 3, 1, 2, and 1 matching sixteen-bit pixels respectively; maximum difference is 44,494 levels. Changing omitted sampler defaults does not resolve this.
 
