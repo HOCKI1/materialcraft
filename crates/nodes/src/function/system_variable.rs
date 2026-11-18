@@ -68,8 +68,8 @@ impl SystemVariable {
 
     pub fn available_in(self, scope: FunctionScope) -> bool {
         match self {
-            Self::Position => matches!(scope, FunctionScope::PixelProcessor | FunctionScope::FxMap),
-            Self::Depth | Self::DepthPow2 | Self::Number => scope == FunctionScope::FxMap,
+            Self::Position => scope != FunctionScope::Node,
+            Self::Depth | Self::DepthPow2 | Self::Number => matches!(scope, FunctionScope::ValueProcessor | FunctionScope::FxMap),
             _ => true,
         }
     }
@@ -81,6 +81,7 @@ impl SystemVariable {
 
         let value = match self {
             Self::Position => Value::Float2(context.position),
+            Self::Depth | Self::DepthPow2 | Self::Number if context.scope == FunctionScope::ValueProcessor => Value::Float(0.0),
             Self::Size => Value::Float2(context.size),
             Self::SizeLog2 => Value::Float2(context.size.map(f32::log2)),
             _ => context.variables.get(self.name()).cloned().unwrap_or_else(|| match self {

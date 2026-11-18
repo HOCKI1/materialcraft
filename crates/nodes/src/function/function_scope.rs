@@ -3,6 +3,7 @@
 pub enum FunctionScope {
     #[default]
     Node,
+    ValueProcessor,
     PixelProcessor,
     FxMap,
 }

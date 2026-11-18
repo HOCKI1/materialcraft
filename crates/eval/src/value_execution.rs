@@ -10,15 +10,22 @@ pub(crate) fn evaluate_value(
     images: &[Option<Image>],
     tile: bool,
 ) -> Result<Value, String> {
-    use materialcraft_nodes::function::{EvaluationContext, EvaluationState, compile};
+    use materialcraft_nodes::function::{EvaluationContext, EvaluationState, FunctionScope, compile};
 
     let Some(Value::Function(graph)) = parameters.get("function") else {
         return Err("missing value function".into());
     };
 
     let program = compile(graph, seed)?;
-    let context =
-        EvaluationContext { image_formats: &[], scope: Default::default(), position: [0.5; 2], size: size.map(|side| side as f32), images, tile, variables };
+    let context = EvaluationContext {
+        image_formats: &[],
+        scope: FunctionScope::ValueProcessor,
+        position: [0.0; 2],
+        size: size.map(|side| side as f32),
+        images,
+        tile,
+        variables,
+    };
 
     program.evaluate(&context, &mut EvaluationState::default())
 }

@@ -133,6 +133,28 @@ In the [atlas crop wrapper](#atlas-crop-with-wired-value-inputs), default rotati
 
 For the [spline distance controls](#height-distance-texture-mapping-skew-and-weave), both wired counts now match 1,024/1,024 at 32² seed 42 and 4,096/4,096 at 64² seed 137 in LUM32F. At 16² seed zero, count 1 matches 256/256 and count 2 matches 252/256, maximum 5.96046448e-8.
 
+### Value Processor coordinates
+
+Both maximum-coordinate roots return the same Float2 as the reference in **12/12 typed comparisons each**. All maximum component errors are zero. Before the fix, reading the position variable stopped both cooks. A Value Processor starts at (0,0) and passes this position to nested function calls.
+
+| Root | Defaults, changed input and seed | Four requested output formats | Four isolated peaks |
+|---|---:|---:|---:|
+| `pbr_render.sbs/get_max_coords/get_max_coord` | 4/4 | 4/4 | 4/4 |
+| `pbr_render2.sbs/get_max_coords/get_max_coord` | 4/4 | 4/4 | 4/4 |
+
+Use the byte field (17x+31y) mod 256 at 128² and 256² with seed zero, and at 128² with seed 42. The changed field is 32+((17x+31y) mod 160) at 128² with seed zero. At 64² seed 42, requesting U8, U16, F16 and F32 at the upstream processor yields the Float2 (.1015625,.109375) in all four cases. These roots expose no ordinary parameters. For the original single-peak field use (11x+13y+3xy) mod 79, and set the specified pixel to 255.
+
+| Size | Seed | Peak pixel | Typed result in both roots |
+|---:|---:|---|---|
+| 16² | 7 | (1,2) | (.09375,.15625) |
+| 32² | 91 | (21,7) | (.6640625,.234375) |
+| 64² | 113 | (57,48) | (.890625,.75) |
+| 128² | 251 | (122,17) | (.953125,.125) |
+
+Separate original value graphs read `$pos`, `$size`, `$sizelog2`, `$depth`, `$depthpow2` and `$number`. At 16² and 128² with seed zero and 64² with seed 42, the position and three depth or iteration values are zero. The size values follow the canvas and its base-two logarithm. Is Defined reports true for the position, size and three depth or iteration names and false for an unbound probe name. Unbound numeric and Boolean reads return a typed zero. These scalar and vector controls match **50/50 typed values** with maximum error zero.
+
+A Value Processor also averages a sampled color’s three channels in the order measured under [grayscale sampling](#grayscale-sampling-of-color-inputs). Using the same four RGBA fields, sample at (39.5+.1875,77.5+.5625)/128. Repeat with a uniform (.25,.5,.75,1). Compare the single Float or Float4 as IEEE float32 components in nearest and bilinear modes. 23/32 values match across the two input fields, with maximum component error 5.84125519e-06. The remaining differences occur in RGBA8 normalization and bilinear filtering.
+
 ### Grayscale sampling of color inputs
 
 Feed an original 128² image to a Pixel Processor and read input zero with the grayscale sampler at pixel-center UV plus (.1875,.5625) texels. Use seed 42 and a LUM32F output. With nearest and bilinear filtering, RGBA8, RGBA16, RGBA16F and RGBA32F each match 16,384/16,384 pixels per mode. On the signed F32 input, reading only red previously matched zero pixels in both modes. Maximum errors were 4.95148039 and 3.83905315. Adding green and blue first, then red, and multiplying by the float32 reciprocal of three after sampling matches all eight color cases exactly.

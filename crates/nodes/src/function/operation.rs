@@ -35,11 +35,13 @@ pub(crate) fn evaluate(
         let missing = || format!("undefined variable `{name}` in this context");
         let value = match context.variable(name, variables)? {
             Some(value) => value,
-            // User counters start at typed zero; unavailable system variables still error
-            None if !name.starts_with('$') => materialcraft_core::ValueType::from_code(instruction.type_code)
-                .filter(|kind| *kind != materialcraft_core::ValueType::String)
-                .map(materialcraft_core::ValueType::default_value)
-                .ok_or_else(missing)?,
+            // Unset numeric variables start at typed zero in a value processor.
+            None if !name.starts_with('$') || context.scope == super::FunctionScope::ValueProcessor => {
+                materialcraft_core::ValueType::from_code(instruction.type_code)
+                    .filter(|kind| *kind != materialcraft_core::ValueType::String)
+                    .map(materialcraft_core::ValueType::default_value)
+                    .ok_or_else(missing)?
+            }
             None => return Err(missing()),
         };
 
@@ -138,7 +140,9 @@ pub(crate) fn evaluate(
 
             if op == "samplecol" {
                 Value::Float4(pixel)
-            } else if context.scope == super::FunctionScope::PixelProcessor && image.is_some_and(|texture| texture.kind() == craft_texture::Kind::Color) {
+            } else if matches!(context.scope, super::FunctionScope::PixelProcessor | super::FunctionScope::ValueProcessor)
+                && image.is_some_and(|texture| texture.kind() == craft_texture::Kind::Color)
+            {
                 Value::Float(((pixel[1] + pixel[2]) + pixel[0]) * (1.0 / 3.0))
             } else {
                 Value::Float(pixel[0])

@@ -98,7 +98,7 @@ pub(crate) fn evaluate(instruction: &super::instruction::Instruction, args: &[Va
             "tan" => left.tan(),
             "lerp" if pixel_math => (right - left).mul_add(factor, left),
             "lerp" => left + (right - left) * factor,
-            "rand" if scope == super::FunctionScope::Node => crate::random::node_function(random) * left,
+            "rand" if matches!(scope, super::FunctionScope::Node | super::FunctionScope::ValueProcessor) => crate::random::node_function(random) * left,
             "rand" => crate::random::image_function(random) * left,
             _ => return Err(format!("unknown arithmetic operation `{op}`")),
         };
