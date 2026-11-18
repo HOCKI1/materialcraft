@@ -41,8 +41,8 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 
 | SBS package / graph path | Input pins | Hidden in library | Parity status |
 |---|---:|---|---|
-| [3d_gradient.sbs/3d_linear_gradient](../assets/sbs/3d_gradient.sbs) | 1 | No | [In progress · default UV and world exact, contrast differs](parity-fixes.md#3d-linear-gradient) |
-| [3d_perlin_noise.sbs/3D_perlin_noise](../assets/sbs/3d_perlin_noise.sbs) | 1 | No | [In progress · lookup and arithmetic differences measured](parity-fixes.md#basic-and-ridged-3d-perlin) |
+| [3d_gradient.sbs/3d_linear_gradient](../assets/sbs/3d_gradient.sbs) | 1 | No | [In progress · default and oblique gradients exact, contrast .6 differs](parity-fixes.md#pixel-processor-products-and-sums) |
+| [3d_perlin_noise.sbs/3D_perlin_noise](../assets/sbs/3d_perlin_noise.sbs) | 1 | No | [In progress · shared lookup exact across seven cases, stock lookup differs](parity-fixes.md#pixel-processor-products-and-sums) |
 | [3d_perlin_noise.sbs/3D_perlin_noise_fractal](../assets/sbs/3d_perlin_noise.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [3d_perlin_noise.sbs/3D_ridged_noise_fractal](../assets/sbs/3d_perlin_noise.sbs) | 1 | No | [In progress · shared lookup exact in LUM8, higher precision differs](parity-fixes.md#basic-and-ridged-3d-perlin) |
 | [3d_planar_projection.sbs/3d_planar_projection](../assets/sbs/3d_planar_projection.sbs) | 3 | No | [In progress · default exact, rotated samples differ](parity-fixes.md#grayscale-and-color-3d-planar-projection) |

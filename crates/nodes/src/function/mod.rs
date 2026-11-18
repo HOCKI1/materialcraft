@@ -24,6 +24,7 @@ mod node_types;
 mod operation;
 mod output;
 mod processor;
+mod product_sum;
 mod program;
 mod resolve_instances;
 mod system_variable;

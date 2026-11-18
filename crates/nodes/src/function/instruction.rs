@@ -9,6 +9,7 @@ pub(crate) struct Instruction {
     pub type_code: u32,
     /// Pure expression with only literal inputs. Its arithmetic rounds before pixel evaluation.
     pub literal: bool,
+    pub(super) pixel_product_sum: Option<super::product_sum::ProductSum>,
     /// For a loop: the instructions of its condition and body, evaluated again on every iteration
     pub repeated: Vec<usize>,
     pub call: Option<super::function_call::FunctionCall>,

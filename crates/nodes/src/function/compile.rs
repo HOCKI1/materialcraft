@@ -108,6 +108,7 @@ fn compile_nested(graph: &FunctionGraph, seed: u32, depth: usize, remaining: &mu
                             value: Some(value),
                             type_code,
                             literal: true,
+                            pixel_product_sum: None,
                             repeated: Vec::new(),
                             call: None,
                         });
@@ -153,7 +154,7 @@ fn compile_nested(graph: &FunctionGraph, seed: u32, depth: usize, remaining: &mu
                 && !matches!(definition.id, "rand" | "samplelum" | "samplecol" | "set" | "while")
                 && inputs.iter().all(|index| instructions.get(*index).is_some_and(|input| input.literal)));
         indices.insert(id, instructions.len());
-        instructions.push(Instruction { id, definition, inputs, value, type_code, literal, repeated: Vec::new(), call });
+        instructions.push(Instruction { id, definition, inputs, value, type_code, literal, pixel_product_sum: None, repeated: Vec::new(), call });
     }
 
     // Instructions come after their inputs, so walking back from a loop reaches its whole condition and body
@@ -166,6 +167,7 @@ fn compile_nested(graph: &FunctionGraph, seed: u32, depth: usize, remaining: &mu
         }
     }
 
+    super::product_sum::identify(&mut instructions);
     let output = indices.get(&output).copied().ok_or("missing result instruction")?;
 
     Ok(Program { instructions, output, seed })

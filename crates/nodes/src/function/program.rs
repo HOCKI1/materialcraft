@@ -106,7 +106,11 @@ impl Program {
                         }
                         _ => {
                             state.steps.push(Apply { instruction: index, base: state.values.len() });
-                            state.steps.extend(instruction.inputs.iter().rev().map(|index| Enter(*index)));
+                            let inputs = match &instruction.pixel_product_sum {
+                                Some(product) if context.scope == super::FunctionScope::PixelProcessor => product.inputs.as_slice(),
+                                _ => instruction.inputs.as_slice(),
+                            };
+                            state.steps.extend(inputs.iter().rev().map(|index| Enter(*index)));
                         }
                     }
                 }
@@ -132,6 +136,10 @@ impl Program {
                         }
 
                         result
+                    } else if let Some(product) = &instruction.pixel_product_sum
+                        && context.scope == super::FunctionScope::PixelProcessor
+                    {
+                        product.evaluate(arguments, instruction.definition.id == "sub")
                     } else {
                         operation::evaluate(instruction, arguments, &mut state.variables, &mut state.random, context)
                     }

@@ -57,6 +57,25 @@ The first pass classifies all 546 roots: 166 Parity and 380 Too hard. These meas
 
 - **2026-11-13 - Unconnected output images:** Unconnected output bridges now produce transparent RGBA instead of grayscale. The importer separately retains each output's declared image type so saving an unconnected output preserves the graph interface. Both material templates match all 1,179,648 RGBA8 pixels across six recorded cases. All 2,560 direct grayscale/color declaration probe pixels also match, and both declared image types survive save/reload.
 
+## 2026-11-18 root comparisons
+
+### Pixel Processor products and sums
+
+Use the signed RGBA32F field and position ramp specified under [3D linear gradient](#3d-linear-gradient). Each arithmetic probe has a nearest-sampled RGBA input, seed zero and a 128×128 float output. Compare the raw output in the 16.0.7 Direct3D 11 reference app with the MaterialCraft CPU cook. A pixel counts when all channels match. Integer errors in this log use stored levels. Floating errors use absolute differences.
+
+| Pixel expression | Exact pixels / total | Maximum error |
+|---|---:|---:|
+| `R*G+B`, `B+R*G`, `R*G-B`, `B-R*G` | 16,384/16,384 each | 0 |
+| `R*G+B*A`, `R*G-B*A` | 16,384/16,384 each | 0 |
+| Runtime product plus .375, runtime channel times .3 minus B, literal product plus R | 16,384/16,384 each | 0 |
+| Shared product read directly and in a sum, shared product used only in sums, vector times scalar plus vector | 16,384/16,384 each | 0 |
+
+Rounding each multiplication separately matched 11,640 additions, 11,721 left subtractions, 12,098 two-product additions and 12,052 two-product subtractions out of 16,384 each. The largest difference was 1.907349e-6. The CPU evaluator now fuses the dynamic product into its immediate sum in pixel scope. A literal product or a product also read as a standalone value retains its rounded value. When both operands are products, the left product fuses.
+
+Repeat the November 17 **3D linear gradient** cases with that change. At 256² and 512², the default UV, default world and oblique world gradients each match 65,536/65,536 and 262,144/262,144 LUM32F pixels, maximum error zero. Seed 42 at 128² matches all 16,384 default UV pixels and all 16,384 oblique pixels in each of LUM8, LUM16 and LUM16F. Contrast .6 still differs. Exact counts are 24,206/65,536 and 96,824/262,144 with a maximum error of 2.384186e-7. For the signed input above, a direct `1/G` probe matches 14,182/16,384 float pixels. All finite differences in that probe are one unit in the last place.
+
+With the original shared lookup described under [basic and ridged 3D Perlin](#basic-and-ridged-3d-perlin), **basic 3D Perlin** now matches 65,536/65,536 pixels at 256² and 16,384/16,384 in each of the other six cases, including changed LUM16, LUM16F and LUM32F. All maximum errors are zero. With the applications' respective stock lookups, only 173/16,384 and 663/65,536 LUM8 pixels match. Both maxima are 203 levels.
+
 ## 2026-11-17 root comparisons
 
 The clean-room comparisons below use the 16.0.7 reference app with the Direct3D 11 backend and a release MaterialCraft CPU cook. They compare the raw output bridge at its stored precision. A pixel counts only when every channel agrees. Integer errors are in stored levels. Floating errors are absolute. Each case starts from the graph defaults. Where a row selects another storage format, set the final processor's format to absolute in both apps before cooking.

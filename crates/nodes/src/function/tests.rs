@@ -38,6 +38,37 @@ fn pixel_operation(op: &str, operands: &[Value], literal: bool) -> Value {
 }
 
 #[test]
+fn pixel_product_sums_round_once_unless_the_product_is_also_read() {
+    let values = [0x3fe34b19, 0x400d3c6f, 0xc0732711, 0x3f9665e4].map(|bits| Value::Float(f32::from_bits(bits)));
+    let variables: BTreeMap<_, _> = ["a", "b", "c", "d"].into_iter().map(str::to_owned).zip(values).collect();
+    let context =
+        EvaluationContext { scope: super::FunctionScope::PixelProcessor, position: [0.5; 2], size: [1.0; 2], images: &[], tile: true, variables: &variables };
+    let mut graph = FunctionGraph::default();
+    let [a, b, c, d] = ["a", "b", "c", "d"].map(|name| graph.add("get_float1", &[], Some(Value::Text(name.into()))));
+    let product = graph.add("mul", &[a, b], None);
+    let other = graph.add("mul", &[c, d], None);
+    let pixel = |graph: &FunctionGraph| compile(graph, 0).unwrap().evaluate_pixel(&context, &mut EvaluationState::default()).unwrap();
+
+    for (op, inputs, bits) in [
+        ("add", [product, c], 0x3df49f1b),
+        ("add", [c, product], 0x3df49f1b),
+        ("sub", [product, c], 0x40f6f98d),
+        ("sub", [c, product], 0xc0f6f98d),
+        ("add", [product, other], 0xbf0b9d31),
+    ] {
+        graph.output = Some(graph.add(op, &inputs, None));
+        assert_eq!(pixel(&graph), Value::Float(f32::from_bits(bits)), "{op} {inputs:?}");
+    }
+
+    let sum = graph.add("add", &[product, c], None);
+    graph.output = Some(graph.add("vector2", &[product, sum], None));
+    assert_eq!(pixel(&graph), Value::Float2([0x407acc0a, 0x3df49f20].map(f32::from_bits)));
+    let context = EvaluationContext { scope: super::FunctionScope::Node, ..context };
+    graph.output = Some(sum);
+    assert_eq!(compile(&graph, 0).unwrap().evaluate(&context, &mut EvaluationState::default()).unwrap(), Value::Float(f32::from_bits(0x3df49f20)));
+}
+
+#[test]
 fn pixel_dot_rounds_in_channel_order() {
     // One sampled texel distinguishes the accumulation orders in all three widths.
     let [x, y, z, w] = [0xc07089a0, 0x3fa2fba9, 0xbe30266f, 0xbcf10944].map(f32::from_bits);
