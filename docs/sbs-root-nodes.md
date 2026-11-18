@@ -35,7 +35,7 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **284 Parity**, **36 In progress** and **226 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **287 Parity**, **37 In progress** and **222 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
 
 [Grayscale sampler measurements](parity-fixes.md#grayscale-sampling-of-color-inputs) · [Value sampling across 240 typed comparisons](parity-fixes.md#value-processor-texture-filtering)
 
@@ -466,7 +466,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [pbr_render_ortho.sbs/get_max_coord](../assets/sbs/pbr_render_ortho.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [pbr_render_ortho.sbs/ibl_shadow_pass](../assets/sbs/pbr_render_ortho.sbs) | 3 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [pbr_render_ortho.sbs/mipmap_generator](../assets/sbs/pbr_render_ortho.sbs) | 1 | Yes | [Parity · 171,264 exact pixels in 18 renders](parity-fixes.md#centered-transform-resizing-and-untiled-edges) |
-| [pbr_render_ortho.sbs/rotate_environment](../assets/sbs/pbr_render_ortho.sbs) | 1 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [pbr_render_ortho.sbs/rotate_environment](../assets/sbs/pbr_render_ortho.sbs) | 1 | Yes | [Parity · 18 renders, all 171,264 RGBA pixels exact](parity-fixes.md#environment-rotation-and-wired-irradiance-samples) |
 | [pbr_render_ortho.sbs/sphere_displace](../assets/sbs/pbr_render_ortho.sbs) | 1 | Yes | [Too hard: cook timeout](parity-fixes.md#remaining-differences) |
 | [pbr_render_ortho.sbs/vector_shadow_pass](../assets/sbs/pbr_render_ortho.sbs) | 4 | Yes | [Parity · 28 cases, 211,456 exact pixels](parity-fixes.md#large-transform-offsets-and-additive-blends) |
 | [perlin_noise_zoom.sbs/perlin_noise_zoom](../assets/sbs/perlin_noise_zoom.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
@@ -503,9 +503,9 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [rt_bent_normal.sbs/pp_template/pp_template_64c](../assets/sbs/rt_bent_normal.sbs) | 3 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [rt_bent_normal_v2.sbs/mip_max_step](../assets/sbs/rt_bent_normal_v2.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [rt_caustics.sbs/rt_caustics_base](../assets/sbs/rt_caustics.sbs) | 3 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [rt_irradiance.sbs/compute_irradiance](../assets/sbs/rt_irradiance.sbs) | 5 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [rt_irradiance.sbs/compute_ray_direction](../assets/sbs/rt_irradiance.sbs) | 4 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [rt_irradiance.sbs/debug_hit_uv](../assets/sbs/rt_irradiance.sbs) | 3 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [rt_irradiance.sbs/compute_irradiance](../assets/sbs/rt_irradiance.sbs) | 5 | Yes | [Parity · 32 renders, all 217,088 RGBA pixels exact](parity-fixes.md#environment-rotation-and-wired-irradiance-samples) |
+| [rt_irradiance.sbs/compute_ray_direction](../assets/sbs/rt_irradiance.sbs) | 4 | Yes | [Parity · 32 renders, all 217,088 RGBA pixels exact](parity-fixes.md#environment-rotation-and-wired-irradiance-samples) |
+| [rt_irradiance.sbs/debug_hit_uv](../assets/sbs/rt_irradiance.sbs) | 3 | Yes | [In progress · 193,960/194,304 pixels in successful renders, five more hit a nonfinite stamp parameter](parity-fixes.md#environment-rotation-and-wired-irradiance-samples) |
 | [rt_irradiance.sbs/mip_max](../assets/sbs/rt_irradiance.sbs) | 1 | Yes | [Parity · 167,168 exact pixels in 17 cases](parity-fixes.md#pixel-processor-canvas-and-mip-maxima) |
 | [rt_irradiance.sbs/panoramic_lod](../assets/sbs/rt_irradiance.sbs) | 1 | Yes | [Parity · 18 cases, 186,624 exact pixels](parity-fixes.md#large-transform-offsets-and-additive-blends) |
 | [rt_irradiance.sbs/template/pp_template](../assets/sbs/rt_irradiance.sbs) | 3 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |

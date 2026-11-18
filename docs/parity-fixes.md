@@ -253,6 +253,21 @@ Literal-only pixel graphs at 16², seed 23, give 512/768 exact pixels for each l
 
 The shared-lookup ridged root still matches 5,160/16,384 at changed roughness in F32, maximum 1.78813934e−7. Its one-octave .7 control still matches 1,847/4,096, maximum 2.38418579e−7. For positive normal x on the signed field, the reference's general power agrees with exp(y×ln(x)) on all 32,614 pixels. On .7 with exponent 1 it returns `3f333334`. Further work on general power and natural exponential is tracked with the [octave controls](#ridged-noise-octave-isolation).
 
+### Environment rotation and wired irradiance samples
+
+| Root | Successful renders | Exact RGBA pixels / compared | Maximum U8 / U16 levels | Maximum F16 / F32 error |
+|---|---:|---:|---:|---:|
+| Rotate environment | 18 | 171,264/171,264 | 0 / 0 | 0 / 0 |
+| Compute irradiance | 32 | 217,088/217,088 | 0 / 0 | 0 / 0 |
+| Compute ray direction | 32 | 217,088/217,088 | 0 / 0 | 0 / 0 |
+| Debug hit UV | 27 | 193,960/194,304 | 239 / 57568 | 0.878417969 / 1.6449104 |
+
+Use the [procedural normal, position and modular fields](#normal-maps-panoramas-and-primitive-shapes), the same nine image sizes, seeds and destination formats, and the same A/B/C labels. For an input named hit_uv use (u,v,H,1). For environment rotation, set amount to .0625k, direction angle to −.1875, around-pole angles before and after to .125 and .3125, and exposure to .5, 1.25 and −.375 for A, B and C. Default and archived controls are included.
+
+The irradiance graphs expose the sample index and count as scalar value pins. For nine direct cases leave these pins disconnected. In three additional original parent graphs, connect Float Value Processors to i and nb_samples with values (0,1), (1,4) and (5,16). Wire the same procedural images through the parent. For (1,4) use the 16² default, A at 64² in U16, F16 and F32, and the 64² F32 repeat. For the other two pairs use the 16² default, A at 64² U8, B at 128², signed C at 32² and the 32×16 B input. These 15 parent renders per root preserve the child’s declared F16 storage for irradiance and ray direction. Changing the connected pair from (0,1) to (5,16) changes every pixel at 16² and 128² in both graphs. Each standalone 64² F32 irradiance and ray-direction image has 4,096 distinct RGBA tuples.
+
+For the debug root set debug_pos to (.3125,.6875), and use index offsets 0, 1 and 2 in the direct A, B and C settings. In the three parent graphs use index offsets −1, 0 and 1 respectively. All five cases with index 0, count 1 and offset −1 render in the reference app. MaterialCraft reports a nonfinite pattern-function result on those five and their fallback images are excluded from the pixel counts. The direct 64² F32 case isolates a second difference. The gray conversion, gradient and input match. The pattern output differs at four pixels on rows 46–49. At (20,46) the reference stores (.321308792,.787873089,0,1) and MaterialCraft stores (.811764717,.811764717,.811764717,1).
+
 ### Volume-mask shapes and axis sweeps
 
 The shape menu assigns 0 to cube, 1 to cylinder and 2 to sphere. Cube is the default. Some earlier case names called shape 1 a box and called the default a sphere. The corrected shape names above and below use the actual control value.
