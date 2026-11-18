@@ -52,6 +52,29 @@ pub(super) fn log2(value: f32) -> f32 {
     truncate_float(rounded as f64 / 274_877_906_944.0)
 }
 
+pub(super) fn ln(value: f32) -> f32 {
+    log2(value) * std::f32::consts::LN_2
+}
+
+pub(super) fn exp(value: f32) -> f32 {
+    let result = value.exp();
+    if result.is_nan() || result.is_subnormal() { 0.0 } else { result }
+}
+
+pub(super) fn power(base: f32, exponent: f32) -> f32 {
+    if base.abs() < f32::MIN_POSITIVE {
+        return 0.0;
+    }
+    if base > 0.0 {
+        return exp(exponent * ln(base));
+    }
+    if exponent.fract() != 0.0 {
+        return 0.0;
+    }
+    let magnitude = exp(exponent * ln(base.abs()));
+    if exponent.abs() % 2.0 == 1.0 { -magnitude } else { magnitude }
+}
+
 pub(super) fn exp2(value: f32) -> f32 {
     if value < -126.0 {
         return 0.0;

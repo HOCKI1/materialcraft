@@ -247,6 +247,22 @@ Literal-only pixel graphs at 16², seed 23, give 512/768 exact pixels for each l
 
 The shared-lookup ridged root still matches 5,160/16,384 at changed roughness in F32, maximum 1.78813934e−7. Its one-octave .7 control still matches 1,847/4,096, maximum 2.38418579e−7. For positive normal x on the signed field, the reference's general power agrees with exp(y×ln(x)) on all 32,614 pixels. On .7 with exponent 1 it returns `3f333334`. Further work on general power and natural exponential is tracked with the [octave controls](#ridged-noise-octave-isolation).
 
+### General pixel power and ridged noise
+
+Using the original 1024×16 lookup in both apps, all seven [ridged noise comparisons](#basic-and-ridged-3d-perlin) now match **163,840/163,840 pixels**, maximum error zero. This includes changed roughness .7 at 128² in LUM8, LUM16, LUM16F and LUM32F. The [thirteen octave controls](#ridged-noise-octave-isolation) improve from 29,604/53,248 to 51,030/53,248. Twelve match every pixel. With roughness .7 and levels 1–4 the result is 1,878/4,096, maximum 1.19209290e−7. The earlier stock-lookup difference remains independently reproducible.
+
+The general power of a positive pixel argument uses exp(exponent×ln(base)). A negative base with an integral exponent uses its absolute magnitude and negates the result for odd exponents. Fractional powers of negative bases and powers of either signed zero return positive zero, including exponent zero or −1. The exceptional-input field also gives negative zero for a NaN base and an odd integer exponent. Starting with the *reference's* absolute-base logarithm and natural exponential, applying these sign and domain rules reproduces 65,536/65,536 reference powers in each of the signed and exceptional fields, maximum finite error zero.
+
+| Direct MaterialCraft power on the [original fields](#runtime-pixel-logarithms-and-powers-of-two) | Exact / compared | Maximum finite absolute error |
+|---|---:|---:|
+| Exceptional pairs | 65,536/65,536 | 0 |
+| Near one, small signed exponents | 65,536/65,536 | 0 |
+| Signed base, exponent −6 to 6 | 61,933/65,536 | 1,073,741,824 |
+| Base .5 to 2, exponent −1 to 1 | 58,754/65,536 | 1.19209290e−7 |
+| Roughness and octave exponent pairs | 62,788/65,536 | 5.96046448e−8 |
+
+The large absolute error in the signed field occurs on a large-magnitude output. On the octave field .7 raised to 1, 2, 3 and 1.375 gives float bits `3f333334`, `3efae14a`, `3eaf9db5` and `3f1cc3e8` in both apps. At exponent four the reference gives `3e75dccb` and MaterialCraft gives `3e75dcca`. On the same field the standalone natural exponential matches 59,569/65,536, maximum 4.76837158e−7.
+
 ### Ridged noise octave isolation
 
 Use the position ramp and original 1024×16 lookup under [basic and ridged 3D Perlin](#basic-and-ridged-3d-perlin). Retain the 128² position input and cook 64² LUM32F at seed 42. Each cell gives exact pixels out of 4,096 and maximum absolute error. Roughness .5 with one or two active levels matches every pixel. Roughness .7 already differs with a single active level.

@@ -49,6 +49,23 @@ fn scoped_operation(scope: super::FunctionScope, op: &str, operands: &[Value], l
 }
 
 #[test]
+fn runtime_pixel_power_uses_the_natural_logarithm_and_the_sign_of_integer_powers() {
+    for (base, exponent, expected) in [
+        (0.7, 1.0, 0x3f333334),
+        (0.7, 1.375, 0x3f1cc3e8),
+        (-0.7, 3.0, 0xbeaf9db5),
+        (-2.0, -1.0, 0xbf000000),
+        (-2.0, 0.5, 0),
+        (0.0, -1.0, 0),
+        (0.0, 0.0, 0),
+        (f32::MIN_POSITIVE, 1.0, 0x00800026),
+    ] {
+        let Value::Float(value) = pixel_operation("pow", &[Value::Float(base), Value::Float(exponent)], false) else { panic!("expected a scalar") };
+        assert_eq!(value.to_bits(), expected, "{base}^{exponent}");
+    }
+}
+
+#[test]
 fn runtime_pixel_logarithms_and_powers_of_two() {
     for (op, input, expected) in [
         ("log2", 0.5, 0xbf7ffffe),
