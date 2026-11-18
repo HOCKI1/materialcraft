@@ -35,7 +35,7 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **166 Parity**, **5 In progress** and **375 Too hard**. Exact counts, output formats and remaining differences for the reopened roots are in the [November 17 comparisons](parity-fixes.md#2026-11-17-root-comparisons).
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **167 Parity**, **9 In progress** and **370 Too hard**. Exact counts, output formats and remaining differences for the revisited roots are in the [November 17 comparisons](parity-fixes.md#2026-11-17-root-comparisons).
 
 ## Complete inventory
 
@@ -50,11 +50,11 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [3d_simplex_noise.sbs/3d_simplex_noise](../assets/sbs/3d_simplex_noise.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [3d_texture_jump_flood.sbs/3d_texture_jump_flood_iteration](../assets/sbs/3d_texture_jump_flood.sbs) | 1 | Yes | [Parity: 5 cases](parity-fixes.md#verified-cases) |
 | [3d_texture_position.sbs/3d_texture_position](../assets/sbs/3d_texture_position.sbs) | 0 | No | [Parity: native 4K atlas](parity-fixes.md#verified-cases) |
-| [3d_texture_render.sbs/3d_texture_surface_render_irradiance](../assets/sbs/3d_texture_render.sbs) | 6 | Yes | [Too hard: float rounding](parity-fixes.md#remaining-differences) |
-| [3d_texture_render.sbs/3d_texture_surface_render_position](../assets/sbs/3d_texture_render.sbs) | 1 | Yes | [Too hard: 4 camera pixels](parity-fixes.md#remaining-differences) |
-| [3d_texture_render.sbs/3d_texture_volume_render_ibl_pass](../assets/sbs/3d_texture_render.sbs) | 6 | Yes | [Too hard: volume integration](parity-fixes.md#remaining-differences) |
-| [3d_texture_render.sbs/3d_texture_volume_render_light_pass](../assets/sbs/3d_texture_render.sbs) | 4 | Yes | [Too hard: 8 pixels remain](parity-fixes.md#remaining-differences) |
-| [3d_texture_render.sbs/position_debug](../assets/sbs/3d_texture_render.sbs) | 2 | Yes | [Too hard: 34 traced pixels](parity-fixes.md#remaining-differences) |
+| [3d_texture_render.sbs/3d_texture_surface_render_irradiance](../assets/sbs/3d_texture_render.sbs) | 6 | Yes | [In progress · direction-dependent float error](parity-fixes.md#3d-surface-and-volume-render-passes) |
+| [3d_texture_render.sbs/3d_texture_surface_render_position](../assets/sbs/3d_texture_render.sbs) | 1 | Yes | [In progress · camera direction and field of view](parity-fixes.md#3d-surface-and-volume-render-passes) |
+| [3d_texture_render.sbs/3d_texture_volume_render_ibl_pass](../assets/sbs/3d_texture_render.sbs) | 6 | Yes | [In progress · quantified dithering and density differences](parity-fixes.md#3d-surface-and-volume-render-passes) |
+| [3d_texture_render.sbs/3d_texture_volume_render_light_pass](../assets/sbs/3d_texture_render.sbs) | 4 | Yes | [In progress · nonzero-density lighting differs](parity-fixes.md#3d-surface-and-volume-render-passes) |
+| [3d_texture_render.sbs/position_debug](../assets/sbs/3d_texture_render.sbs) | 2 | Yes | [Parity · 14 sphere and plane cases](parity-fixes.md#position-debug) |
 | [3d_texture_transform.sbs/3d_texture_offset_color](../assets/sbs/3d_texture_transform.sbs) | 1 | No | [Parity: 5 cases](parity-fixes.md#verified-cases) |
 | [3d_texture_transform.sbs/3d_texture_offset_grayscale](../assets/sbs/3d_texture_transform.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [3d_viewer.sbs/ibl_specular_contrib_anisotropic/panoramic_lod](../assets/sbs/3d_viewer.sbs) | 1 | Yes | [Too hard: transform filtering](parity-fixes.md#remaining-differences) |

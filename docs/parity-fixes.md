@@ -115,6 +115,49 @@ Before the sampler change the default 256² cases matched 65,048 grayscale pixel
 
 In units of 1/256 texel, the rounded horizontal and vertical fractions are `dx` and `dy`. The bottom-right weight is `q=floor((dx*dy+128)/256)`. The other three weights in row-major order are `256-dx-dy+q`, `dx-q` and `dy-q`. Accumulate the four normalized 16-bit levels with these integer weights, divide by 256 and round half up. A separate 128² high-frequency texture sweep at seven fixed offsets matched all 114,688 pixels, including wrapped edges. The rotated graph cases still differ with this sampler. Floating-source filtering has separate rounding behavior and remains open.
 
+### 3D surface and volume render passes
+
+The four rows of the inventory preceding `position_debug` share one package. The small output side `N` is 16 for irradiance, volume IBL and volume light, and 32 for surface position. The large case doubles both dimensions. The surface position parent is 8-bit. The other parents are float32. At the small and large sizes, generate new input ramps with byte values `U=floor(255*(x+.5)/N)` and `V=floor(255*(y+.5)/N)`. Bind all images as linear.
+
+- Surface irradiance uses a constant float SDF of 128, position `(U,V,128,255)`, normal `(128,128,255,255)`, sample table `(64,64,255,255)`, environment `(U,V,192,255)` and grayscale noise `(17*x+31*y) mod 256`. The changed case sets `i=16` and albedo to `(.3,.6,.9)`.
+- Surface position uses a constant white SDF. The changed case enables the ground plane and sets camera UV to `(.35,.6)` and field of view to 65 degrees.
+- The volume passes use constant float SDF −.1 and density .001, the same position ramp, and the noise formula evaluated at the noise input's native 256². IBL also uses the irradiance sample table and environment. Its changed case sets `i=1` and absorption to 2. Volume light sets light intensity to 2 and light UV to `(.3,.6)` for its changed case.
+
+Each cell gives **exact pixels / total (maximum error)**. The native output formats in column order are RGBA32F, RGBA8, RGBA16F and RGBA16F.
+
+| Case | Surface irradiance | Surface position | Volume IBL | Volume light |
+|---|---:|---:|---:|---:|
+| Small, defaults, seed 0 | 0/256 (8.940697e-8) | 1,024/1,024 (0) | 9/256 (.00634765625) | 250/256 (6.103516e-5) |
+| Large, defaults, seed 0 | 0/1,024 (7.450581e-8) | 4,096/4,096 (0) | 44/1,024 (.00634765625) | 994/1,024 (.0001220703125) |
+| Small, defaults, seed 42 | 0/256 (8.940697e-8) | 1,024/1,024 (0) | 8/256 (.00537109375) | 250/256 (6.103516e-5) |
+| Small, changed, seed 0 | 0/256 (8.940697e-8) | 1,023/1,024 (1) | 9/256 (.009765625) | 250/256 (6.103516e-5) |
+| Small, changed, seed 42, RGBA8 | 256/256 (0) | 1,023/1,024 (1) | 69/256 (3) | 255/256 (1) |
+| Small, changed, seed 42, RGBA16 | 256/256 (0) | 1,023/1,024 (246) | 0/256 (701) | 250/256 (2) |
+| Small, changed, seed 42, RGBA16F | 256/256 (0) | 410/1,024 (4) | 3/256 (.0107421875) | 250/256 (6.103516e-5) |
+| Small, changed, seed 42, RGBA32F | 0/256 (8.940697e-8) | 0/1,024 (.67333984375) | 0/256 (.010691524) | 0/256 (4.068762e-5) |
+
+**Irradiance.** Replace noise by zero, environment by `(64,128,192,255)` and position by `(128,128,128,255)`. Both renders become spatially constant and all six input bridges match. RGB still differs by at most 8.940697e-8 and alpha is exact. Changing only the sample table from byte `(64,64,255,255)` to float `(.25,.25,1,1)` makes all 256 RGBA32F pixels exact. Replacing only the normal by `(.5,.5,1,1)` gives 0/256 and maximum error 1.192093e-7. The remaining difference depends on the sampled direction even with flat lighting.
+
+**Surface position.** A black SDF with defaults at 16² matched 256/256 RGBA8 pixels. The changed camera at 64² still matches 4,092/4,096 with maximum error 2. At 32² and RGBA32F, changing only field of view gives 0/1,024 with maximum error 1.490116e-7. Changing only camera UV gives 0/1,024 with maximum error 1.269579e-5. With both changes the largest error occurs at (0,2), where X is −7683.423 in MaterialCraft and −7684.096 in the reference. Alpha agrees at every pixel. Integer storage hides much of this coordinate difference.
+
+**Volume integration.** At 16² and RGBA32F, replace noise by zero, position by `(128,128,128,255)` and the IBL environment by `(64,128,192,255)`. All six IBL inputs and all four light inputs match exactly. IBL still gives 0/256 with maximum error .00578630. Disabling dithering reduces this to 3.039837e-6 with 16/256 exact at both seeds 0 and 42. With nonconstant inputs and dithering disabled the maximum is .0002391934 and 12/256 match. Light gives 0/256 on the flat inputs with maximum error .0001328364, or .0001164377 with dithering disabled. Setting density to zero makes both flat, undithered renders exact at all 256 pixels. Nonzero-density integration remains open.
+
+### Position debug
+
+All **622,592/622,592 RGBA pixels** match across 14 cases, with maximum component error zero. The two previously failing 256² sphere cases match the original reference captures, including all 17 colored texels in each. Changing `debug_pos` from `(.5,.5)` to `(.25,.75)` changes four pixels between reference images. Both internal 4096² processors cook at full size.
+
+Use a float32 parent, the RGBA8 position ramp above and an original signed-distance atlas. For side `N=128` or 256, let `s=N/16`, `X=((x mod s)+.5)/s-.5`, `Y=((y mod s)+.5)/s-.5`, and `Z=(floor(x/s)+16*floor(y/s)+.5)/256-.5`. Compute `sqrt(X²+Y²+Z²)-.3` and store the result in each RGB channel of a float32 EXR with alpha 1.
+
+| Probe | Size | Seed | Output formats | Exact pixels / total | Maximum error |
+|---|---:|---:|---|---:|---:|
+| Default debug point | 128² | 0 and 42 | RGBA32F | 32,768/32,768 | 0 |
+| Default and changed debug point | 256² | 0 | RGBA32F | 131,072/131,072 | 0 |
+| Changed debug point | 128² | 42 | RGBA8, RGBA16, RGBA16F, RGBA32F | 65,536/65,536 | 0 |
+| Changed debug point | 256² | 42 | Same four formats | 262,144/262,144 | 0 |
+| Changed point, plane and shifted sphere | 256² | 42 | RGBA32F | 131,072/131,072 | 0 |
+
+The plane uses `.55*X+.3*Y-.7*Z+.06`. The shifted sphere uses `sqrt((X-.125)²+(Y+.1)²+(Z-.125)²)-.36`. Both produced the same sparse marker as the centered sphere for the changed debug point. The 128² cases had zero colored texels. The parity mark covers these output images and settings.
+
 ### November 17 validation
 
 All four new regressions failed with the corresponding behavior disabled or absent. The full release node suite passed all 108 tests. Workspace formatting, strict all-target Clippy, dependency layers and WebAssembly checks passed. Raw captures and generated input images were kept outside the repository.
