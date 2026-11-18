@@ -253,6 +253,24 @@ Literal-only pixel graphs at 16², seed 23, give 512/768 exact pixels for each l
 
 The shared-lookup ridged root still matches 5,160/16,384 at changed roughness in F32, maximum 1.78813934e−7. Its one-octave .7 control still matches 1,847/4,096, maximum 2.38418579e−7. For positive normal x on the signed field, the reference's general power agrees with exp(y×ln(x)) on all 32,614 pixels. On .7 with exponent 1 it returns `3f333334`. Further work on general power and natural exponential is tracked with the [octave controls](#ridged-noise-octave-isolation).
 
+### Material bundles and the eighth irradiance pass
+
+| Root | Recorded renders | Exact output pixels / compared | Maximum stored error |
+|---|---:|---:|---:|
+| Material transforms, all five outputs | 74 | 856,320/856,320 | 0 |
+| Two-material blender, three outputs | 46 | 513,792/513,792 | 0 |
+| Four-material blender, three outputs | 46 | 513,792/513,792 | 0 |
+| Eight-material blender, three outputs | 46 | 513,792/513,792 | 0 |
+| Raytraced irradiance IS pass 8 | 18 | 136,704/136,704 | 0 |
+
+The material roots use four archived settings, followed by a four-format and independent render of each output. Add nine renders per output using the procedural channels H and input-port ordering from the [color and histogram controls](#color-conversion-gradient-height-and-histogram-controls). Use default controls at 16²/seed 47, A in all formats at 64²/151, B at 128²/307, C on signed 32² input/467, B on 32×16 input at 32²/557, and A at 64²/719. The five transform outputs cover diffuse, specular, height, opacity and emissive. Use scale/rotation/offset (75,137.5)/.125/(.1875,−.3125) for A, (125,50)/.25/(−.125,.4375) for B and (62.5,150)/−.1875/(.5,.0625) for C.
+
+For the blenders, let m number materials from one and k be 1, 2 or 3 for A, B or C. Set each material transform to (.25+.0625m, .0625(m+k), .25+.03125m, .6875−.03125m). Set the height range to (.0625m,.9375−.03125m) and specular range to (.03125m,.875−.015625m). The mask index is (floor(x/4)+3floor(y/5)) mod 8. The grayscale mask uses byte level (37×index) mod 256. The color mask uses its three low bits as red, green and blue, each either 0 or 255, with alpha 255. Compare all three composited outputs.
+
+The eighth irradiance pass previously timed out. Finishing the original 128² default, seed 42 and changed settings plus the 256² default gave 114,688/114,688 RGBA16F pixels. These archive measurements used the signed-product implementation. The four 64² storage formats, the independent 32² case and nine additional cases matched 22,016/22,016 pixels both before and after the wide-blur and function-call changes. The combined storage totals are 119,040 RGBA16F, 8,960 RGBA32F and 4,352 each RGBA8 and RGBA16.
+
+For those nine new cases, use u=(x+.5)/N, v=(y+.5)/N and H=((53x+31y+9xy+43) mod 257)/256. Write original F32 channels for position (u,v,H,1), normal (.5+.3(u−.5),.5+.3(v−.5),1,1), environment (.25+u,2v,H²,1), previous (v,H,u,.125+.75u), emissive (.75u,.375H,.5v,1), sample table (u,v,H,1−H), noise (H,H,H,1) and height (v,v,v,1). Use defaults at 16²/seed 37. For the rest set shape scale .8125, UV tiling 1.5 and displacement .125. Run shape 0/pass 1 at 32²/173 and repeat at seed 439. Repeat seed 173 with previous=(.5H,.25v,1−u,1). This changes every one of the 1,024 output pixels and both images match exactly. At 16² use shape 1/pass 3/seed 359 with black environment and emissive, and shape 2/pass 2/seed 251 in all four output formats.
+
 ### Color conversion, gradient, height and histogram controls
 
 | Root or output group | Recorded renders | Exact pixels / compared | Maximum stored error |

@@ -35,7 +35,7 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **269 Parity**, **35 In progress** and **242 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **274 Parity**, **35 In progress** and **237 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
 
 [Grayscale sampler measurements](parity-fixes.md#grayscale-sampling-of-color-inputs) · [Value sampling across 240 typed comparisons](parity-fixes.md#value-processor-texture-filtering)
 
@@ -254,7 +254,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [make_it_tile_patch.sbs/make_it_tile_patch](../assets/sbs/make_it_tile_patch.sbs) | 1 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [make_it_tile_patch_grayscale.sbs/make_it_tile_patch_grayscale](../assets/sbs/make_it_tile_patch_grayscale.sbs) | 1 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [material_switch.sbs/material_switch](../assets/sbs/material_switch.sbs) | 24 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
-| [material_transforms.sbs/material_transforms](../assets/sbs/material_transforms.sbs) | 5 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [material_transforms.sbs/material_transforms](../assets/sbs/material_transforms.sbs) | 5 | Yes | [Parity · 856,320 exact pixels across every output](parity-fixes.md#material-bundles-and-the-eighth-irradiance-pass) |
 | [me_water_level.sbs/scratches_2](../assets/sbs/me_water_level.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [mean_of_least_variance.sbs/mlv_color_iteration](../assets/sbs/mean_of_least_variance.sbs) | 1 | Yes | [Parity · 171,264 exact pixels across 18 renders](parity-fixes.md#color-conversion-gradient-height-and-histogram-controls) |
 | [mean_of_least_variance.sbs/mlv_grayscale_iteration](../assets/sbs/mean_of_least_variance.sbs) | 1 | Yes | [Parity · 171,264 exact pixels across 18 renders](parity-fixes.md#color-conversion-gradient-height-and-histogram-controls) |
@@ -265,9 +265,9 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [mesh_adaptive_base_color.sbs/base_color_2_inputs](../assets/sbs/mesh_adaptive_base_color.sbs) | 2 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [mesh_adaptive_base_color.sbs/base_color_4_inputs](../assets/sbs/mesh_adaptive_base_color.sbs) | 2 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [mesh_adaptive_base_color.sbs/base_color_8_inputs](../assets/sbs/mesh_adaptive_base_color.sbs) | 2 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
-| [mesh_adaptive_material_blender.sbs/mesh_material_blender_2_inputs](../assets/sbs/mesh_adaptive_material_blender.sbs) | 7 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [mesh_adaptive_material_blender.sbs/mesh_material_blender_4_inputs](../assets/sbs/mesh_adaptive_material_blender.sbs) | 13 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [mesh_adaptive_material_blender.sbs/mesh_material_blender_8_inputs](../assets/sbs/mesh_adaptive_material_blender.sbs) | 25 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [mesh_adaptive_material_blender.sbs/mesh_material_blender_2_inputs](../assets/sbs/mesh_adaptive_material_blender.sbs) | 7 | Yes | [Parity · 513,792 exact pixels across every output](parity-fixes.md#material-bundles-and-the-eighth-irradiance-pass) |
+| [mesh_adaptive_material_blender.sbs/mesh_material_blender_4_inputs](../assets/sbs/mesh_adaptive_material_blender.sbs) | 13 | Yes | [Parity · 513,792 exact pixels across every output](parity-fixes.md#material-bundles-and-the-eighth-irradiance-pass) |
+| [mesh_adaptive_material_blender.sbs/mesh_material_blender_8_inputs](../assets/sbs/mesh_adaptive_material_blender.sbs) | 25 | Yes | [Parity · 513,792 exact pixels across every output](parity-fixes.md#material-bundles-and-the-eighth-irradiance-pass) |
 | [mesh_data_combiner.sbs/mesh_data_combiner](../assets/sbs/mesh_data_combiner.sbs) | 11 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [messy_fibers_1.sbs/messy_fibers_1](../assets/sbs/messy_fibers_1.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [messy_fibers_2.sbs/messy_fibers_2](../assets/sbs/messy_fibers_2.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
@@ -456,7 +456,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [pbr_render2.sbs/lod](../assets/sbs/pbr_render2.sbs) | 1 | Yes | [Parity · 18 cases, 171,264 exact pixels](parity-fixes.md#stored-precision-in-transform-mip-levels) |
 | [pbr_render2.sbs/position_to_normal](../assets/sbs/pbr_render2.sbs) | 2 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [pbr_render2.sbs/raytrace_position](../assets/sbs/pbr_render2.sbs) | 4 | Yes | [Too hard: cook timeout](parity-fixes.md#remaining-differences) |
-| [pbr_render2.sbs/raytraced_irradiance_is_pass_8](../assets/sbs/pbr_render2.sbs) | 9 | Yes | [Too hard: cook timeout](parity-fixes.md#remaining-differences) |
+| [pbr_render2.sbs/raytraced_irradiance_is_pass_8](../assets/sbs/pbr_render2.sbs) | 9 | Yes | [Parity · 18 renders, 136,704 exact RGBA pixels](parity-fixes.md#material-bundles-and-the-eighth-irradiance-pass) |
 | [pbr_render2.sbs/raytraced_specular_pass_8](../assets/sbs/pbr_render2.sbs) | 9 | Yes | [Too hard: cook timeout](parity-fixes.md#remaining-differences) |
 | [pbr_render2.sbs/sat/sat_iteration](../assets/sbs/pbr_render2.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [pbr_render_ortho.sbs/blue_noise](../assets/sbs/pbr_render_ortho.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
