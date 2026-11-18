@@ -17,6 +17,25 @@ fn bitmap_filters_are_specific_and_match_supported_extensions() {
 }
 
 #[test]
+fn luminance_exr_preserves_linear_signed_and_hdr_samples() {
+    use craft_image_codecs::{ChannelLayout, EncodeOptions, Format, SampleType};
+    for sample in [SampleType::F16, SampleType::F32] {
+        for layout in [ChannelLayout::Gray, ChannelLayout::GrayA] {
+            let values = [-0.25, 0.0, 0.5, 3.0];
+            let input: Vec<_> = if layout == ChannelLayout::GrayA { values.into_iter().flat_map(|y| [y, 0.375]).collect() } else { values.to_vec() };
+            let source = craft_image_codecs::Image::from_normalized(4, 1, layout, sample, &input).unwrap();
+            let encoded = craft_image_codecs::encode(&source, Format::OpenExr, &EncodeOptions::default()).unwrap();
+            for linear in [false, true] {
+                let image = decode(&encoded, linear).unwrap();
+                assert!(image.is_gray());
+                assert_eq!(image.data(), values);
+                assert!(!image.integer_sampling());
+            }
+        }
+    }
+}
+
+#[test]
 fn common_bitmap_formats_decode() {
     let pixels = Image::filled(4, 4, Kind::Color, [0.25, 0.5, 0.75, 1.0]);
     for extension in ["png", "jpeg", "tga", "bmp", "webp", "exr", "hdr"] {

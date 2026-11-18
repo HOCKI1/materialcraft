@@ -41,6 +41,8 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 
 [Runtime square-root measurements](parity-fixes.md#runtime-pixel-square-roots) cover both exponent parities and the signed domain.
 
+[Luminance EXR measurements](parity-fixes.md#luminance-exr-input) cover Y and YA inputs at half and single precision.
+
 [Four-format results by root and output](parity-fixes.md#four-format-inventory-comparison) cover 375 roots. The same table includes the independent 32² measurements for 352 roots.
 
 ## Complete inventory

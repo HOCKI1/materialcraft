@@ -2,6 +2,8 @@ use crate::{Depth, FormatError, Result, guard};
 use craft_texture::{Image, Kind, Limits, MAX_SIDE, linear_to_srgb, srgb_to_linear};
 use std::io::Cursor;
 
+const MAX_DECODE_BYTES: u64 = 1 << 30;
+
 /// Decode image file bytes into a linear float image (8-bit color is sRGB-decoded; grayscale files stay grayscale)
 pub fn decode(bytes: &[u8], linear: bool) -> Result<Image> {
     if bytes.starts_with(b"DDS ") {
@@ -9,12 +11,32 @@ pub fn decode(bytes: &[u8], linear: bool) -> Result<Image> {
     }
 
     const SVG_SNIFF_BYTES: usize = 4096;
-    const MAX_DECODE_BYTES: u64 = 1 << 30;
-
     if std::str::from_utf8(bytes.get(..bytes.len().min(SVG_SNIFF_BYTES)).unwrap_or_default()).is_ok_and(|text| text.contains("<svg")) {
         return guard(|| crate::svg::decode(bytes), || FormatError::Image("SVG decoder failed".into()));
     }
 
+    match decode_raster(bytes, linear) {
+        Err(error) if bytes.starts_with(&[0x76, 0x2f, 0x31, 0x01]) => {
+            guard(|| decode_luminance_exr(bytes, error), || FormatError::Image("EXR decoder failed".into()))
+        }
+        result => result,
+    }
+}
+
+fn decode_luminance_exr(bytes: &[u8], original_error: FormatError) -> Result<Image> {
+    use craft_image_codecs::{ChannelLayout, DecodeOptions, Format};
+    let limits = craft_image_codecs::Limits { max_width: MAX_SIDE, max_height: MAX_SIDE, max_pixels: u64::from(MAX_SIDE).pow(2), max_alloc: MAX_DECODE_BYTES };
+    let decoded = craft_image_codecs::decode_as_with(Format::OpenExr, bytes, &DecodeOptions { limits, ..Default::default() })
+        .map_err(|error| FormatError::Image(error.to_string()))?;
+    let data = match decoded.layout() {
+        ChannelLayout::Gray => decoded.to_normalized(),
+        ChannelLayout::GrayA => (0..decoded.pixel_count()).map(|i| decoded.sample_normalized(2 * i)).collect(),
+        _ => return Err(original_error),
+    };
+    Image::from_data(decoded.width(), decoded.height(), Kind::Gray, data, &Limits::default()).map_err(|error| FormatError::Image(error.to_string()))
+}
+
+fn decode_raster(bytes: &[u8], linear: bool) -> Result<Image> {
     let open = || -> Result<image::ImageReader<Cursor<&[u8]>>> {
         let mut reader = image::ImageReader::new(Cursor::new(bytes)).with_guessed_format().map_err(|e| FormatError::Image(e.to_string()))?;
         if reader.format().is_none() {
