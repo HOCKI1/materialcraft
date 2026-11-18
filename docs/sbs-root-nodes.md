@@ -48,7 +48,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [3d_gradient.sbs/3d_linear_gradient](../assets/sbs/3d_gradient.sbs) | 1 | No | [Parity · 12 wired and 5 disconnected cases, four formats](parity-fixes.md#runtime-reciprocal-and-3d-gradient-contrast) |
 | [3d_perlin_noise.sbs/3D_perlin_noise](../assets/sbs/3d_perlin_noise.sbs) | 1 | No | [In progress · shared lookup exact across seven cases, stock lookup differs](parity-fixes.md#pixel-processor-products-and-sums) |
 | [3d_perlin_noise.sbs/3D_perlin_noise_fractal](../assets/sbs/3d_perlin_noise.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
-| [3d_perlin_noise.sbs/3D_ridged_noise_fractal](../assets/sbs/3d_perlin_noise.sbs) | 1 | No | [In progress · 13 octave controls isolate a one-level roughness difference](parity-fixes.md#ridged-noise-octave-isolation) |
+| [3d_perlin_noise.sbs/3D_ridged_noise_fractal](../assets/sbs/3d_perlin_noise.sbs) | 1 | No | [In progress · one-octave roughness and general power differ](parity-fixes.md#runtime-pixel-logarithms-and-powers-of-two) |
 | [3d_planar_projection.sbs/3d_planar_projection](../assets/sbs/3d_planar_projection.sbs) | 3 | No | [Parity · 15 projection cases, 168,960 exact pixels](parity-fixes.md#uniform-angles-and-planar-projection) |
 | [3d_planar_projection.sbs/3d_planar_projection_color](../assets/sbs/3d_planar_projection.sbs) | 3 | No | [Parity · 15 projection cases, 168,960 exact pixels](parity-fixes.md#uniform-angles-and-planar-projection) |
 | [3d_simplex_noise.sbs/3d_simplex_noise](../assets/sbs/3d_simplex_noise.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |

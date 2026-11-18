@@ -49,6 +49,30 @@ fn scoped_operation(scope: super::FunctionScope, op: &str, operands: &[Value], l
 }
 
 #[test]
+fn runtime_pixel_logarithms_and_powers_of_two() {
+    for (op, input, expected) in [
+        ("log2", 0.5, 0xbf7ffffe),
+        ("log2", 0.7, 0xbf03bb10),
+        ("log2", 1.0, 0),
+        ("log2", f32::MIN_POSITIVE, 0xc2fbffff),
+        ("log", 0.5, 0xbf317217),
+        ("pow2", -0.5, 0x3f3504f2),
+        ("pow2", 0.5, 0x3fb504f3),
+        ("pow2", 1.375, 0x4025fed7),
+        ("pow2", -126.0, 0x00800000),
+        ("pow2", -127.0, 0),
+        ("pow2", 128.0, 0x7f800000),
+    ] {
+        let Value::Float(value) = pixel_operation(op, &[Value::Float(input)], false) else { panic!("expected a scalar") };
+        assert_eq!(value.to_bits(), expected, "{op}({input})");
+    }
+    for scope in [super::FunctionScope::Node, super::FunctionScope::ValueProcessor, super::FunctionScope::FxMap] {
+        assert_eq!(scoped_operation(scope, "log2", &[Value::Float(0.5)], false), Value::Float(-1.0));
+    }
+    assert_eq!(pixel_operation("log2", &[Value::Float(0.5)], true), Value::Float(-1.0));
+}
+
+#[test]
 fn runtime_pixel_sine_and_cosine_reduce_the_phase_before_interpolation() {
     use std::f32::consts::{FRAC_PI_4, TAU};
 

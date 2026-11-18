@@ -224,6 +224,29 @@ For normalized distance at 16² and 64² use a grayscale byte field (17x+7y+3xy)
 
 The [wired bridge distance](#height-distance-texture-mapping-skew-and-weave) root was also retested. With count two, 32² and 64² now match 1,024/1,024 and 4,096/4,096. The 16² case matches 252/256 with maximum 5.96046448e−8. All three count-one cases remain exact.
 
+### Runtime pixel logarithms and powers of two
+
+An original pixel function returns (log2(1+t), 2ᵗ, 2⁻ᵗ, log2((1+t)/2)). Across eight 1024² RGBA32F images all **8,388,608 pixels and 33,554,432 components** match bit for bit, maximum error zero. For image j=0..7, let t=(j×2²⁰+i)/2²³ with row-major index i, seed 251. Supply the four arguments as a linear RGBA32F input and sample at pixel centers with nearest filtering. This exhausts all float32 mantissas in [1,2) for the logarithm and all 23-bit fixed fractions in [0,1) for the exponential.
+
+| Additional per-pixel controls | Cases | Exact / compared | Maximum finite error |
+|---|---:|---:|---:|
+| Logarithm base two and power of two on the 256² fields below | 22 | 1,441,792/1,441,792 | 0 |
+| Natural logarithm, log2(x)×float32(ln(2)), and 2^(log2(x)×y) on signed and exceptional pairs | 6 | 393,216/393,216 | 0 |
+| Both signs of zero, subnormals, smallest normals and NaN payloads, three operations at 16² | 3 | 768/768 | 0 |
+| Exposed scalar passed directly to the pixel function, three operations | 28 | 7,168/7,168 | 0 |
+
+For the 256² fields use the row-major 32-bit hash h from [the runtime trigonometry controls](#runtime-pixel-sine-cosine-and-atlas-rotation). At seed 239, set (x,y)=(1+t,t) with the 23-bit numerator of t equal to 128i, i, h mod 2²³, or 0x3a0000+i. For the signed field use x=4h/2³²−2 and y=12i/65535−6. The exceptional field cycles x through NaN, −∞, −2, −1, −0, +0, 2⁻¹⁴⁰, 2⁻¹²⁶, .25, .5, 1, 2, 2²⁰, +∞. Repeat each y for 17 pixels in the cycle NaN, −∞, −129, −126, −2, −1, −.5, −0, +0, .5, 1, 2, 3, 127, 128, +∞. Round inputs to float32 before sampling.
+
+At seed 193, the full-range field combines exponent bits i mod 255 and mantissa h mod 2²³ for x, and uses y=300h/2³²−150. The power-boundary field starts at float bit pattern ((i mod 254)+1)×2²³ for x and at float32((i mod 255)−127) for y, then offsets their bit patterns by (floor(i/254) mod 17)−8 and (floor(i/255) mod 17)−8 respectively. For the near-one field offset the bit pattern of 1 by i−32768 and set y=(i−32768)/2³¹. A fourth field uses x=.5+1.5h/2³² and y=2h/2³²−1. The last cycles x through (.5,.7,.625,.2,.8,1,1.125,2,0,−1,−.7) and repeats each successive y in (0,1,2,3,4,5,6,7,.5,1.375,−1) for 13 pixels. For the 16² exceptional controls, cycle float32 input bits through 00000001, 007fffff, 80000001, 807fffff, 00000000, 80000000, 00800000, 80800000, 7fc12345 and ffc12345 at seed 17.
+
+Both pixel operations evaluate a quadratic over one of 64 intervals. The coefficients come from the mathematical functions and the sampled rounding thresholds. The runtime logarithm of .5 has bits `bf7ffffe`, the literal result has bits `bf800000`. The pixel natural logarithm multiplies the base-two result by float32(ln(2)). Replaying the 30 existing sine and cosine comparisons after sharing the polynomial fitting routine gives 1,443,840/1,443,840 pixels, maximum zero.
+
+For the exposed scalar controls use .5, .625, .7, 1, 1.125, 1.25, 2, 4 and 1.375 for either logarithm. For the exponential use −2, −1, −.625, −.5, −.125, 0, .5, 1, 1.375 and 2. Cycle seeds 71, 137 and 313 at 16². In a separate Value Processor, the same arguments match 5/9 typed base-two logarithms, 5/9 natural logarithms and 9/10 powers of two. Maximum errors are 5.96046448e−8, 2.98023224e−8 and 2.38418579e−7 respectively. These uniform operations remain open.
+
+Literal-only pixel graphs at 16², seed 23, give 512/768 exact pixels for each logarithm on .5, .7 and 1. At .7 their maximum errors are 5.96046448e−8 for log2 and 2.98023224e−8 for ln. Literal powers of two match 768/768 at −.5, 1.375 and 2, maximum zero.
+
+The shared-lookup ridged root still matches 5,160/16,384 at changed roughness in F32, maximum 1.78813934e−7. Its one-octave .7 control still matches 1,847/4,096, maximum 2.38418579e−7. For positive normal x on the signed field, the reference's general power agrees with exp(y×ln(x)) on all 32,614 pixels. On .7 with exponent 1 it returns `3f333334`. Further work on general power and natural exponential is tracked with the [octave controls](#ridged-noise-octave-isolation).
+
 ### Ridged noise octave isolation
 
 Use the position ramp and original 1024×16 lookup under [basic and ridged 3D Perlin](#basic-and-ridged-3d-perlin). Retain the 128² position input and cook 64² LUM32F at seed 42. Each cell gives exact pixels out of 4,096 and maximum absolute error. Roughness .5 with one or two active levels matches every pixel. Roughness .7 already differs with a single active level.

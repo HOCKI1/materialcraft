@@ -1,42 +1,25 @@
 //! Runtime sine and cosine for pixel and uniform function scopes.
 
-use super::fixed_point::square_fraction;
+use super::fixed_point::{Quadratic, square_fraction, truncate_float};
 use std::sync::LazyLock;
 
 const QUARTER: u32 = 1 << 23;
 
-struct Polynomial {
-    constant: i64,
-    slope: i64,
-    curvature: i64,
-}
-
 // Derive each quadratic from the sine function over one 64th of the quadrant.
-static QUARTER_WAVE: LazyLock<[Polynomial; 64]> = LazyLock::new(|| std::array::from_fn(quarter_polynomial));
+static QUARTER_WAVE: LazyLock<[Quadratic; 64]> = LazyLock::new(|| std::array::from_fn(quarter_polynomial));
 
-fn quarter_polynomial(index: usize) -> Polynomial {
+fn quarter_polynomial(index: usize) -> Quadratic {
     let width = std::f64::consts::PI / 128.0;
     let (sine, cosine) = ((index as f64 + 0.5) * width).sin_cos();
-    // The linear minimax approximation of the centered cubic on [-1/2, 1/2] is 3t/16.
-    let center_slope = 4_194_304.0 * (width * cosine - width.powi(3) * cosine / 32.0);
-    let slope = ((center_slope + 4_194_304.0 * width * width * sine * 0.5) / 4.0).round() as i64;
-    let curvature = center_slope.round() as i64 - 4 * slope;
-    let mut low = f64::INFINITY;
-    let mut high = f64::NEG_INFINITY;
-    for step in 0..=64 {
-        let t = f64::from(step) / 64.0;
-        let residual = 33_554_432.0 * ((index as f64 + t) * width).sin() - 32.0 * slope as f64 * t - 8.0 * curvature as f64 * t * t;
-        low = low.min(residual);
-        high = high.max(residual);
-    }
-    let midpoint = ((low + high) * 0.5).round() as i64;
-    let constant = match index {
+    let derivatives = [width * cosine, -width.powi(2) * sine, -width.powi(3) * cosine];
+    let mut polynomial = Quadratic::fit(|t| ((index as f64 + t) * width).sin(), derivatives, [25, 20, 22]);
+    polynomial.constant = match index {
         0 => 0,
         // These three measured intervals start one constant unit below the rounded midpoint.
-        2 | 18 | 46 => midpoint - 1,
-        _ => midpoint,
+        2 | 18 | 46 => polynomial.constant - 1,
+        _ => polynomial.constant,
     };
-    Polynomial { constant, slope, curvature }
+    polynomial
 }
 
 // One turn spans 25 bits. Retaining the product word before the exponent shift
@@ -72,8 +55,7 @@ fn pixel_component(angle: f32, cosine: bool) -> f32 {
     let fixed = (bin.constant << 12) + bin.slope * i64::from(fraction) + bin.curvature * i64::from(square_fraction(fraction >> 1));
     // The quarter-wave magnitude truncates to the next representable float below the polynomial.
     let exact = fixed as f64 / 137_438_953_472.0;
-    let nearest = exact as f32;
-    let magnitude = if f64::from(nearest) > exact { f32::from_bits(nearest.to_bits().saturating_sub(1)) } else { nearest };
+    let magnitude = truncate_float(exact);
     if (phase & (2 * QUARTER) != 0) ^ (!cosine && angle.is_sign_negative()) { -magnitude } else { magnitude }
 }
 

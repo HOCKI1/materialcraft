@@ -9,6 +9,7 @@ const MAX_CALL_DEPTH: usize = 16;
 const DEFAULT_LOOP_LIMIT: i32 = 32;
 
 mod arithmetic;
+mod binary_exponential;
 mod catalog;
 mod compile;
 mod evaluation_context;
