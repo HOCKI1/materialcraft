@@ -91,6 +91,10 @@ impl SbsWriter {
             let (x, y) = (node.pos[0] + NODE_HALF_SIZE[0], node.pos[1] + NODE_HALF_SIZE[1]);
             let _ = write!(out, "<compNode><uid v=\"{uid}\"/><GUILayout><gpos v=\"{} {} 0\"/></GUILayout>", format_float(x), format_float(y));
 
+            if node.disabled {
+                out.push_str("<materialcraftDisabled v=\"1\"/>");
+            }
+
             if !node.input_values.is_empty() {
                 out.push_str("<inputValues>");
                 for (identifier, value) in &node.input_values {
@@ -303,6 +307,9 @@ impl SbsWriter {
                     xml_escape(&sub_graph),
                     dependency
                 );
+                if let Some(instance) = &node.instance {
+                    super::instance_interface::write(out, &instance.inputs);
+                }
                 write_bridgings(out, outputs);
                 out.push_str("</compInstance>");
             }

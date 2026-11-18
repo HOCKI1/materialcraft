@@ -353,3 +353,55 @@ fn legacy_grayscale_float_exports_keep_linear_defaults_and_explicit_overrides() 
         }
     }
 }
+
+#[test]
+fn published_disabled_and_typed_instance_cooks_match_source() {
+    use materialcraft_core::ValueType;
+    let mut helper = Graph::new("ValueHelper");
+    helper.size = [4, 4];
+    let value = node(&mut helper, "input_value", &[("identifier", Value::Text("amount".into())), ("default", Value::Float(0.25))]);
+    output(&mut helper, value, "output", "number", "height");
+    let mut dependency = Package::new("Dependency");
+    dependency.graphs.push(helper);
+    let mut graph = Graph::new("Root");
+    graph.size = [4, 4];
+    let value = node(&mut graph, "input_value", &[("identifier", Value::Text("source".into())), ("default", Value::Float(0.75))]);
+    let instance = node(&mut graph, "graph_instance", &[]);
+    graph.node_mut(instance).unwrap().instance = Some(GraphInstance {
+        package: "helper.sbs".into(),
+        graph: "ValueHelper".into(),
+        inputs: vec![GraphPort { identifier: "amount".into(), type_code: ValueType::Float as u32 }],
+        outputs: vec![GraphPort { identifier: "number".into(), type_code: ValueType::Float as u32 }],
+        defaults: Default::default(),
+        label: String::new(),
+    });
+    graph.connect(value, "output", instance, "amount").unwrap();
+    output(&mut graph, instance, "number", "number", "height");
+    let color = node(&mut graph, "uniform", &[("color", Value::Color([0.2, 0.3, 0.4, 1.0]))]);
+    let levels = node(&mut graph, "levels", &[("out_low", Value::Float4([1.0; 4])), ("out_high", Value::Float4([0.0; 4]))]);
+    graph.node_mut(levels).unwrap().disabled = true;
+    graph.connect(color, "output", levels, "input").unwrap();
+    output(&mut graph, levels, "output", "image", "baseColor");
+    let mut package = Package::new("Package");
+    package.graphs.push(graph);
+    package.dependencies.insert("helper.sbs".into(), std::sync::Arc::new(dependency));
+    let bytes = materialcraft_formats::material::write_material(&package, 0).unwrap();
+    let (opened, entry) = materialcraft_formats::material::read_material(&bytes).unwrap();
+    let cook = |pkg: Package, entry| {
+        // Cook the decoded package directly: Session::new refreshes interfaces and could mask a serialization defect.
+        let options = materialcraft_eval::Options::new(&|_| None);
+        let cache = std::sync::Mutex::new(materialcraft_eval::Cache::default());
+        let cooked = materialcraft_eval::cook(&pkg, entry, &options, &cache);
+        let graph = &pkg.graphs[entry];
+        let instance = graph.nodes.iter().find(|node| node.def == "graph_instance").unwrap().id;
+        let levels = graph.nodes.iter().find(|node| node.def == "levels").unwrap().id;
+        assert!(cooked.nodes[&instance].error.is_none(), "{:?}", cooked.nodes[&instance].error);
+        assert_eq!(cooked.nodes[&instance].outputs[0].as_value(), Some(&Value::Float(0.75)));
+        assert!(cooked.nodes[&levels].error.is_none());
+        cooked.image(levels, 0).unwrap().get(0, 0, false)
+    };
+    let original = cook(package, 0);
+    let restored = cook(opened, entry);
+    assert_eq!(restored, original);
+    assert!((restored[0] - 0.2).abs() < 0.01, "disabled levels must preserve its input: {restored:?}");
+}

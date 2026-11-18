@@ -11,6 +11,7 @@ mod graph_attributes;
 mod group_layout;
 mod image_input;
 mod input_bridge;
+mod instance_interface;
 mod layout_frame;
 mod layout_item;
 pub mod library;

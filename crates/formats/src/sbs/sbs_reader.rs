@@ -262,6 +262,9 @@ impl<'text> SbsReader<'text, '_> {
 
             self.node_count += 1;
             let mut node = self.read_node(&mut graph, *comp_node, &image_inputs, &outputs);
+            if let Some(document_node) = graph.nodes.get_mut(node.index) {
+                document_node.disabled = child_value(*comp_node, "materialcraftDisabled") == Some("1");
+            }
             for input in child_element(*comp_node, "inputValues").into_iter().flat_map(|inputs| children_named(inputs, "compInputValue")).take(64) {
                 let identifier = child_value(input, "identifier").unwrap_or("");
                 let value_type = child_value(input, "type").and_then(|code| code.parse().ok()).and_then(materialcraft_core::ValueType::from_code);
@@ -562,9 +565,19 @@ impl<'text> SbsReader<'text, '_> {
         if own_graph.is_some() || external.is_some() {
             let (id, index, node) = push_node(graph, "graph_instance", pos);
             if let Some(node) = node {
-                if let Some(sub_graph) = own_graph {
-                    node.params.insert("graph".into(), Value::Text(sub_graph));
-                } else {
+                let interface = super::instance_interface::read(implementation);
+                let has_interface = interface.is_some();
+                let inputs = match interface.transpose() {
+                    Ok(inputs) => inputs.unwrap_or_default(),
+                    Err(error) => {
+                        self.warnings.add(error);
+                        Vec::new()
+                    }
+                };
+                if let Some(sub_graph) = &own_graph {
+                    node.params.insert("graph".into(), Value::Text(sub_graph.clone()));
+                }
+                if own_graph.is_none() || has_interface {
                     let comp_node = implementation.parent().and_then(|parent| parent.parent());
                     let types: HashMap<_, _> = comp_node
                         .and_then(|node| child_element(node, "compOutputs"))
@@ -579,7 +592,7 @@ impl<'text> SbsReader<'text, '_> {
                         defaults: Default::default(),
                         package: external.unwrap_or("").into(),
                         graph: path.clone(),
-                        inputs: Vec::new(),
+                        inputs,
                         outputs: bridgings
                             .iter()
                             .map(|(uid, identifier)| materialcraft_core::GraphPort {
