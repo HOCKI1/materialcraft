@@ -106,6 +106,23 @@ fn pixel_dot_rounds_in_channel_order() {
 }
 
 #[test]
+fn pixel_atan2_reconstructs_the_quadrant_from_the_runtime_ratio() {
+    for (coordinate, bits) in [
+        ([1.0, 1.0], 0x3f490fe1),
+        ([-1.0, 1.0], 0x4016cbe3),
+        ([-1.0, -1.0], 0xc016cbe3),
+        ([1.0, -1.0], 0xbf490fe1),
+        ([f32::from_bits(0xc07089a0), f32::from_bits(0x3fa2fba9)], 0x40342917),
+        ([-1.0, -0.0], 0x40490fdb),
+        ([-0.0, 0.0], 0),
+    ] {
+        let Value::Float(angle) = pixel_operation("atan2", &[Value::Float2(coordinate)], false) else { panic!("expected an angle") };
+        assert_eq!(angle.to_bits(), bits, "{coordinate:?}");
+    }
+    assert_eq!(pixel_operation("atan2", &[Value::Float2([1.0, 1.0])], true), Value::Float(std::f32::consts::FRAC_PI_4));
+}
+
+#[test]
 fn pixel_division_multiplies_by_the_reciprocal() {
     let operands = [Value::Float(-2.7353475), Value::Float(1.7320508)];
     assert_eq!(pixel_operation("div", &operands, false), Value::Float(f32::from_bits(0xbfca24fb)));

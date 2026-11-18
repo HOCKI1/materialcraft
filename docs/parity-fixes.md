@@ -133,6 +133,23 @@ In the [atlas crop wrapper](#atlas-crop-with-wired-value-inputs), default rotati
 
 For the [spline distance controls](#height-distance-texture-mapping-skew-and-weave), both wired counts now match 1,024/1,024 at 32² seed 42 and 4,096/4,096 at 64² seed 137 in LUM32F. At 16² seed zero, count 1 matches 256/256 and count 2 matches 252/256, maximum 5.96046448e-8.
 
+### Runtime angles and circular gradient
+
+The Circular Gradient root matches **163,840/163,840 pixels** in thirteen cases, maximum error zero. Its default outputs at 128² and 256² with seed zero and 128² with seed 42 match all 98,304 pixels. Set the two points to (.3,.6) and (.8,.7), angle .2 and non-square expansion off. At 128² seed zero the authored output matches 16,384/16,384. At 64² seed 42, U8, U16, F16 and F32 each match 4,096/4,096. For an independent rotation, use (.71875,.21875), (.0625,.8125), angle −.15625 and enable non-square expansion. The 128² F32 output at seed 71 and all four formats at 64² seed 137 match another 32,768/32,768 pixels. This root takes no image input.
+
+Nearest-sample R and G from an RGBA32F input and emit the angle of the vector (R,G) in radians. The six runtime fields below match **230,400/230,400 raw LUM32F samples**. Maximum finite error is zero. All 186 nonfinite outputs in the axes field agree bit for bit. The signed field previously matched 5/16,384 with maximum error .000235080719.
+
+| Field | Definition | Exact pixels / total |
+|---|---|---:|
+| Signed channels, 128² | R and G from the original field under [3D linear gradient](#3d-linear-gradient), seed zero | 16,384/16,384 |
+| First octant, 128² | R=1, G=i/16,383, seed zero | 16,384/16,384 |
+| One turn, 256² | R=float32(i/65,535) times float32(2π), G=1−R, seed 42 | 65,536/65,536 |
+| Near π/4, 256² | R has bits `0x3f490fdb-32768+i`. G=float32(8h/2³²−4), h=(747796405i+2891336453) modulo 2³², seed 42 | 65,536/65,536 |
+| Axes and exceptional values, 32² | At x and y independently cycle through +0, −0, 1, −1, +∞, −∞, quiet NaN, 2⁻¹⁴⁰, 2⁻¹²⁰ and 2¹²⁰, seed zero | 1,024/1,024 |
+| Exponent range, 256² | R=2^(x−128), G=2^(y−128). Negate R when (x+y) mod 3 is zero and G when (x+2y) mod 5 is zero, seed 91 | 65,536/65,536 |
+
+Here i is the row-major pixel index. The first-octant fit is quartic in the smaller-to-larger magnitude ratio. It uses the measured runtime reciprocal and the same fused accumulation order as a four-channel dot product. In the other quadrants, reflection across the vertical and horizontal axes requires different additions of π/2 or π. Four separate literal-only controls at 32², seed zero, with vectors (1,1), (−1,−1), (.2,−.6) and (0,0) match another 4,096/4,096 LUM32F pixels. The runtime (1,1) angle has bits `0x3f490fe1` and the literal result has bits `0x3f490fdb`.
+
 ### Pixel Processor random draws
 
 Emit four independent calls to `rand(1)` as RGBA32F. In the reference app the four values recover a unique initial 24-bit state at each of **27,968/27,968 pixels**. Advance the state with `s=(3626811*s+51137) mod 2^24` and return `floor(s/2)/2^23`. The four outputs then match at every pixel, maximum error zero. Use square canvases of sides 8, 16, 32, 64 and 128 at seed zero, also 32² at seeds 1, 2, 42 and 137, and 32×16 and 16×32 at seeds zero and 42. The first 32² pixel starts from 9,091,073 at seed zero and 3,342,178 at seed 42.

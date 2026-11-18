@@ -60,7 +60,7 @@ pub(crate) fn evaluate(instruction: &super::instruction::Instruction, args: &[Va
             return Err("arc tangent requires a float2".into());
         }
 
-        return float_value(&[left[1].atan2(left[0])]);
+        return float_value(&[if pixel_math { pixel_atan2(left[0], left[1]) } else { left[1].atan2(left[0]) }]);
     }
 
     if op == "cartesian" {
@@ -105,4 +105,35 @@ pub(crate) fn evaluate(instruction: &super::instruction::Instruction, args: &[Va
     }
 
     float_value(result.get(..count).ok_or("invalid float dimensions")?)
+}
+
+fn pixel_atan2(x: f32, y: f32) -> f32 {
+    use std::f32::consts::{FRAC_PI_2, PI};
+    let flush = |v: f32| if v.is_subnormal() { 0.0 } else { v };
+    let (x, y) = (flush(x), flush(y));
+    if x == 0.0 {
+        return if y > 0.0 {
+            FRAC_PI_2
+        } else if y < 0.0 {
+            -FRAC_PI_2
+        } else {
+            0.0
+        };
+    }
+    let (ax, ay) = (x.abs(), y.abs());
+    let horizontal = ax >= ay;
+    let (small, large) = if horizontal { (ay, ax) } else { (ax, ay) };
+    let ratio = flush(small * flush(super::reciprocal::divide(1.0, large)));
+    // A quartic fitted to the measured first octant. Its four terms follow the pixel dot-product order.
+    let square = ratio * ratio;
+    let linear = ratio.mul_add(1.00249, square * -0.0123825);
+    let cubic = (ratio * square).mul_add(-0.347313, linear);
+    let octant = (square * square).mul_add(0.142604, cubic);
+    let angle = match (horizontal, x < 0.0) {
+        (true, false) => octant,
+        (true, true) => PI - octant,
+        (false, false) => FRAC_PI_2 - octant,
+        (false, true) => FRAC_PI_2 + octant,
+    };
+    if y < 0.0 && angle > 0.0 { -angle } else { angle }
 }
