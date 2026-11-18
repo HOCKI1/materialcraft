@@ -8,7 +8,12 @@ use egui_kittest::Harness;
 use materialcraft_ui_egui::{MaterialCraftApp, UiState};
 
 fn harness(w: f32, h: f32) -> Harness<'static, MaterialCraftApp> {
-    let app = MaterialCraftApp::headless(materialcraft_engine::sample_session(), UiState::default());
+    let mut app = MaterialCraftApp::headless(materialcraft_engine::sample_session(), UiState::default());
+    // This tests resize scheduling, not full-viewport ray-tracing throughput under coverage.
+    // Keep real background rendering and viewport-relative dimensions, with fewer pixels.
+    app.session.view3d.override_resolution = true;
+    app.session.view3d.viewport_resolution = true;
+    app.session.view3d.render_scale = 25;
     Harness::builder().with_size(vec2(w, h)).with_pixels_per_point(1.0).build_ui_state(
         |ui, app: &mut MaterialCraftApp| {
             app.step(&ui.ctx().clone());
@@ -34,7 +39,14 @@ fn settle(h: &mut Harness<'static, MaterialCraftApp>) {
         }
         std::thread::sleep(Duration::from_millis(20));
     }
-    panic!("the 3D view never settled");
+    let app = h.state();
+    panic!(
+        "the 3D view never settled: cooker={}, dirty={}, view_busy={}, renders={}",
+        app.cooker.busy(),
+        app.session.dirty,
+        app.view3d.busy(),
+        app.view3d.renders
+    );
 }
 
 #[test]
