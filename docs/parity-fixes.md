@@ -289,6 +289,26 @@ When a and b are literals, their product rounds first and the other product can 
 
 Omitting a connection is a separate case. With the same declared defaults and both first-pair ports left open, the hash-field sum/difference agrees on 0/35,328 pixels, maximum .234375238. The four modular-field expressions agree on 0/70,656 pixels, maximum 1.67397642. The measured color-temperature root uses explicit connections for its fit.
 
+### Wide blur windows and bevel blur
+
+The bevel blur matches 311,552/311,552 grayscale pixels across all 26 renders, maximum error zero. The [bevel intensity controls](#five-texel-blur-kernels) previously matched 160,049 pixels. The current totals are 122,880 U8, 24,576 U16, 24,576 F16 and 139,520 F32. These include all three successive blur stages at the larger intensities.
+
+| Original controls with radius above 2.5 texels | Renders | Exact RGBA pixels / compared | Maximum error |
+|---|---:|---:|---:|
+| Separable impulse, stripes and signed channel | 48 | 1,081,344/1,081,344 | 0 |
+| Zero-angle directional impulse and stripes | 16 | 262,144/262,144 | 0 |
+| Separable modular four-channel fields | 48 | 172,032/172,032 | 0 |
+| Zero-angle directional modular fields | 24 | 86,016/86,016 | 0 |
+| Four shifted impulses | 42 | 1,204,224/1,204,224 | 0 |
+| Rectangular and square RGBA fields, separable | 128 | 3,801,088/3,801,088 | 0 |
+| Rectangular and square RGBA fields, directional | 64 | 1,900,544/1,900,544 | 0 |
+
+Interior runs aligned to a power of two read a single filtered texel from the corresponding one-dimensional mip level. Reduce adjacent pairs at the source precision, storing each level at the destination precision. At the boundary of a footprint with radius r, let e=ceil(r−.5) and f=r−(e−.5). An endpoint aligned with the start of a pair combines the fractional texel with its full neighbor. For example, the left sample lies 1/(1+f) texels from that endpoint and has weight 1+f. A lone endpoint has weight f. Accumulate the weighted runs from right to left horizontally and top to bottom vertically, then multiply by .5/r. On a clamped axis, coverage beyond the image contributes one weighted read of the original border texel. A 256² impulse at column 128 and radius 4 reads .0625 at column 124, 513/4096 at 125 and 255/4096 at 132.
+
+Use the [three-texel impulse and stripe inputs](#three-texel-blur-kernels) and the [four-channel and shifted-stripe inputs](#five-texel-blur-kernels). At seed 347 run the separable blur at intensity 17.5 on 64², 6.25/10/16.5/24.75 on 128² and 5.25 on 256². Run the zero-angle directional filter on the four 128² cases. For the modular fields use radius 2.875 at 64²/seed 797, 3.0625 at 32²/839 and 3.375 at 64²/877, with all four destination formats at 3.375. For the shifted stripes use radii 2.75, 3, 3.125, 3.5, 4, 5.25 and 8.25, seed 239, at 64², 128² and 256².
+
+For the final two rows use 64×128, 128×64 and 256×256. Channel c is H=((37x+71y+11xy+47c+3xc) mod 1021)/1020. Supply rounded U8 levels or F32 values 3H−1.125. In order, use intensities 6.25, 9, 13, 17.5, 23.75, 30, 31.5, 48 and 62.75 at seeds 109+58j with j starting at zero. Output F32 except at 17.5, which uses U8, U16, F16 and F32. Run the separable filter with both axes tiled and both clamped, and the horizontal directional filter tiled. The radius scales from the shorter dimension on both axes. The table counts only radii above 2.5. Oblique directional kernels are outside these measurements.
+
 ### Five-texel blur kernels
 
 | Original controls with 1.5 < radius ≤ 2.5 | Renders | Exact RGBA pixels / compared | Maximum error |

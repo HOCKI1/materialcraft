@@ -2,6 +2,8 @@ use craft_texture::{Image, Limits, MAX_SIDE};
 use materialcraft_core::OutputFormat;
 use rayon::prelude::*;
 
+mod mip_window;
+
 pub(super) fn short_axis(input: &Image, radius: f32, step: [i64; 2], tile: [bool; 2], source_format: OutputFormat) -> Image {
     let center_weight = 0.5 / radius;
     let edge_weight = (radius - 0.5) * center_weight;
@@ -32,13 +34,20 @@ pub(super) fn short_axis(input: &Image, radius: f32, step: [i64; 2], tile: [bool
     })
 }
 
-pub(super) fn axis(input: &Image, radius: f32, horizontal: bool, tile: bool) -> Image {
+pub(super) fn axis(input: &Image, radius: f32, horizontal: bool, tile: bool, source: OutputFormat, destination: OutputFormat) -> Image {
     if !radius.is_finite() || radius <= 0.5 {
         return input.clone();
     }
 
     // Bound work for hostile strengths to the largest supported image dimension
     let radius = radius.min(MAX_SIDE as f32);
+    let length = if horizontal { input.width() } else { input.height() };
+    // Wide windows sum before normalization. Keep the finite HDR and non-finite
+    // behavior of the extended-precision path when those intermediate sums can overflow.
+    let limit = f32::MAX / (2.0 * radius + 2.0);
+    if length.is_power_of_two() && radius <= length as f32 && input.data().iter().all(|v| v.abs() <= limit) {
+        return mip_window::filter(input, radius, horizontal, tile, source, destination);
+    }
     let extent = (radius + 0.5).floor() as i64;
     let weight = 1.0 / (2.0 * f64::from(radius));
     let edge_weight = (0.5 - (extent as f64 - 0.5) * weight).max(0.0);

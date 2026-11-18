@@ -32,12 +32,12 @@ pub(super) fn blur(context: &CookContext, angle: f32) -> CookResult {
     let dy = -dy;
     let tile = context.tiling_axes();
     if dy == 0.0 {
+        let source_format = context.input_formats.first().copied().unwrap_or(materialcraft_core::OutputFormat::F32);
         if radius <= 2.5 {
-            let source_format = context.input_formats.first().copied().unwrap_or(materialcraft_core::OutputFormat::F32);
             let step = if radius <= 1.5 { [-1, 0] } else { [1, 0] };
             return Ok(vec![box_filter::short_axis(&input, radius, step, tile, source_format)]);
         }
-        return Ok(vec![box_filter::axis(&input, radius, true, tile[0])]);
+        return Ok(vec![box_filter::axis(&input, radius, true, tile[0], source_format, context.format)]);
     }
 
     let major = dx.abs().max(dy.abs());

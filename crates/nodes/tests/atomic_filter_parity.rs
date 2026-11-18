@@ -241,6 +241,30 @@ fn five_texel_blurs_filter_the_outer_pairs_before_accumulating() {
 }
 
 #[test]
+fn wide_blur_reduces_aligned_runs_at_the_destination_precision() {
+    let field = Image::generate(64, 128, Kind::Color, |x, y| {
+        std::array::from_fn(|c| {
+            let c = c as u32;
+            let level = (37 * x + 71 * y + 11 * x * y + 47 * c + 3 * x * c) % 1021;
+            (3.0 * (f64::from(level) / 1020.0) - 1.125) as f32
+        })
+    });
+    let input = [Some(field)];
+    let params = [("intensity", Value::Float(17.5))];
+    for (format, expected) in [
+        (OutputFormat::U8, [0x3ec0c0c1, 0x3edadadb, 0x3ec8c8c9, 0x3ec2c2c3]),
+        (OutputFormat::U16, [0x3ec2e0c3, 0x3edb88dc, 0x3ec9f4ca, 0x3ec3f0c4]),
+        (OutputFormat::F16, [0x3ebbc000, 0x3ed24000, 0x3ec30000, 0x3eb66000]),
+        (OutputFormat::F32, [0x3ebbdad5, 0x3ed25b4e, 0x3ec322fc, 0x3eb6834f]),
+    ] {
+        let output = cook_format("blur", &input, &params, [64, 128], true, format);
+        assert_eq!(materialcraft_nodes::output_precision::apply(output, format).get(11, 37, false).map(f32::to_bits), expected);
+    }
+    let clamped = cook("blur", &input, &params, [64, 128], false);
+    assert_eq!(clamped.get(0, 1, false).map(f32::to_bits), [0xbf1b2df1, 0xbeeaad75, 0xbe9eff07, 0xbe26a135]);
+}
+
+#[test]
 fn blur_preserves_finite_hdr_constant() {
     let input = Image::filled(16, 16, Kind::Gray, [1.0e38; 4]);
 
@@ -255,9 +279,7 @@ fn directional_blur_uses_full_radius_and_fractional_endpoints() {
 
     let output = cook("directional_blur", &[Some(input)], &[("intensity", Value::Float(4.0))], [256, 256], true);
 
-    for offset in -4..=4 {
-        let expected = if offset == -4 || offset == 4 { 0.0625 } else { 0.125 };
-
+    for (offset, expected) in (-4..=4).zip([0.0625, 513.0 / 4096.0, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 255.0 / 4096.0]) {
         assert_eq!(output.get_gray(128 + offset, 128, false), expected, "offset {offset}");
     }
     assert_eq!(output.get_gray(128, 129, false), 0.0);
