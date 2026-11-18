@@ -123,7 +123,8 @@ pub(crate) fn evaluate(
             let index = usize::try_from(setting[0]).map_err(|_| "negative image index")?;
             // Pixel samplers repeat both texture axes independently of the processor's output tiling.
             let repeat = context.scope == super::FunctionScope::PixelProcessor || context.tile;
-            let pixel = match context.images.get(index).and_then(Option::as_ref) {
+            let image = context.images.get(index).and_then(Option::as_ref);
+            let pixel = match image {
                 Some(image) if setting[1] == 0 => {
                     image.get((position[0] * image.width() as f32).floor() as i64, (position[1] * image.height() as f32).floor() as i64, repeat)
                 }
@@ -135,7 +136,13 @@ pub(crate) fn evaluate(
                 None => [0.0; 4],
             };
 
-            if op == "samplelum" { Value::Float(pixel[0]) } else { Value::Float4(pixel) }
+            if op == "samplecol" {
+                Value::Float4(pixel)
+            } else if context.scope == super::FunctionScope::PixelProcessor && image.is_some_and(|texture| texture.kind() == craft_texture::Kind::Color) {
+                Value::Float(((pixel[1] + pixel[2]) + pixel[0]) * (1.0 / 3.0))
+            } else {
+                Value::Float(pixel[0])
+            }
         }
         _ => return super::arithmetic::evaluate(instruction, arguments, random, context.scope),
     })

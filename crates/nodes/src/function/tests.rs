@@ -91,6 +91,27 @@ fn pixel_product_sums_round_once_unless_the_product_is_also_read() {
 }
 
 #[test]
+fn pixel_gray_sampler_combines_stored_color_channels_after_reading() {
+    let mut graph = FunctionGraph::default();
+    let position = graph.add_constant(Value::Float2([0.5; 2]));
+    graph.output = Some(graph.add("samplelum", &[position], Some(Value::Int2([0, 0]))));
+    let program = compile(&graph, 0).unwrap();
+    let rgba = [0x40521096, 0xbfccf206, 0xbfa48635, 0x3f800000].map(f32::from_bits);
+    for (kind, expected) in [(Kind::Color, 0x3e0717d6), (Kind::Gray, rgba[0].to_bits())] {
+        let context = EvaluationContext {
+            scope: super::FunctionScope::PixelProcessor,
+            position: [0.5; 2],
+            size: [1.0; 2],
+            images: &[Some(Image::filled(1, 1, kind, rgba))],
+            image_formats: &[],
+            tile: true,
+            variables: &BTreeMap::new(),
+        };
+        assert_eq!(program.evaluate_pixel(&context, &mut EvaluationState::default()).unwrap(), Value::Float(f32::from_bits(expected)));
+    }
+}
+
+#[test]
 fn pixel_dot_rounds_in_channel_order() {
     // One sampled texel distinguishes the accumulation orders in all three widths.
     let [x, y, z, w] = [0xc07089a0, 0x3fa2fba9, 0xbe30266f, 0xbcf10944].map(f32::from_bits);
