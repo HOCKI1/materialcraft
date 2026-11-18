@@ -253,6 +253,31 @@ Literal-only pixel graphs at 16², seed 23, give 512/768 exact pixels for each l
 
 The shared-lookup ridged root still matches 5,160/16,384 at changed roughness in F32, maximum 1.78813934e−7. Its one-octave .7 control still matches 1,847/4,096, maximum 2.38418579e−7. For positive normal x on the signed field, the reference's general power agrees with exp(y×ln(x)) on all 32,614 pixels. On .7 with exponent 1 it returns `3f333334`. Further work on general power and natural exponential is tracked with the [octave controls](#ridged-noise-octave-isolation).
 
+### Integer Levels endpoints and channel mixing
+
+**Integer Levels.** The 60 signed controls and the 24 mixed, narrow and signed-range controls from the [Levels endpoint table](#levels-endpoints-camera-tangents-and-uniform-exponentials) now match **344,064/344,064 RGBA pixels**, maximum zero. For an integer destination, bound each input and output endpoint to [0,1] before computing the curve. The intermediate-clamp switch still controls the position on the curve. For F16 and F32, retain finite endpoints outside the slider range.
+
+In 32 additional comparisons, replace one endpoint at a time by the literal RGBA tuple (1024, −1024, 10¹², −10¹²). Use the other default endpoints and midpoint, the 64² signed field, seed 131, both intermediate-clamp settings and all four formats. All **131,072/131,072 pixels** match, maximum zero. At the uniform input .125, the signed-endpoint row in the previous table stores (64,88,81,158) in RGBA8 and (16323,22684,20789,40620) in RGBA16.
+
+**Driven controls.** Attach the scalar function numerator/denominator to input high, input low or output high. Use numerators zero and one and exposed denominators 1, +0, −0, 1/1024, −1/1024, 10⁻¹², −10⁻¹² and −1 in that order. Apply the otherwise default Levels filter to the [64² signed field](#signed-levels-driven-grayscale-weights-and-grayscale-gradients) with seeds 607 through 614. A scalar becomes (value,value,value,1). At the integer boundary positive infinity becomes one, and negative infinity and NaN become zero. The 96 integer cases match **393,216/393,216 pixels**. The 72 finite-result float cases match **294,912/294,912**, maximum zero. The 24 float cases with a zero denominator still report a nonfinite parameter error.
+
+A separate upper-endpoint tuple (2¹²⁵,2¹²⁷,−F32_MAX,F32_MAX), with both clamp settings, matches 8,192/8,192 in each integer format. F16 matches 6,411/8,192 with maximum numerical error zero and different zero signs. F32 matches 3,883/8,192 with maximum 3.91219466e−38. Subnormal range scaling remains open.
+
+**Channel mixer.** The default 128² and 256² renders and seed 42 now cook and match all **98,304/98,304 RGBA16 pixels**. The changed 128² case matches 16,380/16,384, maximum four levels. The 64² changed monochrome case in all four formats and the independent 32² F32 case match **17,408/17,408**, maximum zero. The historical changed case uses red (50,25,10,5), green (−10,100,10,0), blue (20,0,50,25) and monochrome enabled. The input fields are original.
+
+Nine further channel mixes use the [original small, full, large, rectangular and signed fields](#signed-levels-driven-grayscale-weights-and-grayscale-gradients). The four numbers in each channel control are percentages. All comparisons count RGBA pixels with all four stored channels equal.
+
+| Input, output, seed | Red / green / blue | Exact pixels | Maximum error |
+|---|---|---:|---:|
+| Small, 16² F32, 41 | (100,0,0,0) / (0,100,0,0) / (0,0,100,0) | 256/256 | 0 |
+| Full, 64² U8 / U16 / F16 / F32, 73 | (60,30,10,0) / (−10,130,−20,0) / (20,15,55,10) | 561 / 513 / 515 / 513 of 4,096 | 58 / 14,864 / .22705078125 / .226810098 |
+| Large, 128² F32, 99 | (.1,0,99.9,0) / (0,99,.1,1) / (0,.125,100,0) | 16,383/16,384 | .00006103515625 |
+| Rectangular, 32² F32, 211 | (29.9,58.7,11.4,0) / (0,100,0,0) / (0,0,100,0), monochrome on | 1,024/1,024 | 0 |
+| Signed, 32² F32, 317 | (−15,75,40,−5) / (70,−6,23,13) / (110,−15,−20,25) | 534/1,024 | .307743947 |
+| Full, 64² F32, 137 | Repeat the seed 73 controls | 513/4,096 | .226810098 |
+
+Reading the intermediate images identifies an additive grayscale blend with opacity 1.3 as the first large difference in the 64² F32 mix. Its two LUM16 inputs match. The first texel has background 0 and foreground 13,281. The reference stores 13,281 and MaterialCraft stores 17,265. A second additive blend with opacity .55 differs at only two of 4,096 texels, maximum one level. The root remains in progress.
+
 ### Levels endpoints, camera tangents and uniform exponentials
 
 **Color to mask** matches **168,192/168,192 pixels in 18 cases**, maximum error zero. Keeping all upstream images fixed on the 64² float color field isolated the last 21 differing pixels at the final Levels filter. Multiply the centered input by the reciprocal input span and perform the output scaling and addition as a single fused operation. The 32×16 source, mixed alpha, signed input, altered keying modes and seeds are included in the [mask case definitions](#signed-levels-driven-grayscale-weights-and-grayscale-gradients). The grayscale HDR range viewer also retains its 18 exact cases.

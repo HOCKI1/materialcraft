@@ -924,3 +924,30 @@ fn a_color_parameter_function_may_return_a_gray_level_or_an_rgb_triple() {
         assert_eq!(result.parameters.get("color").and_then(Value::as_vec4), Some(expected));
     }
 }
+
+#[test]
+fn levels_widens_scalar_endpoints_to_opaque_gray_and_normalizes_integer_controls() {
+    use materialcraft_core::{FunctionGraph, OutputFormat};
+
+    for (format, numerator, denominator, expected) in [
+        (OutputFormat::F32, 1.0, 0.125, [8.0, 8.0, 8.0, 1.0]),
+        (OutputFormat::U8, 1.0, 0.0, [1.0; 4]),
+        (OutputFormat::U16, 1.0, -0.0, [0.0, 0.0, 0.0, 1.0]),
+        (OutputFormat::U16, 0.0, 0.0, [0.0, 0.0, 0.0, 1.0]),
+    ] {
+        let mut function = FunctionGraph::default();
+        let a = function.add_constant(Value::Float(numerator));
+        let b = function.add_constant(Value::Float(denominator));
+        function.output = Some(function.add("div", &[a, b], None));
+        let mut graph = Graph::new("Channel control");
+        let levels = graph.add_node("levels", [0.0; 2]);
+        let node = graph.node_mut(levels).unwrap();
+        node.base.format = format;
+        node.functions.insert("in_high".into(), function);
+        let mut package = Package::new("Channel control");
+        package.graphs.push(graph);
+        let cooked = cook(&package, 0, &Options::new(&no_res), &Mutex::new(Cache::default()));
+        assert_eq!(cooked.nodes[&levels].error, None);
+        assert_eq!(cooked.nodes[&levels].parameters["in_high"], Value::Float4(expected));
+    }
+}

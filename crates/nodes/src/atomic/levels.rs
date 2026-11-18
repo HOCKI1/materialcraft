@@ -1,6 +1,7 @@
 use super::ATOMIC;
 use crate::{CookContext, CookResult, NodeDefinition, node};
 use craft_texture::Kind;
+use materialcraft_core::OutputFormat;
 
 pub(super) fn definition() -> NodeDefinition {
     node("levels", "Levels", ATOMIC)
@@ -19,11 +20,18 @@ pub(super) fn definition() -> NodeDefinition {
 
 fn levels(context: &CookContext) -> CookResult {
     let image = context.any_or(0, Kind::Gray, [0.0; 4]);
-    let low = context.v4("in_low");
+    let endpoint = |name| {
+        let values = context.v4(name);
+        match context.format {
+            OutputFormat::U8 | OutputFormat::U16 | OutputFormat::Inherit => values.map(|v| v.clamp(0.0, 1.0)),
+            OutputFormat::F16 | OutputFormat::F32 => values,
+        }
+    };
+    let low = endpoint("in_low");
     let mid = context.v4("in_mid");
-    let high = context.v4("in_high");
-    let output_low = context.v4("out_low");
-    let output_high = context.v4("out_high");
+    let high = endpoint("in_high");
+    let output_low = endpoint("out_low");
+    let output_high = endpoint("out_high");
     let clamp = context.b("clamp_intermediate");
 
     let ranges: [_; 4] = std::array::from_fn(|c| ChannelRange::new(low[c], mid[c], high[c], output_low[c], output_high[c]));

@@ -4,23 +4,16 @@ use materialcraft_nodes::{CookContext, find, resolve_params};
 use std::collections::BTreeMap;
 
 fn cook(id: &str, inputs: &[Option<Image>], values: &[(&str, Value)], size: [u32; 2], tile: bool) -> Image {
+    cook_format(id, inputs, values, size, tile, OutputFormat::F32)
+}
+
+fn cook_format(id: &str, inputs: &[Option<Image>], values: &[(&str, Value)], size: [u32; 2], tile: bool, format: OutputFormat) -> Image {
     let definition = find(id).unwrap();
     let values = values.iter().map(|(key, value)| ((*key).into(), value.clone())).collect();
     let params = resolve_params(definition, &values);
     let resource = |_: &str| None;
     let vars = BTreeMap::new();
-    let context = CookContext {
-        input_formats: &[],
-        w: size[0],
-        h: size[1],
-        seed: 0,
-        format: OutputFormat::F32,
-        tile,
-        inputs,
-        params: &params,
-        resource: &resource,
-        vars: &vars,
-    };
+    let context = CookContext { input_formats: &[], w: size[0], h: size[1], seed: 0, format, tile, inputs, params: &params, resource: &resource, vars: &vars };
     (definition.cook)(&context).unwrap().remove(0)
 }
 
@@ -43,6 +36,24 @@ fn levels_applies_signed_gamma_before_mapping_the_output_range() {
     let output = cook("levels", &[Some(input)], &params, [2, 1], false);
     assert_eq!(output.get(0, 0, false).map(f32::to_bits), [0xbf5edc67, 0xbf4b2ff5, 0xbe000003, 0xbd000003]);
     assert_eq!(output.get(1, 0, false).map(f32::to_bits), [0x3f9f741c, 0x3fb89ba3, 0x41d80001, 0x4372fffe]);
+}
+
+#[test]
+fn integer_levels_bounds_the_four_endpoints_before_applying_gamma() {
+    let params = [
+        ("in_low", Value::Float4([-1.75, -0.625, -0.125, -0.5])),
+        ("in_mid", Value::Float4([0.469, 0.44, 0.51, 0.25])),
+        ("in_high", Value::Float4([2.375, 2.75, 1.5, 2.875])),
+        ("out_low", Value::Float4([-0.5, -1.0, 0.25, 0.125])),
+        ("out_high", Value::Float4([1.875, 2.25, 1.375, 0.875])),
+        ("clamp_intermediate", Value::Bool(false)),
+    ];
+    let input = [Some(Image::filled(1, 1, Kind::Color, [0.125; 4]))];
+    for (format, max, expected) in [(OutputFormat::U8, 255.0, [64, 88, 81, 158]), (OutputFormat::U16, 65535.0, [16323, 22684, 20789, 40620])] {
+        let image = cook_format("levels", &input, &params, [1, 1], false, format);
+        let stored = materialcraft_nodes::output_precision::apply(image, format);
+        assert_eq!(stored.get(0, 0, false).map(|v| (v * max).round() as u16), expected);
+    }
 }
 
 #[test]

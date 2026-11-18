@@ -97,8 +97,15 @@ pub(crate) fn evaluate(
                 resolved.size
             };
 
-            let value = crate::parameter_function::evaluate(function, parameter.value_type(), variables.to_mut(), resolved.seed, size, false)
-                .map_err(|error| format!("function of `{}`: {error}", parameter.identifier()))?;
+            let value = crate::parameter_function::evaluate(
+                function,
+                parameter.value_type(),
+                variables.to_mut(),
+                resolved.seed,
+                size,
+                crate::parameter_function::ChannelMode::Opaque,
+            )
+            .map_err(|error| format!("function of `{}`: {error}", parameter.identifier()))?;
             parameter.set_value(&mut evaluated, &value)?;
             parameter.set_inheritance(&mut evaluated, parameter.inheritance(base));
             resolved = ResolvedBaseParameters::resolve(&evaluated, input, parent);

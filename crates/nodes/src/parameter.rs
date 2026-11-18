@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 /// How many slider spans the hard limit extends past each end of a parameter's range
 const HARD_SPAN: f32 = 16.0;
 
-/// Native channel controls also accept a single grayscale value, broadcast by the evaluator.
+/// Native channel controls also accept a single grayscale function result.
 /// Other vector parameters keep their exact function output type.
 pub fn accepts_scalar_function(definition: &str, parameter: &str) -> bool {
     matches!((definition, parameter), ("levels", "in_low" | "in_mid" | "in_high" | "out_low" | "out_high") | ("fx_map", "background"))
@@ -48,8 +48,9 @@ pub fn clamp_params(definition: &NodeDefinition, params: &mut BTreeMap<String, V
             continue;
         }
 
-        // An unconstrained Input Value accepts any number; reject only nonnumeric values
-        let ranged = parameter.min < parameter.max;
+        // Levels endpoints have fixed evaluation cost and float images can span the entire finite range.
+        let levels_endpoint = definition.id == "levels" && matches!(parameter.id, "in_low" | "in_high" | "out_low" | "out_high");
+        let ranged = parameter.min < parameter.max && !levels_endpoint;
         let span = parameter.max - parameter.min;
         let (lo, hi) = if ranged { (parameter.min - HARD_SPAN * span, parameter.max + HARD_SPAN * span) } else { (f32::MIN, f32::MAX) };
 

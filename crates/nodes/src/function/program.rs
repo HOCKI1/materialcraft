@@ -34,19 +34,33 @@ impl Program {
 
     /// Pattern parameters share a random stream within each traversal visit.
     pub(crate) fn evaluate_with_random(&self, context: &EvaluationContext<'_>, state: &mut EvaluationState, random: &mut u32) -> Result<Value, String> {
+        let value = self.run_with_random(context, state, random)?;
+        // Callers may clamp undefined intermediates; completed functions must be finite
+        if value.as_vec4().is_some_and(|components| components.iter().any(|value| !value.is_finite())) {
+            return Err("function produced a non-finite output".into());
+        }
+        Ok(value)
+    }
+
+    /// Evaluate an integer texture's channel control at its normalized storage boundary.
+    pub fn evaluate_normalized_color(&self, context: &EvaluationContext<'_>, state: &mut EvaluationState) -> Result<Value, String> {
+        let mut random = self.random_seed(context);
+        let channels = match self.run_with_random(context, state, &mut random)? {
+            Value::Float(v) => [v, v, v, 1.0],
+            Value::Float3([r, g, b]) => [r, g, b, 1.0],
+            Value::Float4(rgba) | Value::Color(rgba) => rgba,
+            _ => return Err("channel control requires a gray level, RGB or RGBA".into()),
+        };
+        Ok(Value::Float4(channels.map(|v| if v.is_nan() { 0.0 } else { v.clamp(0.0, 1.0) })))
+    }
+
+    fn run_with_random(&self, context: &EvaluationContext<'_>, state: &mut EvaluationState, random: &mut u32) -> Result<Value, String> {
         state.variables.clone_from(context.variables);
         state.random = *random;
         let mut remaining = MAX_EVALUATION_STEPS;
         let result = self.run(context, state, &mut remaining);
         *random = state.random;
-        let value = result?;
-
-        // Callers may clamp undefined intermediates; completed functions must be finite
-        if value.as_vec4().is_some_and(|components| components.iter().any(|value| !value.is_finite())) {
-            return Err("function produced a non-finite output".into());
-        }
-
-        Ok(value)
+        result
     }
 
     fn random_seed(&self, context: &EvaluationContext<'_>) -> u32 {

@@ -132,7 +132,7 @@ pub(crate) fn cook_node(
     }
 
     let seed = base.seed;
-    let mut parameters = match resolve_parameters(package, node, definition, &mut variables, seed, base.size) {
+    let mut parameters = match resolve_parameters(package, node, definition, &mut variables, base) {
         Ok(parameters) => parameters,
         Err(error) => return fail(error, 0),
     };
