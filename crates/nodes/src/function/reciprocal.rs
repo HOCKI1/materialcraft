@@ -52,17 +52,15 @@ const fn polynomials() -> [Polynomial; 128] {
 
 const POLYNOMIALS: [Polynomial; 128] = polynomials();
 
-pub(crate) fn divide(numerator: f32, denominator: f32) -> f32 {
+fn factor(denominator: f32) -> Option<f32> {
     let bits = denominator.to_bits();
     let exponent = (bits >> 23) & 255;
     if !(1..=252).contains(&exponent) {
         // At the limits, an intermediate reciprocal can overflow or underflow a finite quotient.
         let reciprocal = denominator.recip();
-        return if reciprocal.is_normal() { numerator * reciprocal } else { numerator / denominator };
+        return reciprocal.is_normal().then_some(reciprocal);
     }
-    let Some(bin) = POLYNOMIALS.get(((bits >> 16) & 127) as usize) else {
-        return numerator / denominator;
-    };
+    let bin = POLYNOMIALS.get(((bits >> 16) & 127) as usize)?;
     let fraction = bits & 0xffff;
     let polynomial = (i64::from(bin.quarter_constant) << 13)
         + i64::from(bin.half_slope) * i64::from(fraction)
@@ -70,5 +68,13 @@ pub(crate) fn divide(numerator: f32, denominator: f32) -> f32 {
     // The observed rounding threshold includes a bias of 2023/32768 of an output unit.
     let significand = ((polynomial + 16_384 + 2_023) >> 15) as u32;
     let magnitude = ((252 - exponent) << 23) + significand;
-    numerator * f32::from_bits((bits & 0x8000_0000) | magnitude)
+    Some(f32::from_bits((bits & 0x8000_0000) | magnitude))
+}
+
+pub(crate) fn divide(numerator: f32, denominator: f32) -> f32 {
+    factor(denominator).map_or_else(|| numerator / denominator, |reciprocal| numerator * reciprocal)
+}
+
+pub(super) fn divide_add(numerator: f32, denominator: f32, addend: f32) -> f32 {
+    factor(denominator).map_or_else(|| numerator / denominator + addend, |reciprocal| numerator.mul_add(reciprocal, addend))
 }

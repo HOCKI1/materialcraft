@@ -286,6 +286,39 @@ fn pattern_angles_and_uniform_cartesian_use_the_same_components() {
 }
 
 #[test]
+fn pixel_quotient_sums_and_second_interpolation_operands_contract() {
+    let values = [0x4044_ca77, 0x4077_425b, 0xbf00_bb3e, 0x4029_426b].map(|v| Value::Float(f32::from_bits(v)));
+    let variables = ["a", "b", "c", "t"].into_iter().map(str::to_owned).zip(values).collect();
+    let context = EvaluationContext {
+        image_formats: &[],
+        scope: super::FunctionScope::PixelProcessor,
+        position: [0.5; 2],
+        size: [1.0; 2],
+        images: &[],
+        tile: true,
+        variables: &variables,
+    };
+    let mut graph = FunctionGraph::default();
+    let [a, b, c, t] = ["a", "b", "c", "t"].map(|name| graph.add("get_float1", &[], Some(Value::Text(name.into()))));
+    let quotient = graph.add("div", &[a, b], None);
+    let product = graph.add("mul", &[a, b], None);
+    let pixel = |graph: &FunctionGraph| compile(graph, 0).unwrap().evaluate_pixel(&context, &mut EvaluationState::default()).unwrap();
+    for (op, inputs, bits) in [
+        ("add", &[quotient, c][..], 0x3e96_0845),
+        ("sub", &[quotient, c], 0x3fa6_3d4f),
+        ("sub", &[c, quotient], 0xbfa6_3d4f),
+        ("lerp", &[c, quotient, t], 0x403b_a465),
+        ("lerp", &[c, product, t], 0x4200_fa51),
+    ] {
+        graph.output = Some(graph.add(op, inputs, None));
+        assert_eq!(pixel(&graph), Value::Float(f32::from_bits(bits)));
+    }
+    let blend = graph.add("lerp", &[c, quotient, t], None);
+    graph.output = Some(graph.add("vector2", &[quotient, blend], None));
+    assert_eq!(pixel(&graph), Value::Float2([0x3f4b_bf61, 0x403b_a467].map(f32::from_bits)));
+}
+
+#[test]
 fn pixel_product_sums_round_once_unless_the_product_is_also_read() {
     let values = [0x3fe34b19, 0x400d3c6f, 0xc0732711, 0x3f9665e4].map(|bits| Value::Float(f32::from_bits(bits)));
     let variables: BTreeMap<_, _> = ["a", "b", "c", "d"].into_iter().map(str::to_owned).zip(values).collect();

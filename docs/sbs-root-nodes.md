@@ -35,7 +35,7 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **295 Parity**, **45 In progress** and **206 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **296 Parity**, **44 In progress** and **206 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
 
 [Grayscale sampler measurements](parity-fixes.md#grayscale-sampling-of-color-inputs) · [Value sampling across 240 typed comparisons](parity-fixes.md#value-processor-texture-filtering)
 
@@ -68,7 +68,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [3d_texture_transform.sbs/3d_texture_offset_color](../assets/sbs/3d_texture_transform.sbs) | 1 | No | [Parity: 5 cases](parity-fixes.md#verified-cases) |
 | [3d_texture_transform.sbs/3d_texture_offset_grayscale](../assets/sbs/3d_texture_transform.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [3d_viewer.sbs/ibl_specular_contrib_anisotropic/panoramic_lod](../assets/sbs/3d_viewer.sbs) | 1 | Yes | [Parity · 20 cases, 219,392 exact pixels](parity-fixes.md#large-transform-offsets-and-additive-blends) |
-| [3d_volume_mask.sbs/3d_volume_mask](../assets/sbs/3d_volume_mask.sbs) | 1 | No | [In progress · 116 renders, cube controls exact, radial F32 differences](parity-fixes.md#volume-mask-shapes-and-axis-sweeps) |
+| [3d_volume_mask.sbs/3d_volume_mask](../assets/sbs/3d_volume_mask.sbs) | 1 | No | [Parity · 116 renders, all 1,029,632 pixels exact](parity-fixes.md#pixel-quotients-and-volume-mask-interpolation) |
 | [3d_worley_noise.sbs/3D_worley_noise](../assets/sbs/3d_worley_noise.sbs) | 1 | No | [In progress · random draws measured, per-pixel starting state differs](parity-fixes.md#pixel-processor-random-draws) |
 | [alveolus.sbs/alveolus](../assets/sbs/alveolus.sbs) | 0 | Yes | [In progress · 300,544/302,336 pixels across 26 renders](parity-fixes.md#radial-stamp-profiles-and-pattern-generators) |
 | [angle_to_vector.sbs/angle_to_vector](../assets/sbs/angle_to_vector.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |

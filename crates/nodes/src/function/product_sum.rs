@@ -3,28 +3,35 @@ use materialcraft_core::Value;
 
 pub(super) struct ProductSum {
     // Visit operands in their original order, including reads with side effects.
-    pub(super) inputs: [usize; 3],
+    pub(super) inputs: Vec<usize>,
     product_on_right: bool,
     negated: bool,
-    scale_vector: bool,
+    operation: &'static str,
 }
 
 impl ProductSum {
     pub(super) fn evaluate(&self, arguments: &[Value], subtract: bool) -> Result<Value, String> {
-        let [first, second, third] = arguments else { return Err("expected three product-sum operands".into()) };
+        let [first, second, third, rest @ ..] = arguments else { return Err("missing product-sum operands".into()) };
         let (a, b, c) = if self.product_on_right { (second, third, first) } else { (first, second, third) };
         let width = value_type::dimensions(a);
-        if width != value_type::dimensions(c) || (width != value_type::dimensions(b) && !(self.scale_vector && value_type::dimensions(b) == 1)) {
+        if width != value_type::dimensions(c) || (width != value_type::dimensions(b) && !(self.operation == "mulscalar" && value_type::dimensions(b) == 1)) {
             return Err("float operands must have the same dimensions".into());
         }
+        let blend = rest.first();
+        if blend.is_some_and(|v| value_type::dimensions(v) != width && value_type::dimensions(v) != 1) {
+            return Err("interpolation factor must be a scalar or match its operands".into());
+        }
+        let blend = blend.map(value_type::floats).transpose()?;
         let a = value_type::floats(a)?.map(flush_subnormal);
         let b = value_type::floats(b)?.map(flush_subnormal);
         let c = value_type::floats(c)?.map(flush_subnormal);
         let negate_product = self.negated ^ (subtract && self.product_on_right);
-        let negate_addend = subtract && !self.product_on_right;
+        let negate_addend = (subtract && !self.product_on_right) || blend.is_some();
         let result: [f32; 4] = std::array::from_fn(|i| {
             let factor = if negate_product { -a[i] } else { a[i] };
-            factor.mul_add(b[i], if negate_addend { -c[i] } else { c[i] })
+            let addend = if negate_addend { -c[i] } else { c[i] };
+            let sum = if self.operation == "div" { super::reciprocal::divide_add(factor, b[i], addend) } else { factor.mul_add(b[i], addend) };
+            blend.map_or(sum, |t| flush_subnormal(sum).mul_add(t[i], c[i]))
         })
         .map(flush_subnormal);
         value_type::intermediate_float_value(result.get(..width).ok_or("invalid product-sum dimensions")?)
@@ -49,7 +56,9 @@ pub(super) fn identify(instructions: &mut [Instruction]) {
     let mut operands: Vec<Option<ProductOperand>> = Vec::with_capacity(instructions.len());
     for (index, op) in instructions.iter().enumerate() {
         let product = match (op.definition.id, op.inputs.as_slice()) {
-            ("mul" | "mulscalar", [_, _]) if !op.literal && matches!(op.type_code, 256 | 512 | 1024 | 2048) => Some(ProductOperand { index, negated: false }),
+            ("mul" | "mulscalar" | "div", [_, _]) if !op.literal && matches!(op.type_code, 256 | 512 | 1024 | 2048) => {
+                Some(ProductOperand { index, negated: false })
+            }
             ("neg", [input]) => operands.get(*input).copied().flatten().map(|p| ProductOperand { negated: !p.negated, ..p }),
             _ => None,
         };
@@ -66,10 +75,11 @@ pub(super) fn identify(instructions: &mut [Instruction]) {
             ("add" | "sub", [a, b]) => operand(*a).zip(operand(*b)).is_none_or(|(p, q)| p.index != q.index),
             _ => false,
         };
-        for &input in &op.inputs {
+        for (slot, &input) in op.inputs.iter().enumerate() {
             if let Some(p) = operand(input) {
                 usage[p.index].count += 1;
-                usage[p.index].rounded |= !sum;
+                // In lerp(a,b,t), b can contract into b-a. Both uses of a need its rounded value.
+                usage[p.index].rounded |= !(sum || (op.definition.id == "lerp" && slot == 1));
             }
         }
     }
@@ -90,12 +100,17 @@ pub(super) fn identify(instructions: &mut [Instruction]) {
 
     for index in 0..instructions.len() {
         let Some(op) = instructions.get(index) else { continue };
-        if !matches!(op.definition.id, "add" | "sub") || !matches!(op.type_code, 256 | 512 | 1024 | 2048) {
+        if !matches!(op.type_code, 256 | 512 | 1024 | 2048) {
             continue;
         }
-        let &[left, right] = op.inputs.as_slice() else { continue };
+        let (left, right, blend) = match (op.definition.id, op.inputs.as_slice()) {
+            ("add" | "sub", &[left, right]) => (left, right, None),
+            ("lerp", &[left, right, factor]) => (left, right, Some(factor)),
+            _ => continue,
+        };
         let product = [(left, right, false), (right, left, true)]
             .into_iter()
+            .filter(|(_, _, on_right)| blend.is_none() || *on_right)
             .filter_map(|(source, other, product_on_right)| {
                 let source = operand(source)?;
                 let product = instructions.get(source.index)?;
@@ -108,8 +123,9 @@ pub(super) fn identify(instructions: &mut [Instruction]) {
                     return None;
                 }
                 let &[a, b] = product.inputs.as_slice() else { return None };
-                let inputs = if product_on_right { [other, a, b] } else { [a, b, other] };
-                Some((used.count, ProductSum { inputs, product_on_right, negated: source.negated, scale_vector: product.definition.id == "mulscalar" }))
+                let mut inputs = if product_on_right { vec![other, a, b] } else { vec![a, b, other] };
+                inputs.extend(blend);
+                Some((used.count, ProductSum { inputs, product_on_right, negated: source.negated, operation: product.definition.id }))
             })
             .min_by_key(|(count, _)| *count)
             .map(|(_, sum)| sum);

@@ -339,7 +339,23 @@ The irradiance graphs expose the sample index and count as scalar value pins. Fo
 
 For the debug root set debug_pos to (.3125,.6875), and use index offsets 0, 1 and 2 in the direct A, B and C settings. In the three parent graphs use index offsets −1, 0 and 1 respectively. All five cases with index 0, count 1 and offset −1 render in the reference app. MaterialCraft reports a nonfinite pattern-function result on those five and their fallback images are excluded from the pixel counts. The direct 64² F32 case isolates a second difference. The gray conversion, gradient and input match. The pattern output differs at four pixels on rows 46–49. At (20,46) the reference stores (.321308792,.787873089,0,1) and MaterialCraft stores (.811764717,.811764717,.811764717,1).
 
+### Pixel quotients and volume-mask interpolation
+
+The volume mask matches **1,029,632/1,029,632 pixels across 116 renders**. The maximum error is zero in each format. This includes all 640,512 F32, 315,392 U16, 36,864 F16 and 36,864 U8 pixels. The [shape and axis sweeps](#volume-mask-shapes-and-axis-sweeps) give the procedural position fields, parameters and seeds.
+
+The first difference on the zero-rotation cylinder was an interpolation whose second endpoint is a quotient. Moving the pixel function's output to each operand showed that both endpoints matched. MaterialCraft had rounded the quotient before subtracting the first endpoint. The sphere also uses a quotient minus one when its radial extents differ. Reading 17 intermediate scalars on the 64² X sweep at seed 183, the 32² Y sweep at seed 226 and the 128² Z sweep at seed 140 gives 365,568/365,568 exact F32 values in 51 observations after the correction.
+
+| Direct pixel expressions | Renders | Exact pixels / compared | Maximum error |
+|---|---:|---:|---:|
+| Quotient, reciprocal, sums, differences and interpolations | 91 | 652,288/652,288 | 0 |
+
+Write q=R/G and p=R×G. Compare q, 1/G, q+B, B+q, q−B, B−q, lerp(q,B,A), lerp(B,q,A), lerp(R,B,A), lerp(p,B,A), lerp(B,p,A), lerp(B,A,q), and the four-channel output (q,q−B,lerp(B,q,A),q). Run each expression on the [signed 128² field](#3d-linear-gradient) with F32 at seeds 127 and 541. Use its top-left 64² texels in all four formats at seed 239. At 32² use F32 and seed 313 with channel c=((37x+71y+11xy+47c+3xc) mod 1021)/256−1.125. For every input replace G with .125 wherever |G| is less than .1. Sample at texel centers with nearest filtering.
+
+The previous cook matched 603,372/652,288 pixels with maximum F32 error 0.0000152587890625. The measured sums round once when they consume a runtime quotient. For lerp(a,b,t), a quotient or product in b can combine with the subtraction b−a. The first endpoint, a quotient used as the weight, and a quotient also returned as a separate channel preserve their individual rounding.
+
 ### Volume-mask shapes and axis sweeps
+
+The counts in this subsection were measured before the [pixel quotient correction](#pixel-quotients-and-volume-mask-interpolation). All 116 renders now match.
 
 The shape menu assigns 0 to cube, 1 to cylinder and 2 to sphere. Cube is the default. Some earlier case names called shape 1 a box and called the default a sphere. The corrected shape names above and below use the actual control value.
 
