@@ -209,6 +209,31 @@ The color and grayscale Crop roots each match **229,376/229,376** pixels across 
 
 For the independent case, enable Show Crop Area, set Input Size to (64,128), Matrix to (.75,−.125,.375,1.25), Offset to (−.1875,.3125) and Filtering to 0. Use the original color or height field under [height distance, texture mapping and skew](#height-distance-texture-mapping-skew-and-weave) at the output dimensions. At 128² seed 71 F32 and 64² seed 137 in all four storage formats, each root’s Output matches 32,768/32,768 pixels. Area matches in U8, U16 and F32. At 64² F16, color Area matches 4,054/4,096 and grayscale Area matches 4,087/4,096. Both maxima are .00048828125. The last operation on both Area outputs is a blend.
 
+### Runtime pixel sine, cosine and atlas rotation
+
+Sine and cosine match **1,443,840/1,443,840 LUM32F pixels** across 30 original Pixel Processor cases. Exactness includes signed zero and all 84 nonfinite output components. Maximum finite error is zero. Direct Cartesian coordinates and separately multiplying the radius by the cosine and sine match another **197,632/197,632 component pixels**. With radius −1.25 and angle float32(π/4), the two coordinate components have bits `bf62462e bf624630`.
+
+The runtime pixel operations use a 25-bit phase. The low 25 bits of the angle reduction determine a quadrant and position in a 64-interval quarter wave. Each quadratic is derived from the sine function. Its fractional square retains the same partial products as runtime division. Reflection across a quadrant edge complements the phase bits, and the magnitude truncates to float32. At angle .625 the runtime sine and cosine have bits `3f15c8eb` and `3f4f9b48`. The literal-only results are `3f15c8ef` and `3f4f9b47`.
+
+Use separate grayscale processors to nearest-sample the red channel of each original linear RGBA32F input and return its sine or cosine. Let i be the row-major pixel index. For the hashed fields start with h=(747796405i+2891336453) modulo 2³², replace h by ((h >> ((h >> 28)+4)) XOR h)×277803737 modulo 2³², then XOR it with h >> 22. Round each input to float32 before sampling.
+
+| Inputs | Size and seed | Exact pixels, sine and cosine together |
+|---|---|---:|
+| R=(q+.625)π/2²⁴, with q=64i, i, 1966080+i, 4194304+i−32768, or a sample without replacement from 0..4194303 using NumPy default_rng(117) | Five 256² fields, seed 113 | 655,360/655,360 |
+| R=float32(i/65535)×float32(2π), or R with bits `0x3f490fdb-32768+i` | Two 256² fields, seed 42 | 262,144/262,144 |
+| R=(26h/2³²−13)π, R=(2h/2³²−1)×1037287, or float bits with sign i mod 2, exponent floor(i/2) mod 255 and mantissa h mod 2²³ | Three 256² fields, seed 137 | 393,216/393,216 |
+| Float32((i mod 32−16)π/2), offset its unsigned bit pattern by floor(i/32) mod 17−8 and replace nonfinite inputs by zero | 256², seed 137 | 131,072/131,072 |
+| Cycle through ±0, ±.1, .625, π/4, −π/4, π/2, π, ±2π, 589.9901123047, −974634.875, ±2³⁴, ±∞ and NaN in that order | 16², seed 17 | 512/512 |
+| Literal-only .625, −π/4 and 2π | Three 16² cases per operation, seed 17 | 1,536/1,536 |
+
+For Cartesian coordinates, read radius from red and angle from green. In the two 128² signed fields use radius 9i/16384−4.5 and angle (2h/2³²−1) multiplied by 13π or 1037287. A third field cycles radius through (0,−0,1,−1,.375,−1.25) and changes angle every seven pixels through (0,−0,π/4,π/2,π,2π,−2π,−974634.875). The 16² literal control uses (.875,.625). Read each component separately at seed 313. Before this correction, the direct large-angle cosine coordinate matched 1/16,384 pixels with maximum error .184980124.
+
+The atlas crop root matches **378,880/378,880 pixels in 37 cases**, maximum error zero. In the [wired atlas wrapper](#atlas-crop-with-wired-value-inputs), default and .125-turn rotation each match 114,688/114,688 RGBA32F pixels across seven parent-size, seed and precision settings. Grid view, zero count and count two each match 16,384/16,384. Adjusting the final processor itself to U8, U16, F16 and F32 gives eight further matching 64² outputs, 32,768/32,768 pixels. This includes the 128 differing edge pixels previously measured at .125 turns and 256².
+
+For twelve additional wrapper cases, keep the single shape table and white index field. At 128² bind linear RGBA bytes (3xy+19y+7x, 5x−31y, 17x+11y, 23x+13y), modulo 256. At 16² use v=(17x+53y) mod 256 and background (v,255−v,3xy mod 256,(7x+3y) mod 256). Opacity is zero where (floor(x/3)+floor(y/2)) mod 3 is zero and (37x+11y) mod 256 elsewhere. Test −.1875 turns without the grid and .3125 turns with the grid, grid opacity .375 and selection opacity .625. Each rotation matches 33,792/33,792 at 32² seed 73, 64² seed 137 with four parent precision requests and 128² seed 313. The instance stores RGBA32F in all twelve cases.
+
+With the [planar projection inputs](#grayscale-and-color-3d-planar-projection), .125 turns still matches 16,335/16,384 LUM16 pixels and 16,378/16,384 RGBA8 pixels. Maxima are 226 and one stored level. A separate graph computing sine or cosine in the node's output-size function gives `3f350503` for both operations at float32(π/4). This is a distinct arithmetic path from the per-pixel function.
+
 ### Runtime angles and circular gradient
 
 The Circular Gradient root matches **163,840/163,840 pixels** in thirteen cases, maximum error zero. Its default outputs at 128² and 256² with seed zero and 128² with seed 42 match all 98,304 pixels. Set the two points to (.3,.6) and (.8,.7), angle .2 and non-square expansion off. At 128² seed zero the authored output matches 16,384/16,384. At 64² seed 42, U8, U16, F16 and F32 each match 4,096/4,096. For an independent rotation, use (.71875,.21875), (.0625,.8125), angle −.15625 and enable non-square expansion. The 128² F32 output at seed 71 and all four formats at 64² seed 137 match another 32,768/32,768 pixels. This root takes no image input.

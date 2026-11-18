@@ -14,6 +14,7 @@ mod compile;
 mod evaluation_context;
 mod evaluation_state;
 mod evaluation_step;
+mod fixed_point;
 mod function_call;
 mod function_definition;
 mod function_scope;
@@ -29,6 +30,7 @@ mod program;
 mod reciprocal;
 mod resolve_instances;
 mod system_variable;
+mod trigonometry;
 mod unconnected_input;
 #[cfg(test)]
 #[path = "unconnected.test.rs"]

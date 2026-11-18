@@ -1,5 +1,7 @@
 //! Fixed-point reciprocal used by runtime pixel division.
 
+use super::fixed_point::square_fraction;
+
 #[derive(Clone, Copy)]
 struct Polynomial {
     quarter_constant: i32,
@@ -49,19 +51,6 @@ const fn polynomials() -> [Polynomial; 128] {
 }
 
 const POLYNOMIALS: [Polynomial; 128] = polynomials();
-
-// Square a 16-bit fraction, retaining partial products in the top 15 fractional columns.
-// A pair of distinct bits contributes twice. A diagonal bit contributes once.
-fn square_fraction(fraction: u32) -> u32 {
-    let mut square = 0;
-    for bit in 1..=7 {
-        if fraction & (1 << (16 - bit)) != 0 {
-            let width = 16 - 2 * bit;
-            square += (1 << (width - 1)) + ((fraction >> bit) & ((1 << width) - 1));
-        }
-    }
-    square
-}
 
 pub(super) fn divide(numerator: f32, denominator: f32) -> f32 {
     let bits = denominator.to_bits();

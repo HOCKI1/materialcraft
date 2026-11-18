@@ -53,6 +53,42 @@ fn pixel_operation(op: &str, operands: &[Value], literal: bool) -> Value {
 }
 
 #[test]
+fn runtime_pixel_sine_and_cosine_reduce_the_phase_before_interpolation() {
+    use std::f32::consts::{FRAC_PI_4, TAU};
+
+    for (angle, sine, cosine) in [
+        (-0.0, 0x80000000, 0x3f800000),
+        (0.625, 0x3f15c8eb, 0x3f4f9b48),
+        (-FRAC_PI_4, 0xbf3504f3, 0x3f3504f2),
+        (TAU, 0x80000000, 0x3f800000),
+        (f32::from_bits(0xc96df2ae), 0x3e98c108, 0x3f74574d),
+    ] {
+        for (op, expected) in [("sin", sine), ("cos", cosine)] {
+            let Value::Float(result) = pixel_operation(op, &[Value::Float(angle)], false) else { panic!("expected a scalar") };
+            assert_eq!(result.to_bits(), expected, "{op}({angle})");
+        }
+    }
+    assert_eq!(pixel_operation("sin", &[Value::Float(0.625)], true), Value::Float(f32::from_bits(0x3f15c8ef)));
+    assert_eq!(pixel_operation("cos", &[Value::Float(0.625)], true), Value::Float(f32::from_bits(0x3f4f9b47)));
+}
+
+#[test]
+fn runtime_pixel_cartesian_multiplies_the_radius_by_each_quarter_wave() {
+    for (radius, angle, expected) in [
+        (-1.25, std::f32::consts::FRAC_PI_4, [0xbf62462e, 0xbf624630]),
+        (0.375, -0.0, [0x3ec00000, 0x80000000]),
+        (0.375, std::f32::consts::FRAC_PI_2, [0, 0x3ec00000]),
+    ] {
+        let result = pixel_operation("cartesian", &[Value::Float(radius), Value::Float(angle)], false);
+        let Value::Float2(xy) = result else { panic!("expected a coordinate") };
+        assert_eq!(xy.map(f32::to_bits), expected);
+    }
+    let result = pixel_operation("cartesian", &[Value::Float(0.875), Value::Float(0.625)], true);
+    let Value::Float2(xy) = result else { panic!("expected a coordinate") };
+    assert_eq!(xy.map(f32::to_bits), [0x3f35a7de, 0x3f030fd1]);
+}
+
+#[test]
 fn pixel_product_sums_round_once_unless_the_product_is_also_read() {
     let values = [0x3fe34b19, 0x400d3c6f, 0xc0732711, 0x3f9665e4].map(|bits| Value::Float(f32::from_bits(bits)));
     let variables: BTreeMap<_, _> = ["a", "b", "c", "d"].into_iter().map(str::to_owned).zip(values).collect();

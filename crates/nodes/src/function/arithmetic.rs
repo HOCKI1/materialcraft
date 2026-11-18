@@ -68,7 +68,10 @@ pub(crate) fn evaluate(instruction: &super::instruction::Instruction, args: &[Va
             return Err("Cartesian requires scalar radius and angle".into());
         }
 
-        return float_value(&[left[0] * right[0].cos(), left[0] * right[0].sin()]);
+        let angle = right[0];
+        let (cosine, sine) =
+            if pixel_math { (super::trigonometry::component(angle, true), super::trigonometry::component(angle, false)) } else { (angle.cos(), angle.sin()) };
+        return float_value(&[left[0] * cosine, left[0] * sine]);
     }
 
     let mut result = [0.0; 4];
@@ -93,6 +96,8 @@ pub(crate) fn evaluate(instruction: &super::instruction::Instruction, args: &[Va
             "log2" => left.log2(),
             "pow" => left.powf(right),
             "pow2" => left.exp2(),
+            "sin" if pixel_math => super::trigonometry::component(left, false),
+            "cos" if pixel_math => super::trigonometry::component(left, true),
             "sin" => left.sin(),
             "cos" => left.cos(),
             "tan" => left.tan(),

@@ -35,7 +35,7 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **199 Parity**, **26 In progress** and **321 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **200 Parity**, **25 In progress** and **321 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
 
 [Grayscale sampler measurements](parity-fixes.md#grayscale-sampling-of-color-inputs) · [Value sampling across 240 typed comparisons](parity-fixes.md#value-processor-texture-filtering)
 
@@ -68,7 +68,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [angle_to_vector.sbs/angle_to_vector](../assets/sbs/angle_to_vector.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [anisotropic_blur.sbs/anisotropic_blur](../assets/sbs/anisotropic_blur.sbs) | 1 | No | [In progress · first directional pass differs](parity-fixes.md#anisotropic-blur) |
 | [anisotropic_blur.sbs/anisotropic_blur_grayscale](../assets/sbs/anisotropic_blur.sbs) | 1 | No | [In progress · rotated kernel differs](parity-fixes.md#anisotropic-blur) |
-| [atlas_spliter.sbs/crop_and_transform_sub](../assets/sbs/atlas_spliter.sbs) | 7 | Yes | [In progress · wired default crop exact at 64²–256², rotated edge differs](parity-fixes.md#wired-graph-textures-and-pixel-sampling) |
+| [atlas_spliter.sbs/crop_and_transform_sub](../assets/sbs/atlas_spliter.sbs) | 7 | Yes | [Parity · 37 wired cases, 378,880 exact pixels](parity-fixes.md#runtime-pixel-sine-cosine-and-atlas-rotation) |
 | [atlas_spliter.sbs/max_ba](../assets/sbs/atlas_spliter.sbs) | 1 | Yes | [Parity: 3 cases](parity-fixes.md#verified-cases) |
 | [auto_crop.sbs/min_max](../assets/sbs/auto_crop.sbs) | 1 | Yes | [Parity: 3 cases](parity-fixes.md#verified-cases) |
 | [auto_levels.sbs/auto_levels](../assets/sbs/auto_levels.sbs) | 1 | No | [Parity: 3 cases](parity-fixes.md#verified-cases) |
