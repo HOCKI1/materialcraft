@@ -948,7 +948,7 @@ dependencies = [
 [[package]]
 name = "craft-mcmat"
 version = "0.1.0"
-source = "git+https://github.com/storytold/craft-libs?rev=b0f25d641840bea1dda99c1e5e0c8db9221bcf28#b0f25d641840bea1dda99c1e5e0c8db9221bcf28"
+source = "git+https://github.com/storytold/craft-libs?rev=7a7a18cb40ac4cd5fca29c0dc224ac5178d40a89#7a7a18cb40ac4cd5fca29c0dc224ac5178d40a89"
 dependencies = [
  "craft-zip",
  "serde",
@@ -1121,7 +1121,7 @@ dependencies = [
 [[package]]
 name = "craft-zip"
 version = "0.1.0"
-source = "git+https://github.com/storytold/craft-libs?rev=b0f25d641840bea1dda99c1e5e0c8db9221bcf28#b0f25d641840bea1dda99c1e5e0c8db9221bcf28"
+source = "git+https://github.com/storytold/craft-libs?rev=7a7a18cb40ac4cd5fca29c0dc224ac5178d40a89#7a7a18cb40ac4cd5fca29c0dc224ac5178d40a89"
 dependencies = [
  "flate2",
  "thiserror 2.0.21",

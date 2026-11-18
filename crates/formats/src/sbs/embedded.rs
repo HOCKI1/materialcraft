@@ -7,11 +7,20 @@ pub(super) fn base64_engine() -> base64::engine::GeneralPurpose {
 }
 
 pub(super) fn decode_embedded(strdata: &str) -> std::result::Result<Vec<u8>, String> {
+    decode_embedded_bounded(strdata, crate::MAX_RESOURCE)
+}
+
+pub(super) fn decode_embedded_bounded(strdata: &str, remaining: u64) -> std::result::Result<Vec<u8>, String> {
     let raw = base64_engine().decode(strdata.split_whitespace().collect::<String>()).map_err(|e| format!("bad base64: {e}"))?;
     let (length, compressed) = raw.split_at_checked(4).ok_or("too short")?;
     let length = u32::from_be_bytes([length[0], length[1], length[2], length[3]]) as usize;
     if length as u64 > crate::MAX_RESOURCE {
         return Err("embedded resource exceeds the 256 MiB limit".into());
+    }
+
+    // Check before inflating: a small inline payload can expand past the package budget.
+    if length as u64 > remaining {
+        return Err("embedded resource exceeds the remaining material resource budget".into());
     }
 
     let mut out = Vec::new();
@@ -61,6 +70,16 @@ mod tests {
         let spaced = encoded.chars().map(|c| format!("{c} \n")).collect::<String>();
 
         assert_eq!(decode_embedded(&spaced).unwrap(), b"payload");
+    }
+
+    #[test]
+    fn aggregate_budget_is_checked_before_inflating() {
+        // Deliberately invalid zlib data: the budget guard must run before decompression.
+        let raw = [0, 0, 0, 4, 255];
+        let encoded = base64_engine().encode(raw);
+        assert!(decode_embedded_bounded(&encoded, 3).unwrap_err().contains("remaining material resource budget"));
+        assert!(!decode_embedded_bounded(&encoded, 4).unwrap_err().contains("remaining material resource budget"));
+        assert_eq!(decode_embedded_bounded(&encode_embedded(b"four").unwrap(), 4).unwrap(), b"four");
     }
 
     #[test]

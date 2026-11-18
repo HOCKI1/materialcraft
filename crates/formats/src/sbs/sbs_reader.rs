@@ -3,7 +3,7 @@ use super::component_usage;
 use super::connection::connect_all;
 use super::constant::{MAX_NODES, MAX_WIRES};
 use super::constant::{NODE_HALF_SIZE, SELF_DEPENDENCY};
-use super::embedded::decode_embedded;
+use super::embedded::{decode_embedded, decode_embedded_bounded};
 use super::filter_map::{BASE_PARAMS, FilterMap, HANDLED_PARAMS, filter_by_sbs_name};
 use super::function_graph;
 use super::input_bridge::InputBridge;
@@ -22,6 +22,7 @@ use roxmltree::Node as XmlNode;
 use std::collections::{HashMap, HashSet};
 
 pub(super) struct SbsReader<'text, 'warnings> {
+    pub(super) resource_budget: Option<&'warnings std::cell::Cell<u64>>,
     pub(super) text: &'text str,
     pub(super) warnings: &'warnings mut Warnings,
     pub(super) dependencies: HashMap<String, String>,
@@ -108,8 +109,19 @@ impl<'text> SbsReader<'text, '_> {
         let mut why_missing = String::new();
 
         if let Some(embedded) = source.and_then(|s| child_element(s, "binembedded")) {
-            match decode_embedded(child_value(embedded, "strdata").unwrap_or("")) {
-                Ok(data) if !font || !data.is_empty() => bytes = Some(data),
+            let encoded = child_value(embedded, "strdata").unwrap_or("");
+            let decoded = match self.resource_budget {
+                Some(budget) => decode_embedded_bounded(encoded, budget.get()),
+                None => decode_embedded(encoded),
+            };
+            match decoded {
+                Ok(data) if !font || !data.is_empty() => {
+                    if let Some(budget) = self.resource_budget {
+                        // The decoder checked this length before allocating its output.
+                        budget.set(budget.get().saturating_sub(data.len() as u64));
+                    }
+                    bytes = Some(data);
+                }
                 Ok(_) => why_missing = "its embedded font data is empty".into(),
                 Err(e) => why_missing = format!("its embedded data is damaged ({e})"),
             }

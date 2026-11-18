@@ -20,13 +20,7 @@ pub fn read_material(bytes: &[u8]) -> Result<(Package, usize)> {
     let limits = craft_mcmat::Limits::default();
     let material = craft_mcmat::Material::open(bytes, limits).map_err(|err| FormatError::BadPackage(err.to_string()))?;
 
-    // Aliases of a compressed member share a single decoded-byte budget
-    let remaining = Cell::new(limits.max_total_bytes);
-    let read = sbs::read_sbs(&material.source, craft_mcmat::SOURCE_ENTRY, &|name| {
-        let data = material.resources.get(name)?;
-        remaining.set(remaining.get().checked_sub(data.len() as u64)?);
-        Some(data.clone())
-    })?;
+    let read = read_source(&material, limits.max_total_bytes)?;
     drop(material);
 
     if let Some(warning) = read.warnings.first() {
@@ -42,6 +36,20 @@ pub fn read_material(bytes: &[u8]) -> Result<(Package, usize)> {
     // Reuse the publisher’s dependency checks for third-party archives
     super::snapshot(&pkg, entry)?;
     Ok((pkg, entry))
+}
+
+// Linked aliases and inline SBS assets must share the same decoded-byte budget.
+fn read_source(material: &craft_mcmat::Material, budget: u64) -> Result<sbs::SbsRead> {
+    let remaining = Cell::new(budget);
+    sbs::SbsDocument::parse(&material.source)?.read_with_resource_budget(
+        craft_mcmat::SOURCE_ENTRY,
+        &|name| {
+            let data = material.resources.get(name)?;
+            remaining.set(remaining.get().checked_sub(data.len() as u64)?);
+            Some(data.clone())
+        },
+        &remaining,
+    )
 }
 
 /// Whether maps of `usage` hold colors (stored sRGB-encoded) rather than data (linear)
@@ -60,4 +68,62 @@ pub fn srgb_usage(usage: &str) -> bool {
             | "reflection"
             | "ambient"
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use base64::Engine as _;
+    use std::io::Write;
+
+    fn inline(bytes: &[u8]) -> String {
+        let mut encoder = flate2::write::ZlibEncoder::new((bytes.len() as u32).to_be_bytes().to_vec(), flate2::Compression::default());
+        encoder.write_all(bytes).unwrap();
+        let encoded = base64::engine::general_purpose::STANDARD.encode(encoder.finish().unwrap());
+        format!("<resource><identifier v=\"inline\"/><source><binembedded><strdata v=\"{encoded}\"/></binembedded></source></resource>")
+    }
+
+    fn linked(name: &str) -> String {
+        format!("<resource><identifier v=\"{name}\"/><filepath v=\"resources/member.png\"/></resource>")
+    }
+
+    fn make_material(content: &str) -> craft_mcmat::Material {
+        let source = format!("<package><content>{content}</content></package>");
+        let bytes = craft_mcmat::write(source.as_bytes(), [("resources/member.png", b"abc".as_slice())]).unwrap();
+        craft_mcmat::Material::open(&bytes, craft_mcmat::Limits::default()).unwrap()
+    }
+
+    #[test]
+    fn inline_and_member_assets_share_the_exact_budget_in_either_order() {
+        for content in [format!("{}{}", inline(b"four"), linked("member")), format!("{}{}", linked("member"), inline(b"four"))] {
+            let material = make_material(&content);
+            let read = read_source(&material, 7).unwrap();
+            assert!(read.warnings.is_empty(), "{:?}", read.warnings);
+            assert_eq!(read.pkg.resources.iter().map(|resource| resource.bytes.len()).sum::<usize>(), 7);
+            let read = read_source(&material, 6).unwrap();
+            assert!(!read.warnings.is_empty(), "budget failure must reject the material");
+            assert!(read.pkg.resources.iter().map(|resource| resource.bytes.len()).sum::<usize>() <= 6);
+        }
+    }
+
+    #[test]
+    fn multiple_inline_assets_and_member_aliases_cannot_bypass_the_budget() {
+        for content in [format!("{}{}", inline(b"abc"), inline(b"def")), format!("{}{}", linked("a"), linked("b"))] {
+            let material = make_material(&content);
+            assert!(read_source(&material, 6).unwrap().warnings.is_empty());
+            let read = read_source(&material, 5).unwrap();
+            assert!(!read.warnings.is_empty());
+            assert_eq!(read.pkg.resources.iter().map(|resource| resource.bytes.len()).sum::<usize>(), 3);
+        }
+    }
+
+    #[test]
+    fn standalone_sbs_keeps_inline_compatibility_and_zero_length_is_free() {
+        let material = make_material(&format!("{}{}", inline(b""), linked("member")));
+        assert!(read_source(&material, 3).unwrap().warnings.is_empty());
+        let material = make_material(&format!("{}{}", inline(b"abc"), inline(b"def")));
+        let read = sbs::read_sbs(&material.source, "source.sbs", &|_| None).unwrap();
+        assert!(read.warnings.is_empty());
+        assert_eq!(read.pkg.resources.iter().map(|resource| resource.bytes.len()).sum::<usize>(), 6);
+    }
 }
