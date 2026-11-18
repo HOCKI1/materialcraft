@@ -35,7 +35,7 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **297 Parity**, **44 In progress** and **205 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **299 Parity**, **42 In progress** and **205 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
 
 [Grayscale sampler measurements](parity-fixes.md#grayscale-sampling-of-color-inputs) · [Value sampling across 240 typed comparisons](parity-fixes.md#value-processor-texture-filtering)
 
@@ -384,13 +384,13 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [panorama_physical_sun_sky.sbs/Impl/GetOneParam](../assets/sbs/panorama_physical_sun_sky.sbs) | 1 | Yes | [Parity · 25 exact float3 outputs](parity-fixes.md#color-temperature-range-reductions-sky-parameters-and-polygon-paths) |
 | [panorama_position.sbs/panorama_3d_position](../assets/sbs/panorama_position.sbs) | 0 | No | [Parity · 18 renders, all 171,264 pixels exact](parity-fixes.md#normal-maps-panoramas-and-primitive-shapes) |
 | [panorama_rotation.sbs/panorama_rotation](../assets/sbs/panorama_rotation.sbs) | 1 | No | [Parity · 206,336 exact pixels in 26 renders](parity-fixes.md#segment-mapping-and-normal-graph-rechecks) |
-| [panorama_shape.sbs/panorama_line_light](../assets/sbs/panorama_shape.sbs) | 3 | No | [In progress · 171,207/171,264 pixels, first difference in the pixel processor](parity-fixes.md#normal-maps-panoramas-and-primitive-shapes) |
-| [panorama_shape.sbs/panorama_plane_light](../assets/sbs/panorama_shape.sbs) | 3 | No | [In progress · 170,458/171,264 exact pixels in 18 renders](parity-fixes.md#plane-light-splatter-symmetry-and-waveform-comparisons) |
+| [panorama_shape.sbs/panorama_line_light](../assets/sbs/panorama_shape.sbs) | 3 | No | [Parity · 30 renders, all 241,152 pixels exact](parity-fixes.md#panoramic-line-light-and-horizon-across-the-seam) |
+| [panorama_shape.sbs/panorama_plane_light](../assets/sbs/panorama_shape.sbs) | 3 | No | [In progress · 22 renders, 199,155/199,936 exact pixels](parity-fixes.md#panoramic-line-light-and-horizon-across-the-seam) |
 | [panorama_shape.sbs/panorama_shape](../assets/sbs/panorama_shape.sbs) | 1 | No | [Parity · 18 renders, all 171,264 pixels exact](parity-fixes.md#normal-maps-panoramas-and-primitive-shapes) |
 | [panorama_shape.sbs/panorama_shape_2](../assets/sbs/panorama_shape.sbs) | 2 | No | [Parity · 18 renders, all 171,264 pixels exact](parity-fixes.md#normal-maps-panoramas-and-primitive-shapes) |
 | [panorama_shape.sbs/panorama_sphere_light](../assets/sbs/panorama_shape.sbs) | 2 | No | [Parity · 171,264 exact pixels in 18 renders](parity-fixes.md#segment-mapping-and-normal-graph-rechecks) |
 | [panorama_shape.sbs/panorama_spot](../assets/sbs/panorama_shape.sbs) | 1 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [panorama_straighten_horizon.sbs/panorama_straighten_horizon](../assets/sbs/panorama_straighten_horizon.sbs) | 1 | No | [In progress · 171,231/171,264 pixels, first difference in the pixel processor](parity-fixes.md#normal-maps-panoramas-and-primitive-shapes) |
+| [panorama_straighten_horizon.sbs/panorama_straighten_horizon](../assets/sbs/panorama_straighten_horizon.sbs) | 1 | No | [Parity · 26 renders, all 212,480 pixels exact](parity-fixes.md#panoramic-line-light-and-horizon-across-the-seam) |
 | [paper_path.sbs/paper_path](../assets/sbs/paper_path.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [parquet_1.sbs/parquet_1](../assets/sbs/parquet_1.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [paths_tools.sbs/Impl/compute_paths_lengths](../assets/sbs/paths_tools.sbs) | 1 | Yes | [In progress · 1,029 exact pixels, intermediate lengths reach the execution limit](parity-fixes.md#skipped-loops-and-path-buffers) |

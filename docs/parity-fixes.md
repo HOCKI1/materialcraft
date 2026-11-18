@@ -298,7 +298,7 @@ Each root includes the archived outputs, the four-format sweep, an independent 3
 
 | Root | Additional changed settings |
 |---|---|
-| Plane light | World position (−.75,.4375,1.25), UV (.3125,.28125), rotation (.0625k,−.125,.1875), scale .6875, size (.75,1.25). Use world position mode in B and alternate up vector in C. Set color mode and pattern to k mod 3, color (.75,.34375,.625), temperature 4375 and exposure 1.25. Disable background input in C and enable ground clipping in B. |
+| Plane light | World position (−.75,.4375,1.25), UV (.3125,.28125), rotation (.0625k,−.125,.1875), scale .6875, size (.75,1.25). Use distance-from-origin mode in B and alternate up vector in C. Set color mode and pattern to k mod 3, color (.75,.34375,.625), temperature 4375 and exposure 1.25. Disable background input in C and enable ground clipping in B. |
 | Splatter blend | Set pattern count to 3, 8 and 5, and color-input opacity to .375, .75 and 1. For grayscale set luminance adjustment −.1875 and luminance random .3125k. For color set random pattern assignment .375, HSL adjustment (.1875,−.125,.25), HSL random (.125,.25,.375). Use normal processing and the alternate input normal format in B. |
 | Waveform v2 | Set sample count to 17, 31 and 24, function to k mod 3, scale to 4+k, amplitude limits .1875 and .8125, noise .125k, pattern to 3, 6 and 4, pattern variation .125k and disorder .15625k. |
 | Waveform 1 | Use the same sample counts, noise and patterns, size limits .1875 and .8125 and wave number k+2. |
@@ -410,6 +410,22 @@ The radius in pixels is strength×min(W,H)/256. Seed locations use normalized te
 
 For the full graph, repeat the original four renders, the [four-format and independent comparisons](#four-format-inventory-comparison) for both ports, and the [modular field matrix](#normal-maps-panoramas-and-primitive-shapes) on each port. Number the gray fields in the order angle map, distance map, input. For settings A, B and C the output selector is (1,0,1), maximum distance (.1875,.3125,.0625), angle (.125,.25,.375), distance-map multiplier (.6875,.25,1) and angle-map multiplier (.25,.625,0). Set the angle-map offset to .375. Each port matches 39,168/39,168 pixels in its nine modular-field renders.
 
+### Panoramic line light and horizon across the seam
+
+| Root | Renders | Exact RGBA pixels / compared | Maximum error |
+|---|---:|---:|---:|
+| Panorama line light | 30 | 241,152/241,152 | 0 |
+| Panorama plane light | 22 | 199,155/199,936 | 4.76837158e-07 |
+| Straighten panorama horizon | 26 | 212,480/212,480 | 0 |
+
+The [pixel quotient and interpolation change](#pixel-quotients-and-volume-mask-interpolation) also resolves the line-light and horizon differences in the [original panorama matrix](#normal-maps-panoramas-and-primitive-shapes). On the same release binary each root matches all 171,264 pixels in those 18 renders. In the eight banded-input renders below, the preceding binary matched 41,188/41,216 line-light pixels and 41,172/41,216 horizon pixels. The maximum errors were 2.56299973e−6 and 3.05175781e−5 respectively. Both now match all 41,216.
+
+Number the input pins j in identifier order. At integer texel (x,y) set B=((floor(x/3)+2floor(y/5)+j) mod 5)/4. Gray inputs use B. For color use (u,v,B,A), with normalized texel centers (u,v). Set A=.875 where x<W/8 or x>W−W/8 and .375 elsewhere. Run 16² F32 at seed 71, all four formats at 64²/193, 128² F32/317, 64×32 input on a 64² F32 canvas/449, and repeat 64² F32/503.
+
+For the eight line-light renders set the UV endpoints to (.9375,.40625) and (.0625,.71875), camera to (.125,−.0625,.1875), line rotation to −.15625 and thickness to .15625. Use color (.8125,.375,.1875), temperature 3975 and exposure .75. For 16², 64², 128² and the rectangular input, set both pattern and color mode to 0,1,2,0 respectively. Use distance-from-origin mode at 128², ground/ceiling for the other sizes, and up-vector mode 1 only for the rectangular input. For the horizon use defaults at 16² and horizon points (.9375,.34375) and (.0625,.71875) for the other cases. Use rotation .0625 at 128² and −.1875 elsewhere. Disable horizon correction only for the rectangular input.
+
+For four further line- and plane-light renders use F32. At 64² select world, distance-from-origin and ground/ceiling positioning with seeds 239, 310 and 381 respectively. At 128² use world positioning with seed 452. Set color mode 2 and pattern 4 at 64², pattern 1 at 128². For the line use the 64² and 128² banded inputs above, with world endpoints (−.875,.4375,1.25) and (.5,−.3125,1.125). For the plane use the 64² A and 128² B [plane-light fields](#plane-light-splatter-symmetry-and-waveform-comparisons) with world position (−.75,.4375,1.25). All 28,672 line-light pixels match. On the plane, the four outputs match 4,084/4,096, 4,049/4,096, 4,079/4,096 and 16,247/16,384. Their first three maximum errors are 5.96046448e−8 and the last is 1.19209290e−7. The plane remains in progress.
+
 ### Normal maps, panoramas and primitive shapes
 
 | Root | Renders | Exact pixels / compared | Maximum U8 / U16 levels | Maximum F16 / F32 error |
@@ -442,7 +458,7 @@ Use F32 inputs and the following output settings. Use defaults at 16²/seed 43. 
 
 The four 64² F32 cube buffers contain 3,187 distinct position tuples, four normals, 2,969 depths and 3,187 UV tuples. The transformed normal map contains 4,094 distinct tuples. All four stored components count toward an RGBA pixel match.
 
-The line-light differences begin in its pixel processor. On the signed field, pixel (6,2) stores 1.98653376 in the three color channels in the reference and 1.98652911 in MaterialCraft. For the horizon, the input matches. Its pixel processor differs at two texels in the 64² A case. Pixel (39,49) has reference red .756740689 and MaterialCraft red .753627837. Both roots remain in progress.
+The line-light differences begin in its pixel processor. On the signed field, pixel (6,2) stores 1.98653376 in the three color channels in the reference and 1.98652911 in MaterialCraft. For the horizon, the input matches. Its pixel processor differs at two texels in the 64² A case. Pixel (39,49) has reference red .756740689 and MaterialCraft red .753627837. Both discrepancies were resolved in the [panorama seam comparisons](#panoramic-line-light-and-horizon-across-the-seam).
 
 ### Short oblique directional blur
 
