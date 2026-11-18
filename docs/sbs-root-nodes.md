@@ -77,7 +77,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [auto_crop.sbs/min_max](../assets/sbs/auto_crop.sbs) | 1 | Yes | [Parity: 3 cases](parity-fixes.md#verified-cases) |
 | [auto_levels.sbs/auto_levels](../assets/sbs/auto_levels.sbs) | 1 | No | [Parity: 3 cases](parity-fixes.md#verified-cases) |
 | [auto_levels.sbs/min_max](../assets/sbs/auto_levels.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
-| [bevel_smooth.sbs/blur_gaussian_grayscale](../assets/sbs/bevel_smooth.sbs) | 1 | Yes | [In progress · 138,496/154,880 pixels, wide F32 kernel open](parity-fixes.md#three-texel-blur-kernels) |
+| [bevel_smooth.sbs/blur_gaussian_grayscale](../assets/sbs/bevel_smooth.sbs) | 1 | Yes | [In progress · 160,049/311,552 pixels, higher intensities differ](parity-fixes.md#five-texel-blur-kernels) |
 | [bevel_smooth.sbs/debug/bevel_smooth_debug_position](../assets/sbs/bevel_smooth.sbs) | 1 | Yes | [In progress · 280,307/285,952 exact pixels](parity-fixes.md#segment-mapping-and-normal-graph-rechecks) |
 | [bevel_smooth.sbs/jump_flood_segment_iteration](../assets/sbs/bevel_smooth.sbs) | 1 | Yes | [Parity · 171,264 exact pixels in 18 renders](parity-fixes.md#segment-mapping-and-normal-graph-rechecks) |
 | [blackbody.sbs/blackbody](../assets/sbs/blackbody.sbs) | 0 | No | [In progress · 34,048/42,496 pixels across 19 renders](parity-fixes.md#volume-density-dithering-and-color-temperature-controls) |

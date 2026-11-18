@@ -227,6 +227,20 @@ fn three_texel_blurs_keep_tap_order_and_intermediate_storage() {
 }
 
 #[test]
+fn five_texel_blurs_filter_the_outer_pairs_before_accumulating() {
+    let field = Image::generate(128, 128, Kind::Color, |x, y| {
+        let value = f64::from((97 * x + 43 * y + 7 * x * y) % 1024) / 1023.0;
+        [f32::from(x == 64 && y == 64), f32::from(x == 64), f32::from(y == 64), (3.0 * value - 1.25) as f32]
+    });
+    let input = [Some(field)];
+    let params = [("intensity", Value::Float(4.0))];
+    let directional = cook("directional_blur", &input, &params, [128; 2], true);
+    assert_eq!(directional.get(62, 64, false).map(f32::to_bits), [0x3dff0000, 0x3dff0000, 0x3f800000, 0x3d6739cc]);
+    let separable = cook("blur", &input, &params, [128; 2], true);
+    assert_eq!(separable.get(63, 64, false).map(f32::to_bits), [0x3d804000, 0x3e804000, 0x3e800000, 0x3e1e66da]);
+}
+
+#[test]
 fn blur_preserves_finite_hdr_constant() {
     let input = Image::filled(16, 16, Kind::Gray, [1.0e38; 4]);
 

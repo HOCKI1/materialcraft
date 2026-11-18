@@ -253,6 +253,31 @@ Literal-only pixel graphs at 16², seed 23, give 512/768 exact pixels for each l
 
 The shared-lookup ridged root still matches 5,160/16,384 at changed roughness in F32, maximum 1.78813934e−7. Its one-octave .7 control still matches 1,847/4,096, maximum 2.38418579e−7. For positive normal x on the signed field, the reference's general power agrees with exp(y×ln(x)) on all 32,614 pixels. On .7 with exponent 1 it returns `3f333334`. Further work on general power and natural exponential is tracked with the [octave controls](#ridged-noise-octave-isolation).
 
+### Five-texel blur kernels
+
+| Original controls with 1.5 < radius ≤ 2.5 | Renders | Exact RGBA pixels / compared | Maximum error |
+|---|---:|---:|---:|
+| Separable impulse, stripes and signed field | 40 | 851,968/851,968 | 0 |
+| Zero-angle directional blur on the same fields | 12 | 147,456/147,456 | 0 |
+| Separable four-channel field | 80 | 253,952/253,952 | 0 |
+| Zero-angle directional four-channel field | 40 | 126,976/126,976 | 0 |
+| Shifted stripes, separable and directional | 36 | 1,032,192/1,032,192 | 0 |
+
+At this radius, sample the center directly and combine the texels on each side with a filtered read at offset 2−1/(radius−.5) texels. The center weight is .5/radius. Each side has weight (radius−.5)×center weight. Filter at the source storage precision, then accumulate in F32 from left to right horizontally or bottom to top vertically. The separable blur stores its horizontal image at the destination precision. On the 128² stripe at radius 2, the outer and inner samples are .12451171875 and .25048828125. The regression also checks the raw F32 channels on the signed field.
+
+Use the [three-texel inputs](#three-texel-blur-kernels) for the first two rows. For the next two, define H=((33x+87y+5xy+71c+17cx+13cy) mod 1021)/1020 per channel. Use H rounded to the nearest integer level for normalized inputs and 3H−1.375 for floating inputs. Run the separable filter both tiled and untiled. Use radius and seed (1.5009765625,97), (1.71875,137) and (2.375,571) at 32². At 64² use (1.5625,109), (1.9375,211), (2.09375,389) and (2.4990234375,683). Output F32 except at radius 1.9375, which uses all four formats. For the last row, fill the four F32 channels with vertical stripes at x=1, N/8+1, N/2 and N−3. Use 64², 128² and 256², seed 239, and radii 1.50390625, 1.75, 2, 2.0625, 2.25 and 2.5.
+
+The bevel blur now matches all 154,880 pixels of the original 17 renders, including 128² at intensity 9. Its three blur stages each have radius 2.25 at that setting. Nine further renders extend the range. Define H=((37x+29y+11xy) mod 509)/508. At 32² use intensity 0/seed 53. At 64² use intensity 16/137 with 2.5H−.75. Both match exactly. At 128² run intensity 12.5/307 in all formats and repeat F32 at seed 797. At 256² use intensity 10.75/487. For a 64×32 source at 64² use intensity 24.5/653.
+
+| Bevel blur with the extended range | Exact pixels / compared | Maximum error |
+|---|---:|---:|
+| LUM8 | 106,545/122,880 | 3 |
+| LUM16 | 8,192/24,576 | 356 |
+| LUM16F | 8,192/24,576 | 0.005859375 |
+| LUM32F | 37,120/139,520 | 0.00733691454 |
+
+At radius 3.125, shifting a single vertical impulse by one column exchanges the two measured edge weights .09953125 and .099999994. Those larger footprints still differ. The maximum F32 difference on the extended bevel matrix occurs at 256².
+
 ### Volume density, dithering and color-temperature controls
 
 | Root | Renders | Exact RGBA pixels / compared | Maximum U8 / U16 levels | Maximum F16 / F32 error |

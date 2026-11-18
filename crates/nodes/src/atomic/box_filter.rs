@@ -1,16 +1,34 @@
 use craft_texture::{Image, Limits, MAX_SIDE};
+use materialcraft_core::OutputFormat;
 use rayon::prelude::*;
 
-pub(super) fn three_taps(input: &Image, radius: f32, step: [i64; 2], tile: [bool; 2]) -> Image {
+pub(super) fn short_axis(input: &Image, radius: f32, step: [i64; 2], tile: [bool; 2], source_format: OutputFormat) -> Image {
     let center_weight = 0.5 / radius;
     let edge_weight = (radius - 0.5) * center_weight;
+    // The two passes visit samples in different directions. Cancellation exposes their order.
+    let combine = |first: [f32; 4], center: [f32; 4], last: [f32; 4]| {
+        std::array::from_fn(|c| last[c].mul_add(edge_weight, center[c].mul_add(center_weight, first[c] * edge_weight)))
+    };
+    if radius > 1.5 {
+        // Each side combines its two texels in one filtered read at the source storage precision.
+        let offset = 2.0 - 1.0 / (radius - 0.5);
+        let du = step[0] as f32 * offset / input.width() as f32;
+        let dv = step[1] as f32 * offset / input.height() as f32;
+        return Image::generate(input.width(), input.height(), input.kind(), |x, y| {
+            let u = (x as f32 + 0.5) / input.width() as f32;
+            let v = (y as f32 + 0.5) / input.height() as f32;
+            let first = crate::texture_sampler::sample(input, [u - du, v - dv], tile, source_format, None);
+            let center = input.get(i64::from(x), i64::from(y), false);
+            let last = crate::texture_sampler::sample(input, [u + du, v + dv], tile, source_format, None);
+            combine(first, center, last)
+        });
+    }
     Image::generate(input.width(), input.height(), input.kind(), |x, y| {
         let (x, y) = (i64::from(x), i64::from(y));
         let first = input.get_axes(x - step[0], y - step[1], tile);
         let center = input.get_axes(x, y, tile);
         let last = input.get_axes(x + step[0], y + step[1], tile);
-        // The two passes visit samples in different directions. Cancellation exposes their order.
-        std::array::from_fn(|c| last[c].mul_add(edge_weight, center[c].mul_add(center_weight, first[c] * edge_weight)))
+        combine(first, center, last)
     })
 }
 
