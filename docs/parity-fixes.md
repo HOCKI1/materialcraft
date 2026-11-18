@@ -76,6 +76,29 @@ Repeat the November 17 **3D linear gradient** cases with that change. At 256² a
 
 With the original shared lookup described under [basic and ridged 3D Perlin](#basic-and-ridged-3d-perlin), **basic 3D Perlin** now matches 65,536/65,536 pixels at 256² and 16,384/16,384 in each of the other six cases, including changed LUM16, LUM16F and LUM32F. All maximum errors are zero. With the applications' respective stock lookups, only 173/16,384 and 663/65,536 LUM8 pixels match. Both maxima are 203 levels.
 
+### Color conversion, checker and clone
+
+The ACEScg-to-linear-sRGB root matches **131,072/131,072 RGBA pixels across eight cases**, maximum component error zero. Bind the following original linear RGBA8 fields directly to its image input. At integer texel `(x,y)` on an `N×N` field, let `U=floor(255*x/(N-1))` and `V=floor(255*y/(N-1))`. Arithmetic in the four stored byte channels wraps modulo 256.
+
+- Foreground RGBA is `(17*x+31*y, 3*x+7*y, 11*x+5*y, 5*x+11*y)`.
+- Background RGBA is `(29*x+13*y, 255-U, V, 13*x+3*y)`.
+- The scalar mask is `7*x+9*y`.
+
+For the first four cases, use the foreground field at 128² and 256² with seed zero, repeat 128² with seed 42, then substitute the background at 128² with seed zero. The RGBA8 outputs match 16,384, 65,536, 16,384 and 16,384 pixels respectively. For the four remaining cases, keep the 128² background input, cook at 64² with seed 42, and select U8, U16, F16 and F32 on the final processor. Each format matches 4,096/4,096 pixels. The float32 output contains 4,096 distinct RGBA values and spans −0.53148961 to 1.51964462.
+
+Two other roots match the original four eight-bit cases at 128²/256², including seed 42 and the changed settings below. Each matches 114,688/114,688 eight-bit pixels, maximum error zero. The 64² seed-42 format sweep keeps both roots open.
+
+| Root and changed setting | U8 exact / max | U16 exact / max | F16 exact / max | F32 exact / max |
+|---|---:|---:|---:|---:|
+| `checker_1.sbs/checker_1`, tiling 3, 45-degree rotation enabled | 4,096 / 0 | 4,096 / 0 | 3,740 / 4.8828125e-4 | 4,096 / 0 |
+| `clone.sbs/clone`, offset (.17, −.25), mask blur 0, original foreground and mask | 4,096 / 0 | 4,073 / 1 | 4,096 / 0 | 994 / 1.192093e-7 |
+
+Each format column compares all channels of 4,096 pixels. Clone uses 128² input fields in the 64² cases.
+
+### Height to normal in world units
+
+Both roots in `height_to_normal_world_units.sbs` match **131,072/131,072 RGBA pixels each** across eight cases. For a square grayscale height input, store `(17*x+31*y) mod 256` at each integer coordinate. Use default settings at 128² and 256², repeat 128² with seed 42, then set `surface_size=100`, `height_depth=8`, `normal_format=0` and `sampling=1` at 128² with seed zero. Each root matches 16,384, 65,536, 16,384 and 16,384 RGBA8 pixels respectively. Keep those changed settings and the 128² input, then cook at 64² with seed 42. U8, U16, F16 and F32 each match 4,096/4,096 pixels for both roots. Every maximum error is zero. Each 64² output contains 49 distinct normals.
+
 ## 2026-11-17 root comparisons
 
 The clean-room comparisons below use the 16.0.7 reference app with the Direct3D 11 backend and a release MaterialCraft CPU cook. They compare the raw output bridge at its stored precision. A pixel counts only when every channel agrees. Integer errors are in stored levels. Floating errors are absolute. Each case starts from the graph defaults. Where a row selects another storage format, set the final processor's format to absolute in both apps before cooking.

@@ -35,7 +35,7 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **167 Parity**, **12 In progress** and **367 Too hard**. The November 17 pass revisited every unresolved root through `3D_worley_noise`. The next unresolved root in inventory order is `alveolus.sbs/alveolus`. See the [November 17 comparisons](parity-fixes.md#2026-11-17-root-comparisons) for exact counts, output formats and remaining differences.
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **170 Parity**, **14 In progress** and **362 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
 
 ## Complete inventory
 
@@ -110,18 +110,18 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [cartesian_polar_transformation.sbs/polar_to_cartesian_grayscale](../assets/sbs/cartesian_polar_transformation.sbs) | 1 | No | [Too hard: sampling/rounding](parity-fixes.md#remaining-differences) |
 | [cells_1.sbs/cells_1](../assets/sbs/cells_1.sbs) | 0 | Yes | [Too hard: noise field](parity-fixes.md#remaining-differences) |
 | [channel_mixer.sbs/channel_mixer](../assets/sbs/channel_mixer.sbs) | 1 | No | [Too hard: function parameter output](parity-fixes.md#remaining-differences) |
-| [checker_1.sbs/checker_1](../assets/sbs/checker_1.sbs) | 0 | Yes | [Too hard: scaled filtering](parity-fixes.md#remaining-differences) |
+| [checker_1.sbs/checker_1](../assets/sbs/checker_1.sbs) | 0 | Yes | [In progress · 356 half-float differences at 64²](parity-fixes.md#color-conversion-checker-and-clone) |
 | [checker_2.sbs/checker_2](../assets/sbs/checker_2.sbs) | 0 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [chrominance_extract.sbs/chrominance_extract](../assets/sbs/chrominance_extract.sbs) | 1 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [clamp.sbs/clamp](../assets/sbs/clamp.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [clamp.sbs/clamp_grayscale](../assets/sbs/clamp.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
-| [clone.sbs/clone](../assets/sbs/clone.sbs) | 2 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [clone.sbs/clone](../assets/sbs/clone.sbs) | 2 | No | [In progress · U16 and F32 differ at 64²](parity-fixes.md#color-conversion-checker-and-clone) |
 | [clone_patch.sbs/transform_from_center](../assets/sbs/clone_patch.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [clone_patch.sbs/transform_to_center](../assets/sbs/clone_patch.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [clone_patch.sbs/transform_to_center_grayscale](../assets/sbs/clone_patch.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [clouds_1.sbs/clouds_1](../assets/sbs/clouds_1.sbs) | 0 | Yes | [Too hard: noise field](parity-fixes.md#remaining-differences) |
 | [clouds_2.sbs/clouds_2](../assets/sbs/clouds_2.sbs) | 0 | Yes | [Too hard: noise field](parity-fixes.md#remaining-differences) |
-| [color_space_conversion.sbs/acescg_to_linear_srgb](../assets/sbs/color_space_conversion.sbs) | 1 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [color_space_conversion.sbs/acescg_to_linear_srgb](../assets/sbs/color_space_conversion.sbs) | 1 | No | [Parity · eight cases in four formats](parity-fixes.md#color-conversion-checker-and-clone) |
 | [color_space_conversion.sbs/acescg_to_srgb](../assets/sbs/color_space_conversion.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [color_space_conversion.sbs/linear_srgb_to_acescg](../assets/sbs/color_space_conversion.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [color_space_conversion.sbs/linear_srgb_to_srgb](../assets/sbs/color_space_conversion.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
@@ -224,8 +224,8 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [hdr_range_viewer.sbs/hdr_range_viewer_grayscale](../assets/sbs/hdr_range_viewer.sbs) | 1 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [height_blend.sbs/height_blend](../assets/sbs/height_blend.sbs) | 3 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [height_extrude.sbs/impl/acceleration_struct_impl](../assets/sbs/height_extrude.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
-| [height_to_normal_world_units.sbs/height_to_normal_world_units](../assets/sbs/height_to_normal_world_units.sbs) | 1 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [height_to_normal_world_units.sbs/height_to_normal_world_units_2](../assets/sbs/height_to_normal_world_units.sbs) | 1 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [height_to_normal_world_units.sbs/height_to_normal_world_units](../assets/sbs/height_to_normal_world_units.sbs) | 1 | Yes | [Parity · eight cases in four formats](parity-fixes.md#height-to-normal-in-world-units) |
+| [height_to_normal_world_units.sbs/height_to_normal_world_units_2](../assets/sbs/height_to_normal_world_units.sbs) | 1 | No | [Parity · eight cases in four formats](parity-fixes.md#height-to-normal-in-world-units) |
 | [highpass.sbs/highpass](../assets/sbs/highpass.sbs) | 1 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [highpass.sbs/highpass_grayscale](../assets/sbs/highpass.sbs) | 1 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [histogram_range.sbs/histogram_range](../assets/sbs/histogram_range.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
