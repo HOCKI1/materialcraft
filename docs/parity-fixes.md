@@ -156,6 +156,40 @@ The measured operation first takes the complement of mask transparency in float3
 
 Both roots in `height_to_normal_world_units.sbs` match **131,072/131,072 RGBA pixels each** across eight cases. For a square grayscale height input, store `(17*x+31*y) mod 256` at each integer coordinate. Use default settings at 128² and 256², repeat 128² with seed 42, then set `surface_size=100`, `height_depth=8`, `normal_format=0` and `sampling=1` at 128² with seed zero. Each root matches 16,384, 65,536, 16,384 and 16,384 RGBA8 pixels respectively. Keep those changed settings and the 128² input, then cook at 64² with seed 42. U8, U16, F16 and F32 each match 4,096/4,096 pixels for both roots. Every maximum error is zero. Each 64² output contains 49 distinct normals.
 
+### Height distance, texture mapping, skew and weave
+
+Twelve roots match **163,840/163,840 pixels each**, maximum component error zero, across thirteen cases per root. The total is **1,966,080/1,966,080 pixels**. Both versions of the render helpers were cooked separately. Read the final output bridge at its native dimensions and storage precision. The F32 controls below contain 36 distinct outputs for the height-distance root, 42 for Weave 3 and at least 3,682 for each mapping, shift or skew root.
+
+| Package and graph | First changed case at 128² | Independent field and changed settings |
+|---|---|---|
+| `normal_to_height_hq.sbs/base_algorithm_height_distance` | Intensity .6, light angle .3, light offset .4, detail balance .6 | Height field, respectively .875, .125, .375 and .5 |
+| `pbr_render.sbs` and `pbr_render2.sbs`, `PBR_render_mapping_color` | Substitute foreground for background texture | Color and UV fields, background color (.25,.5,.75,.375) |
+| Both render packages, `PBR_render_mapping_grayscale` | Substitute full-range gray for limited-range gray | Height and UV fields, same background color |
+| Both render packages, `chroma_shift` | Radius 2, angle .125 turns | Color field, radius 3.5, angle .3125 turns |
+| `skew.sbs/skew` and `skew_grayscale` | Axis 1, amount .35, align 0 | Color or height field, axis 0, amount −.3125, align 2 |
+| `uv_mapper.sbs/uv_mapper_color_sub` and `uv_mapper_grayscale_sub` | Filtering mode 0 | Color or height and UV fields, filtering mode 1. Color background (.25,.5,.75,.375) |
+| `weave_3.sbs/weave_3` | Tiling 2, rotation enabled | Tiling 3, rotation disabled |
+
+For each root the first three cases use defaults at 128² and 256² with seed zero, then 128² with seed 42. The fourth uses the first changed setting in the table at 128² and seed zero. Each root matches 16,384, 65,536, 16,384 and 16,384 pixels respectively. Height distance and Weave 3 use LUM16 here. The other roots use eight-bit output. At 64² use seed 42, the same changed control and U8, U16, F16 and F32 output. Each matches 4,096/4,096. Inputs keep their 128² source dimensions, except the limited-range gray fixture, which has a 64² counterpart.
+
+Use the foreground and background byte fields specified under [color conversion, checker and clone](#color-conversion-checker-and-clone). The full-range gray is `(17*x+31*y) mod 256` and the limited-range gray is `32+((17*x+31*y) mod 160)`. At side N the original UV input is `(floor(255*x/(N−1)),floor(255*y/(N−1)),128,255)`. Height distance and grayscale skew take the full-range gray, chroma shift and color skew take the foreground. UV mapping takes the background or limited-range gray. Weave 3 has no image input.
+
+For the five independent cases, use F32 at 128² with seed 71 and all four formats at 64² with seed 137. Inputs match the canvas size. Generate byte channels modulo 256 at integer (x,y). Color is `(11*x+37*y+29,41*x−19*y,3*x+79*y+1,13*x+7*y)`, height is its red channel and UV is `(5*x+3*y,9*y−7*x,round(255*y/(N−1)),A)`, where A is zero on `(x+y) mod 7 = 0` and 255 elsewhere. Each root matches all 16,384 float pixels and 4,096 pixels in each 64² format.
+
+The same independent checks exposed remaining differences in five additional roots. All four 64² formats at seed 137 are exact. At 128² and seed 71 their F32 outputs differ as follows.
+
+| Root | Changed control | Exact pixels / total | Maximum component error |
+|---|---|---:|---:|
+| `pattern_stripes.sbs/stripes` | Stripes 9, width .28125, softness .125, shift 3, align 2, filtering disabled | 16,341/16,384 | 1 |
+| `quad_transform.sbs/quad_transform` | Color field, tiling enabled, four corners (.1,.125), (.2,.9), (.9,.2), (.8,.85) in parameter order p00, p01, p10, p11 | 16,378/16,384 | .00387579203 |
+| `quad_transform.sbs/quad_transform_grayscale` | Height field, same corners | 16,378/16,384 | .000564604998 |
+| `quantize_color.sbs/modify_color_palette_sub` | Color field, 16-bit ID equal to 4,369 times `(7*x+13*y) mod 16` | 254/256 | 1.19209290e-7 |
+| `shape_splatter.sbs/shape_splatter_blend_color` | Two active patterns, color input opacity .625, HSL adjustment (.125,−.25,.0625) | 16,381/16,384 | 8.94069672e-8 |
+
+For the palette control use selection mode 1, index 6, spread .125, contrast .25, distance color space 0, mode 1, opacity .375, override (.8,.125,.3) and HSL (.125,−.25,.0625). For the splatter control, bind Color to the background and second data input, UV to the color input and first data input. For pattern number j from 1 through 8, its RGBA bytes are `(13*x+11*y+23*j,5*x+31*j,17*y+13*j,19*x+7*y+29*j)` modulo 256.
+
+For `spline_tools.sbs/internal_tools/compute_bridge_distance`, wire a Float2 value processor returning (2,1) into parent size and an Integer value processor into spline amount. Enable non-square correction. Bind the original 16² coordinate circle described under [spline preprocessing with wired counts](#spline-preprocessing-with-wired-counts). With count 1, the LUM32F outputs at 16² seed zero, 32² seed 42 and 64² seed 137 match 256/256, 1,024/1,024 and 4,096/4,096, maximum zero. With count 2 the counts are 252/256, 992/1,024 and 4,032/4,096. The respective maxima are 5.96046448e-8, .228374884 and .0570636913.
+
 ### Alveolus quadrant placement and falloff
 
 In an original blank 64² pattern graph, follow the lower-left quadrant one, two or three times and draw a square of size (.25, .25) at the leaf. With zero offsets its centers are (16, 48), (8, 56) and (4, 60) in pixel-edge coordinates. Applying (.25, .125) to either the branch offset or the pattern offset moves the center by (16, 8) texels at every depth, with tiling at the image bounds. The size still shrinks at each depth. A separate unit Gaussian stamp shows a circular cutoff and a falloff of approximately `max(0, exp(-11.1*r²) - exp(-11.1))` in local coordinates. At 64², unit opacity and F32, the maximum difference between that analytic profile and the observed red channel is 3.5e-7.

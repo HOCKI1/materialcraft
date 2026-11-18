@@ -35,7 +35,7 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **177 Parity**, **16 In progress** and **353 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **189 Parity**, **22 In progress** and **335 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
 
 ## Complete inventory
 
@@ -363,7 +363,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [normal_sobel.sbs/normal_sobel](../assets/sbs/normal_sobel.sbs) | 1 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [normal_sobel.sbs/normal_sobel_2](../assets/sbs/normal_sobel.sbs) | 1 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [normal_to_height_2.sbs/normal_to_height](../assets/sbs/normal_to_height_2.sbs) | 1 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [normal_to_height_hq.sbs/base_algorithm_height_distance](../assets/sbs/normal_to_height_hq.sbs) | 1 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [normal_to_height_hq.sbs/base_algorithm_height_distance](../assets/sbs/normal_to_height_hq.sbs) | 1 | Yes | [Parity · 13 cases, 163,840 exact pixels](parity-fixes.md#height-distance-texture-mapping-skew-and-weave) |
 | [normal_transform.sbs/normal_transform](../assets/sbs/normal_transform.sbs) | 1 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [normal_uncombine.sbs/get_intensity_iteration](../assets/sbs/normal_uncombine.sbs) | 2 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [normal_vector_rotation.sbs/normal_vector_rotation](../assets/sbs/normal_vector_rotation.sbs) | 2 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
@@ -413,7 +413,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [pattern_shape.sbs/shape_base](../assets/sbs/pattern_shape.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [pattern_splatter_circular.sbs/splatter_circular](../assets/sbs/pattern_splatter_circular.sbs) | 7 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [pattern_splatter_circular.sbs/splatter_circular_color](../assets/sbs/pattern_splatter_circular.sbs) | 7 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [pattern_stripes.sbs/stripes](../assets/sbs/pattern_stripes.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [pattern_stripes.sbs/stripes](../assets/sbs/pattern_stripes.sbs) | 0 | No | [In progress · 43 stripe edge pixels differ at 128²](parity-fixes.md#height-distance-texture-mapping-skew-and-weave) |
 | [pattern_tile_generator.sbs/tile_generator](../assets/sbs/pattern_tile_generator.sbs) | 7 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [pattern_tile_generator.sbs/tile_generator_color](../assets/sbs/pattern_tile_generator.sbs) | 7 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [pattern_tile_random.sbs/tile_random](../assets/sbs/pattern_tile_random.sbs) | 2 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
@@ -428,9 +428,9 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [pbr_albedo_safe_color.sbs/pbr_albedo_safe_color](../assets/sbs/pbr_albedo_safe_color.sbs) | 2 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [pbr_dielectric_F0.sbs/pbr_dielectric_F0](../assets/sbs/pbr_dielectric_F0.sbs) | 0 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [pbr_metal_reflectance.sbs/pbr_metal_reflectance](../assets/sbs/pbr_metal_reflectance.sbs) | 0 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
-| [pbr_render.sbs/PBR_render_mapping_color](../assets/sbs/pbr_render.sbs) | 2 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [pbr_render.sbs/PBR_render_mapping_grayscale](../assets/sbs/pbr_render.sbs) | 2 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [pbr_render.sbs/chroma_shift](../assets/sbs/pbr_render.sbs) | 1 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [pbr_render.sbs/PBR_render_mapping_color](../assets/sbs/pbr_render.sbs) | 2 | Yes | [Parity · 13 cases, 163,840 exact pixels](parity-fixes.md#height-distance-texture-mapping-skew-and-weave) |
+| [pbr_render.sbs/PBR_render_mapping_grayscale](../assets/sbs/pbr_render.sbs) | 2 | Yes | [Parity · 13 cases, 163,840 exact pixels](parity-fixes.md#height-distance-texture-mapping-skew-and-weave) |
+| [pbr_render.sbs/chroma_shift](../assets/sbs/pbr_render.sbs) | 1 | Yes | [Parity · 13 cases, 163,840 exact pixels](parity-fixes.md#height-distance-texture-mapping-skew-and-weave) |
 | [pbr_render.sbs/environment_map_rescale](../assets/sbs/pbr_render.sbs) | 1 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [pbr_render.sbs/get_max_coords/get_max_coord](../assets/sbs/pbr_render.sbs) | 1 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [pbr_render.sbs/ibl_specular_contrib_anisotropic/panoramic_lod](../assets/sbs/pbr_render.sbs) | 1 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
@@ -438,9 +438,9 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [pbr_render.sbs/raytrace_position](../assets/sbs/pbr_render.sbs) | 4 | Yes | [Too hard: cook timeout](parity-fixes.md#remaining-differences) |
 | [pbr_render.sbs/raytraced_irradiance_pass_8](../assets/sbs/pbr_render.sbs) | 10 | Yes | [Too hard: cook timeout](parity-fixes.md#remaining-differences) |
 | [pbr_render.sbs/raytraced_specular_pass_8](../assets/sbs/pbr_render.sbs) | 9 | Yes | [Too hard: cook timeout](parity-fixes.md#remaining-differences) |
-| [pbr_render2.sbs/PBR_render_mapping_color](../assets/sbs/pbr_render2.sbs) | 2 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [pbr_render2.sbs/PBR_render_mapping_grayscale](../assets/sbs/pbr_render2.sbs) | 2 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [pbr_render2.sbs/chroma_shift](../assets/sbs/pbr_render2.sbs) | 1 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [pbr_render2.sbs/PBR_render_mapping_color](../assets/sbs/pbr_render2.sbs) | 2 | No | [Parity · 13 cases, 163,840 exact pixels](parity-fixes.md#height-distance-texture-mapping-skew-and-weave) |
+| [pbr_render2.sbs/PBR_render_mapping_grayscale](../assets/sbs/pbr_render2.sbs) | 2 | No | [Parity · 13 cases, 163,840 exact pixels](parity-fixes.md#height-distance-texture-mapping-skew-and-weave) |
+| [pbr_render2.sbs/chroma_shift](../assets/sbs/pbr_render2.sbs) | 1 | Yes | [Parity · 13 cases, 163,840 exact pixels](parity-fixes.md#height-distance-texture-mapping-skew-and-weave) |
 | [pbr_render2.sbs/environment_map_rescale](../assets/sbs/pbr_render2.sbs) | 1 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [pbr_render2.sbs/get_max_coords/get_max_coord](../assets/sbs/pbr_render2.sbs) | 1 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [pbr_render2.sbs/height_adjust](../assets/sbs/pbr_render2.sbs) | 3 | Yes | [Parity: 3 cases](parity-fixes.md#verified-cases) |
@@ -463,8 +463,8 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [pow.sbs/pow](../assets/sbs/pow.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [pow.sbs/pow_grayscale](../assets/sbs/pow.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [pre_multiply_straight.sbs/premult_to_straight](../assets/sbs/pre_multiply_straight.sbs) | 1 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [quad_transform.sbs/quad_transform](../assets/sbs/quad_transform.sbs) | 1 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [quad_transform.sbs/quad_transform_grayscale](../assets/sbs/quad_transform.sbs) | 1 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [quad_transform.sbs/quad_transform](../assets/sbs/quad_transform.sbs) | 1 | No | [In progress · six float pixels differ on the independent field](parity-fixes.md#height-distance-texture-mapping-skew-and-weave) |
+| [quad_transform.sbs/quad_transform_grayscale](../assets/sbs/quad_transform.sbs) | 1 | No | [In progress · six float pixels differ on the independent field](parity-fixes.md#height-distance-texture-mapping-skew-and-weave) |
 | [quantize.sbs/quantize](../assets/sbs/quantize.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [quantize.sbs/quantize_grayscale](../assets/sbs/quantize.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [quantize_2.sbs/quantize_grayscale](../assets/sbs/quantize_2.sbs) | 2 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
@@ -480,7 +480,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [quantize_color.sbs/get_min_max/GetMaxFromAlpha_v3](../assets/sbs/quantize_color.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [quantize_color.sbs/helpers/cdf_pass](../assets/sbs/quantize_color.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [quantize_color.sbs/kmeans_iteration](../assets/sbs/quantize_color.sbs) | 2 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [quantize_color.sbs/modify_color_palette_sub](../assets/sbs/quantize_color.sbs) | 2 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [quantize_color.sbs/modify_color_palette_sub](../assets/sbs/quantize_color.sbs) | 2 | Yes | [In progress · two of 256 palette entries differ at F32](parity-fixes.md#height-distance-texture-mapping-skew-and-weave) |
 | [quantize_color.sbs/view_color_palette_sub](../assets/sbs/quantize_color.sbs) | 2 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [radial_blur.sbs/radial_blur_grayscale](../assets/sbs/radial_blur.sbs) | 1 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [replace_color.sbs/replace_color](../assets/sbs/replace_color.sbs) | 1 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
@@ -511,7 +511,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [shape_mapper.sbs/shape_mapper](../assets/sbs/shape_mapper.sbs) | 1 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [shape_splatter.sbs/min_max](../assets/sbs/shape_splatter.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [shape_splatter.sbs/shape_splatter_blend](../assets/sbs/shape_splatter.sbs) | 12 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [shape_splatter.sbs/shape_splatter_blend_color](../assets/sbs/shape_splatter.sbs) | 12 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [shape_splatter.sbs/shape_splatter_blend_color](../assets/sbs/shape_splatter.sbs) | 12 | No | [In progress · three pixels differ with independent patterns](parity-fixes.md#height-distance-texture-mapping-skew-and-weave) |
 | [shape_splatter.sbs/shape_splatter_data_extract](../assets/sbs/shape_splatter.sbs) | 2 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [shape_splatter.sbs/shape_splatter_to_mask](../assets/sbs/shape_splatter.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [shape_splatter_v2.sbs/bitonic_sort/graph/bitonic_sort_iteration](../assets/sbs/shape_splatter_v2.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
@@ -523,8 +523,8 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [shape_splatter_v2.sbs/scanline_to_z_order](../assets/sbs/shape_splatter_v2.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [shape_splatter_v2.sbs/shape_splatter_compute_normal](../assets/sbs/shape_splatter_v2.sbs) | 10 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [shape_splatter_v2_companion.sbs/shape_splatter_to_mask](../assets/sbs/shape_splatter_v2_companion.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
-| [skew.sbs/skew](../assets/sbs/skew.sbs) | 1 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [skew.sbs/skew_grayscale](../assets/sbs/skew.sbs) | 1 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [skew.sbs/skew](../assets/sbs/skew.sbs) | 1 | No | [Parity · 13 cases, 163,840 exact pixels](parity-fixes.md#height-distance-texture-mapping-skew-and-weave) |
+| [skew.sbs/skew_grayscale](../assets/sbs/skew.sbs) | 1 | No | [Parity · 13 cases, 163,840 exact pixels](parity-fixes.md#height-distance-texture-mapping-skew-and-weave) |
 | [slope_blur.sbs/slope_blur](../assets/sbs/slope_blur.sbs) | 2 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [slope_blur.sbs/slope_blur_grayscale](../assets/sbs/slope_blur.sbs) | 2 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [slope_blur.sbs/slope_blur_grayscale_2](../assets/sbs/slope_blur.sbs) | 2 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
@@ -537,7 +537,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [spline_tools.sbs/-----WIP-----/displace_spline_by_spline_wip](../assets/sbs/spline_tools.sbs) | 4 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [spline_tools.sbs/internal_tools/2dtransform_spline_sub](../assets/sbs/spline_tools.sbs) | 3 | Yes | [Too hard: value-input case not verified](parity-fixes.md#remaining-differences) |
 | [spline_tools.sbs/internal_tools/append_splines_sub](../assets/sbs/spline_tools.sbs) | 6 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
-| [spline_tools.sbs/internal_tools/compute_bridge_distance](../assets/sbs/spline_tools.sbs) | 3 | Yes | [Too hard: value-input case not verified](parity-fixes.md#remaining-differences) |
+| [spline_tools.sbs/internal_tools/compute_bridge_distance](../assets/sbs/spline_tools.sbs) | 3 | Yes | [In progress · one wired spline exact, two splines differ](parity-fixes.md#height-distance-texture-mapping-skew-and-weave) |
 | [spline_tools.sbs/internal_tools/compute_spline_distance_iteration](../assets/sbs/spline_tools.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [spline_tools.sbs/internal_tools/compute_spline_length_init](../assets/sbs/spline_tools.sbs) | 2 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [spline_tools.sbs/internal_tools/compute_spline_tangents](../assets/sbs/spline_tools.sbs) | 3 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
@@ -569,8 +569,8 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [tileable_material_to_mesh_material.sbs/tileable_material_to_mesh_material](../assets/sbs/tileable_material_to_mesh_material.sbs) | 5 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [trapezoid_transform.sbs/trapezoid_transform](../assets/sbs/trapezoid_transform.sbs) | 1 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [trapezoid_transform.sbs/trapezoid_transform_grayscale](../assets/sbs/trapezoid_transform.sbs) | 1 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [uv_mapper.sbs/uv_mapper_color_sub](../assets/sbs/uv_mapper.sbs) | 2 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [uv_mapper.sbs/uv_mapper_grayscale_sub](../assets/sbs/uv_mapper.sbs) | 2 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [uv_mapper.sbs/uv_mapper_color_sub](../assets/sbs/uv_mapper.sbs) | 2 | Yes | [Parity · 13 cases, 163,840 exact pixels](parity-fixes.md#height-distance-texture-mapping-skew-and-weave) |
+| [uv_mapper.sbs/uv_mapper_grayscale_sub](../assets/sbs/uv_mapper.sbs) | 2 | Yes | [Parity · 13 cases, 163,840 exact pixels](parity-fixes.md#height-distance-texture-mapping-skew-and-weave) |
 | [value_get_size.sbs/get_size_color](../assets/sbs/value_get_size.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [value_get_size.sbs/get_size_grayscale](../assets/sbs/value_get_size.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [vector_morph.sbs/vector_morph](../assets/sbs/vector_morph.sbs) | 2 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
@@ -580,7 +580,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [waveform_1.sbs/waveform_1](../assets/sbs/waveform_1.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [weave_1.sbs/weave_1](../assets/sbs/weave_1.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [weave_2.sbs/weave_2](../assets/sbs/weave_2.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [weave_3.sbs/weave_3](../assets/sbs/weave_3.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [weave_3.sbs/weave_3](../assets/sbs/weave_3.sbs) | 0 | Yes | [Parity · 13 cases, 163,840 exact pixels](parity-fixes.md#height-distance-texture-mapping-skew-and-weave) |
 | [weave_4.sbs/weave_4](../assets/sbs/weave_4.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [white_noise.sbs/white_noise](../assets/sbs/white_noise.sbs) | 0 | Yes | [Parity: 3 cases](parity-fixes.md#verified-cases) |
 | [white_noise.sbs/white_noise_fast](../assets/sbs/white_noise.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
