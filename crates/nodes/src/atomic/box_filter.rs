@@ -1,6 +1,19 @@
 use craft_texture::{Image, Limits, MAX_SIDE};
 use rayon::prelude::*;
 
+pub(super) fn three_taps(input: &Image, radius: f32, step: [i64; 2], tile: [bool; 2]) -> Image {
+    let center_weight = 0.5 / radius;
+    let edge_weight = (radius - 0.5) * center_weight;
+    Image::generate(input.width(), input.height(), input.kind(), |x, y| {
+        let (x, y) = (i64::from(x), i64::from(y));
+        let first = input.get_axes(x - step[0], y - step[1], tile);
+        let center = input.get_axes(x, y, tile);
+        let last = input.get_axes(x + step[0], y + step[1], tile);
+        // The two passes visit samples in different directions. Cancellation exposes their order.
+        std::array::from_fn(|c| last[c].mul_add(edge_weight, center[c].mul_add(center_weight, first[c] * edge_weight)))
+    })
+}
+
 pub(super) fn axis(input: &Image, radius: f32, horizontal: bool, tile: bool) -> Image {
     if !radius.is_finite() || radius <= 0.5 {
         return input.clone();

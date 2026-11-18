@@ -32,6 +32,9 @@ pub(super) fn blur(context: &CookContext, angle: f32) -> CookResult {
     let dy = -dy;
     let tile = context.tiling_axes();
     if dy == 0.0 {
+        if radius <= 1.5 {
+            return Ok(vec![box_filter::three_taps(&input, radius, [-1, 0], tile)]);
+        }
         return Ok(vec![box_filter::axis(&input, radius, true, tile[0])]);
     }
 

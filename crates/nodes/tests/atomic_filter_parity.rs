@@ -204,6 +204,29 @@ fn blur_uses_fractional_box_coverage() {
 }
 
 #[test]
+fn three_texel_blurs_keep_tap_order_and_intermediate_storage() {
+    let field = Image::gray(64, 64, |x, y| {
+        let level = (97 * x + 43 * y + 7 * x * y) % 1024;
+        (3.0 * (f64::from(level) / 1023.0) - 1.25) as f32
+    });
+    let input = [Some(field)];
+    let controls = [("intensity", Value::Float(5.0))];
+    for (format, center, off_center) in [
+        (OutputFormat::U8, 0x3e48c8c9, 0x3ee4e4e5),
+        (OutputFormat::U16, 0x3e4a78ca, 0x3ee558e5),
+        (OutputFormat::F16, 0x3e15c000, 0x3ee54000),
+        (OutputFormat::F32, 0x3e15e059, 0x3ee55957),
+    ] {
+        let image = cook_format("blur", &input, &controls, [64; 2], true, format);
+        let stored = materialcraft_nodes::output_precision::apply(image, format);
+        assert_eq!(stored.get_gray(32, 32, true).to_bits(), center);
+        assert_eq!(stored.get_gray(11, 13, true).to_bits(), off_center);
+    }
+    let directional = cook("directional_blur", &input, &controls, [64; 2], true);
+    assert_eq!(directional.get_gray(32, 32, true).to_bits(), 0xbdfdbf73);
+}
+
+#[test]
 fn blur_preserves_finite_hdr_constant() {
     let input = Image::filled(16, 16, Kind::Gray, [1.0e38; 4]);
 

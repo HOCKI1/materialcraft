@@ -253,6 +253,21 @@ Literal-only pixel graphs at 16², seed 23, give 512/768 exact pixels for each l
 
 The shared-lookup ridged root still matches 5,160/16,384 at changed roughness in F32, maximum 1.78813934e−7. Its one-octave .7 control still matches 1,847/4,096, maximum 2.38418579e−7. For positive normal x on the signed field, the reference's general power agrees with exp(y×ln(x)) on all 32,614 pixels. On .7 with exponent 1 it returns `3f333334`. Further work on general power and natural exponential is tracked with the [octave controls](#ridged-noise-octave-isolation).
 
+### Three-texel blur kernels
+
+The bevel Gaussian blur subgraph now matches 138,496/154,880 pixels across 17 renders. All 106,496 U8, 8,192 U16 and 8,192 F16 pixels match. Of 32,000 F32 pixels, 15,616 match. The remaining case is the 128² procedural field at intensity 9, with 0/16,384 exact and maximum error .00221335888. The previous run matched 108,965/154,880 and differed by up to 393 U16 levels. The original defaults at 128² and 256², the changed intensity and all four 64² format checks now match.
+
+| Original three-texel controls | Renders | Exact RGBA pixels / compared | Maximum error |
+|---|---:|---:|---:|
+| Separable blur, tiled and untiled | 104 | 1,384,448/1,384,448 | 0 |
+| Horizontal directional blur | 40 | 409,600/409,600 | 0 |
+
+When .5 < radius ≤ 1.5, the center weight is .5/radius and each edge weight is (radius−.5) times the center weight. The separable blur starts with the left tap, fuses the center and then the right tap, and stores the horizontal result in the destination format. The vertical pass starts below the pixel and ends above it. The zero-angle directional blur starts at the right tap. For the signed field below, the 64² separable output at (32,32), intensity 5, stores 50 in U8, 12,958 in U16, 3e15c000 in F16 expanded to F32, and 3e15e059 in F32. The previous U16 result was 9,592. The 64² F32 directional result at that pixel is bdfdbf73.
+
+For a square side N, fill R with an impulse at (N/2,N/2), G with the column x=N/2 and B with the row y=N/2. Let H=((97x+43y+7xy) mod 1024)/1023. The alpha input is H rounded to the closest stored level for U8 and U16, or 3H−1.25 stored at F16 or F32 precision. Use seed 347. Radius is intensity×N/256. At 32² use intensity 9.5. At 64² use 2.25, 3.25 and 5. At 128² use 1.125, 1.5, 2, 2.5 and 3. At 256² use 1. Use F32 output plus all four formats at 64²/intensity 5. Run the separable blur with both axes tiled and both untiled. The directional comparison uses the tiled 64² intensities 2.25 and 5, and the five 128² intensities. The [wider transform and mapping comparisons](#segment-mapping-and-normal-graph-rechecks) define the sizes and seeds for the nine bevel subgraph cases. Its single-channel input is ((19x+47y+5xy) mod 257)/256, with 2.5H−.75 for signed input and a single impulse at (7,13) for sparse input. Use default intensity at 16², 5 at 64², 9 at 128², 3.25 for sparse input and .25 for signed input.
+
+Wider kernels still differ. For an F32 impulse blurred at 128² and intensity 4, the five horizontal stripe samples centered on the impulse are .12451171875, .25048828125, .25, .25048828125 and .12451171875. Both outer texels differ from a uniformly weighted window with fractional ends.
+
 ### Segment, mapping and normal graph rechecks
 
 | Root | Renders | Exact pixels / compared | Maximum error |
