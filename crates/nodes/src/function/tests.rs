@@ -116,6 +116,46 @@ fn pixel_division_multiplies_by_the_reciprocal() {
 }
 
 #[test]
+fn measured_pixel_reciprocals_preserve_runtime_rounding() {
+    for (input, expected) in [(0x3ecccccc, 0x40200000), (0x3ecc4ccd, 0x4020643f), (0xc2ff6f11, 0xbc0048a0), (0x038537b1, 0x7b75f93f)] {
+        let x = f32::from_bits(input);
+        let operands = [Value::Float(1.0), Value::Float(x)];
+        assert_eq!(pixel_operation("div", &operands, false), Value::Float(f32::from_bits(expected)));
+        assert_eq!(pixel_operation("div", &operands, true), Value::Float(1.0 / x));
+    }
+}
+
+#[test]
+fn measured_pixel_random_draws_share_one_stream() {
+    let mut graph = FunctionGraph::default();
+    let one = graph.add_constant(Value::Float(1.0));
+    let negative = graph.add_constant(Value::Float(-2.0));
+    let factor = graph.add_constant(Value::Float(0.375));
+    let first = graph.add("rand", &[one], None);
+    let second = graph.add("rand", &[one], None);
+    let third = graph.add("rand", &[negative], None);
+    let fourth = graph.add("rand", &[factor], None);
+    let pair1 = graph.add("vector2", &[first, second], None);
+    let pair2 = graph.add("vector2", &[third, fourth], None);
+    graph.output = Some(graph.add("vector4", &[pair1, pair2], None));
+    let variables = BTreeMap::new();
+    let context = EvaluationContext {
+        scope: super::FunctionScope::PixelProcessor,
+        position: [0.5; 2],
+        size: [32.0; 2],
+        images: &[],
+        image_formats: &[],
+        tile: true,
+        variables: &variables,
+    };
+    let program = compile(&graph, 0).unwrap();
+    for (mut state, bits) in [(9_091_073, [1060669180, 1057720276, 1034667712, 1054479120]), (3_342_178, [1058664790, 1044635448, 1061348922, 1062659162])] {
+        let [a, b, c, d] = bits.map(f32::from_bits);
+        assert_eq!(program.evaluate_with_random(&context, &mut EvaluationState::default(), &mut state).unwrap(), Value::Float4([a, b, -2.0 * c, 0.375 * d]));
+    }
+}
+
+#[test]
 fn pixel_lerp_fuses_the_scaled_difference() {
     let operands = [0xc04928a6, 0xbfc9a1db, 0xbefff6a8].map(|bits| Value::Float(f32::from_bits(bits)));
     assert_eq!(pixel_operation("lerp", &operands, false), Value::Float(f32::from_bits(0xc07b52ad)));

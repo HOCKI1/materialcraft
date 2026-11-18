@@ -76,6 +76,29 @@ Repeat the November 17 **3D linear gradient** cases with that change. At 256² a
 
 With the original shared lookup described under [basic and ridged 3D Perlin](#basic-and-ridged-3d-perlin), **basic 3D Perlin** now matches 65,536/65,536 pixels at 256² and 16,384/16,384 in each of the other six cases, including changed LUM16, LUM16F and LUM32F. All maximum errors are zero. With the applications' respective stock lookups, only 173/16,384 and 663/65,536 LUM8 pixels match. Both maxima are 203 levels.
 
+### Runtime reciprocal and 3D gradient contrast
+
+The twelve wired 3D linear gradient cases listed under [3D linear gradient](#3d-linear-gradient) now match **1,376,256/1,376,256 pixels**, maximum error zero. This includes all 65,536 and 262,144 LUM32F pixels at contrast .6 and all four measured output formats. An exposed contrast of .6 gives the float32 denominator `0x3ecccccc`. Its runtime reciprocal is 2.5. With a literal expression, the reciprocal is the next float above 2.5.
+
+For a standalone Pixel Processor, nearest-sample a linear RGBA32F input and output the reciprocal of one channel at its original dimensions. Five fields match **671,744/671,744 LUM32F pixels**, maximum error zero. Use seed zero. For the 128² case take G from the signed field under [3D linear gradient](#3d-linear-gradient). Construct the remaining four fields from float32 bits at row-major pixel index `i`, repeated in RGB.
+
+| Dimensions | Input bits | Exact pixels / total |
+|---|---|---:|
+| 256² | `0x3f800000 + 128*i` | 65,536/65,536 |
+| 256² | `(125 << 23) + floor(3*2^23/5) - 32768 + i` | 65,536/65,536 |
+| 512² | Use `h=(747796405*i+2891336453) mod 2^32` as below | 262,144/262,144 |
+| 512² | Use `h=(1013904223*i+341937) mod 2^32` as below | 262,144/262,144 |
+
+For the 512² fields, use the low 23 bits of `h` as the fraction, `7 + (37*((h >> 22) XOR i)) mod 241` as the biased exponent, and bit 2 of `i` as the sign. MaterialCraft derives a quadratic for each of 128 mantissa intervals from the mathematical reciprocal. The measured fixed-point square retains partial products through fractional bit 15. The literal division path retains its original rounding. A separate 32² RGBA32F probe emits contrast, denominator, reciprocal and half the reciprocal minus one half. All nine runs match 1,024/1,024 pixels each, including exposed values .3, .35, .51, .6, .625, .875 and .99, an image input and a literal.
+
+With Position disconnected, the reference app returns zero in U8 and U16 and quiet NaN in floating storage. At 32² with seed zero, the 1,024 raw samples are respectively `0x00`, `0x0000`, `0x7fff` and `0x7fffffff`. At 64² with seed 42 the F32 result has the same NaN bits at all 4,096 pixels. MaterialCraft still reports a non-finite float output for this case.
+
+### Pixel Processor random draws
+
+Emit four independent calls to `rand(1)` as RGBA32F. In the reference app the four values recover a unique initial 24-bit state at each of **27,968/27,968 pixels**. Advance the state with `s=(3626811*s+51137) mod 2^24` and return `floor(s/2)/2^23`. The four outputs then match at every pixel, maximum error zero. Use square canvases of sides 8, 16, 32, 64 and 128 at seed zero, also 32² at seeds 1, 2, 42 and 137, and 32×16 and 16×32 at seeds zero and 42. The first 32² pixel starts from 9,091,073 at seed zero and 3,342,178 at seed 42.
+
+Four additional original graphs replicate a single draw to RGBA, reuse two draws in alternating channels, double a reused draw, or apply ranges 1, 1, −2 and .375 to successive draws. At 16², 32² and 64² with seed zero and 32² with seed 42, all **25,600/25,600 reference pixels** agree with the corresponding channel expressions, maximum error zero. The MaterialCraft evaluator now matches the progression given the recovered initial state. Its mapping from pixel position and graph seed to that state remains open. For example, the native and CPU four-draw images at 32² still match 0/1,024 entire pixels at seeds zero and 42, with maximum component errors .995849967 and .989675045.
+
 ### Color conversion, checker and clone
 
 The ACEScg-to-linear-sRGB root matches **131,072/131,072 RGBA pixels across eight cases**, maximum component error zero. Bind the following original linear RGBA8 fields directly to its image input. At integer texel `(x,y)` on an `N×N` field, let `U=floor(255*x/(N-1))` and `V=floor(255*y/(N-1))`. Arithmetic in the four stored byte channels wraps modulo 256.
@@ -172,6 +195,8 @@ Each root matches **131,072/131,072 pixels in eight cases**, maximum component e
 
 - `gradient_linear_2` generates its own input. The first four outputs are LUM16. For the changed cases set `Tiling=3` and `rotation=1`.
 - `multiangle_to_albedo` uses the foreground field on input 1 and the background field on inputs 2 through 8, as specified under [color conversion, checker and clone](#color-conversion-checker-and-clone). The first four outputs are RGBA8. For the changed cases set `samples_amount=4` and keep the 128² inputs for the 64² format sweep.
+
+Six additional albedo cases use a different original image on each of the eight pins. For input number `j=1..8` the RGBA bytes are `((17+j)*x+(11+2*j)*y+29*j, (7*j+1)*x+5*y+13*j, 3*x+(13*j+1)*y+41*j, (5+j)*x+(11-j)*y+23*j)` modulo 256. Match the input and output dimensions. The default at 64² with seed zero matches 4,096/4,096 RGBA8 pixels. Four samples at 128² and seed 137 match 16,384/16,384 RGBA8 pixels. At 32² and seed 42 the same setting matches 1,024/1,024 pixels in each of U8, U16, F16 and F32. Maximum error is zero throughout.
 
 ### Atlas crop with wired value inputs
 

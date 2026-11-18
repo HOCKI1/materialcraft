@@ -15,8 +15,8 @@ pub(crate) fn node_function(state: &mut u32) -> f32 {
     *state as f32 / 16_777_216.0
 }
 
-/// The measured scalar sequence for functions evaluated inside a pattern graph.
-pub(crate) fn pattern_function(state: &mut u32) -> f32 {
+/// Scalar draws in pixel and pattern functions use the upper 23 bits of this stream.
+pub(crate) fn image_function(state: &mut u32) -> f32 {
     *state = state.wrapping_mul(3_626_811).wrapping_add(51_137) & 0x00ff_ffff;
     (*state >> 1) as f32 / 8_388_608.0
 }

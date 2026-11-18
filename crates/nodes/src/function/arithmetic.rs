@@ -77,8 +77,7 @@ pub(crate) fn evaluate(instruction: &super::instruction::Instruction, args: &[Va
             "add" => left + right,
             "sub" => left - right,
             "mul" | "mulscalar" => left * right,
-            // Outside the normal reciprocal range, an intermediate overflow or underflow can lose a finite quotient.
-            "div" if pixel_math && right.recip().is_normal() => left * right.recip(),
+            "div" if pixel_math => super::reciprocal::divide(left, right),
             "div" => left / right,
             // Floored modulo wraps negative coordinates; remainder keeps their sign
             "mod" => left - right * (left / right).floor(),
@@ -100,11 +99,7 @@ pub(crate) fn evaluate(instruction: &super::instruction::Instruction, args: &[Va
             "lerp" if pixel_math => (right - left).mul_add(factor, left),
             "lerp" => left + (right - left) * factor,
             "rand" if scope == super::FunctionScope::Node => crate::random::node_function(random) * left,
-            "rand" if scope == super::FunctionScope::FxMap => crate::random::pattern_function(random) * left,
-            "rand" => {
-                *random = crate::random::hash(random.wrapping_add(1));
-                (*random >> 8) as f32 / 16777216.0 * left
-            }
+            "rand" => crate::random::image_function(random) * left,
             _ => return Err(format!("unknown arithmetic operation `{op}`")),
         };
     }

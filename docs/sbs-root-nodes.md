@@ -41,7 +41,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 
 | SBS package / graph path | Input pins | Hidden in library | Parity status |
 |---|---:|---|---|
-| [3d_gradient.sbs/3d_linear_gradient](../assets/sbs/3d_gradient.sbs) | 1 | No | [In progress · default and oblique gradients exact, contrast .6 differs](parity-fixes.md#pixel-processor-products-and-sums) |
+| [3d_gradient.sbs/3d_linear_gradient](../assets/sbs/3d_gradient.sbs) | 1 | No | [In progress · all 12 wired cases exact, disconnected float output differs](parity-fixes.md#runtime-reciprocal-and-3d-gradient-contrast) |
 | [3d_perlin_noise.sbs/3D_perlin_noise](../assets/sbs/3d_perlin_noise.sbs) | 1 | No | [In progress · shared lookup exact across seven cases, stock lookup differs](parity-fixes.md#pixel-processor-products-and-sums) |
 | [3d_perlin_noise.sbs/3D_perlin_noise_fractal](../assets/sbs/3d_perlin_noise.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [3d_perlin_noise.sbs/3D_ridged_noise_fractal](../assets/sbs/3d_perlin_noise.sbs) | 1 | No | [In progress · shared lookup exact in LUM8, higher precision differs](parity-fixes.md#basic-and-ridged-3d-perlin) |
@@ -59,7 +59,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [3d_texture_transform.sbs/3d_texture_offset_grayscale](../assets/sbs/3d_texture_transform.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [3d_viewer.sbs/ibl_specular_contrib_anisotropic/panoramic_lod](../assets/sbs/3d_viewer.sbs) | 1 | Yes | [In progress · input resizing and transform filtering measured](parity-fixes.md#panoramic-lod) |
 | [3d_volume_mask.sbs/3d_volume_mask](../assets/sbs/3d_volume_mask.sbs) | 1 | No | [In progress · box rotation and feathering differ](parity-fixes.md#3d-volume-mask-and-worley-noise) |
-| [3d_worley_noise.sbs/3D_worley_noise](../assets/sbs/3d_worley_noise.sbs) | 1 | No | [In progress · random sequence differs before distance evaluation](parity-fixes.md#3d-volume-mask-and-worley-noise) |
+| [3d_worley_noise.sbs/3D_worley_noise](../assets/sbs/3d_worley_noise.sbs) | 1 | No | [In progress · random draws measured, per-pixel starting state differs](parity-fixes.md#pixel-processor-random-draws) |
 | [alveolus.sbs/alveolus](../assets/sbs/alveolus.sbs) | 0 | Yes | [In progress · 64² format sweep exact, larger fields differ](parity-fixes.md#alveolus-quadrant-placement-and-falloff) |
 | [angle_to_vector.sbs/angle_to_vector](../assets/sbs/angle_to_vector.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [anisotropic_blur.sbs/anisotropic_blur](../assets/sbs/anisotropic_blur.sbs) | 1 | No | [In progress · first directional pass differs](parity-fixes.md#anisotropic-blur) |
@@ -272,7 +272,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [mosaic.sbs/mosaic_grayscale](../assets/sbs/mosaic.sbs) | 2 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [multi_directional_warp.sbs/multi_directional_warp_color](../assets/sbs/multi_directional_warp.sbs) | 2 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [multi_directional_warp.sbs/multi_directional_warp_grayscale](../assets/sbs/multi_directional_warp.sbs) | 2 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [multiangle_to_albedo.sbs/multiangle_to_albedo](../assets/sbs/multiangle_to_albedo.sbs) | 8 | No | [Parity · 8 cases, RGBA in four formats](parity-fixes.md#linear-gradient-2-and-multiangle-albedo) |
+| [multiangle_to_albedo.sbs/multiangle_to_albedo](../assets/sbs/multiangle_to_albedo.sbs) | 8 | No | [Parity · 14 cases, including eight distinct input images](parity-fixes.md#linear-gradient-2-and-multiangle-albedo) |
 | [multiangle_to_normal.sbs/angle_to_normal](../assets/sbs/multiangle_to_normal.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [multiangle_to_normal.sbs/angle_weight](../assets/sbs/multiangle_to_normal.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [noise_anisotropic_noise.sbs/anisotropic_noise](../assets/sbs/noise_anisotropic_noise.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |

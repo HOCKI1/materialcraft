@@ -26,6 +26,7 @@ mod output;
 mod processor;
 mod product_sum;
 mod program;
+mod reciprocal;
 mod resolve_instances;
 mod system_variable;
 mod unconnected_input;
