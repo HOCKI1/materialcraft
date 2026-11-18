@@ -60,8 +60,8 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [3d_texture_position.sbs/3d_texture_position](../assets/sbs/3d_texture_position.sbs) | 0 | No | [Parity: native 4K atlas](parity-fixes.md#verified-cases) |
 | [3d_texture_render.sbs/3d_texture_surface_render_irradiance](../assets/sbs/3d_texture_render.sbs) | 6 | Yes | [Parity · 47,360 exact pixels in 71 renders](parity-fixes.md#surface-irradiance-and-uniform-power) |
 | [3d_texture_render.sbs/3d_texture_surface_render_position](../assets/sbs/3d_texture_render.sbs) | 1 | Yes | [Parity · 92,928 exact pixels in 39 renders](parity-fixes.md#surface-position-and-signed-pixel-products) |
-| [3d_texture_render.sbs/3d_texture_volume_render_ibl_pass](../assets/sbs/3d_texture_render.sbs) | 6 | Yes | [In progress · quantified dithering and density differences](parity-fixes.md#3d-surface-and-volume-render-passes) |
-| [3d_texture_render.sbs/3d_texture_volume_render_light_pass](../assets/sbs/3d_texture_render.sbs) | 4 | Yes | [In progress · nonzero-density lighting differs](parity-fixes.md#3d-surface-and-volume-render-passes) |
+| [3d_texture_render.sbs/3d_texture_volume_render_ibl_pass](../assets/sbs/3d_texture_render.sbs) | 6 | Yes | [In progress · 7,898/31,488 pixels across 39 renders](parity-fixes.md#volume-density-dithering-and-color-temperature-controls) |
+| [3d_texture_render.sbs/3d_texture_volume_render_light_pass](../assets/sbs/3d_texture_render.sbs) | 4 | Yes | [In progress · 25,144/30,208 pixels across 34 renders](parity-fixes.md#volume-density-dithering-and-color-temperature-controls) |
 | [3d_texture_render.sbs/position_debug](../assets/sbs/3d_texture_render.sbs) | 2 | Yes | [Parity · 14 sphere and plane cases](parity-fixes.md#position-debug) |
 | [3d_texture_transform.sbs/3d_texture_offset_color](../assets/sbs/3d_texture_transform.sbs) | 1 | No | [Parity: 5 cases](parity-fixes.md#verified-cases) |
 | [3d_texture_transform.sbs/3d_texture_offset_grayscale](../assets/sbs/3d_texture_transform.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
@@ -80,7 +80,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [bevel_smooth.sbs/blur_gaussian_grayscale](../assets/sbs/bevel_smooth.sbs) | 1 | Yes | [In progress · 138,496/154,880 pixels, wide F32 kernel open](parity-fixes.md#three-texel-blur-kernels) |
 | [bevel_smooth.sbs/debug/bevel_smooth_debug_position](../assets/sbs/bevel_smooth.sbs) | 1 | Yes | [In progress · 280,307/285,952 exact pixels](parity-fixes.md#segment-mapping-and-normal-graph-rechecks) |
 | [bevel_smooth.sbs/jump_flood_segment_iteration](../assets/sbs/bevel_smooth.sbs) | 1 | Yes | [Parity · 171,264 exact pixels in 18 renders](parity-fixes.md#segment-mapping-and-normal-graph-rechecks) |
-| [blackbody.sbs/blackbody](../assets/sbs/blackbody.sbs) | 0 | No | [In progress · 34,048/42,496 pixels, F32 error](parity-fixes.md#surface-irradiance-and-uniform-power) |
+| [blackbody.sbs/blackbody](../assets/sbs/blackbody.sbs) | 0 | No | [In progress · 34,048/42,496 pixels across 19 renders](parity-fixes.md#volume-density-dithering-and-color-temperature-controls) |
 | [blend.sbs/add](../assets/sbs/blend.sbs) | 3 | Yes | [Parity: 5 cases](parity-fixes.md#verified-cases) |
 | [blend.sbs/add_sub](../assets/sbs/blend.sbs) | 3 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [blend.sbs/color](../assets/sbs/blend.sbs) | 3 | No | [Parity · 18 cases, 171,264 exact pixels](parity-fixes.md#gradient-interpolation-color-blend-and-chrominance) |

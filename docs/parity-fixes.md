@@ -253,6 +253,40 @@ Literal-only pixel graphs at 16², seed 23, give 512/768 exact pixels for each l
 
 The shared-lookup ridged root still matches 5,160/16,384 at changed roughness in F32, maximum 1.78813934e−7. Its one-octave .7 control still matches 1,847/4,096, maximum 2.38418579e−7. For positive normal x on the signed field, the reference's general power agrees with exp(y×ln(x)) on all 32,614 pixels. On .7 with exponent 1 it returns `3f333334`. Further work on general power and natural exponential is tracked with the [octave controls](#ridged-noise-octave-isolation).
 
+### Volume density, dithering and color-temperature controls
+
+| Root | Renders | Exact RGBA pixels / compared | Maximum U8 / U16 levels | Maximum F16 / F32 error |
+|---|---:|---:|---:|---:|
+| Volume environment light | 39 | 7,898/31,488 | 4 / 829 | 0.0126953125 / 0.0560382009 |
+| Volume direct light | 34 | 25,144/30,208 | 0 / 1 | 1.52587891e-05 / 3.70293856e-06 |
+| Blackbody | 19 | 34,048/42,496 | 0 / 0 | 0 / 1.1920929e-07 |
+
+The two light passes each have twelve new controls in addition to the [surface and volume comparisons](#3d-surface-and-volume-render-passes). Set the position to RGBA8 (128,128,128,255) and the noise to zero. Bind original 128² F32 distance and density fields. The environment pass also uses a flat RGBA8 environment (64,128,192,255) and a 16² RGBA32F sample table (.25,.25,1,1). Unless specified, use distance −.125, dithering 0, absorption 1 and iteration 0. Store F32.
+
+| Side | Seed | Density | Change |
+|---:|---:|---:|---|
+| 16 | 53 | 0 | Empty volume |
+| 16 | 109 | 1/1024 | Three renders with the stated defaults, dithering 1, or distance +.125 |
+| 16 | 109 | 1/16 | Stronger density |
+| 32 | 211 | 1/128 | Absorption 2, four output formats |
+| 32 | 373 | (u+v)/64 | Dithering .5, absorption .75, iteration 1. Use 128² atlas texel centers (u,v). |
+| 32 | 377 | 1/128 | Absorption 2, field of view 37, camera UV (.1875,.6875) |
+| 16 | 691 | 1/1024 | Repeat of the zero-dither thin volume |
+
+For environment light, 6,400/7,680 new pixels match. The 16² thin volume is exact with dithering 0 and changes to 0/256 with dithering 1, maximum .00543540716. The varying density case matches 0/1,024, maximum .0560382009. Direct light matches 4,516/7,680 new pixels. On the thick volume it matches 1,023/1,024 at U16, maximum one level, and 291/1,024 at F32, maximum 2.98023224e−8.
+
+The blackbody root retains the [temperature and format comparisons](#color-temperature-range-reductions-sky-parameters-and-polygon-paths). Original pixel graphs isolate the scalar fit and the RGB conversion. In an N² F32 texture, set input x=start+(row×N+column)×step. Use (N,start,step,seed) of (16,1200,37.75,127), (64,1300,4.125,281), (32,2500,.1875,337), (128,9000,.6875,433) and (32,.1875,1/1024,701). For coefficients driven by a texture, use a=((17+23×column+7×row) mod 256)/64−.5, b=((31+13×column+19×row) mod 256)/128+.125, c=((5+3×column+17×row) mod 256)/64+1 and d=.375.
+
+| Five F32 renders per operation | Exact / compared | Maximum error |
+|---|---:|---:|
+| Fit with (.1875,1.25,−.375,2.75) | 18,799/22,784 | 5.96046448e-08 |
+| Fit with (2.75,−.25,1.375,−.625) | 22,447/22,784 | 4.76837158e-07 |
+| Fit with (1,1,1,1) | 22,784/22,784 | 0 |
+| Fit with texture coefficients | 22,784/22,784 | 0 |
+| RGB conversion with alpha 1 | 11,762/22,784 | 1.90734863e-06 |
+
+For the first, second and texture-coefficient sets, an independently assembled pixel graph predicts all 68,352 reference fit outputs. Evaluate p using the reusable power function on (x,d), and output (a×b+c×p)/(b+p). When that graph exposes p, numerator, denominator and quotient as four channels, MaterialCraft also matches every component of all 68,352 pixels. The fixed-coefficient discrepancies persist when calling the fit as a nested function.
+
 ### Quad, swirl, trapezoid and vector morph comparisons
 
 | Root | Renders | Exact pixels / compared | Maximum U8 / U16 levels | Maximum F16 / F32 error |
