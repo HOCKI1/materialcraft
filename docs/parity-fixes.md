@@ -253,6 +253,34 @@ Literal-only pixel graphs at 16², seed 23, give 512/768 exact pixels for each l
 
 The shared-lookup ridged root still matches 5,160/16,384 at changed roughness in F32, maximum 1.78813934e−7. Its one-octave .7 control still matches 1,847/4,096, maximum 2.38418579e−7. For positive normal x on the signed field, the reference's general power agrees with exp(y×ln(x)) on all 32,614 pixels. On .7 with exponent 1 it returns `3f333334`. Further work on general power and natural exponential is tracked with the [octave controls](#ridged-noise-octave-isolation).
 
+### Centered transform resizing and untiled edges
+
+| Root | Renders | Exact pixels / compared | Maximum error |
+|---|---:|---:|---:|
+| First horizon occlusion mip | 18 | 171,264/171,264 | 0 |
+| Second horizon occlusion mip | 18 | 171,264/171,264 | 0 |
+| First PBR environment rescale | 18 | 171,264/171,264 | 0 |
+| Second PBR environment rescale | 18 | 171,264/171,264 | 0 |
+| Orthographic PBR environment rescale | 18 | 171,264/171,264 | 0 |
+| Orthographic PBR mip generator | 18 | 171,264/171,264 | 0 |
+
+Both horizon occlusion helpers match the 64² input, the 16² U16 intermediate and the final 64² float expansion. The first helper previously matched 115/4,096 pixels on that F32 output. In the first PBR rescale, the 2,048×1,024 source for the transform was exact and the 64² output matched 0/4,096 pixels. The orthographic generator first differed along the top and bottom scanlines of a 2,048×1,024 manually filtered image. Reading the connected intermediates again gives bit-identical images in the 16² and 64² probes for both graphs and in the rescale's rectangular-source probe.
+
+Each row combines four archived renders, four changed-format cases, the independent 32² input and nine new procedural fields. Use the [16² through 128² color fields, signed input, rectangular input and seeds](#stored-precision-in-transform-mip-levels). For grayscale use channel zero. The horizon helpers use the default mip at 16², mip 2 for the four 64² formats and seed repeat, mip 3 at 128², mip 0 for the rectangular input, and mip 4 for the signed input. The four environment and mip-generator roots expose only the image binding.
+
+A centered automatic bilinear transform with a unit signed axis permutation resizes in factor-of-two steps. Determine the intermediate sizes working back from the destination in source-axis order. A 16×16 image resized to 64×32 passes through 32×16. Resizing it to 64×8 also passes through 32×16. Each pass reads at the source level's precision and stores at the destination precision. Quarter turns exchange the axes, including their wrap flags. Untiled edges extend the nearest edge texel. With a manual mip selection, the final centered read also extends the edge. Moving the transform off center restores the matte at the border.
+
+| Original transform controls | Renders | Exact RGBA pixels / compared | Maximum error |
+|---|---:|---:|---:|
+| Square magnification and single-pass controls | 84 | 408,576/408,576 | 0 |
+| Matrix, offset, matte and mip-mode controls | 60 | 237,568/237,568 | 0 |
+| Signed axis permutations and mixed resize ratios | 50 | 37,440/37,440 | 0 |
+| Rectangular sources | 20 | 26,880/26,880 | 0 |
+| Centered and offset untiled edges | 66 | 118,272/118,272 | 0 |
+| Nearest rectangular reads | 14 | 8,576/8,576 | 0 |
+
+For the square controls, start with a fixed 16² field H=((97x+43y+7xy+143c+9xc) mod 1024)/1023. Round H to the nearest stored level for U8 and U16, and supply 3H−1.25 for F16 and F32. Use seed 631, 16², 32² and 128² F32 outputs, and 64² in all four formats. Run centered identity bilinear, centered nearest and matrix (1,.25,−.125,.75) with offset (.109375,−.1875) and horizontal tiling. The matrix controls add nonzero offsets including (1/64,0), horizontal reflection, diagonal scales 1±2⁻¹⁶, .5 and 2, independently toggled tiling axes, matte (.125,.375,−.5,1.25), and manual mip 0 or 1. Test the 16² field at 64×32, 8×16, 4×8, 64×8 and 16×64 with all eight signed axis permutations. The rectangular-source controls use a 32×16 field with coefficients (157,29,17,193,5) in H, and 4H−1.75 for float inputs, seed 773. Destinations are 64×16, 16×64, 8², 64² and 16×32.
+
 ### Surface irradiance and uniform power
 
 Surface irradiance matches **47,360/47,360 RGBA pixels in 71 renders**, maximum error zero. The total includes repeated controls. There are 31,232 F32 pixels and 5,376 each in U8, U16 and F16. The eight original polar/index combinations, the four 64² format checks and the independent 32² field all match.

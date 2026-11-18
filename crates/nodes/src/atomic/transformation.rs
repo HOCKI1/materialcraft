@@ -30,14 +30,20 @@ fn transformation(context: &CookContext) -> CookResult {
     }
 
     let nearest = context.i("filtering") == 1;
-    let levels = mip_level(&input, matrix, context);
     let source_format = context.input_formats.first().copied().unwrap_or(if input.integer_sampling() { OutputFormat::U16 } else { OutputFormat::F32 });
-    let sample_format = if levels > 0 && (input.width() > 1 || input.height() > 1) { context.format } else { source_format };
-    let input = reduce_mip(input, levels, source_format, context.format);
-    let matte = crate::output_precision::store_pixel(context.v4("matte"), sample_format);
-
-    // Keep independent wrap axes for panoramic images
     let tiling = context.tiling_axes();
+    let centered = offset == [0.0; 2] && matches!(matrix, [1.0 | -1.0, 0.0, 0.0, 1.0 | -1.0] | [0.0, 1.0 | -1.0, 1.0 | -1.0, 0.0]);
+    let (input, sample_format) = if centered && !nearest && context.i("mip_mode") == 0 {
+        let target = if matrix[0] == 0.0 { [context.h, context.w] } else { [context.w, context.h] };
+        resize_intermediate_levels(input, target, source_format, context.format, tiling)
+    } else {
+        let levels = mip_level(&input, matrix, context);
+        let sample_format = if levels > 0 && (input.width() > 1 || input.height() > 1) { context.format } else { source_format };
+        (reduce_mip(input, levels, source_format, context.format), sample_format)
+    };
+    let matte = crate::output_precision::store_pixel(context.v4("matte"), sample_format);
+    // A centered resize extends an untiled edge texel, including after a manually selected mip.
+    let border = (!centered).then_some(matte);
 
     Ok(vec![Image::generate_uv(context.w, context.h, input.kind(), |u, v| {
         let x = u - 0.5;
@@ -53,9 +59,35 @@ fn transformation(context: &CookContext) -> CookResult {
                 input.sample_nearest_axes(source_u, source_v, tiling)
             }
         } else {
-            crate::texture_sampler::sample(&input, [source_u, source_v], tiling, sample_format, Some(matte))
+            crate::texture_sampler::sample(&input, [source_u, source_v], tiling, sample_format, border)
         }
     })])
+}
+
+fn resize_intermediate_levels(
+    mut input: Image,
+    target: [u32; 2],
+    mut source_format: OutputFormat,
+    destination_format: OutputFormat,
+    tiling: [bool; 2],
+) -> (Image, OutputFormat) {
+    let source = [input.width(), input.height()];
+    let mut next = target.map(|n| n.clamp(1, craft_texture::MAX_SIDE));
+    let mut levels = Vec::new();
+    // Work back from the output so axes with unequal ratios reach their final step together.
+    // For example, 16×16 to 64×32 passes through 32×16.
+    while next != source {
+        next = std::array::from_fn(|i| if next[i] > source[i] { next[i].div_ceil(2).max(source[i]) } else { next[i].saturating_mul(2).min(source[i]) });
+        if next != source {
+            levels.push(next);
+        }
+    }
+    for [width, height] in levels.into_iter().rev() {
+        input = crate::texture_sampler::resize_input_level(&input, width, height, source_format, tiling);
+        input = crate::output_precision::apply(input, destination_format);
+        source_format = destination_format;
+    }
+    (input, source_format)
 }
 
 fn mip_level(input: &Image, matrix: [f32; 4], context: &CookContext) -> u32 {
@@ -94,6 +126,47 @@ mod tests {
     use crate::resolve_params;
     use materialcraft_core::Value;
     use std::collections::BTreeMap;
+
+    #[test]
+    fn centered_resizes_filter_rectangular_levels_in_source_coordinates() {
+        let vars = BTreeMap::from([("$tiling".into(), Value::Int(1))]);
+        for (source_format, height, matrix, mip_mode, mip_level, corner, interior) in [
+            (OutputFormat::F32, 8, [1.0, 0.0, 0.0, 1.0], 0, 0, 0xbf27bdf0, 0x3e92acaa),
+            (OutputFormat::U16, 32, [0.0, 1.0, -1.0, 0.0], 0, 0, 0x3ea1c922, 0x3f410291),
+            (OutputFormat::F32, 64, [1.0, 0.0, 0.0, 1.0], 1, 1, 0xbf0c5715, 0xbc9d4750),
+        ] {
+            let integer = source_format == OutputFormat::U16;
+            let input = Image::gray(16, 16, |x, y| {
+                let ramp = f64::from((97 * x + 43 * y + 7 * x * y) % 1024) / 1023.0;
+                if integer { (ramp * 65535.0).round() as f32 / 65535.0 } else { (3.0 * ramp - 1.25) as f32 }
+            })
+            .with_integer_sampling(integer);
+            let params = resolve_params(
+                &definition(),
+                &BTreeMap::from([
+                    ("matrix".into(), Value::Float4(matrix)),
+                    ("mip_mode".into(), Value::Enum(mip_mode)),
+                    ("mip_level".into(), Value::Int(mip_level)),
+                    ("matte".into(), Value::Color([0.125, 0.375, -0.5, 1.25])),
+                ]),
+            );
+            let context = CookContext {
+                w: 64,
+                h: height,
+                seed: 631,
+                format: OutputFormat::F32,
+                tile: false,
+                inputs: &[Some(input)],
+                input_formats: &[source_format],
+                params: &params,
+                resource: &|_| None,
+                vars: &vars,
+            };
+            let result = transformation(&context).unwrap();
+            assert_eq!(result[0].get_gray(0, 0, false).to_bits(), corner);
+            assert_eq!(result[0].get_gray(17, 4, false).to_bits(), interior);
+        }
+    }
 
     #[test]
     fn mip_reductions_use_the_precision_of_each_source_level() {
