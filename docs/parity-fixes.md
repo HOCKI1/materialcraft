@@ -356,6 +356,16 @@ For shape mapper, the five earlier comparison sizes and four-format inputs are l
 
 For ten further shape mapper renders use H=(((59x+41y+5xy) mod 1021)/1020+u+2v)/4, where u,v are source texel centers. Use defaults at 16²/83, four formats at 64²/167, F32 at 128²/347, a 32×16 input at 32²/499, signed 32²/631 with 3H−1.375, 64²/787 and 64²/827. Set radius .375, width .71875, rotation .09375, nine patterns and seven segments. Use shape 0 and disable non-square expansion for the rectangular input. Use shape 1 elsewhere. Link segments and pattern count for the signed input. Disable alternate flipping and select nearest filtering at seed 787. Together the ten smooth-field renders match all 43,264 stored pixels.
 
+### Unconnected function arguments
+
+Create an original function that returns its scalar argument and declares .1875 as the source default. Call it from a node parameter, pixel processor, stamp parameter and value processor. For each scope test five variants with a wired argument, an open argument, an open argument sharing the outer variable name, and an open argument declared connectable or explicitly non-connectable. Supply .625 at 16²/seed 79 and .3125 at 32²/seed 197. Read LUM32F for the three image scopes and a typed float for the value scope.
+
+Each image scope matches 2,560/6,400 pixels and the value scope matches 4/10 typed floats. Maximum error is .1875 in every scope. Wired arguments match, as does the open connectable declaration. For the remaining open declarations MaterialCraft reads the authored .1875 and the reference returns zero. MaterialCraft also uses published source defaults across open documents, including when the author changes the source value. This difference remains open.
+
+For a separate typed control at 16²/seed 487, pass true, integer 7, integer vectors (−2,3), (9,−8,7) and (4,3,2,1), float .1875, and float vectors (−.75,.5), (.625,−1.5,2) and (−1.375,3,2,−.25). Read bool as 0 or 1 and convert the first component of each numeric argument to float. With the value wired, 9/9 typed floats match exactly. With the value declared as the source default and the call port open, 0/9 match, with maximum error 9. The [literal-argument comparisons](#literal-arguments-inside-pixel-function-calls) use explicit wires.
+
+The release engine tests also cover scalar Levels controls before and after saving a package. Their expected alpha is one for an input function returning .25, consistent with the [measured endpoint controls](#integer-levels-endpoints-and-channel-mixing).
+
 ### Literal arguments inside pixel function calls
 
 The color-temperature root now matches all 42,496 RGBA pixels across its 19 renders. All 29,440 F32 pixels and all 4,352 pixels in each of U8, U16 and F16 are bit-exact. The previous F32 result differed by up to 1.1920929e−7. The root exposes a scalar temperature, with a default of 3,000. The [temperature cases and scalar fit](#volume-density-dithering-and-color-temperature-controls) give the original settings and varying-input controls.

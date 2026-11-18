@@ -39,6 +39,8 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 
 [Grayscale sampler measurements](parity-fixes.md#grayscale-sampling-of-color-inputs) · [Value sampling across 240 typed comparisons](parity-fixes.md#value-processor-texture-filtering)
 
+[Unconnected function arguments](parity-fixes.md#unconnected-function-arguments) records the measured difference between open ports and authored defaults.
+
 [Runtime square-root measurements](parity-fixes.md#runtime-pixel-square-roots) cover both exponent parities and the signed domain.
 
 [Luminance EXR measurements](parity-fixes.md#luminance-exr-input) cover Y and YA inputs at half and single precision.

@@ -341,7 +341,8 @@ fn native_channel_parameters_accept_scalar_functions_without_changing_their_bodi
 
             assert_eq!(result.error, None, "{definition}.{parameter}");
 
-            let expected = if definition == "fx_map" { Value::Color([0.25, 0.25, 0.25, 1.0]) } else { Value::Float4([0.25; 4]) };
+            let gray = [0.25, 0.25, 0.25, 1.0];
+            let expected = if definition == "fx_map" { Value::Color(gray) } else { Value::Float4(gray) };
 
             assert_eq!(result.parameters[*parameter], expected);
 
