@@ -126,6 +126,34 @@ fn scoped_publication_resolves_linked_graphs_and_images_using_the_granted_read_r
             let (pkg, entry) = formats::material::read_material(&std::fs::read(output.join("surface.sbs.mcmat")).unwrap()).unwrap();
             assert_eq!(pkg.graph(entry).unwrap().name, "Oak");
             assert_eq!(pkg.graphs.len(), 2);
+
+            // Saving under a different granted root rebases links from that actual
+            // destination, not from the process working directory or a relative path.
+            app.save(Some("saved.sbs")).unwrap();
+            let xml = std::fs::read_to_string(output.join("saved.sbs")).unwrap();
+            assert!(xml.contains("../input/parts/finish.sbs"), "{xml}");
+            assert_eq!(app.session.path.as_deref(), Some("saved.sbs"));
+            let workspace = AuthorizedWorkspace::new(Some(&dir), Some(&output)).unwrap();
+            let mut reopened = Headless::new(Session::new(Package::new("Empty")), Filesystem::Workspace(workspace));
+            reopened.load("published/saved.sbs").unwrap();
+            let helper_path = input.join("parts/finish.sbs").canonicalize().unwrap().to_string_lossy().into_owned();
+            assert!(reopened.session.pkg.dependencies.contains_key(&helper_path));
+            assert!(reopened.session.pkg.dependencies.values().any(|dependency| dependency.name == "Helpers"));
+            app.save(Some("new/sub/saved.sbs")).unwrap();
+            let xml = std::fs::read_to_string(output.join("new/sub/saved.sbs")).unwrap();
+            assert!(xml.contains("../../../input/parts/finish.sbs"), "{xml}");
+            reopened.load("published/new/sub/saved.sbs").unwrap();
+            assert!(reopened.session.pkg.dependencies.contains_key(&helper_path));
+            #[cfg(unix)]
+            {
+                std::fs::create_dir_all(output.join("nested/deep")).unwrap();
+                std::os::unix::fs::symlink("nested/deep", output.join("alias")).unwrap();
+                app.save(Some("alias/new/linked.sbs")).unwrap();
+                let xml = std::fs::read_to_string(output.join("nested/deep/new/linked.sbs")).unwrap();
+                assert!(xml.contains("../../../../input/parts/finish.sbs"), "{xml}");
+                reopened.load("published/nested/deep/new/linked.sbs").unwrap();
+                assert!(reopened.session.pkg.dependencies.values().any(|dependency| dependency.name == "Helpers"));
+            }
         } else {
             assert!(result.is_err());
             assert!(!output.join("missing.sbs.mcmat").exists());

@@ -173,7 +173,12 @@ impl Headless {
             None => self.session.path.clone().ok_or_else(|| bad("the package has no file yet (new, or opened from another program): give a `path`"))?,
         };
 
-        let files = file_cmds::save_files_at(&self.session, &path)?;
+        let destination = match &self.fs {
+            Filesystem::Workspace(workspace) => workspace.save_document_path(&path)?.to_string_lossy().into_owned(),
+            Filesystem::TrustedLocal => path.clone(),
+            Filesystem::Denied => return Err(bad("file access is not granted")),
+        };
+        let files = file_cmds::save_files_at(&self.session, &destination)?;
         let bytes = if file_cmds::is_mcraft(&path) {
             let bytes = files.zip().map_err(|error| bad(error.to_string()))?;
             self.write(&path, &bytes)?;

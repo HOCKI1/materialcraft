@@ -19,18 +19,51 @@ pub struct AuthorizedWorkspace {
     read: Option<Arc<Dir>>,
     read_path: Option<PathBuf>,
     write: Option<Arc<Dir>>,
+    write_path: Option<PathBuf>,
 }
 
 impl AuthorizedWorkspace {
     pub fn new(read_root: Option<&Path>, write_root: Option<&Path>) -> Result<Self, AutomationError> {
         let read = open_root(read_root, "read")?;
         let read_path = read_root.map(std::fs::canonicalize).transpose().map_err(|e| bad(e.to_string()))?;
-        Ok(Self { read, read_path, write: open_root(write_root, "write")? })
+        let write = open_root(write_root, "write")?;
+        let write_path = write_root.map(std::fs::canonicalize).transpose().map_err(|e| bad(e.to_string()))?;
+        Ok(Self { read, read_path, write, write_path })
     }
 
     /// Engine identities are absolute. Actual dependency reads still go through the directory capability.
     pub(crate) fn document_path(&self, path: &str) -> Result<PathBuf, AutomationError> {
         Ok(self.read_path.as_ref().ok_or_else(|| denied("read"))?.join(relative_path(path)?))
+    }
+
+    /// Absolute destination identity for rebasing links; writes still use the capability.
+    pub(crate) fn save_document_path(&self, path: &str) -> Result<PathBuf, AutomationError> {
+        let relative = relative_path(path)?;
+        let root = self.write.as_ref().ok_or_else(|| denied("write"))?;
+        let parent = relative.parent().filter(|p| !p.as_os_str().is_empty()).unwrap_or(Path::new("."));
+        // A permitted directory symlink can change the number of parent traversals
+        // needed by saved links. Resolve it inside the same write capability.
+        let mut ancestor = parent;
+        let mut suffix = PathBuf::new();
+        let parent = loop {
+            match root.canonicalize(ancestor) {
+                Ok(resolved) => break resolved.join(&suffix),
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                    // Preserve save-to-new-directory behavior without creating anything
+                    // before serialization. Do not treat a dangling symlink as missing.
+                    match root.symlink_metadata(ancestor) {
+                        Err(missing) if missing.kind() == std::io::ErrorKind::NotFound => {}
+                        _ => return Err(file_error("resolve destination", path, error)),
+                    }
+                    let leaf = ancestor.file_name().ok_or_else(|| file_error("resolve destination", path, error))?;
+                    suffix = Path::new(leaf).join(suffix);
+                    ancestor = ancestor.parent().filter(|p| !p.as_os_str().is_empty()).unwrap_or(Path::new("."));
+                }
+                Err(error) => return Err(file_error("resolve destination", path, error)),
+            }
+        };
+        let leaf = relative.file_name().ok_or_else(|| bad("missing destination filename"))?;
+        Ok(self.write_path.as_ref().ok_or_else(|| denied("write"))?.join(parent).join(leaf))
     }
 
     pub(crate) fn read_dependency(&self, path: &str) -> Option<Vec<u8>> {
@@ -45,7 +78,7 @@ impl AuthorizedWorkspace {
     pub fn read(&self, path: &str) -> Result<Vec<u8>, AutomationError> {
         let rel = relative_path(path)?;
         let root = self.read.as_ref().ok_or_else(|| denied("read"))?;
-        let file = root.open(&rel).map_err(|e| file_error("read", path, e))?;
+        let file = root.open_with(&rel, &regular_read_options()).map_err(|e| file_error("read", path, e))?;
         let metadata = file.metadata().map_err(|e| file_error("read", path, e))?;
         if !metadata.is_file() {
             return Err(bad(format!("not a regular file: `{path}`")));
@@ -111,7 +144,7 @@ impl AuthorizedWorkspace {
                 }
             }
             Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {
-                let file = root.open(&rel).map_err(|error| file_error("read", path, error))?;
+                let file = root.open_with(&rel, &regular_read_options()).map_err(|error| file_error("read", path, error))?;
                 let metadata = file.metadata().map_err(|error| file_error("read", path, error))?;
                 if !metadata.is_file() || metadata.len() != bytes.len() as u64 {
                     return Err(bad(format!("Resource filename collision: `{path}`")));
@@ -127,6 +160,18 @@ impl AuthorizedWorkspace {
         }
         Ok(())
     }
+}
+
+// Keep capability-based resolution while preventing FIFO opens from waiting for a writer.
+fn regular_read_options() -> OpenOptions {
+    let mut options = OpenOptions::new();
+    options.read(true);
+    #[cfg(unix)]
+    {
+        use cap_std::fs::OpenOptionsExt;
+        options.custom_flags(rustix::fs::OFlags::NONBLOCK.bits() as i32);
+    }
+    options
 }
 
 fn open_root(path: Option<&Path>, authority: &str) -> Result<Option<Arc<Dir>>, AutomationError> {
@@ -208,6 +253,32 @@ mod tests {
         std::fs::create_dir_all(&outside).unwrap();
         let ws = AuthorizedWorkspace::new(Some(&inside), Some(&inside)).unwrap();
         (inside, outside, ws)
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn capability_reads_and_resource_collisions_reject_fifos_without_a_writer() {
+        use std::os::unix::fs::OpenOptionsExt;
+        use std::time::Duration;
+        for collision in [false, true] {
+            let (inside, _, ws) = roots(if collision { "fifo-collision" } else { "fifo-read" });
+            let path = inside.join("pipe");
+            assert!(std::process::Command::new("mkfifo").arg(&path).status().unwrap().success());
+            let (sender, receiver) = std::sync::mpsc::channel();
+            let worker = std::thread::spawn(move || {
+                let result = if collision { ws.write_resource("pipe", b"x") } else { ws.read("pipe").map(|_| ()) };
+                sender.send(result).unwrap();
+            });
+            let result = receiver.recv_timeout(Duration::from_secs(2));
+            if result.is_err() {
+                // Release the regression's blocked read before failing the test.
+                let writer = std::fs::OpenOptions::new().write(true).custom_flags(rustix::fs::OFlags::NONBLOCK.bits() as i32).open(&path).unwrap();
+                drop(writer);
+            }
+            worker.join().unwrap();
+            std::fs::remove_dir_all(inside.parent().unwrap()).unwrap();
+            assert!(result.expect("FIFO open must not wait for a writer").is_err());
+        }
     }
 
     #[test]
