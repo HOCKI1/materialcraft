@@ -21,9 +21,9 @@ fn blur(context: &CookContext) -> CookResult {
 
     let reach = radius - 0.5;
     if reach > 0.0 && reach <= 2.0 {
-        let horizontal = box_filter::short_axis(&input, reach, [1, 0], tile, source_format);
+        let horizontal = box_filter::short_line(&input, reach, [1.0, 0.0], tile, source_format);
         let stored = crate::output_precision::apply(horizontal, context.format);
-        return Ok(vec![box_filter::short_axis(&stored, reach, [0, -1], tile, context.format)]);
+        return Ok(vec![box_filter::short_line(&stored, reach, [0.0, -1.0], tile, context.format)]);
     }
     if radius <= 0.5 || !radius.is_finite() {
         return Ok(vec![input]);

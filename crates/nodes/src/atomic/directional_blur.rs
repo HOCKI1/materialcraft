@@ -27,22 +27,22 @@ pub(super) fn blur(context: &CookContext, angle: f32) -> CookResult {
     }
 
     let tile = context.tiling_axes();
+    let source_format = context.input_formats.first().copied().unwrap_or(materialcraft_core::OutputFormat::F32);
     let quarters = angle * 4.0;
     if quarters.fract() == 0.0 {
         let horizontal = quarters % 2.0 == 0.0;
         // Rotated axial footprints project their reach one float below unity before normalization.
         let projection = if angle == 0.0 { 1.0 } else { f32::from_bits(0x3f7f_ffff) };
         let reach = (radius - 0.5) * projection;
-        let source_format = context.input_formats.first().copied().unwrap_or(materialcraft_core::OutputFormat::F32);
         if reach <= 2.0 {
             let step = if !horizontal {
-                [0, -1]
+                [0.0, -1.0]
             } else if reach <= 1.0 {
-                [-1, 0]
+                [-1.0, 0.0]
             } else {
-                [1, 0]
+                [1.0, 0.0]
             };
-            return Ok(vec![box_filter::short_axis(&input, reach, step, tile, source_format)]);
+            return Ok(vec![box_filter::short_line(&input, reach, step, tile, source_format)]);
         }
         return Ok(vec![box_filter::axis(&input, reach, horizontal, tile[usize::from(!horizontal)], source_format, context.format)]);
     }
@@ -51,7 +51,17 @@ pub(super) fn blur(context: &CookContext, angle: f32) -> CookResult {
     // Image-space rotation follows increasing rows.
     let dy = -dy;
     let major = dx.abs().max(dy.abs());
-    let projected_radius = 0.5 + (radius - 0.5) * major;
+    let reach = (radius - 0.5) * major;
+    if reach <= 1.0 {
+        // Normalize the offsets in texture coordinates so the longer side keeps its texel scale.
+        // The first tap lies in the positive direction of the dominant image axis.
+        let u = dx / context.w as f32;
+        let v = dy / context.h as f32;
+        let dominant = if dx.abs() > dy.abs() { dx } else { dy };
+        let span = -u.abs().max(v.abs()).copysign(dominant);
+        return Ok(vec![box_filter::short_line(&input, reach, [u / span, v / span], tile, source_format)]);
+    }
+    let projected_radius = 0.5 + reach;
     let half_samples = (projected_radius + 0.5).floor().clamp(1.0, MAX_HALF_SAMPLES as f32) as i32;
 
     // Bound oblique sampling cost while preserving the extent of large kernels

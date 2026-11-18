@@ -260,16 +260,41 @@ fn rotated_axial_blurs_project_the_outer_texel_coverage() {
     }
 }
 
-#[test]
-fn wide_blur_reduces_aligned_runs_at_the_destination_precision() {
-    let field = Image::generate(64, 128, Kind::Color, |x, y| {
+fn signed_modular_field(width: u32, height: u32) -> Image {
+    Image::generate(width, height, Kind::Color, |x, y| {
         std::array::from_fn(|c| {
             let c = c as u32;
             let level = (37 * x + 71 * y + 11 * x * y + 47 * c + 3 * x * c) % 1021;
             (3.0 * (f64::from(level) / 1020.0) - 1.125) as f32
         })
-    });
-    let input = [Some(field)];
+    })
+}
+
+#[test]
+fn short_oblique_blur_filters_fractional_taps_and_preserves_the_image_aspect() {
+    let input = [Some(impulse_and_stripes())];
+    for (angle, strength, x, y, expected) in
+        [(0.125, 2.0, 63, 63, [0x3e5413cc, 0x3e5413cc, 0x3e5413cc, 0x3f7efc72]), (0.0625, 2.5, 65, 64, [0x3e2e41cd, 0x3e94b308, 0x3f426ddf, 0x3de85ee0])]
+    {
+        let settings = [("intensity", Value::Float(strength)), ("angle", Value::Float(angle))];
+        let image = cook("directional_blur", &input, &settings, [128; 2], true);
+        assert_eq!(image.get(x, y, false).map(f32::to_bits), expected);
+    }
+
+    for (size, angle, tile, x, y, expected) in [
+        ([128, 64], -0.0625, false, 0, 0, [0xbf87572f, 0xbf6ac022, 0xbf46d1e6, 0xbf22e3aa]),
+        ([64, 128], 0.03125, true, 63, 0, [0xbeeb11b8, 0x3cb90b12, 0x3f13afa5, 0x3f90cb7a]),
+    ] {
+        let input = [Some(signed_modular_field(size[0], size[1]))];
+        let settings = [("intensity", Value::Float(4.0)), ("angle", Value::Float(angle))];
+        let image = cook("directional_blur", &input, &settings, size, tile);
+        assert_eq!(image.get(x, y, false).map(f32::to_bits), expected);
+    }
+}
+
+#[test]
+fn wide_blur_reduces_aligned_runs_at_the_destination_precision() {
+    let input = [Some(signed_modular_field(64, 128))];
     let params = [("intensity", Value::Float(17.5))];
     for (format, expected) in [
         (OutputFormat::U8, [0x3ec0c0c1, 0x3edadadb, 0x3ec8c8c9, 0x3ec2c2c3]),

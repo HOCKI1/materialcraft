@@ -382,6 +382,31 @@ The four 64² F32 cube buffers contain 3,187 distinct position tuples, four norm
 
 The line-light differences begin in its pixel processor. On the signed field, pixel (6,2) stores 1.98653376 in the three color channels in the reference and 1.98652911 in MaterialCraft. For the horizon, the input matches. Its pixel processor differs at two texels in the 64² A case. Pixel (39,49) has reference red .756740689 and MaterialCraft red .753627837. Both roots remain in progress.
 
+### Short oblique directional blur
+
+| Direct footprint | Renders | Exact pixels before | Exact pixels after / compared | Maximum error after |
+|---|---:|---:|---:|---:|
+| 128² impulse and stripes | 10 | 27,936 | 163,840/163,840 | 0 |
+| Rectangle, U8 output | 10 | 3,535 | 81,920/81,920 | 0 |
+| Rectangle, U16 output | 10 | 1,113 | 81,906/81,920 | 1 |
+| Rectangle, F16 output | 10 | 0 | 81,918/81,920 | 7.62939453e-06 |
+| Rectangle, F32 output | 50 | 0 | 292,389/409,600 | 3.57627869e-07 |
+
+A projected reach of at most one texel uses three taps. Multiply radius−.5 by the larger absolute sine or cosine of the angle. Divide each direction component by its image dimension, then divide both by the larger resulting magnitude to obtain the texel offsets. The first tap points toward positive coordinates on the original dominant axis. Filter the two outer taps at source precision. With reach d and center weight m=.5/(.5+d), weight each side by d×m. Multiply the first tap by its weight, accumulate the center with a fused multiply-add, then accumulate the last tap the same way.
+
+Use the [128² impulse, stripes, signed alpha and radius sequence](#quarter-turn-directional-blur) at .125 and .0625 turns. The first five radii at both angles now match exactly. The fourteen wider renders match 4,832/229,376 RGBA32F pixels, maximum .750733346. On the 108 straight-angle controls all 1,769,472 pixels still match.
+
+For rectangles use H=((37x+71y+11xy+47c+3xc) mod 1021)/1020 in channel c. Use 3H−1.125 for F32 inputs and round(255H) for U8. In order, the angles are .03125, .09375, .15625, .21875, −.0625, .3125, .375, .625, −.137 and .913 turns. Use 64×128 for indices 0, 2, 5, 7 and 9 and 128×64 elsewhere. Use U8 source at indices 3 and 6, F32 otherwise. Disable both tile axes at indices 2, 4 and 9. Use radii .5625, 1, 1.32, 1.5, 1.5625, 1.875, 2.25, 5.375 and 12.25, with intensity four times the radius and seeds 187+19j by zero-based radius index. Use F32 output for every radius and add U8, U16 and F16 at radii 1.32 and 5.375. The table covers only the 80 short cases. The other 70 rectangle renders match 61/573,440 pixels, with maximum errors of 192 U8 levels, 49,199 U16 levels, 1.056640625 F16 and 1.06214854 F32.
+
+| Root | Renders | Exact pixels / compared | Maximum U8 / U16 levels | Maximum F16 / F32 error |
+|---|---:|---:|---:|---:|
+| Color anisotropic blur | 24 | 226,638/269,568 | 16 / 0 | 0 / 0.0235294104 |
+| Grayscale anisotropic blur | 24 | 232,976/269,568 | 16 / 0 | 0 / 0.0196078718 |
+| Color high-quality blur | 18 | 63,731/171,264 | 8 / 0 | 0 / 0.00784316659 |
+| Grayscale high-quality blur | 18 | 125,647/171,264 | 4 / 0 | 0 / 0.00784316659 |
+
+For the nine added root renders use the [modular fields and size/seed matrix](#normal-maps-panoramas-and-primitive-shapes). Set intensity to 5.25, 18.5 and 10.25 in A/B/C. Set quality to 1, 0 and 1. For anisotropic blur set anisotropy to .6875, .3125 and 1 and angle to .0625, .15625 and −.21875 turns. The 128² case differs in all four graphs. The direct wider impulse and rectangle probes reproduce the outstanding error in a single directional primitive.
+
 ### Quarter-turn directional blur
 
 Anisotropic noise matches **171,264/171,264 grayscale pixels in 18 renders**, maximum error zero. The [noise settings and seeds](#color-conversion-gradient-height-and-histogram-controls) include the rotated 128² and 32² cases. At 128² the directional stage improved from 15,226/16,384 to 16,384/16,384. Every sampled stage matches on the 64², 128² and rectangular-input controls. The final outputs comprise 122,880 U16 pixels, 32,000 F32 pixels and 8,192 each U8 and F16.
@@ -392,7 +417,7 @@ For a nonzero whole-quarter turn, project radius−.5 by the F32 factor immediat
 
 Forty additional 64×128 quarter-turn renders on the original modular RGBA8 field, with both axes wrapped or both clamped, match **327,680/327,680 pixels**. For channel c round 255 times ((37x+71y+11xy+47c+3xc) mod 1021)/1020 to the nearest byte, with ties to even. Use radii .75, 1.25, 1.5, the next F32 above 1.5, 2, 2.5, the next F32 above 2.5, 3.125, 4.375, 9.5 and 15.5625. Multiply the radius by four for intensity. Use seed 97+23j and F32 output. At radii 1.25, 2 and 4.375 also use U8, U16 and F16. Each of those three formats contributes 49,152 pixels.
 
-The same 128² impulse and stripes at .125 and .0625 turns still differ. At .125 turns, 32,768/196,608 pixels match, maximum .750733346. At .0625 turns, 0/196,608 match, maximum .433206394. The mismatches include both short and wide kernels.
+Before the [short oblique filter correction](#short-oblique-directional-blur), the same 128² impulse and stripes also differed at .125 and .0625 turns. At .125 turns, 32,768/196,608 pixels match, maximum .750733346. At .0625 turns, 0/196,608 match, maximum .433206394. That earlier measurement included both short and wide kernels.
 
 ### Alpha maximum and one-texel reductions
 

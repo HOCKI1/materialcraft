@@ -4,18 +4,18 @@ use rayon::prelude::*;
 
 mod mip_window;
 
-pub(super) fn short_axis(input: &Image, reach: f32, step: [i64; 2], tile: [bool; 2], source_format: OutputFormat) -> Image {
+pub(super) fn short_line(input: &Image, reach: f32, step: [f32; 2], tile: [bool; 2], source_format: OutputFormat) -> Image {
     let center_weight = 0.5 / (0.5 + reach);
     let edge_weight = reach * center_weight;
     // The two passes visit samples in different directions. Cancellation exposes their order.
     let combine = |first: [f32; 4], center: [f32; 4], last: [f32; 4]| {
         std::array::from_fn(|c| last[c].mul_add(edge_weight, center[c].mul_add(center_weight, first[c] * edge_weight)))
     };
-    if reach > 1.0 {
-        // Each side combines its two texels in one filtered read at the source storage precision.
-        let offset = 2.0 - 1.0 / reach;
-        let du = step[0] as f32 * offset / input.width() as f32;
-        let dv = step[1] as f32 * offset / input.height() as f32;
+    if reach > 1.0 || step.iter().any(|v| v.fract() != 0.0) {
+        // A fractional side tap filters at the source storage precision.
+        let offset = if reach > 1.0 { 2.0 - 1.0 / reach } else { 1.0 };
+        let du = step[0] * offset / input.width() as f32;
+        let dv = step[1] * offset / input.height() as f32;
         return Image::generate(input.width(), input.height(), input.kind(), |x, y| {
             let u = (x as f32 + 0.5) / input.width() as f32;
             let v = (y as f32 + 0.5) / input.height() as f32;
@@ -25,6 +25,7 @@ pub(super) fn short_axis(input: &Image, reach: f32, step: [i64; 2], tile: [bool;
             combine(first, center, last)
         });
     }
+    let step = step.map(|v| v as i64);
     Image::generate(input.width(), input.height(), input.kind(), |x, y| {
         let (x, y) = (i64::from(x), i64::from(y));
         let first = input.get_axes(x - step[0], y - step[1], tile);
