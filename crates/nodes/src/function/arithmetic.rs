@@ -91,8 +91,7 @@ pub(crate) fn evaluate(instruction: &super::instruction::Instruction, args: &[Va
             "ceil" => left.ceil(),
             "sqrt" if pixel_math => super::square_root::evaluate(left),
             "sqrt" => left.sqrt(),
-            "exp" if pixel_math => super::binary_exponential::exp(left),
-            "exp" => left.exp(),
+            "exp" => super::binary_exponential::exp(left, pixel_math),
             "log" if pixel_math => super::binary_exponential::ln(left),
             "log" => left.ln(),
             "log2" if pixel_math => super::binary_exponential::log2(left),
@@ -103,7 +102,12 @@ pub(crate) fn evaluate(instruction: &super::instruction::Instruction, args: &[Va
             "pow2" => left.exp2(),
             "sin" => angle_component(left, false),
             "cos" => angle_component(left, true),
-            "tan" => left.tan(),
+            "tan" if instruction.literal => left.tan(),
+            "tan" => {
+                let sine = angle_component(left, false);
+                let cosine = angle_component(left, true);
+                if pixel_math { super::reciprocal::divide(sine, cosine) } else { sine / cosine }
+            }
             "lerp" if pixel_math => (right - left).mul_add(factor, left),
             "lerp" => left + (right - left) * factor,
             "rand" if matches!(scope, super::FunctionScope::Node | super::FunctionScope::ValueProcessor) => crate::random::node_function(random) * left,

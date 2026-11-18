@@ -1,4 +1,4 @@
-//! Logarithm and exponential for runtime pixel expressions.
+//! Logarithm and exponential for runtime function expressions.
 
 use super::fixed_point::{Quadratic, square_fraction, truncate_float};
 use std::{f64::consts::LN_2, sync::LazyLock};
@@ -60,8 +60,11 @@ pub(crate) fn signed_pixel_power(value: f32, exponent: f32) -> f32 {
     exp2(log2(value.abs()) * exponent).copysign(value)
 }
 
-pub(super) fn exp(value: f32) -> f32 {
-    if value < -88.0 || value.is_nan() {
+pub(super) fn exp(value: f32, pixel: bool) -> f32 {
+    if value.is_nan() {
+        return if pixel { 0.0 } else { value };
+    }
+    if value < -88.0 {
         return 0.0;
     }
     if value > 89.0 {
@@ -71,9 +74,14 @@ pub(super) fn exp(value: f32) -> f32 {
     const LOG_LOW: f32 = (LN_2 - LOG_HIGH as f64) as f32;
     let exponent = (value * std::f32::consts::LOG2_E).floor();
     let remainder = (-exponent).mul_add(LOG_LOW, (-exponent).mul_add(LOG_HIGH, value));
-    // A seventh-degree fit on [0, ln(2)]. Each multiply-add rounds exactly once.
+    // On [0, ln(2)] the same fitted polynomial uses fused pixel operations and separate uniform operations.
     let coefficients = [0.001_304_379_3, 0.008_378_831, 0.041_653_905, 0.166_668_42, 0.499_999_9, 1.0, 1.0];
-    let significand = coefficients.into_iter().fold(0.000_275_553_82_f32, |p, c| p.mul_add(remainder, c));
+    let initial = 0.000_275_553_82_f32;
+    let significand = if pixel {
+        coefficients.into_iter().fold(initial, |p, c| p.mul_add(remainder, c))
+    } else {
+        coefficients.into_iter().fold(initial, |p, c| p * remainder + c)
+    };
     // The scale itself can be 2^128 while the product still fits in float32.
     let scale = f64::from_bits(((exponent as i32 + 1023) as u64) << 52);
     let result = (f64::from(significand) * scale) as f32;
@@ -85,12 +93,12 @@ pub(super) fn power(base: f32, exponent: f32) -> f32 {
         return 0.0;
     }
     if base > 0.0 {
-        return exp(exponent * ln(base));
+        return exp(exponent * ln(base), true);
     }
     if exponent.fract() != 0.0 {
         return 0.0;
     }
-    let magnitude = exp(exponent * ln(base.abs()));
+    let magnitude = exp(exponent * ln(base.abs()), true);
     if exponent.abs() % 2.0 == 1.0 { -magnitude } else { magnitude }
 }
 

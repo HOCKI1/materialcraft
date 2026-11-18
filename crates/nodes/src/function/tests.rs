@@ -85,6 +85,22 @@ fn runtime_pixel_natural_exponential_reduces_to_a_positive_interval() {
 }
 
 #[test]
+fn uniform_exponential_rounds_each_product_before_adding() {
+    use super::FunctionScope::{FxMap, Node, ValueProcessor};
+    for scope in [Node, ValueProcessor, FxMap] {
+        for (input, expected) in [(0x3d07db5a, 0x3f845114), (0x3eb3866e, 0x3fb5c18a), (0x3f25a984, 0x3ff47bcc), (0xc2b00000, 0)] {
+            let Value::Float(value) = scoped_operation(scope, "exp", &[Value::Float(f32::from_bits(input))], false) else { panic!("expected a scalar") };
+            assert_eq!(value.to_bits(), expected, "{scope:?} exp({input:08x})");
+        }
+    }
+    let input = Value::Float(f32::from_bits(0x3d07db5a));
+    assert_eq!(pixel_operation("exp", std::slice::from_ref(&input), false), Value::Float(f32::from_bits(0x3f845115)));
+    for scope in [Node, ValueProcessor, FxMap, super::FunctionScope::PixelProcessor] {
+        assert_eq!(scoped_operation(scope, "exp", std::slice::from_ref(&input), true), Value::Float(f32::from_bits(0x3f845114)));
+    }
+}
+
+#[test]
 fn runtime_pixel_power_uses_the_natural_logarithm_and_the_sign_of_integer_powers() {
     for (base, exponent, expected) in [
         (0.7, 1.0, 0x3f333334),
@@ -159,6 +175,19 @@ fn runtime_pixel_cartesian_multiplies_the_radius_by_each_quarter_wave() {
     let result = pixel_operation("cartesian", &[Value::Float(0.875), Value::Float(0.625)], true);
     let Value::Float2(xy) = result else { panic!("expected a coordinate") };
     assert_eq!(xy.map(f32::to_bits), [0x3f35a7de, 0x3f030fd1]);
+}
+
+#[test]
+fn runtime_pixel_tangent_uses_the_pixel_sine_cosine_and_reciprocal() {
+    for (angle, expected) in [(0x3db7cb5d, 0x3db84a0d), (0xc094d5bd, 0xc18258bb), (0x412febe1, 0x450051c9), (0x4453660e, 0x3f0de743)] {
+        let Value::Float(value) = pixel_operation("tan", &[Value::Float(f32::from_bits(angle))], false) else { panic!("expected a scalar") };
+        assert_eq!(value.to_bits(), expected);
+    }
+    for scope in [super::FunctionScope::Node, super::FunctionScope::ValueProcessor, super::FunctionScope::FxMap] {
+        assert_eq!(scoped_operation(scope, "tan", &[Value::Float(0.625)], false), Value::Float(f32::from_bits(0x3f38b30b)));
+    }
+    let literal = Value::Float(f32::from_bits(0x3d07db5a));
+    assert_eq!(pixel_operation("tan", &[literal], true), Value::Float(f32::from_bits(0x3d07e81c)));
 }
 
 #[test]

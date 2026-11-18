@@ -46,6 +46,21 @@ fn levels_applies_signed_gamma_before_mapping_the_output_range() {
 }
 
 #[test]
+fn levels_scales_narrow_and_coincident_ranges_independently() {
+    let pixel = [0xbfd95555, 0xbf9aaaab, 0xbf380000, 0xbe6aaaab].map(f32::from_bits);
+    let input = Image::filled(1, 1, Kind::Color, pixel);
+    let params = [
+        ("in_low", Value::Float4([0.5; 4])),
+        ("in_high", Value::Float4([0.5, 0.50000036, 0.49999964, 0.50000477])),
+        ("out_low", Value::Float4([0.0, 0.125, 0.875, 0.25])),
+        ("out_high", Value::Float4([1.0, 0.875, 0.125, 0.75])),
+        ("clamp_intermediate", Value::Bool(false)),
+    ];
+    let output = cook("levels", &[Some(input)], &params, [1, 1], false);
+    assert_eq!(output.get(0, 0, false).map(f32::to_bits), [0xc6abb656, 0xca5aaaa0, 0xca1bfffb, 0xc795552d]);
+}
+
+#[test]
 fn gradient_keeps_the_first_stop_at_a_shared_position() {
     let input = Image::gray(1, 1, |_, _| 640.0 / 1023.0);
     let keys = vec![

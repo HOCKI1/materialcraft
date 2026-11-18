@@ -253,6 +253,42 @@ Literal-only pixel graphs at 16², seed 23, give 512/768 exact pixels for each l
 
 The shared-lookup ridged root still matches 5,160/16,384 at changed roughness in F32, maximum 1.78813934e−7. Its one-octave .7 control still matches 1,847/4,096, maximum 2.38418579e−7. For positive normal x on the signed field, the reference's general power agrees with exp(y×ln(x)) on all 32,614 pixels. On .7 with exponent 1 it returns `3f333334`. Further work on general power and natural exponential is tracked with the [octave controls](#ridged-noise-octave-isolation).
 
+### Levels endpoints, camera tangents and uniform exponentials
+
+**Color to mask** matches **168,192/168,192 pixels in 18 cases**, maximum error zero. Keeping all upstream images fixed on the 64² float color field isolated the last 21 differing pixels at the final Levels filter. Multiply the centered input by the reciprocal input span and perform the output scaling and addition as a single fused operation. The 32×16 source, mixed alpha, signed input, altered keying modes and seeds are included in the [mask case definitions](#signed-levels-driven-grayscale-weights-and-grayscale-gradients). The grayscale HDR range viewer also retains its 18 exact cases.
+
+The 60 original signed Levels controls now give **245,760/245,760 exact RGBA pixels**, 61,440 per output format, maximum zero. When the input endpoints coincide the measured slope is 10,000. For a nonzero span the slope is its reciprocal, including spans below 0.000001. The four channel ranges are computed once per image. The following tests use the same 64² signed field and seed 131 as the [grayscale conversion probe](#signed-levels-driven-grayscale-weights-and-grayscale-gradients). Run each group with and without clamping in all four output formats.
+
+| Channels in RGBA order | Input low | Midpoint | Input high | Output low | Output high |
+|---|---|---|---|---|---|
+| Mixed | (−.0625,.125,.75,.34375) | (.3125,.5625,.375,.6875) | (.8125,.875,.125,.78125) | (.1875,.375,.8125,.125) | (.875,.625,.125,.9375) |
+| Narrow and coincident | .5 | .5 | (.5,.5000003576,.4999996424,.5000047684) | (0,.125,.875,.25) | (1,.875,.125,.75) |
+| Signed endpoints | (−1.75,−.625,−.125,−.5) | (.469,.44,.51,.25) | (2.375,2.75,1.5,2.875) | (−.5,−1,.25,.125) | (1.875,2.25,1.375,.875) |
+
+The 24 further cases give **24,576/24,576 F16** and **24,576/24,576 F32**, maximum zero. U8 matches 19,631/24,576 (maximum 214); U16 matches 19,447/24,576 (maximum 54,976). Clamping the input and output endpoints to [0,1] before evaluating the signed-endpoint probe reproduced all 4,096 reference pixels separately for both integer formats and both clamp settings in an independent calculation. This integer-output behavior remains open in the cook.
+
+**Surface position** matches 25,600/25,600 pixels in seven original 16², 64² and 128² comparisons, 16,384/16,384 in the four 64² changed-camera formats, and 1,024/1,024 in the independent 32² float case. The 64² F32 comparison formerly matched 87/4,096. Nine additional signed-distance cases give **10,181/10,752**, including 1,024/1,024 for each 32² format with a sphere. A tilted field still differs at 64² (3,541/4,096, maximum 9.15527344e−5) and 16² (240/256, maximum 2.28881836e−5).
+
+Use an original single-channel F32 atlas of side D=128 or 256 with s=D/16. At pixel (x,y), set X=((x mod s)+.5)/s−.5, Y=((y mod s)+.5)/s−.5, Z=(floor(x/s)+16floor(y/s)+.5)/256−.5. The sphere is length(X,Y,Z)−.3, the tilted field .55X+.3Y−.7Z+.06, and the shifted sphere length(X−.125,Y+.1,Z−.05)−.34. Ground-plane size is (2.75,3.25).
+
+| Output / seed | Input and D | Camera UV / distance / field of view | Ground plane / infinite |
+|---|---|---|---|
+| 16² F32 / 17 | Constant one, 128 | (.5,.5) / 4 / 50 | off / on |
+| 32², four formats / 83, repeat F32 / 43 | Sphere, 256 | (.35,.6) / 3 / 65 | on / on |
+| 64² F32 / 197 | Tilted, 256 | (.1875,.6875) / 2.75 / 37 | on / off |
+| 32² F32 / 259 | Shifted sphere, 128 | (.75,.3125) / 3.25 / 103 | on / on |
+| 16² F32 / 131 | Tilted, 128 | (.375,.65625) / 1.75 / 21 | off / off |
+
+In 18 camera controls, keep the 64² and 16² settings above and vary only the field. In the order one, zero, sphere, X, Y, Z, tilted, tilted with ground toggled, tilted with infinity toggled, the 64² exact counts are 4,096, 2,991, 3,801, 3,170, 3,298, 3,357, 3,541, 3,538 and 3,541. The 16² counts are 256, 164, 256, 256, 256, 208, 240, 240 and 240. Together these give 33,449/39,168, maximum 0.000106811523 on the 64² Z plane. A constant-zero distance field reproduces the discrepancy at both camera settings.
+
+For a runtime **tangent**, calculate the scoped sine and cosine and divide using that scope’s arithmetic. A pixel processor emitting (tan(x),sin(x)/cos(x),sin(x),cos(x)) matches **81,920/81,920 RGBA32F pixels** over five independently generated 128² fields at seed 331. All finite errors are zero and the ten nonfinite component bit patterns match. For row-major index i, use (10+150i/16,383)×π/360, ((i mod 4)+.5)π+(floor(i/4)−2,048)×2⁻²², and (i−8,192)×2⁻¹⁸. For the other two fields take consecutive uniform draws from NumPy PCG64 seed 71077 in [−6.5,6.5) and then [−8,192,8,192), converting each to F32. Uniform tangents match 131,072/131,072 F32 pixels in eight 128² controls, using x=start+column×step with F32 operations. The (start,step) pairs are (.05,1/128), (−.6875,1/64), (1.5,1/1024), (−2,1/64), (2,1/128), (90,1/16), (−.0025,1/32768), (700,1/32). Literal tangents retain ordinary float folding.
+
+The **uniform natural exponential** uses the same [seventh-degree polynomial](#natural-exponential-and-ridged-noise) with separately rounded products and additions. Dynamic pixel expressions use fused operations. The 62 independently generated 128² parameter cases match **1,015,808/1,015,808 F32 pixels**, maximum finite error zero, including 6,784 identical nonfinite components. Three additional literal and eleven exposed controls in each execution scope match **10,752/10,752 image pixels and 14/14 typed floats**. For example, the runtime pixel exponential at input bits 3d07db5a gives 3f845115. The exposed uniform expression and the literal give 3f845114.
+
+To reproduce the parameter cases, broadcast exp(start+column×step) down each column, with arguments, multiplication and addition in F32. The first 24 (start,step) pairs are (0,1/128), (−1,1/128), (−8,1/8), (−.5,1/32768), (.625,1/16384), (−4,1/37), (−3,1/19), (32,1/64), (−31,1/64), (.0625,1/128), (.125,1/128), (.28125,1/1024), (.5,1/512), (.8125,1/2048), (.03125,1/128), (.3,1/128), (.4,1/256), (.9,1/4096), (.2,1/32768), (1,1/64), (3,1/16), (.6,1/2048), (.25,1/256), (.5625,1/1024). The next 16 use (j×ln(2)/16,ln(2)/2048) for j=0…15. The ten wide pairs are (−99,1/32), (−90,1/64), (−88.5,1/128), (−87.75,1/256), (−24,1/31), (−3,1/63), (.2,1/59), (17,1/32), (81,1/32), (87.5,1/64). The twelve independent pairs are (.500032187,.0000311367), (.5316711,.0013927), (.5062,.0029721), (.904311,.00049123), (.7009667,.0011769), (.222237,.0003721), (1.103987,.0139583), (3.14159,.053537), (13.175,.0002953), (.43291,.027716), (−89.112,.02023), (84.67,.032698).
+
+**Surface irradiance** retains 2,304/5,376 exact pixels in the 21 parameter and environment comparisons, maximum 2.98023224e−8. The natural logarithm used in the uniform albedo power remains open.
+
 ### Signed Levels, driven grayscale weights and grayscale gradients
 
 The **grayscale HDR range viewer** matches **167,424/167,424 pixels across 18 cases**, maximum error zero. This includes all 35,328 pixels of the nine signed range inputs described under [gradient interpolation](#gradient-interpolation-color-blend-and-chrominance). At 64² the input to the inverted Levels filter was already exact. An independent pixel expression that takes the absolute value, evaluates 2 raised to its base-two logarithm, restores the sign and subtracts from one matched its entire 4,096-pixel intermediate. Direct subtraction matched 2,503/4,096, maximum 9.53674316e−7. Levels now honors the intermediate clamp on load, cook and save and uses the signed power curve.

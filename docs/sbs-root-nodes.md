@@ -35,7 +35,7 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **215 Parity**, **26 In progress** and **305 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **216 Parity**, **25 In progress** and **305 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
 
 [Grayscale sampler measurements](parity-fixes.md#grayscale-sampling-of-color-inputs) · [Value sampling across 240 typed comparisons](parity-fixes.md#value-processor-texture-filtering)
 
@@ -59,7 +59,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [3d_texture_jump_flood.sbs/3d_texture_jump_flood_iteration](../assets/sbs/3d_texture_jump_flood.sbs) | 1 | Yes | [Parity: 5 cases](parity-fixes.md#verified-cases) |
 | [3d_texture_position.sbs/3d_texture_position](../assets/sbs/3d_texture_position.sbs) | 0 | No | [Parity: native 4K atlas](parity-fixes.md#verified-cases) |
 | [3d_texture_render.sbs/3d_texture_surface_render_irradiance](../assets/sbs/3d_texture_render.sbs) | 6 | Yes | [In progress · direction-dependent float error](parity-fixes.md#3d-surface-and-volume-render-passes) |
-| [3d_texture_render.sbs/3d_texture_surface_render_position](../assets/sbs/3d_texture_render.sbs) | 1 | Yes | [In progress · camera direction and field of view](parity-fixes.md#3d-surface-and-volume-render-passes) |
+| [3d_texture_render.sbs/3d_texture_surface_render_position](../assets/sbs/3d_texture_render.sbs) | 1 | Yes | [In progress · earlier camera cases exact, constant-zero field isolates a residual](parity-fixes.md#levels-endpoints-camera-tangents-and-uniform-exponentials) |
 | [3d_texture_render.sbs/3d_texture_volume_render_ibl_pass](../assets/sbs/3d_texture_render.sbs) | 6 | Yes | [In progress · quantified dithering and density differences](parity-fixes.md#3d-surface-and-volume-render-passes) |
 | [3d_texture_render.sbs/3d_texture_volume_render_light_pass](../assets/sbs/3d_texture_render.sbs) | 4 | Yes | [In progress · nonzero-density lighting differs](parity-fixes.md#3d-surface-and-volume-render-passes) |
 | [3d_texture_render.sbs/position_debug](../assets/sbs/3d_texture_render.sbs) | 2 | Yes | [Parity · 14 sphere and plane cases](parity-fixes.md#position-debug) |
@@ -138,7 +138,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [color_space_conversion.sbs/srgb_to_linear_srgb](../assets/sbs/color_space_conversion.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [color_space_conversion.sbs/srgb_to_linear_srgb_grayscale](../assets/sbs/color_space_conversion.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [color_temperature_adjustment.sbs/color_temperature_adjustment](../assets/sbs/color_temperature_adjustment.sbs) | 1 | No | [Parity · 18 cases, 171,264 exact RGBA pixels](parity-fixes.md#color-temperature-range-reductions-sky-parameters-and-polygon-paths) |
-| [color_to_mask.sbs/color_to_mask](../assets/sbs/color_to_mask.sbs) | 1 | Yes | [In progress · 21 of 168,192 pixels differ at final Levels](parity-fixes.md#signed-levels-driven-grayscale-weights-and-grayscale-gradients) |
+| [color_to_mask.sbs/color_to_mask](../assets/sbs/color_to_mask.sbs) | 1 | Yes | [Parity · 18 cases, 168,192 exact pixels](parity-fixes.md#levels-endpoints-camera-tangents-and-uniform-exponentials) |
 | [color_to_mask_v2.sbs/color_to_mask](../assets/sbs/color_to_mask_v2.sbs) | 2 | No | [Too hard: 1 pixel remains](parity-fixes.md#remaining-differences) |
 | [composite.sbs/composite/background/uniform_color_float3](../assets/sbs/composite.sbs) | 0 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [composite.sbs/composite/blends/blend_content](../assets/sbs/composite.sbs) | 3 | Yes | [Too hard: pixel differences](parity-fixes.md#remaining-differences) |
