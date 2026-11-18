@@ -155,6 +155,21 @@ Separate original value graphs read `$pos`, `$size`, `$sizelog2`, `$depth`, `$de
 
 A Value Processor also averages a sampled color’s three channels in the order measured under [grayscale sampling](#grayscale-sampling-of-color-inputs). Using the same four RGBA fields, sample at (39.5+.1875,77.5+.5625)/128. Repeat with a uniform (.25,.5,.75,1). Compare the single Float or Float4 as IEEE float32 components in nearest and bilinear modes. 23/32 values match across the two input fields, with maximum component error 5.84125519e-06. The remaining differences occur in RGBA8 normalization and bilinear filtering.
 
+### Luminosity, axial gradients, color lookup and luminance merge
+
+The five roots below each match **165,120/165,120 pixels in 15 cases**. Replaying the four first-pass captures gives 114,688 exact pixels per root. Four 64² producer formats at seed 42 give 16,384, and a separate 32² F32 case at seed 113 gives 1,024. Six further original cases give 33,024. Their sizes are 16² F32 at seed 17, 64² U8/U16/F16/F32 at seed 71 and 128² F32 at seed 137. Floating comparisons include the stored bits of every channel. Maximum finite error is zero throughout.
+
+| Root | Seed 42 settings | Independent controls at seeds 17, 71 and 137 |
+|---|---|---|
+| `blend.sbs/luminosity` | Opacity .67 with foreground, background and mask | Disable alpha blending, set opacity to .375 at 16² and 64² or .8125 at 128², and use the fields below |
+| `gradient_axial.sbs/gradient_axial` and `gradient_axial_reflected` | Endpoints (.15,.3), (.7,.85), expansion disabled | Enable expansion. Use (.8125,.21875) and (.09375,.78125). At 16² set both endpoints to the first point |
+| `hald_clut.sbs/hald_clut` | Identity lookup, input alpha control disabled | Use a new nonlinear lookup and vary the input alpha. Enable alpha control at 16² and 64², disable it at 128² |
+| `hdr_merge.sbs/average_luminance_merge` | Original HDR field, exposure delta 2 | Use the HDR field below. Set exposure delta to −.75 at 16² and 1.375 otherwise |
+
+For Luminosity, let t be 1 for background, 2 for foreground or 3 for mask. Generate C=(11x+17y+3xy+31t) mod 256. The mask is C. The color inputs contain (C, (41x−19y+11t) mod 256, (3x+79y+t) mod 256, 42×((13x+7y+31t) mod 7)). For the 512² lookup, use the low, middle and high six bits of the row-major index as R, G and B indices. Map each to the nearest byte using 255/63. The lookup stores (floor((R+2G)/3), 255−B, floor(R/8) XOR floor(G/4) XOR floor(B/2), 255). Feed it RGBA bytes ((11x+7y+3xy) mod 256, (43x+17y+28) mod 256, (5x+11y) mod 256, 23×((7x+3y) mod 11)). The original HDR input stores RGBA32F (((7x+23y+5xy) mod 303)/53, .09375+((19x+2y) mod 187)/51, ((x+8y) mod 103)/31, 1).
+
+With coincident endpoints both gradients return the same quiet NaN, bit pattern `0x7fffffff`, at every one of the 256 pixels. All other outputs are finite. At 64² the five independent F32 images have respectively 4,092, 2,210, 2,053, 4,096 and 4,096 distinct stored pixels.
+
 ### Skipped loops and path buffers
 
 A loop runs its initializer before testing its exit condition. If the condition is already true, or the iteration allowance is zero, its result is the zero of its declared result type. A loop that enters the body returns its last body value. MaterialCraft previously returned the initializer on a skipped loop. A Boolean initializer followed by a float body consequently stopped both path roots with a type error.

@@ -35,7 +35,7 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **193 Parity**, **25 In progress** and **328 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **198 Parity**, **25 In progress** and **323 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
 
 [Grayscale sampler measurements](parity-fixes.md#grayscale-sampling-of-color-inputs)
 
@@ -86,7 +86,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [blend.sbs/exclusion](../assets/sbs/blend.sbs) | 3 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [blend.sbs/hard_light](../assets/sbs/blend.sbs) | 3 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [blend.sbs/linear_burn](../assets/sbs/blend.sbs) | 3 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
-| [blend.sbs/luminosity](../assets/sbs/blend.sbs) | 3 | No | [Too hard: 2 pixels remain](parity-fixes.md#remaining-differences) |
+| [blend.sbs/luminosity](../assets/sbs/blend.sbs) | 3 | No | [Parity · 15 cases, 165,120 exact pixels](parity-fixes.md#luminosity-axial-gradients-color-lookup-and-luminance-merge) |
 | [blend.sbs/max](../assets/sbs/blend.sbs) | 3 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [blend.sbs/min](../assets/sbs/blend.sbs) | 3 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [blend.sbs/multiply](../assets/sbs/blend.sbs) | 3 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
@@ -208,8 +208,8 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [gaussian_spots_1.sbs/gaussian_spots_1](../assets/sbs/gaussian_spots_1.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [gaussian_spots_2.sbs/gaussian_spots_2](../assets/sbs/gaussian_spots_2.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [glow.sbs/clamp](../assets/sbs/glow.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
-| [gradient_axial.sbs/gradient_axial](../assets/sbs/gradient_axial.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [gradient_axial.sbs/gradient_axial_reflected](../assets/sbs/gradient_axial.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [gradient_axial.sbs/gradient_axial](../assets/sbs/gradient_axial.sbs) | 0 | No | [Parity · 15 cases, 165,120 exact pixels](parity-fixes.md#luminosity-axial-gradients-color-lookup-and-luminance-merge) |
+| [gradient_axial.sbs/gradient_axial_reflected](../assets/sbs/gradient_axial.sbs) | 0 | No | [Parity · 15 cases, 165,120 exact pixels](parity-fixes.md#luminosity-axial-gradients-color-lookup-and-luminance-merge) |
 | [gradient_circular.sbs/gradient_circular](../assets/sbs/gradient_circular.sbs) | 0 | No | [Parity · 13 cases across sizes, seeds and storage formats](parity-fixes.md#runtime-angles-and-circular-gradient) |
 | [gradient_linear_1.sbs/gradient_linear_1](../assets/sbs/gradient_linear_1.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [gradient_linear_2.sbs/gradient_linear_2](../assets/sbs/gradient_linear_2.sbs) | 0 | No | [Parity · 8 cases, grayscale in four formats](parity-fixes.md#linear-gradient-2-and-multiangle-albedo) |
@@ -217,12 +217,12 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [gradient_radial.sbs/gradient_radial](../assets/sbs/gradient_radial.sbs) | 0 | No | [Too hard: 64 one-level pixels](parity-fixes.md#remaining-differences) |
 | [grid_atlas.sbs/grid_atlas_color](../assets/sbs/grid_atlas.sbs) | 16 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [grid_atlas.sbs/grid_atlas_grayscale](../assets/sbs/grid_atlas.sbs) | 16 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
-| [hald_clut.sbs/hald_clut](../assets/sbs/hald_clut.sbs) | 2 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [hald_clut.sbs/hald_clut](../assets/sbs/hald_clut.sbs) | 2 | No | [Parity · 15 cases, 165,120 exact pixels](parity-fixes.md#luminosity-axial-gradients-color-lookup-and-luminance-merge) |
 | [hbao.sbs/hbao_mip](../assets/sbs/hbao.sbs) | 1 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [hbao_2.sbs/hbao_mip](../assets/sbs/hbao_2.sbs) | 1 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [hbao_2.sbs/hbao_subsample](../assets/sbs/hbao_2.sbs) | 2 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [hdr_exposure_preview.sbs/hdr_exposure_preview](../assets/sbs/hdr_exposure_preview.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
-| [hdr_merge.sbs/average_luminance_merge](../assets/sbs/hdr_merge.sbs) | 1 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [hdr_merge.sbs/average_luminance_merge](../assets/sbs/hdr_merge.sbs) | 1 | Yes | [Parity · 15 cases, 165,120 exact pixels](parity-fixes.md#luminosity-axial-gradients-color-lookup-and-luminance-merge) |
 | [hdr_range_viewer.sbs/hdr_range_viewer_grayscale](../assets/sbs/hdr_range_viewer.sbs) | 1 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [height_blend.sbs/height_blend](../assets/sbs/height_blend.sbs) | 3 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [height_extrude.sbs/impl/acceleration_struct_impl](../assets/sbs/height_extrude.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
