@@ -303,6 +303,43 @@ fn pixel_product_sums_round_once_unless_the_product_is_also_read() {
 }
 
 #[test]
+fn pixel_sums_contract_negated_products_and_preserve_shared_rounded_addends() {
+    let values = [0xc0742acf, 0xbf116093, 0x405370ba, 0x3f3eb229].map(|bits| Value::Float(f32::from_bits(bits)));
+    let variables = ["a", "b", "c", "d"].into_iter().map(str::to_owned).zip(values).collect();
+    let context = EvaluationContext {
+        image_formats: &[],
+        scope: super::FunctionScope::PixelProcessor,
+        position: [0.5; 2],
+        size: [1.0; 2],
+        images: &[],
+        tile: true,
+        variables: &variables,
+    };
+    let mut graph = FunctionGraph::default();
+    let [a, b, c, d] = ["a", "b", "c", "d"].map(|name| graph.add("get_float1", &[], Some(Value::Text(name.into()))));
+    let product = graph.add("mul", &[a, b], None);
+    let negative = graph.add("neg", &[product], None);
+    let other = graph.add("mul", &[c, d], None);
+    let evaluate = |graph: &FunctionGraph| compile(graph, 0).unwrap().evaluate_pixel(&context, &mut EvaluationState::default()).unwrap();
+    for (op, operands, expected) in [
+        ("add", [negative, c], 0x3f9190bd),
+        ("sub", [negative, c], 0xc0af0c8b),
+        ("sub", [c, negative], 0x40af0c8b),
+        ("add", [negative, other], 0x3e96c3a4),
+        ("sub", [negative, other], 0xc0941496),
+    ] {
+        graph.output = Some(graph.add(op, &operands, None));
+        assert_eq!(evaluate(&graph), Value::Float(f32::from_bits(expected)));
+    }
+    let sum = graph.add("add", &[negative, c], None);
+    let both = graph.add("add", &[negative, other], None);
+    graph.output = Some(graph.add("vector2", &[sum, both], None));
+    assert_eq!(evaluate(&graph), Value::Float2([0x3f9190bc, 0x3e96c3a2].map(f32::from_bits)));
+    graph.output = Some(graph.add("vector2", &[negative, sum], None));
+    assert_eq!(evaluate(&graph), Value::Float2([0xc00aa85c, 0x3f9190bc].map(f32::from_bits)));
+}
+
+#[test]
 fn pixel_gray_sampler_combines_stored_color_channels_after_reading() {
     let mut graph = FunctionGraph::default();
     let position = graph.add_constant(Value::Float2([0.5; 2]));

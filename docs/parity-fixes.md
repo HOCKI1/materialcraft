@@ -427,6 +427,24 @@ Nine further channel mixes use the [original small, full, large, rectangular and
 
 Reading the intermediate images identifies an additive grayscale blend with opacity 1.3 as the first large difference in the 64² F32 mix. Its two LUM16 inputs match. The first texel has background 0 and foreground 13,281. The reference stores 13,281 and MaterialCraft stores 17,265. A second additive blend with opacity .55 differs at only two of 4,096 texels, maximum one level. The root remains in progress.
 
+### Surface position and signed pixel products
+
+The surface position root matches **92,928/92,928 RGBA pixels across 39 renders**, maximum error zero. These include seven archived renders, four output formats, the independent 32² field, nine camera and distance-field combinations, and 18 separate tilt controls. The totals are 30,720 U8, 5,120 U16, 5,120 F16 and 51,968 F32. All 39,168 pixels in the tilt controls now match. The earlier count was 33,449. The atlas formulas, camera positions, lenses, seeds and ground-plane settings are in the [camera control table](#levels-endpoints-camera-tangents-and-uniform-exponentials).
+
+The camera position, screen aspect and ray direction already matched. The first difference occurred at the near and far intersections with the bounding box. At 64², camera UV (.1875,.6875), distance 2.75 and field of view 37, separately rounding the negative origin product gave 2,963/4,096 exact near intersections and 3,082/4,096 far intersections. Fusing the negative origin times the inverse direction with the signed half-extent term gave 4,096/4,096 in both. In a pixel expression a sign change can be applied to the factor inside a fused multiply-add. A shared product that another output reads directly must retain its rounded value.
+
+| Original scalar or vector controls | Renders | Exact pixels / compared | Maximum error |
+|---|---:|---:|---:|
+| Camera, aspect, ray, bounds, entry point and pixel-scope camera direction | 80 | 155,648/155,648 | 0 |
+| Origin, inverse direction, center, half-extent, near and far terms by axis | 90 | 175,104/175,104 | 0 |
+| Seven signed product expressions across two fields | 14 | 229,376/229,376 | 0 |
+| Nine uses of a shared product or its negation across two fields | 18 | 294,912/294,912 | 0 |
+| Two independently reused products feeding four components | 36 | 544,952/589,824 | 0.0000019073486328125 |
+
+For each camera component, use five F32 renders of a centered unit cube. The (side, seed, camera UV, distance, field of view) cases are (64,197,(.1875,.6875),2.75,37), (16,131,(.375,.65625),1.75,21), (32,83,(.35,.6),3,65), (16,829,(.5,.5),4,50) and (64,607,(.296875,.84375),−2.25,83). Store each component in its own output to avoid changing the rounding of a shared intermediate.
+
+For the arithmetic controls use 128² signed RGBA input from the [original field hash](#3d-linear-gradient) and the [mixed-exponent field](#stored-precision-in-transform-mip-levels). Form P=A×B and Q=C×D. Compare −P+C, −P−C, C−(−P), C+(−P), −P+Q and −P−Q. With input component bits c0742acf, bf116093, 405370ba and 3f3eb229, −P+C gives 3f9190bd on its own. When the same graph also returns −P, the sum gives 3f9190bc. The last row includes cases with both P and Q feeding other sums. For example, emitting (P+C,P+Q,Q+A,Q−A) still differs on the uses of Q. This difference remains open.
+
 ### Levels endpoints, camera tangents and uniform exponentials
 
 **Color to mask** matches **168,192/168,192 pixels in 18 cases**, maximum error zero. Keeping all upstream images fixed on the 64² float color field isolated the last 21 differing pixels at the final Levels filter. Multiply the centered input by the reciprocal input span and perform the output scaling and addition as a single fused operation. The 32×16 source, mixed alpha, signed input, altered keying modes and seeds are included in the [mask case definitions](#signed-levels-driven-grayscale-weights-and-grayscale-gradients). The grayscale HDR range viewer also retains its 18 exact cases.
@@ -453,7 +471,7 @@ Use an original single-channel F32 atlas of side D=128 or 256 with s=D/16. At pi
 | 32² F32 / 259 | Shifted sphere, 128 | (.75,.3125) / 3.25 / 103 | on / on |
 | 16² F32 / 131 | Tilted, 128 | (.375,.65625) / 1.75 / 21 | off / off |
 
-In 18 camera controls, keep the 64² and 16² settings above and vary only the field. In the order one, zero, sphere, X, Y, Z, tilted, tilted with ground toggled, tilted with infinity toggled, the 64² exact counts are 4,096, 2,991, 3,801, 3,170, 3,298, 3,357, 3,541, 3,538 and 3,541. The 16² counts are 256, 164, 256, 256, 256, 208, 240, 240 and 240. Together these give 33,449/39,168, maximum 0.000106811523 on the 64² Z plane. A constant-zero distance field reproduces the discrepancy at both camera settings.
+Before contraction of signed products, 18 camera controls used the 64² and 16² settings above and varied only the field. In the order one, zero, sphere, X, Y, Z, tilted, tilted with ground toggled, tilted with infinity toggled, the 64² exact counts were 4,096, 2,991, 3,801, 3,170, 3,298, 3,357, 3,541, 3,538 and 3,541. The 16² counts were 256, 164, 256, 256, 256, 208, 240, 240 and 240. Together these gave 33,449/39,168, maximum 0.000106811523 on the 64² Z plane. A constant-zero distance field reproduced the discrepancy at both settings. All 18 renders now match. [Surface position and signed pixel products](#surface-position-and-signed-pixel-products)
 
 For a runtime **tangent**, calculate the scoped sine and cosine and divide using that scope’s arithmetic. A pixel processor emitting (tan(x),sin(x)/cos(x),sin(x),cos(x)) matches **81,920/81,920 RGBA32F pixels** over five independently generated 128² fields at seed 331. All finite errors are zero and the ten nonfinite component bit patterns match. For row-major index i, use (10+150i/16,383)×π/360, ((i mod 4)+.5)π+(floor(i/4)−2,048)×2⁻²², and (i−8,192)×2⁻¹⁸. For the other two fields take consecutive uniform draws from NumPy PCG64 seed 71077 in [−6.5,6.5) and then [−8,192,8,192), converting each to F32. Uniform tangents match 131,072/131,072 F32 pixels in eight 128² controls, using x=start+column×step with F32 operations. The (start,step) pairs are (.05,1/128), (−.6875,1/64), (1.5,1/1024), (−2,1/64), (2,1/128), (90,1/16), (−.0025,1/32768), (700,1/32). Literal tangents retain ordinary float folding.
 

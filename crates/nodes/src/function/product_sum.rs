@@ -5,6 +5,7 @@ pub(super) struct ProductSum {
     // Visit operands in their original order, including reads with side effects.
     pub(super) inputs: [usize; 3],
     product_on_right: bool,
+    negated: bool,
     scale_vector: bool,
 }
 
@@ -19,28 +20,70 @@ impl ProductSum {
         let a = value_type::floats(a)?.map(flush_subnormal);
         let b = value_type::floats(b)?.map(flush_subnormal);
         let c = value_type::floats(c)?.map(flush_subnormal);
-        let result: [f32; 4] = std::array::from_fn(|i| match (subtract, self.product_on_right) {
-            (true, true) => (-a[i]).mul_add(b[i], c[i]),
-            (true, false) => a[i].mul_add(b[i], -c[i]),
-            (false, _) => a[i].mul_add(b[i], c[i]),
+        let negate_product = self.negated ^ (subtract && self.product_on_right);
+        let negate_addend = subtract && !self.product_on_right;
+        let result: [f32; 4] = std::array::from_fn(|i| {
+            let factor = if negate_product { -a[i] } else { a[i] };
+            factor.mul_add(b[i], if negate_addend { -c[i] } else { c[i] })
         })
         .map(flush_subnormal);
         value_type::intermediate_float_value(result.get(..width).ok_or("invalid product-sum dimensions")?)
     }
 }
 
+#[derive(Clone, Copy)]
+struct ProductOperand {
+    index: usize,
+    negated: bool,
+}
+
+#[derive(Clone, Copy, Default)]
+struct ProductUsage {
+    count: usize,
+    rounded: bool,
+}
+
 pub(super) fn identify(instructions: &mut [Instruction]) {
-    let mut uses = vec![0usize; instructions.len()];
-    let mut needs_rounded = vec![false; instructions.len()];
+    // A sign change can be applied to a factor inside the fused operation. Follow inputs in
+    // compilation order so even a long chain of negations takes a single bounded pass.
+    let mut operands: Vec<Option<ProductOperand>> = Vec::with_capacity(instructions.len());
+    for (index, op) in instructions.iter().enumerate() {
+        let product = match (op.definition.id, op.inputs.as_slice()) {
+            ("mul" | "mulscalar", [_, _]) if !op.literal && matches!(op.type_code, 256 | 512 | 1024 | 2048) => Some(ProductOperand { index, negated: false }),
+            ("neg", [input]) => operands.get(*input).copied().flatten().map(|p| ProductOperand { negated: !p.negated, ..p }),
+            _ => None,
+        };
+        operands.push(product);
+    }
+    let operand = |index: usize| operands.get(index).copied().flatten();
+    let mut usage = vec![ProductUsage::default(); instructions.len()];
     let has_loop = instructions.iter().any(|op| op.definition.id == "while");
     for op in instructions.iter() {
-        let sum = matches!(op.definition.id, "add" | "sub") && matches!(op.inputs.as_slice(), [a, b] if a != b);
+        if op.definition.id == "neg" {
+            continue;
+        }
+        let sum = match (op.definition.id, op.inputs.as_slice()) {
+            ("add" | "sub", [a, b]) => operand(*a).zip(operand(*b)).is_none_or(|(p, q)| p.index != q.index),
+            _ => false,
+        };
         for &input in &op.inputs {
-            if let Some(count) = uses.get_mut(input) {
-                *count += 1;
+            if let Some(p) = operand(input) {
+                usage[p.index].count += 1;
+                usage[p.index].rounded |= !sum;
             }
-            if !sum && let Some(rounded) = needs_rounded.get_mut(input) {
-                *rounded = true;
+        }
+    }
+
+    // If a sum consumes a single-use product, the shared product on its other side is a
+    // rounded addend. Its other readers must see the same value.
+    for op in instructions.iter().filter(|op| matches!(op.definition.id, "add" | "sub")) {
+        if let [left, right] = op.inputs.as_slice()
+            && let (Some(left), Some(right)) = (operand(*left), operand(*right))
+        {
+            for (single, shared) in [(left.index, right.index), (right.index, left.index)] {
+                if usage[single].count == 1 && !usage[single].rounded && usage[shared].count > 1 {
+                    usage[shared].rounded = true;
+                }
             }
         }
     }
@@ -51,19 +94,25 @@ pub(super) fn identify(instructions: &mut [Instruction]) {
             continue;
         }
         let &[left, right] = op.inputs.as_slice() else { continue };
-        let product = [(left, right, false), (right, left, true)].into_iter().find_map(|(source, other, product_on_right)| {
-            let product = instructions.get(source)?;
-            if product.literal || product.type_code != op.type_code || !matches!(product.definition.id, "mul" | "mulscalar") || *needs_rounded.get(source)? {
-                return None;
-            }
-            // Loop iterations can invalidate an operand independently of a shared product.
-            if has_loop && *uses.get(source)? > 1 {
-                return None;
-            }
-            let &[a, b] = product.inputs.as_slice() else { return None };
-            let inputs = if product_on_right { [other, a, b] } else { [a, b, other] };
-            Some(ProductSum { inputs, product_on_right, scale_vector: product.definition.id == "mulscalar" })
-        });
+        let product = [(left, right, false), (right, left, true)]
+            .into_iter()
+            .filter_map(|(source, other, product_on_right)| {
+                let source = operand(source)?;
+                let product = instructions.get(source.index)?;
+                let used = usage[source.index];
+                if used.rounded || product.type_code != op.type_code {
+                    return None;
+                }
+                // Loop iterations can invalidate an operand independently of a shared product.
+                if has_loop && used.count > 1 {
+                    return None;
+                }
+                let &[a, b] = product.inputs.as_slice() else { return None };
+                let inputs = if product_on_right { [other, a, b] } else { [a, b, other] };
+                Some((used.count, ProductSum { inputs, product_on_right, negated: source.negated, scale_vector: product.definition.id == "mulscalar" }))
+            })
+            .min_by_key(|(count, _)| *count)
+            .map(|(_, sum)| sum);
         if let Some(op) = instructions.get_mut(index) {
             op.pixel_product_sum = product;
         }
