@@ -35,9 +35,11 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **198 Parity**, **25 In progress** and **323 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **199 Parity**, **26 In progress** and **321 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
 
 [Grayscale sampler measurements](parity-fixes.md#grayscale-sampling-of-color-inputs) · [Value sampling across 240 typed comparisons](parity-fixes.md#value-processor-texture-filtering)
+
+[Four-format results by root and output](parity-fixes.md#four-format-inventory-comparison) cover 375 roots. The same table includes the independent 32² measurements for 352 roots.
 
 ## Complete inventory
 
@@ -389,7 +391,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [paths_tools.sbs/Impl/facets_to_paths_impl_link_template](../assets/sbs/paths_tools.sbs) | 1 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [paths_tools.sbs/Impl/facets_to_paths_impl_stitch_template](../assets/sbs/paths_tools.sbs) | 1 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [paths_tools.sbs/Impl/get_number_of_valid_paths](../assets/sbs/paths_tools.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
-| [paths_tools.sbs/Impl/mask_to_facets](../assets/sbs/paths_tools.sbs) | 1 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [paths_tools.sbs/Impl/mask_to_facets](../assets/sbs/paths_tools.sbs) | 1 | Yes | [Parity · 17 cases, 52,736 exact pixels](parity-fixes.md#facet-masks-and-stripe-boundaries) |
 | [paths_tools.sbs/Impl/sort_by_blue](../assets/sbs/paths_tools.sbs) | 1 | Yes | [Parity · 14 cases, 25,856 exact pixels](parity-fixes.md#skipped-loops-and-path-buffers) |
 | [paths_tools.sbs/Utils/RelativeToInputPP](../assets/sbs/paths_tools.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [paths_tools.sbs/paths_polygon](../assets/sbs/paths_tools.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
@@ -415,7 +417,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [pattern_shape.sbs/shape_base](../assets/sbs/pattern_shape.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [pattern_splatter_circular.sbs/splatter_circular](../assets/sbs/pattern_splatter_circular.sbs) | 7 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [pattern_splatter_circular.sbs/splatter_circular_color](../assets/sbs/pattern_splatter_circular.sbs) | 7 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [pattern_stripes.sbs/stripes](../assets/sbs/pattern_stripes.sbs) | 0 | No | [In progress · 43 stripe edge pixels differ at 128²](parity-fixes.md#height-distance-texture-mapping-skew-and-weave) |
+| [pattern_stripes.sbs/stripes](../assets/sbs/pattern_stripes.sbs) | 0 | No | [In progress · 43 hard stripe edges differ in four formats](parity-fixes.md#facet-masks-and-stripe-boundaries) |
 | [pattern_tile_generator.sbs/tile_generator](../assets/sbs/pattern_tile_generator.sbs) | 7 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [pattern_tile_generator.sbs/tile_generator_color](../assets/sbs/pattern_tile_generator.sbs) | 7 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [pattern_tile_random.sbs/tile_random](../assets/sbs/pattern_tile_random.sbs) | 2 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
@@ -553,7 +555,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [spline_tools.sbs/internal_tools/spline_warp_sub](../assets/sbs/spline_tools.sbs) | 6 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [spot_emboss.sbs/spot_emboss](../assets/sbs/spot_emboss.sbs) | 2 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [starburst.sbs/starburst](../assets/sbs/starburst.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [stripes.sbs/stripes](../assets/sbs/stripes.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [stripes.sbs/stripes](../assets/sbs/stripes.sbs) | 0 | Yes | [In progress · 55 hard stripe edges differ in four formats](parity-fixes.md#facet-masks-and-stripe-boundaries) |
 | [summed_area_table.sbs/summed_area_table_iteration](../assets/sbs/summed_area_table.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [summed_area_table_2.sbs/summed_area_table_iteration](../assets/sbs/summed_area_table_2.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [swirl.sbs/swirl](../assets/sbs/swirl.sbs) | 1 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
