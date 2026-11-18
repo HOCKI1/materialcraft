@@ -253,6 +253,40 @@ Literal-only pixel graphs at 16², seed 23, give 512/768 exact pixels for each l
 
 The shared-lookup ridged root still matches 5,160/16,384 at changed roughness in F32, maximum 1.78813934e−7. Its one-octave .7 control still matches 1,847/4,096, maximum 2.38418579e−7. For positive normal x on the signed field, the reference's general power agrees with exp(y×ln(x)) on all 32,614 pixels. On .7 with exponent 1 it returns `3f333334`. Further work on general power and natural exponential is tracked with the [octave controls](#ridged-noise-octave-isolation).
 
+### Color conversion, gradient, height and histogram controls
+
+| Root or output group | Recorded renders | Exact pixels / compared | Maximum stored error |
+|---|---:|---:|---|
+| sRGB to ACEScg | 18 | 171,264/171,264 | 0 |
+| Linear gradient 3 | 18 | 161,419/171,264 | U16 2, F32 3.05175781e−5 |
+| Radial gradient | 18 | 171,264/171,264 | 0 |
+| Height blend, both outputs | 32 | 342,528/342,528 | 0 |
+| Histogram scan | 18 | 171,264/171,264 | 0 |
+| Histogram and cumulative distribution | 32 | 4,608/4,608 | 0 |
+| Mean of least variance, color iteration | 18 | 171,264/171,264 | 0 |
+| Mean of least variance, grayscale iteration | 18 | 171,264/171,264 | 0 |
+| Color median filter | 18 | 171,264/171,264 | 0 |
+| Anisotropic noise | 18 | 167,393/171,264 | U16 17, F32 .000274673104 |
+
+Each single-output root includes four archived renders, four 64² storage formats, an independent 32² render and nine additional settings. For the two-output roots each archive render captures both outputs, then the format and additional cases select one output at a time. The median filter also matched 131,072/131,072 pixels in a separate repeat of the four original settings and the four storage formats. Those repeats are excluded from the table. The [earlier input and format matrix](#four-format-inventory-comparison) identifies the original fields.
+
+For the nine additional settings, number pins j in identifier order and channels c from zero. Define H=((47x+67y+13xy+29c+11cx+71j+3jy) mod 1021)/1020. Use rounded 16-bit PNG levels, taking c=0 for grayscale. At 16² use default controls, seed 37 and F32 output. At 64² use setting A, seed 173 and U8/U16/F16/F32. At 128² use B/307 and F32. At 32² use C/439 with 2.5H−.75 in F32. Also run B on 32×16 input at 32²/571 and repeat A in F32 at seed 701. Generators render at the stated output size.
+
+| Root | A | B | C |
+|---|---|---|---|
+| Linear gradient 3, tiling/position/rotation | 3/.3125/1 | 7/.8125/2 | 2/.4375/3 |
+| Radial gradient, shape/non-square expansion | 1/off | 2/on | 3/off |
+| Height blend, position/contrast/mode/opacity | .3125/.6875/1/.8125 | .625/1/0/.4375 | .1875/.375/1/.75 |
+| Histogram scan, position/contrast/invert | .3125/.6875/off | .625/1/on | .4375/.375/off |
+| Histogram resolution exponent | 6 | 5 | 7 |
+| Least variance, intensity/smoothness/criterion/Gaussian | 10/.125/1/off | 16/.75/0/on | 24/.5/1/off |
+| Median, kernel/filter/affect alpha | 1/1/off | 0/0/on | 1/1/off |
+| Anisotropic noise, X/Y counts, smoothness/interpolation | 5/13, .625/.5 | 7/19, .375/.1875 | 3/23, 1/.75 |
+
+For the radial gradient set points to (.28125,.40625) and (.75,.84375). The color least-variance control affects alpha only in B. For anisotropic noise enable rotation and Y amount by resolution only in B, and disable non-square expansion only in B. The color conversion has no exposed numeric control. At 64² F32 its output has 4,038 distinct RGBA tuples. The two height outputs have 3,210 distinct heights and 2,324 mask values. The 64-bin histogram has counts from 7 to 85 and its cumulative distribution has 64 distinct values.
+
+For linear gradient 3, the first differing stage is its grayscale 16-bit FX-Map. At 64² A the stamp matches 3,840/4,096 texels, maximum one level. At 128² B it matches 16,249/16,384, also by one level. The root's U8 outputs match 8,192/8,192. F16 matches 7,936/8,192, maximum .00048828125. In anisotropic noise the upstream field matches. At B the first difference is the directional blur, 15,226/16,384 at 128², maximum 18 levels before the final output. The 32² B blur misses one pixel by one level. The root's U8 outputs match 8,164/8,192, maximum one level, and F16 matches 7,796/8,192, maximum .00048828125.
+
 ### Wired spline helpers and shape mapping
 
 | Root | Renders | Exact pixels / compared | Exact integers / compared | Maximum integer-image / F32 error |
