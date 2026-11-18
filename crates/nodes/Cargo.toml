@@ -11,4 +11,5 @@ workspace = true
 [dependencies]
 materialcraft-core = { workspace = true }
 craft-texture = { workspace = true }
+half = { workspace = true }
 rayon = { workspace = true }

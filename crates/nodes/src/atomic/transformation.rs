@@ -11,6 +11,8 @@ pub(super) fn definition() -> NodeDefinition {
         .float2("offset", "Offset", [0.0; 2], -1.0, 1.0)
         .float4("matrix", "Transform matrix", [1.0, 0.0, 0.0, 1.0], -10.0, 10.0)
         .choice("filtering", "Filtering", &["Bilinear", "Nearest"], 0)
+        .choice("mip_mode", "Mipmap mode", &["Automatic", "Manual"], 0)
+        .int("mip_level", "Mipmap level", 0, 0, 13)
         .color("matte", "Matte color", [0.0; 4])
         .any_out()
         .cook(transformation)
@@ -28,11 +30,12 @@ fn transformation(context: &CookContext) -> CookResult {
     }
 
     let nearest = context.i("filtering") == 1;
-    let input = if nearest { nearest_mip(input, matrix, context) } else { input };
+    let levels = mip_level(&input, matrix, context);
+    let input = reduce_mip(input, levels, nearest, context.format);
     let matte = context.v4("matte");
 
     // Keep independent wrap axes for panoramic images
-    let tiling = context.vars.get("$tiling").and_then(materialcraft_core::Value::as_i32).map_or([context.tile; 2], |mask| [mask & 1 != 0, mask & 2 != 0]);
+    let tiling = context.tiling_axes();
 
     Ok(vec![Image::generate_uv(context.w, context.h, input.kind(), |u, v| {
         let x = u - 0.5;
@@ -45,21 +48,29 @@ fn transformation(context: &CookContext) -> CookResult {
             matte
         } else if nearest {
             input.sample_nearest_axes(source_u, source_v, tiling)
+        } else if input.integer_sampling() {
+            crate::integer_sampler::sample(&input, [source_u, source_v], tiling)
         } else {
             input.sample_axes(source_u, source_v, tiling)
         }
     })])
 }
 
-fn nearest_mip(mut input: Image, matrix: [f32; 4], context: &CookContext) -> Image {
+fn mip_level(input: &Image, matrix: [f32; 4], context: &CookContext) -> u32 {
+    // Thirteen reductions cover the maximum supported side of 8192 texels.
+    if context.i("mip_mode") == 1 {
+        return context.i("mip_level").clamp(0, 13) as u32;
+    }
     let width = context.w.max(1) as f32;
     let height = context.h.max(1) as f32;
     let dx = (matrix[0] * input.width() as f32 / width).hypot(matrix[1] * input.height() as f32 / width);
     let dy = (matrix[2] * input.width() as f32 / height).hypot(matrix[3] * input.height() as f32 / height);
 
-    // Thirteen reductions cover the maximum supported side of 8192 texels
-    let levels = dx.max(dy).max(1.0).log2().round().clamp(0.0, 13.0) as u32;
-    let maximum = match context.format {
+    dx.max(dy).max(1.0).log2().round().clamp(0.0, 13.0) as u32
+}
+
+fn reduce_mip(mut input: Image, levels: u32, nearest: bool, format: OutputFormat) -> Image {
+    let nearest_maximum = match format {
         OutputFormat::U8 => Some(255.0),
         OutputFormat::Inherit | OutputFormat::U16 => Some(65535.0),
         OutputFormat::F16 | OutputFormat::F32 => None,
@@ -70,7 +81,8 @@ fn nearest_mip(mut input: Image, matrix: [f32; 4], context: &CookContext) -> Ima
             break;
         }
 
-        // Integer mip levels round four-texel averages halfway up
+        // Bilinear samples of either normalized source depth return a 16-bit value.
+        let maximum = if nearest { nearest_maximum } else { input.integer_sampling().then_some(65535.0) };
         input = Image::generate(input.width().div_ceil(2), input.height().div_ceil(2), input.kind(), |x, y| {
             let (x, y) = (i64::from(x) * 2, i64::from(y) * 2);
             let pixels = [input.get(x, y, false), input.get(x + 1, y, false), input.get(x, y + 1, false), input.get(x + 1, y + 1, false)];
@@ -84,6 +96,10 @@ fn nearest_mip(mut input: Image, matrix: [f32; 4], context: &CookContext) -> Ima
                 }
             })
         });
+        if !nearest {
+            // Each reduction is stored at the transform's output precision before the next read.
+            input = crate::output_precision::apply(input, format);
+        }
     }
 
     input

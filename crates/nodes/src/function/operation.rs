@@ -126,7 +126,7 @@ pub(crate) fn evaluate(
                     image.get((position[0] * image.width() as f32).floor() as i64, (position[1] * image.height() as f32).floor() as i64, context.tile)
                 }
                 Some(image) if context.scope == super::FunctionScope::PixelProcessor && image.integer_sampling() => {
-                    super::integer_sampler::sample(image, [position[0], position[1]], context.tile)
+                    crate::integer_sampler::sample(image, [position[0], position[1]], [context.tile; 2])
                 }
                 Some(image) => image.sample_stored(position[0], position[1], context.tile),
                 None => [0.0; 4],

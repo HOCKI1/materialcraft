@@ -25,6 +25,31 @@ fn cook(def: &NodeDefinition, inputs: &[Option<Image>], size: u32) -> CookResult
 }
 
 #[test]
+fn bilinear_transform_selects_and_stores_the_requested_mip_level() {
+    let definition = find("transformation").unwrap();
+    let inputs = [Some(Image::gray(16, 16, |x, y| if x % 4 == 0 && y % 4 == 0 { 1.0 } else { 0.0 }).with_integer_sampling(true))];
+    let variables = BTreeMap::new();
+    let filtered = 4096.0 / 65535.0;
+
+    for (size, mode, level, first, second) in [(4, 0, 0, filtered, filtered), (4, 1, 0, 0.0, 0.0), (16, 0, 0, 1.0, 0.0), (16, 1, 2, filtered, filtered)] {
+        let params = resolve_params(definition, &BTreeMap::from([("mip_mode".into(), Value::Enum(mode)), ("mip_level".into(), Value::Int(level))]));
+        let context = CookContext {
+            format: materialcraft_core::OutputFormat::U16,
+            w: size,
+            h: size,
+            seed: 0,
+            tile: true,
+            inputs: &inputs,
+            params: &params,
+            resource: &|_| None,
+            vars: &variables,
+        };
+        let result = (definition.cook)(&context).unwrap();
+        assert_eq!([result[0].get_gray(0, 0, false), result[0].get_gray(1, 0, false)], [first, second], "size {size}, mode {mode}, level {level}");
+    }
+}
+
+#[test]
 fn nearest_transform_mip_keeps_the_last_column_of_an_odd_width_input() {
     let definition = find("transformation").unwrap();
     let mut params = resolve_params(definition, &BTreeMap::new());

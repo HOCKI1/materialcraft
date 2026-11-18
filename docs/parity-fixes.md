@@ -158,9 +158,46 @@ Use a float32 parent, the RGBA8 position ramp above and an original signed-dista
 
 The plane uses `.55*X+.3*Y-.7*Z+.06`. The shifted sphere uses `sqrt((X-.125)²+(Y+.1)²+(Z-.125)²)-.36`. Both produced the same sparse marker as the centered sphere for the changed debug point. The 128² cases had zero colored texels. The parity mark covers these output images and settings.
 
+### Panoramic LOD
+
+The panorama helper exposes one image input. For its first-pass fixtures, let `U=floor(255*x/(N-1))`, `V=floor(255*y/(N-1))` and `T=(17*x+31*y) mod 256`. Bind linear RGBA8 `(T,U,255-V,255)`. The alpha case uses `(7*x+13*y) mod 256` for A. The new reference outputs for all three first-pass cases match their archived raw pixels exactly. The fractional-alpha input and opaque input produce identical output here. The four 64² cases use the varying-alpha color texture from the planar projection comparison.
+
+| Input | Size | Seed | Format | Exact pixels / total | Maximum error |
+|---|---:|---:|---|---:|---:|
+| Opaque | 128² | 0 and 42 | RGBA8 | 15,883/16,384 each | 125 |
+| Opaque | 256² | 0 | RGBA8 | 63,309/65,536 | 126 |
+| Varying alpha | 128² | 0 | RGBA8 | 15,883/16,384 | 125 |
+| Flat (23,139,211), alpha 75 or 255 | 128² | 0 | RGBA8 | 16,128/16,384 each | 116 |
+| Varying alpha | 64² | 42 | RGBA8 / RGBA16 | 3,964/4,096 each | 1 / 257 |
+| Same input | 64² | 42 | RGBA16F / RGBA32F | 3,964/4,096 each | .00439453125 / .0039215982 |
+
+MaterialCraft previously sampled the full-resolution input for every bilinear transform. The 128² and 256² opaque cases then matched 719 and 5,015 pixels. An isolated transform uses a 2048×1024 RGBA8 input `(T,x mod 256,(255-y) mod 256,255)`, a 128² output, matrix `diag(-1,1.99309003)`, offset `(0,.5)`, horizontal-only wrap and opaque black matte. Its input bridge matches all 2,097,152 texels. The transform improved from 8,216/16,384 (maximum 117) to 16,384/16,384 (0). Changing the vertical scale to 2 improved from 8,192/16,384 (103) to 16,384/16,384 (0). When the first-pass 128² input is resized to the same 2048×1024 bridge, 1,923,823/2,097,152 input texels match (maximum 2). The two transforms give 16,287 and 16,284 exact output pixels, both with maximum 1. The full graph still differs along rows 0 and 47 with a flat input.
+
+For an independent mip-level check, generate a 128² RGBA grid using the row-major unsigned hash from the gradient probe. Use the low 8 or 16 bits of the final hash for each integer channel. For a signed float input store `4*hash/2^32-2` in float32. Run an identity transform at 128², 64², 32² and 16². With automatic mip selection, both RGBA8-to-RGBA8 and RGBA16-to-RGBA16 match 21,760/21,760 pixels with zero error. For RGBA8 input and output, setting the manual mip level to 0, 1 or 2 also gives 21,760/21,760 at each level. An automatic uniform scale of 1.5 gives the same exact count. For the signed RGBA32F input and output, the four sizes match 16,384, 2,781, 308 and 29 pixels respectively, with maxima 0, 1.192093e-7, 5.960464e-8 and 2.980232e-8. Float filtering remains open.
+
+### 3D volume mask and Worley noise
+
+Use the first-pass linear position texture. For side `N`, store RGBA8 `(floor(255*x/(N-1)),floor(255*y/(N-1)),128,255)`. The mask's rotated case uses box shape 1, rotation `(.1,.2,.3)`, size `(.8,.6,1)` and feather width .1. The Worley border case sets style 1, border width .2 and roundness .1. For its 64² output-format sweep, round the two position channels to nearest instead of flooring. Each cell gives exact pixels / total (maximum error).
+
+| Case | Volume mask | Worley noise |
+|---|---:|---:|
+| 128², defaults, seed 0, LUM16 | 16,384/16,384 (0) | 1/16,384 (44,494) |
+| 256², defaults, seed 0, LUM16 | 65,536/65,536 (0) | 3/65,536 (44,494) |
+| 128², defaults, seed 42, LUM16 | 16,384/16,384 (0) | 1/16,384 (43,865) |
+| 128², scale .4 for mask or 6 for Worley, seed 0, LUM16 | 16,384/16,384 (0) | 2/16,384 (40,476) |
+| 128², rotated mask or Worley border, seed 0, LUM16 | 16,326/16,384 (1) | 1/16,384 (32,729) |
+| Same settings, seed 42, LUM8 (mask 128², Worley 64²) | 16,383/16,384 (1) | 45/4,096 (138) |
+| Same sizes and seed, LUM16 | 16,326/16,384 (1) | 0/4,096 (35,289) |
+| Same sizes and seed, LUM16F | 16,349/16,384 (.0078125) | 4/4,096 (.53833008) |
+| Same sizes and seed, LUM32F | 664/16,384 (.000015258789) | 0/4,096 (.53847277) |
+
+**Mask.** The 128² box with default rotation, size and feathering gives 16,379/16,384 exact LUM16 pixels, with maximum error 1. The RGBA16 position bridge matches all 16,384 pixels. In LUM32F, changing only box rotation gives 564/16,384 (1.907349e-6), only size gives 14,088/16,384 (9.536743e-7), and only feather width gives 13,716/16,384 (3.814697e-6). A sphere with `position_input=1` and `position_worldspace=(.375,.375,.5)` matches 16,384/16,384 float pixels exactly.
+
+**Worley.** With a constant input position of `(0,0,0,255)`, no LUM32F pixel matches in the 32² default case at seed 0 (maximum .02120566) or seed 42 (.07068205). The graph's internal random table uses four draws. A standalone Pixel Processor writing four successive `rand(1)` values to RGBA16 reproduces a discrepancy before any cell-distance calculation. It gives 0/1,024 exact pixels at 32², seed 0 (maximum 65,122), 0/16,384 at 128², seed 0 (65,136), and 0/16,384 at 128², seed 42 (65,348). At seed 0 the first reference pixel changes with resolution, from `(47238,35719,5497,27913)` to `(37730,56747,64327,4184)`. MaterialCraft returns `(42015,40251,56435,61318)` at both sizes. The random sequence and any residual differences in the distance calculation remain open.
+
 ### November 17 validation
 
-All four new regressions failed with the corresponding behavior disabled or absent. The full release node suite passed all 108 tests. Workspace formatting, strict all-target Clippy, dependency layers and WebAssembly checks passed. Raw captures and generated input images were kept outside the repository.
+All six new regression tests failed with their corresponding fixes disabled or absent. The release suites for nodes, evaluation and formats passed 246 tests. Two opt-in format interoperability tests were skipped. Workspace formatting, strict all-target Clippy, dependency layers and WebAssembly checks passed. Raw captures and generated input images were kept outside the repository.
 
 ## Remaining differences
 

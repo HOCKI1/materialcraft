@@ -5,12 +5,14 @@ pub mod atomic;
 pub mod catalog;
 pub mod function;
 pub mod ops;
+pub mod output_precision;
 pub mod pattern;
 mod raster;
 
 mod cook_context;
 pub mod graph_interface;
 mod image_input;
+mod integer_sampler;
 mod node_definition;
 mod node_definition_builder;
 mod output_value_type;

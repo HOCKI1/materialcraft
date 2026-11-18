@@ -2,7 +2,8 @@ use craft_texture::{Image, Limits};
 use materialcraft_core::OutputFormat;
 use std::sync::Arc;
 
-pub(crate) fn apply(image: Image, format: OutputFormat) -> Image {
+/// Store a cooked image at its destination precision, including intermediate mip levels.
+pub fn apply(image: Image, format: OutputFormat) -> Image {
     const HALF_FLOAT_MAX: f32 = 65504.0;
     const U8_FIXED_SCALE: f64 = 4096.0;
     const U16_FIXED_SCALE: f64 = 1_048_576.0;
@@ -34,7 +35,7 @@ pub(crate) fn apply(image: Image, format: OutputFormat) -> Image {
     })
 }
 
-pub(crate) fn integer_sampling(format: OutputFormat) -> bool {
+fn integer_sampling(format: OutputFormat) -> bool {
     matches!(format, OutputFormat::Inherit | OutputFormat::U8 | OutputFormat::U16)
 }
 
