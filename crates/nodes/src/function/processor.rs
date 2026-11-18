@@ -46,6 +46,7 @@ pub(crate) fn pixel_processor(context: &CookContext) -> CookResult {
     data.par_chunks_mut(width as usize * channels).enumerate().try_for_each_init(EvaluationState::default, |state, (y, row)| -> Result<(), String> {
         for (x, target) in row.chunks_exact_mut(channels).enumerate() {
             let evaluation = EvaluationContext {
+                image_formats: context.input_formats,
                 scope: super::FunctionScope::PixelProcessor,
                 position: [(x as f32 + 0.5) / width as f32, (y as f32 + 0.5) / height as f32],
                 size: [width as f32, height as f32],

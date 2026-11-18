@@ -35,7 +35,7 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **171 Parity**, **20 In progress** and **355 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **176 Parity**, **17 In progress** and **353 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
 
 ## Complete inventory
 
@@ -110,7 +110,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [cartesian_polar_transformation.sbs/polar_to_cartesian_grayscale](../assets/sbs/cartesian_polar_transformation.sbs) | 1 | No | [Too hard: sampling/rounding](parity-fixes.md#remaining-differences) |
 | [cells_1.sbs/cells_1](../assets/sbs/cells_1.sbs) | 0 | Yes | [Too hard: noise field](parity-fixes.md#remaining-differences) |
 | [channel_mixer.sbs/channel_mixer](../assets/sbs/channel_mixer.sbs) | 1 | No | [Too hard: function parameter output](parity-fixes.md#remaining-differences) |
-| [checker_1.sbs/checker_1](../assets/sbs/checker_1.sbs) | 0 | Yes | [In progress · 356 half-float differences at 64²](parity-fixes.md#color-conversion-checker-and-clone) |
+| [checker_1.sbs/checker_1](../assets/sbs/checker_1.sbs) | 0 | Yes | [Parity · eight cases, four formats](parity-fixes.md#transform-edges-and-floating-point-filtering) |
 | [checker_2.sbs/checker_2](../assets/sbs/checker_2.sbs) | 0 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [chrominance_extract.sbs/chrominance_extract](../assets/sbs/chrominance_extract.sbs) | 1 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [clamp.sbs/clamp](../assets/sbs/clamp.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
@@ -210,7 +210,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [gradient_axial.sbs/gradient_axial_reflected](../assets/sbs/gradient_axial.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [gradient_circular.sbs/gradient_circular](../assets/sbs/gradient_circular.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [gradient_linear_1.sbs/gradient_linear_1](../assets/sbs/gradient_linear_1.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [gradient_linear_2.sbs/gradient_linear_2](../assets/sbs/gradient_linear_2.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [gradient_linear_2.sbs/gradient_linear_2](../assets/sbs/gradient_linear_2.sbs) | 0 | No | [Parity · 8 cases, grayscale in four formats](parity-fixes.md#linear-gradient-2-and-multiangle-albedo) |
 | [gradient_linear_3.sbs/gradient_linear_3](../assets/sbs/gradient_linear_3.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [gradient_radial.sbs/gradient_radial](../assets/sbs/gradient_radial.sbs) | 0 | No | [Too hard: 64 one-level pixels](parity-fixes.md#remaining-differences) |
 | [grid_atlas.sbs/grid_atlas_color](../assets/sbs/grid_atlas.sbs) | 16 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
@@ -272,7 +272,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [mosaic.sbs/mosaic_grayscale](../assets/sbs/mosaic.sbs) | 2 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [multi_directional_warp.sbs/multi_directional_warp_color](../assets/sbs/multi_directional_warp.sbs) | 2 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [multi_directional_warp.sbs/multi_directional_warp_grayscale](../assets/sbs/multi_directional_warp.sbs) | 2 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [multiangle_to_albedo.sbs/multiangle_to_albedo](../assets/sbs/multiangle_to_albedo.sbs) | 8 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [multiangle_to_albedo.sbs/multiangle_to_albedo](../assets/sbs/multiangle_to_albedo.sbs) | 8 | No | [Parity · 8 cases, RGBA in four formats](parity-fixes.md#linear-gradient-2-and-multiangle-albedo) |
 | [multiangle_to_normal.sbs/angle_to_normal](../assets/sbs/multiangle_to_normal.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [multiangle_to_normal.sbs/angle_weight](../assets/sbs/multiangle_to_normal.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [noise_anisotropic_noise.sbs/anisotropic_noise](../assets/sbs/noise_anisotropic_noise.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
@@ -420,7 +420,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [pattern_tile_random.sbs/tile_random_color](../assets/sbs/pattern_tile_random.sbs) | 2 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [pattern_tile_random_2.sbs/functions/debug_find_cell](../assets/sbs/pattern_tile_random_2.sbs) | 0 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [pattern_tile_random_2.sbs/tile_random_2](../assets/sbs/pattern_tile_random_2.sbs) | 5 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [pattern_tile_sampler.sbs/arrow](../assets/sbs/pattern_tile_sampler.sbs) | 0 | Yes | [In progress · fixed 512×512 size restored, edges differ](parity-fixes.md#fixed-graph-and-instance-output-sizes) |
+| [pattern_tile_sampler.sbs/arrow](../assets/sbs/pattern_tile_sampler.sbs) | 0 | Yes | [Parity · seven 512×512 runs, four formats](parity-fixes.md#transform-edges-and-floating-point-filtering) |
 | [pattern_triangle_grid.sbs/triangle_grid_base](../assets/sbs/pattern_triangle_grid.sbs) | 3 | Yes | [Too hard: measurement timeout](parity-fixes.md#remaining-differences) |
 | [pattern_weave_1.sbs/weave_1](../assets/sbs/pattern_weave_1.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [pattern_weave_2.sbs/weave_2](../assets/sbs/pattern_weave_2.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
@@ -565,7 +565,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [tile_generator_color.sbs/tile_generator_color](../assets/sbs/tile_generator_color.sbs) | 2 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [tile_random.sbs/tile_random](../assets/sbs/tile_random.sbs) | 2 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [tile_random.sbs/tile_random_color](../assets/sbs/tile_random.sbs) | 2 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [tile_sampler.sbs/arrow](../assets/sbs/tile_sampler.sbs) | 0 | Yes | [In progress · fixed 512×512 size restored, edges differ](parity-fixes.md#fixed-graph-and-instance-output-sizes) |
+| [tile_sampler.sbs/arrow](../assets/sbs/tile_sampler.sbs) | 0 | Yes | [Parity · seven 512×512 runs, four formats](parity-fixes.md#transform-edges-and-floating-point-filtering) |
 | [tileable_material_to_mesh_material.sbs/tileable_material_to_mesh_material](../assets/sbs/tileable_material_to_mesh_material.sbs) | 5 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [trapezoid_transform.sbs/trapezoid_transform](../assets/sbs/trapezoid_transform.sbs) | 1 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [trapezoid_transform.sbs/trapezoid_transform_grayscale](../assets/sbs/trapezoid_transform.sbs) | 1 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |

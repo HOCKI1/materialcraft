@@ -47,7 +47,15 @@ fn evaluate(graph: &FunctionGraph) -> Value {
     function::compile(graph, 0)
         .unwrap()
         .evaluate(
-            &EvaluationContext { scope: Default::default(), position: [0.5; 2], size: [16.0; 2], images: &[], tile: true, variables: &BTreeMap::new() },
+            &EvaluationContext {
+                image_formats: &[],
+                scope: Default::default(),
+                position: [0.5; 2],
+                size: [16.0; 2],
+                images: &[],
+                tile: true,
+                variables: &BTreeMap::new(),
+            },
             &mut EvaluationState::default(),
         )
         .unwrap()

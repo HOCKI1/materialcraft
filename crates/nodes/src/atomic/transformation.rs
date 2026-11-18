@@ -31,8 +31,10 @@ fn transformation(context: &CookContext) -> CookResult {
 
     let nearest = context.i("filtering") == 1;
     let levels = mip_level(&input, matrix, context);
+    let source_format = context.input_formats.first().copied().unwrap_or(if input.integer_sampling() { OutputFormat::U16 } else { OutputFormat::F32 });
+    let sample_format = if !nearest && levels > 0 && (input.width() > 1 || input.height() > 1) { context.format } else { source_format };
     let input = reduce_mip(input, levels, nearest, context.format);
-    let matte = context.v4("matte");
+    let matte = crate::output_precision::store_pixel(context.v4("matte"), sample_format);
 
     // Keep independent wrap axes for panoramic images
     let tiling = context.tiling_axes();
@@ -44,14 +46,14 @@ fn transformation(context: &CookContext) -> CookResult {
         // SBS stores matrix columns consecutively; interpreting rows reverses rotations
         let source_u = matrix[0] * x + matrix[2] * y + 0.5 + offset[0];
         let source_v = matrix[1] * x + matrix[3] * y + 0.5 + offset[1];
-        if (!tiling[0] && !(0.0..1.0).contains(&source_u)) || (!tiling[1] && !(0.0..1.0).contains(&source_v)) {
-            matte
-        } else if nearest {
-            input.sample_nearest_axes(source_u, source_v, tiling)
-        } else if input.integer_sampling() {
-            crate::integer_sampler::sample(&input, [source_u, source_v], tiling)
+        if nearest {
+            if (!tiling[0] && !(0.0..1.0).contains(&source_u)) || (!tiling[1] && !(0.0..1.0).contains(&source_v)) {
+                matte
+            } else {
+                input.sample_nearest_axes(source_u, source_v, tiling)
+            }
         } else {
-            input.sample_axes(source_u, source_v, tiling)
+            crate::texture_sampler::sample(&input, [source_u, source_v], tiling, sample_format, Some(matte))
         }
     })])
 }
@@ -103,4 +105,89 @@ fn reduce_mip(mut input: Image, levels: u32, nearest: bool, format: OutputFormat
     }
 
     input
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::resolve_params;
+    use materialcraft_core::Value;
+    use std::collections::BTreeMap;
+
+    #[test]
+    fn bilinear_transform_filters_the_matte_at_each_untiled_edge() {
+        let params = resolve_params(&definition(), &BTreeMap::from([("offset".into(), Value::Float2([0.25 / 4.0, 0.375 / 4.0]))]));
+        let inputs = [Some(Image::filled(4, 4, Kind::Color, [1.0; 4]).with_integer_sampling(true))];
+        let vars = BTreeMap::new();
+        let context = CookContext {
+            input_formats: &[],
+            w: 4,
+            h: 4,
+            seed: 0,
+            format: OutputFormat::F32,
+            tile: false,
+            inputs: &inputs,
+            params: &params,
+            resource: &|_| None,
+            vars: &vars,
+        };
+        let result = transformation(&context).unwrap();
+        for (x, y, level) in [(0, 0, 65535.0), (3, 0, 49151.0), (0, 3, 40959.0), (3, 3, 30720.0)] {
+            assert_eq!(result[0].get(x, y, false), [level / 65535.0; 4], "texel ({x}, {y})");
+        }
+    }
+
+    #[test]
+    fn filtered_float_texels_round_at_the_source_precision() {
+        let params = resolve_params(&definition(), &BTreeMap::from([("offset".into(), Value::Float2([0.25 / 2.0, 0.375 / 2.0]))]));
+        let vars = BTreeMap::new();
+        for (format, bits, expected) in [
+            (OutputFormat::F16, [0x3fd0e000, 0xbfa46000, 0xc02d8000, 0x407f0000], 0x3e33a000),
+            (OutputFormat::F32, [0x3fc50790, 0xc0781fc9, 0x3f8389d2, 0xc029c3cd], 0x3e1fdd4b),
+        ] {
+            let inputs = [Some(Image::gray(2, 2, |x, y| f32::from_bits(bits[(2 * y + x) as usize])))];
+            let context = CookContext {
+                w: 2,
+                h: 2,
+                seed: 0,
+                format: OutputFormat::F32,
+                tile: true,
+                inputs: &inputs,
+                input_formats: &[format],
+                params: &params,
+                resource: &|_| None,
+                vars: &vars,
+            };
+            assert_eq!(transformation(&context).unwrap()[0].get_gray(0, 0, false).to_bits(), expected, "{format:?}");
+        }
+    }
+
+    #[test]
+    fn matte_uses_the_inputs_storage_even_with_a_float_output() {
+        let matte = [0.5, 0.1, -0.312345, 1.144444];
+        let params = resolve_params(&definition(), &BTreeMap::from([("offset".into(), Value::Float2([1.0, 1.0])), ("matte".into(), Value::Color(matte))]));
+        let vars = BTreeMap::new();
+        for (format, expected) in [
+            (OutputFormat::U8, [127.0 / 255.0, 25.0 / 255.0, 0.0, 1.0]),
+            (OutputFormat::U16, [32767.0 / 65535.0, 6553.0 / 65535.0, 0.0, 1.0]),
+            (OutputFormat::F16, [0.5, 0.099975586, -0.31225586, 1.1435547]),
+            (OutputFormat::F32, matte),
+        ] {
+            let integer = matches!(format, OutputFormat::U8 | OutputFormat::U16);
+            let inputs = [Some(Image::filled(4, 4, Kind::Color, [1.0; 4]).with_integer_sampling(integer))];
+            let context = CookContext {
+                w: 4,
+                h: 4,
+                seed: 0,
+                format: OutputFormat::F32,
+                tile: false,
+                inputs: &inputs,
+                input_formats: &[format],
+                params: &params,
+                resource: &|_| None,
+                vars: &vars,
+            };
+            assert_eq!(transformation(&context).unwrap()[0].get(2, 2, false), expected, "{format:?}");
+        }
+    }
 }

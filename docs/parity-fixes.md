@@ -86,7 +86,7 @@ The ACEScg-to-linear-sRGB root matches **131,072/131,072 RGBA pixels across eigh
 
 For the first four cases, use the foreground field at 128² and 256² with seed zero, repeat 128² with seed 42, then substitute the background at 128² with seed zero. The RGBA8 outputs match 16,384, 65,536, 16,384 and 16,384 pixels respectively. For the four remaining cases, keep the 128² background input, cook at 64² with seed 42, and select U8, U16, F16 and F32 on the final processor. Each format matches 4,096/4,096 pixels. The float32 output contains 4,096 distinct RGBA values and spans −0.53148961 to 1.51964462.
 
-Two other roots match the original four eight-bit cases at 128²/256², including seed 42 and the changed settings below. Each matches 114,688/114,688 eight-bit pixels, maximum error zero. The 64² seed-42 format sweep keeps both roots open.
+Two other roots matched the original four eight-bit cases at 128²/256², including seed 42 and the changed settings below. Each matched 114,688/114,688 eight-bit pixels, maximum error zero. The first 64² seed-42 format sweep exposed the differences below.
 
 | Root and changed setting | U8 exact / max | U16 exact / max | F16 exact / max | F32 exact / max |
 |---|---:|---:|---:|---:|
@@ -145,7 +145,7 @@ For a size control, draw a centered white square half the canvas width and heigh
 
 A second control fixes only the final processor to 64×32 F32. Place the child in an original wrapper with a 128² or 64² parent. Exercise inherited instance size, parent-relative (0,0), and absolute (5,4). For each setting also request U8, U16, F16 and F32 on the instance. Each of these 18 cases produces a 64×32 LUM32F image and matches 2,048/2,048 pixels, maximum error zero. A two-output evaluator regression separately exercises a 64×32 F32 port, a 4×8 U8 port, their downstream consumers and a cached cook.
 
-Neither Arrow root has input pins or exposed parameters. Each matches 261,338/262,144 LUM8 pixels at its default 512² size, including seed 42, with maximum error 131. With a 64² parent and seed 42 the stored dimensions remain 512². Both roots give the following counts, measured separately.
+Neither Arrow root has input pins or exposed parameters. Restoring the fixed size brought each to 261,338/262,144 LUM8 pixels at its default 512² size, including seed 42, with maximum error 131. With a 64² parent and seed 42 the stored dimensions remained 512². The following counts precede the transform filtering correction.
 
 | Stored format | Exact pixels / total | Maximum error |
 |---|---:|---:|
@@ -153,6 +153,25 @@ Neither Arrow root has input pins or exposed parameters. Each matches 261,338/26
 | LUM16 | 261,338/262,144 | 33,667 |
 | LUM16F | 260,826/262,144 | 0.513916015625 |
 | LUM32F | 260,826/262,144 | 0.5137255192 |
+
+### Transform edges and floating-point filtering
+
+Both Arrow roots now match **1,835,008/1,835,008 pixels each**, maximum error zero. Repeat the 512²/U8 default twice at seed zero and once at seed 42. Then use a 64² parent and seed 42 with LUM8, LUM16, LUM16F and LUM32F on the final Blend. Every run returns a 512² image and matches 262,144/262,144 pixels. Checker 1 also matches **131,072/131,072 pixels**, maximum error zero, across the eight cases under [color conversion, checker and clone](#color-conversion-checker-and-clone). Its rotated 64² half-float result went from 3,740/4,096 to 4,096/4,096.
+
+The first two mismatching Arrow stages transform a uniform white image with tiling off. A smaller control uses an original white 128² RGBA8 input with a transparent matte and bilinear filtering. Translate by (.25,.375) texels. The last column, last row and bottom-right corner of its RGBA32F output contain 49,151/65,535, 40,959/65,535 and 30,720/65,535 respectively. Each outside sample contributes the matte according to its own weight. Two further controls use matrix (1.23654997,0,0,4) with UV offset (.118276998,0), or matrix (1.01874995,−.982617021,1.01874995,.982617021) with offset (0,.367500007). These three transforms match 16,384/16,384 pixels in each of four output formats, maximum error zero.
+
+To isolate matte precision, move a 128² image two UV units along both axes with tiling off. Set the matte to (.5,.1,−.312345,1.144444). Use U8, U16, F16 and F32 input storage and repeat with each of the four output formats. All 16 cases match 16,384/16,384 pixels each. In the F32 outputs the red channel retains the source-format levels 127/255, 32,767/65,535, .5 and .5 respectively.
+
+For floating-point filtering, use the original signed 128² RGBA field specified under [3D linear gradient](#3d-linear-gradient). Store it first as F16 and then as F32. Use a tiled identity transform, F32 output, seed zero and offsets in texels of (.37,.18), (−.129,.678), (.601,0), (0,0), (.0039,.496) and (.501953125,.376953125). Each of these 12 cases matches 16,384/16,384 pixels, maximum error zero. The measured filter quantizes the four weights to a sum of 256. Per component it aligns contributing texels to their largest exponent with four extra significand bits, truncates, accumulates the weighted sum, and rounds to the source precision with halfway cases away from zero.
+
+The same sampler was measured independently inside a Pixel Processor. Bind a 128² RGBA field to input zero, add a texel offset divided by 128 to the pixel-center UV, then read the input with bilinear filtering into an RGBA32F output. Run offsets (.25,.375), (.37,.18) and (−.129,.678) for each of U16, F16 and F32 input storage. All nine runs match 16,384/16,384 pixels each, **147,456/147,456** overall, maximum component error zero. The F16 and F32 cases use the same signed input field and produce different filtered values.
+
+### Linear gradient 2 and multiangle albedo
+
+Each root matches **131,072/131,072 pixels in eight cases**, maximum component error zero. Use defaults at 128² and 256² with seed zero, repeat 128² with seed 42, then run the changed settings at 128² with seed zero. Those four runs match 16,384, 65,536, 16,384 and 16,384 pixels respectively. Keep the changed settings and render at 64² with seed 42. Each of U8, U16, F16 and F32 matches 4,096/4,096 pixels for both roots.
+
+- `gradient_linear_2` generates its own input. The first four outputs are LUM16. For the changed cases set `Tiling=3` and `rotation=1`.
+- `multiangle_to_albedo` uses the foreground field on input 1 and the background field on inputs 2 through 8, as specified under [color conversion, checker and clone](#color-conversion-checker-and-clone). The first four outputs are RGBA8. For the changed cases set `samples_amount=4` and keep the 128² inputs for the 64² format sweep.
 
 ### Atlas crop with wired value inputs
 

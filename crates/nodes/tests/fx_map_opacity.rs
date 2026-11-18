@@ -24,6 +24,7 @@ fn render(depth: usize, roughness: f32, stack: bool, color: Option<[f32; 4]>) ->
         ]),
     );
     let context = CookContext {
+        input_formats: &[],
         format: materialcraft_core::OutputFormat::F32,
         w: 64,
         h: 64,

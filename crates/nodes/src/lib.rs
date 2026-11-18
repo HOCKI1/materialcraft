@@ -12,7 +12,6 @@ mod raster;
 mod cook_context;
 pub mod graph_interface;
 mod image_input;
-mod integer_sampler;
 mod node_definition;
 mod node_definition_builder;
 mod output_value_type;
@@ -22,6 +21,7 @@ mod parameter_descriptor;
 mod port_definition;
 mod port_kind;
 mod random;
+mod texture_sampler;
 
 pub use catalog::{catalog, categories, find};
 pub use cook_context::CookContext;

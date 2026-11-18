@@ -39,6 +39,7 @@ pub(crate) fn cook_node(
 
     // Gather inputs by port order, with their keys
     let mut inputs = Vec::new();
+    let mut input_formats = Vec::new();
     let mut incoming = Vec::new();
     let mut input_keys = Vec::new();
     let mut variables = std::borrow::Cow::Borrowed(graph_variables);
@@ -47,7 +48,7 @@ pub(crate) fn cook_node(
         let source = prepared.index.input_of(node.id, &port.id).and_then(|connection| {
             let result = cooked.nodes.get(&connection.from)?;
             let index = prepared.ports(connection.from).1.iter().position(|output| output.id == connection.from_port)?;
-            Some((result.outputs.get(index)?, result.key ^ hash_of(&index)))
+            Some((result.outputs.get(index)?, result.key ^ hash_of(&index), result.output_base(index)?.format))
         });
         input_keys.push(source.as_ref().map_or(0, |source| source.1));
         let output = source.map(|source| source.0);
@@ -77,6 +78,7 @@ pub(crate) fn cook_node(
             }
 
             inputs.push(output.and_then(NodeOutput::as_image).cloned());
+            input_formats.push(source.map_or(materialcraft_core::OutputFormat::F32, |source| source.2));
         }
 
         incoming.push(output);
@@ -214,7 +216,18 @@ pub(crate) fn cook_node(
             values
         })
     } else if let Some(definition) = definition {
-        let context = CookContext { format: base.format, w, h, seed, tile, inputs: &inputs, params: &parameters, resource: options.resource, vars: variables };
+        let context = CookContext {
+            input_formats: &input_formats,
+            format: base.format,
+            w,
+            h,
+            seed,
+            tile,
+            inputs: &inputs,
+            params: &parameters,
+            resource: options.resource,
+            vars: variables,
+        };
         (definition.cook)(&context).map(|images| {
             images
                 .into_iter()

@@ -66,8 +66,18 @@ mod tests {
             ];
             let vars = BTreeMap::new();
             let params = resolve_params(&definition(), &BTreeMap::from([("opacity".into(), Value::Float(opacity)), ("alpha".into(), Value::Bool(alpha))]));
-            let context =
-                CookContext { format: OutputFormat::F32, w: 1, h: 1, seed: 0, tile: true, inputs: &inputs, params: &params, resource: &|_| None, vars: &vars };
+            let context = CookContext {
+                input_formats: &[],
+                format: OutputFormat::F32,
+                w: 1,
+                h: 1,
+                seed: 0,
+                tile: true,
+                inputs: &inputs,
+                params: &params,
+                resource: &|_| None,
+                vars: &vars,
+            };
             let result = blend(&context).unwrap();
             assert_eq!(result[0].get(0, 0, false).map(f32::to_bits), expected, "opacity {opacity}, alpha {alpha}, HDR {hdr}");
         }

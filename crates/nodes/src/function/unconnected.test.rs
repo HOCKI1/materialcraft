@@ -30,7 +30,15 @@ fn unconnected_typed_operations_use_their_operand_types() {
         graph.nodes.first_mut().unwrap().inputs.resize(definition(operation).unwrap().inputs.len(), None);
         graph.output = Some(id);
         let variables = Default::default();
-        let context = EvaluationContext { scope: Default::default(), position: [0.5; 2], size: [16.0; 2], images: &[], tile: true, variables: &variables };
+        let context = EvaluationContext {
+            image_formats: &[],
+            scope: Default::default(),
+            position: [0.5; 2],
+            size: [16.0; 2],
+            images: &[],
+            tile: true,
+            variables: &variables,
+        };
 
         let value = compile(&graph, 0).unwrap().evaluate(&context, &mut EvaluationState::default());
 
@@ -51,7 +59,15 @@ fn partially_connected_vectors_fill_only_the_missing_components() {
         graph.nodes.last_mut().unwrap().inputs = inputs.to_vec();
         graph.output = Some(id);
         let variables = Default::default();
-        let context = EvaluationContext { scope: Default::default(), position: [0.5; 2], size: [16.0; 2], images: &[], tile: true, variables: &variables };
+        let context = EvaluationContext {
+            image_formats: &[],
+            scope: Default::default(),
+            position: [0.5; 2],
+            size: [16.0; 2],
+            images: &[],
+            tile: true,
+            variables: &variables,
+        };
 
         assert_eq!(compile(&graph, 0).unwrap().evaluate(&context, &mut EvaluationState::default()), Ok(expected), "{operation}");
     }
@@ -67,7 +83,15 @@ fn partially_connected_dot_uses_the_connected_vector_width() {
             graph.nodes.last_mut().unwrap().inputs = if connected_slot == 0 { vec![Some(source), None] } else { vec![None, Some(source)] };
             graph.output = Some(dot);
             let variables = Default::default();
-            let context = EvaluationContext { scope: Default::default(), position: [0.5; 2], size: [16.0; 2], images: &[], tile: true, variables: &variables };
+            let context = EvaluationContext {
+                image_formats: &[],
+                scope: Default::default(),
+                position: [0.5; 2],
+                size: [16.0; 2],
+                images: &[],
+                tile: true,
+                variables: &variables,
+            };
 
             assert_eq!(compile(&graph, 0).unwrap().evaluate(&context, &mut EvaluationState::default()), Ok(Value::Float(0.0)));
         }

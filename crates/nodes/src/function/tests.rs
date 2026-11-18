@@ -6,7 +6,15 @@ use super::{EvaluationContext, EvaluationState, FUNCTIONS, compile, default_valu
 
 fn evaluate(graph: &FunctionGraph, variables: &BTreeMap<String, Value>) -> Result<Value, String> {
     let image = Image::filled(3, 5, Kind::Color, [0.25, 0.5, 0.75, 1.0]);
-    let context = EvaluationContext { scope: Default::default(), position: [0.5; 2], size: [3.0, 5.0], images: &[Some(image)], tile: true, variables };
+    let context = EvaluationContext {
+        image_formats: &[],
+        scope: Default::default(),
+        position: [0.5; 2],
+        size: [3.0, 5.0],
+        images: &[Some(image)],
+        tile: true,
+        variables,
+    };
     compile(graph, 7)?.evaluate(&context, &mut EvaluationState::default())
 }
 
@@ -32,8 +40,15 @@ fn pixel_operation(op: &str, operands: &[Value], literal: bool) -> Value {
         inputs.push(input);
     }
     graph.output = Some(graph.add(op, &inputs, None));
-    let context =
-        EvaluationContext { scope: super::FunctionScope::PixelProcessor, position: [0.5; 2], size: [1.0; 2], images: &[], tile: true, variables: &variables };
+    let context = EvaluationContext {
+        image_formats: &[],
+        scope: super::FunctionScope::PixelProcessor,
+        position: [0.5; 2],
+        size: [1.0; 2],
+        images: &[],
+        tile: true,
+        variables: &variables,
+    };
     compile(&graph, 0).unwrap().evaluate_pixel(&context, &mut EvaluationState::default()).unwrap()
 }
 
@@ -41,8 +56,15 @@ fn pixel_operation(op: &str, operands: &[Value], literal: bool) -> Value {
 fn pixel_product_sums_round_once_unless_the_product_is_also_read() {
     let values = [0x3fe34b19, 0x400d3c6f, 0xc0732711, 0x3f9665e4].map(|bits| Value::Float(f32::from_bits(bits)));
     let variables: BTreeMap<_, _> = ["a", "b", "c", "d"].into_iter().map(str::to_owned).zip(values).collect();
-    let context =
-        EvaluationContext { scope: super::FunctionScope::PixelProcessor, position: [0.5; 2], size: [1.0; 2], images: &[], tile: true, variables: &variables };
+    let context = EvaluationContext {
+        image_formats: &[],
+        scope: super::FunctionScope::PixelProcessor,
+        position: [0.5; 2],
+        size: [1.0; 2],
+        images: &[],
+        tile: true,
+        variables: &variables,
+    };
     let mut graph = FunctionGraph::default();
     let [a, b, c, d] = ["a", "b", "c", "d"].map(|name| graph.add("get_float1", &[], Some(Value::Text(name.into()))));
     let product = graph.add("mul", &[a, b], None);
@@ -63,7 +85,7 @@ fn pixel_product_sums_round_once_unless_the_product_is_also_read() {
     let sum = graph.add("add", &[product, c], None);
     graph.output = Some(graph.add("vector2", &[product, sum], None));
     assert_eq!(pixel(&graph), Value::Float2([0x407acc0a, 0x3df49f20].map(f32::from_bits)));
-    let context = EvaluationContext { scope: super::FunctionScope::Node, ..context };
+    let context = EvaluationContext { image_formats: &[], scope: super::FunctionScope::Node, ..context };
     graph.output = Some(sum);
     assert_eq!(compile(&graph, 0).unwrap().evaluate(&context, &mut EvaluationState::default()).unwrap(), Value::Float(f32::from_bits(0x3df49f20)));
 }
@@ -238,7 +260,15 @@ fn time_and_tiling_variables_have_typed_defaults_and_host_overrides() {
 
         for variables in [BTreeMap::new(), BTreeMap::from([(name.into(), supplied.clone())])] {
             let expected = variables.get(name).unwrap_or(&default);
-            let context = EvaluationContext { scope: Default::default(), position: [0.5; 2], size: [1.0; 2], images: &[], tile: true, variables: &variables };
+            let context = EvaluationContext {
+                image_formats: &[],
+                scope: Default::default(),
+                position: [0.5; 2],
+                size: [1.0; 2],
+                images: &[],
+                tile: true,
+                variables: &variables,
+            };
             let program = compile(&graph, 0).unwrap();
 
             assert_eq!(program.evaluate(&context, &mut EvaluationState::default()).unwrap(), *expected);
@@ -254,7 +284,15 @@ fn time_and_tiling_variables_have_typed_defaults_and_host_overrides() {
 
     let mut graph = FunctionGraph::default();
     graph.output = Some(graph.add("get_integer1", &[], Some(Value::Text("$tiling".into()))));
-    let context = EvaluationContext { scope: Default::default(), position: [0.5; 2], size: [1.0; 2], images: &[], tile: false, variables: &BTreeMap::new() };
+    let context = EvaluationContext {
+        image_formats: &[],
+        scope: Default::default(),
+        position: [0.5; 2],
+        size: [1.0; 2],
+        images: &[],
+        tile: false,
+        variables: &BTreeMap::new(),
+    };
 
     assert_eq!(compile(&graph, 0).unwrap().evaluate(&context, &mut EvaluationState::default()).unwrap(), Value::Int(0));
 }
@@ -319,7 +357,15 @@ fn pixel_assignments_are_local_and_match_exported_evaluation() {
     let mut pixel_state = EvaluationState::default();
     for initial in [3.0, 10.0, -2.0] {
         let variables = BTreeMap::from([("counter".into(), Value::Float(initial)), ("untouched".into(), Value::Text("keep".into()))]);
-        let context = EvaluationContext { scope: Default::default(), position: [0.5; 2], size: [1.0; 2], images: &[], tile: true, variables: &variables };
+        let context = EvaluationContext {
+            image_formats: &[],
+            scope: Default::default(),
+            position: [0.5; 2],
+            size: [1.0; 2],
+            images: &[],
+            tile: true,
+            variables: &variables,
+        };
         let mut exported = EvaluationState::default();
         let expected = program.evaluate(&context, &mut exported).unwrap();
         for _ in 0..2 {
@@ -332,7 +378,15 @@ fn pixel_assignments_are_local_and_match_exported_evaluation() {
     }
 
     let read_only = compile(&FunctionGraph::constant(Value::Float(0.5)), 7).unwrap();
-    let context = EvaluationContext { scope: Default::default(), position: [0.5; 2], size: [1.0; 2], images: &[], tile: true, variables: &BTreeMap::new() };
+    let context = EvaluationContext {
+        image_formats: &[],
+        scope: Default::default(),
+        position: [0.5; 2],
+        size: [1.0; 2],
+        images: &[],
+        tile: true,
+        variables: &BTreeMap::new(),
+    };
 
     assert_eq!(read_only.evaluate_pixel(&context, &mut pixel_state).unwrap(), Value::Float(0.5));
     assert!(pixel_state.variables().is_empty());
@@ -349,7 +403,15 @@ fn pixel_random_seed_and_defined_variables_match_general_evaluation() {
     let program = compile(&graph, 7).unwrap();
     let mut state = EvaluationState::default();
     for variables in [BTreeMap::from([("$randomseed".into(), Value::Int(42)), ("known".into(), Value::Bool(true))]), BTreeMap::new()] {
-        let context = EvaluationContext { scope: Default::default(), position: [0.5; 2], size: [1.0; 2], images: &[], tile: true, variables: &variables };
+        let context = EvaluationContext {
+            image_formats: &[],
+            scope: Default::default(),
+            position: [0.5; 2],
+            size: [1.0; 2],
+            images: &[],
+            tile: true,
+            variables: &variables,
+        };
         let expected = program.evaluate(&context, &mut EvaluationState::default()).unwrap();
 
         assert_eq!(program.evaluate_pixel(&context, &mut state).unwrap(), expected);
@@ -426,6 +488,7 @@ fn pixel_random_samples_vary_spatially_and_repeat_for_the_same_seed() {
         (0..16)
             .map(|x| {
                 let context = EvaluationContext {
+                    image_formats: &[],
                     scope: super::FunctionScope::PixelProcessor,
                     position: [(x as f32 + 0.5) / 16.0, 0.5],
                     size: [16.0; 2],
@@ -650,6 +713,7 @@ fn every_pixel_of_a_processor_draws_its_own_random_numbers() {
     let parameters = crate::resolve_params(definition, &BTreeMap::from([("function".into(), Value::Function(Box::new(function)))]));
     let variables = BTreeMap::new();
     let context = crate::CookContext {
+        input_formats: &[],
         format: materialcraft_core::OutputFormat::F32,
         w: 8,
         h: 8,

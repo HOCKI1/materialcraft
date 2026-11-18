@@ -8,6 +8,8 @@ pub struct CookContext<'a> {
     pub h: u32,
     pub seed: u32,
     pub format: materialcraft_core::OutputFormat,
+    /// Storage precision of each image input, in the same order as inputs.
+    pub input_formats: &'a [materialcraft_core::OutputFormat],
     pub tile: bool,
     /// By input port order; `None` = not connected
     pub inputs: &'a [Option<Image>],

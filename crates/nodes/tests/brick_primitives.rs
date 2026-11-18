@@ -14,6 +14,7 @@ fn cook(def: &str, mut values: BTreeMap<String, Value>, inputs: &[Option<Image>]
 
     let params = resolve_params(definition, &values);
     let context = CookContext {
+        input_formats: &[],
         format: materialcraft_core::OutputFormat::F32,
         w: 64,
         h: 64,

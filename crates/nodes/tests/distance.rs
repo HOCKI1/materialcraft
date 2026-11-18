@@ -11,8 +11,18 @@ fn cook(mask: Image, source: Option<Image>, tile: bool, combine: bool, distance:
     let inputs = [Some(mask), source];
     let vars = BTreeMap::new();
     let resource = |_: &str| None;
-    let ctx =
-        CookContext { format: materialcraft_core::OutputFormat::F32, w, h, seed: 0, tile, inputs: &inputs, params: &params, resource: &resource, vars: &vars };
+    let ctx = CookContext {
+        input_formats: &[],
+        format: materialcraft_core::OutputFormat::F32,
+        w,
+        h,
+        seed: 0,
+        tile,
+        inputs: &inputs,
+        params: &params,
+        resource: &resource,
+        vars: &vars,
+    };
     (def.cook)(&ctx).unwrap().remove(0)
 }
 

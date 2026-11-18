@@ -19,6 +19,7 @@ fn cook_with_variables(graph: PatternGraph, variables: &BTreeMap<String, Value>)
         ]),
     );
     let context = CookContext {
+        input_formats: &[],
         format: materialcraft_core::OutputFormat::F32,
         w: 16,
         h: 16,
@@ -166,6 +167,7 @@ fn roughness_sample(roughness: f32, depth: usize, blend: i32, color: bool, repea
         ]),
     );
     let context = CookContext {
+        input_formats: &[],
         format: materialcraft_core::OutputFormat::F32,
         w: 16,
         h: 16,
@@ -237,6 +239,7 @@ fn a_full_nine_level_quadtree_renders_one_pattern_per_pixel() {
         ]),
     );
     let context = CookContext {
+        input_formats: &[],
         format: materialcraft_core::OutputFormat::F32,
         w: 256,
         h: 256,
@@ -290,6 +293,7 @@ fn the_render_region_is_the_part_of_pattern_space_the_image_shows() {
         &BTreeMap::from([("pattern".into(), Value::PatternGraph(Box::new(graph))), ("render_region".into(), Value::Float4([0.0, 2.0, 0.0, 2.0]))]),
     );
     let context = CookContext {
+        input_formats: &[],
         format: materialcraft_core::OutputFormat::F32,
         w: 16,
         h: 16,
@@ -355,6 +359,7 @@ fn a_pixel_on_the_seam_of_two_patterns_is_drawn_once() {
 
     // Two pixels a side put every pixel center on the corner of four of the sixteen squares
     let context = CookContext {
+        input_formats: &[],
         format: materialcraft_core::OutputFormat::F32,
         w: 2,
         h: 2,

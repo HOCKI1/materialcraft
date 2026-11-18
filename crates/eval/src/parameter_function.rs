@@ -19,7 +19,15 @@ pub(crate) fn evaluate(
         return Err(format!("output must be {}", expected.label()));
     }
 
-    let context = EvaluationContext { scope: Default::default(), position: [0.5; 2], size: size.map(|side| side as f32), images: &[], tile: true, variables };
+    let context = EvaluationContext {
+        image_formats: &[],
+        scope: Default::default(),
+        position: [0.5; 2],
+        size: size.map(|side| side as f32),
+        images: &[],
+        tile: true,
+        variables,
+    };
     let mut state = EvaluationState::default();
     let value = program.evaluate(&context, &mut state)?;
     let finite = match &value {

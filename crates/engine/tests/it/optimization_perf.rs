@@ -43,6 +43,7 @@ fn optimization_baseline() {
         for count in [0, 16] {
             let variables = (0..count).map(|index| (format!("input_{index}"), Value::Float(index as f32))).collect();
             let context = CookContext {
+                input_formats: &[],
                 format: materialcraft_core::OutputFormat::F32,
                 w: size,
                 h: size,

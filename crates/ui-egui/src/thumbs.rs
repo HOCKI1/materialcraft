@@ -157,6 +157,7 @@ fn render_native(id: &str) -> Option<Vec<u8>> {
 
     let params = resolve_params(def, &BTreeMap::new());
     let ctx = CookContext {
+        input_formats: &[],
         format: materialcraft_engine::core::OutputFormat::U16,
         w: LIBRARY_PREVIEW_SIZE,
         h: LIBRARY_PREVIEW_SIZE,

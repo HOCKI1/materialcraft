@@ -9,7 +9,18 @@ fn cook(id: &str, inputs: &[Option<Image>], values: &[(&str, Value)], size: [u32
     let params = resolve_params(definition, &values);
     let resource = |_: &str| None;
     let vars = BTreeMap::new();
-    let context = CookContext { w: size[0], h: size[1], seed: 0, format: OutputFormat::F32, tile, inputs, params: &params, resource: &resource, vars: &vars };
+    let context = CookContext {
+        input_formats: &[],
+        w: size[0],
+        h: size[1],
+        seed: 0,
+        format: OutputFormat::F32,
+        tile,
+        inputs,
+        params: &params,
+        resource: &resource,
+        vars: &vars,
+    };
     (definition.cook)(&context).unwrap().remove(0)
 }
 

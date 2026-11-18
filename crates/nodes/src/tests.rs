@@ -10,6 +10,7 @@ fn cook(def: &NodeDefinition, inputs: &[Option<Image>], size: u32) -> CookResult
     let no_res = |_: &str| None;
     let vars = BTreeMap::new();
     let ctx = CookContext {
+        input_formats: &[],
         format: materialcraft_core::OutputFormat::F32,
         w: size,
         h: size,
@@ -34,6 +35,7 @@ fn bilinear_transform_selects_and_stores_the_requested_mip_level() {
     for (size, mode, level, first, second) in [(4, 0, 0, filtered, filtered), (4, 1, 0, 0.0, 0.0), (16, 0, 0, 1.0, 0.0), (16, 1, 2, filtered, filtered)] {
         let params = resolve_params(definition, &BTreeMap::from([("mip_mode".into(), Value::Enum(mode)), ("mip_level".into(), Value::Int(level))]));
         let context = CookContext {
+            input_formats: &[],
             format: materialcraft_core::OutputFormat::U16,
             w: size,
             h: size,
@@ -58,6 +60,7 @@ fn nearest_transform_mip_keeps_the_last_column_of_an_odd_width_input() {
     let vars = BTreeMap::new();
     let resource = |_: &str| None;
     let context = CookContext {
+        input_formats: &[],
         format: materialcraft_core::OutputFormat::F32,
         w: 2,
         h: 2,
@@ -140,6 +143,7 @@ fn every_node_survives_hostile_params() {
                 let no_res = |_: &str| None;
                 let vars = BTreeMap::new();
                 let ctx = CookContext {
+                    input_formats: &[],
                     format: materialcraft_core::OutputFormat::F32,
                     w: 16,
                     h: 16,
@@ -183,6 +187,7 @@ fn blend_and_levels_math() {
     let vars = BTreeMap::new();
     let inputs = [Some(fg), Some(bg), None];
     let ctx = CookContext {
+        input_formats: &[],
         format: materialcraft_core::OutputFormat::F32,
         w: 4,
         h: 4,
@@ -218,7 +223,18 @@ fn dynamic_gradient_preserves_the_gradient_image_type() {
 fn cook_sized(def: &NodeDefinition, inputs: &[Option<Image>], w: u32, h: u32, resource: &(dyn Fn(&str) -> Option<Image> + Sync)) -> CookResult {
     let params = resolve_params(def, &BTreeMap::new());
     let vars = BTreeMap::new();
-    let ctx = CookContext { format: materialcraft_core::OutputFormat::F32, w, h, seed: 7, tile: false, inputs, params: &params, resource, vars: &vars };
+    let ctx = CookContext {
+        input_formats: &[],
+        format: materialcraft_core::OutputFormat::F32,
+        w,
+        h,
+        seed: 7,
+        tile: false,
+        inputs,
+        params: &params,
+        resource,
+        vars: &vars,
+    };
     (def.cook)(&ctx)
 }
 
@@ -255,6 +271,7 @@ fn nearest_transformation_mips_preserve_finite_hdr_constants() {
     for kind in [Kind::Gray, Kind::Color] {
         let inputs = [Some(Image::filled(16, 16, kind, [value; 4]))];
         let context = CookContext {
+            input_formats: &[],
             format: materialcraft_core::OutputFormat::F32,
             w: 4,
             h: 4,

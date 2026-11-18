@@ -64,6 +64,7 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
             let value = match functions.get(&(node.id, parameter.id)) {
                 Some(program) => {
                     let evaluation = EvaluationContext {
+                        image_formats: context.input_formats.get(1..).unwrap_or(&[]),
                         scope: crate::function::FunctionScope::FxMap,
                         position: visit.center,
                         size: [context.w as f32, context.h as f32],

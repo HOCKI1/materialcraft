@@ -209,6 +209,7 @@ mod tests {
         let no_res = |_: &str| None;
         let vars = BTreeMap::new();
         let context = CookContext {
+            input_formats: &[],
             format: materialcraft_core::OutputFormat::F32,
             w: 256,
             h: 256,

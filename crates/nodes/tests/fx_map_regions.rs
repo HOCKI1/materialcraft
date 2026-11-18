@@ -16,6 +16,7 @@ fn render(region: [f32; 4], tiling: [f32; 4], tile: bool) -> materialcraft_nodes
         ]),
     );
     (definition.cook)(&CookContext {
+        input_formats: &[],
         format: materialcraft_core::OutputFormat::F32,
         w: 64,
         h: 64,
