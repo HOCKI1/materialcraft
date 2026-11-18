@@ -128,6 +128,7 @@ impl MaterialCraftApp {
             #[cfg(not(target_arch = "wasm32"))]
             window_layout: None,
             keymap: menus::keymap(craft_keymap::Platform::current()),
+
             // Accept clipboard events without duplicating web key commands
             dispatcher: craft_keymap::egui::Dispatcher::new().with_repeat(true).with_clipboard_events(true),
             system_clipboard: None,

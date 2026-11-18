@@ -25,7 +25,8 @@ fn open_from_the_graph_menu(harness: &mut Harness<'static, MaterialCraftApp>, it
     let graph = harness.state().session.graph().unwrap().name.clone();
     harness.get(By::new().role(Role::TreeItem).label(graph.as_str())).click_secondary();
     harness.run_steps(3);
-    // The Explorer toolbar has an Export outputs button too; the menu opens after it
+
+    // The menu item follows the identically named toolbar button
     harness.get_all(By::new().role(Role::Button).label(item)).last().unwrap().click();
     harness.run_steps(3);
 }
@@ -94,6 +95,30 @@ fn checking_outputs_in_the_tree_updates_the_window_copy() {
     harness.get(By::new().role(Role::CheckBox).label(graph.as_str())).click();
     harness.run_steps(2);
     assert!(harness.state().ui.export_draft.as_ref().unwrap().skipped_outputs.is_empty(), "the graph's checkbox checks all its outputs");
+}
+
+#[test]
+fn output_color_can_be_explicit_or_automatic() {
+    let mut harness = harness();
+    open_from_the_graph_menu(&mut harness, "Export outputs...");
+    let graph = harness.state().session.graph().unwrap().sbs_path();
+    let key = materialcraft_ui_egui::export::output_key(&graph, "height");
+
+    harness.get(By::new().role(Role::ComboBox).label("height color space")).click();
+    harness.run_steps(2);
+    harness.get_by_label("Raw").click();
+    harness.run_steps(2);
+
+    let draft = harness.state().ui.export_draft.as_ref().unwrap();
+    assert_eq!(draft.color_spaces.get(&key), Some(&materialcraft_engine::ColorSpace::Raw));
+
+    harness.get(By::new().role(Role::ComboBox).label("height color space")).click();
+    harness.run_steps(2);
+    harness.get_by_label("Automatic").click();
+    harness.run_steps(2);
+
+    let draft = harness.state().ui.export_draft.as_ref().unwrap();
+    assert!(!draft.color_spaces.contains_key(&key));
 }
 
 #[test]

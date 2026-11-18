@@ -35,7 +35,7 @@ fn selection_names_the_checked_outputs_and_their_color_spaces() {
 
     let (outputs, color_spaces) = settings.selection(graph).unwrap();
     assert_eq!(outputs, Value::Null, "with every output checked, file.export writes them all");
-    assert_eq!(color_spaces, json!({"base_color": "srgb", "height": "raw"}), "unpicked outputs follow their usage");
+    assert_eq!(color_spaces, json!({}), "unpicked outputs follow the encoder's defaults");
 
     settings.skipped_outputs.insert(output_key("New_graph", "height"));
     settings.color_spaces.insert(output_key("New_graph", "base_color"), materialcraft_engine::ColorSpace::Linear);
@@ -120,7 +120,8 @@ fn material_dialog_rejects_another_package_with_the_same_graph_path() {
         assert!(!publish(&mut app, &draft));
         assert!(app.toasts.last().unwrap().text.contains("export package changed"));
         assert!(app.material_export_job.is_none());
-        // Switching back preserves the original dialog and reaches destination validation.
+
+        // Switching back preserves the original dialog and reaches destination validation
         app.run("package.activate", json!({"document": original})).unwrap();
         assert!(!publish(&mut app, &draft));
         assert!(app.toasts.last().unwrap().text.contains("export destination"));
@@ -165,13 +166,16 @@ fn folder_graphs_keep_independent_output_selection_and_color_spaces() {
     let mut outdoor = indoor.clone();
     outdoor.folder = "Outdoor".into();
     let mut settings = ExportSettings::default();
+
     settings.include_all(&indoor, false);
     assert!(settings.selection(&indoor).is_none());
-    assert!(settings.selection(&outdoor).is_some());
+    assert_eq!(settings.selection(&outdoor).unwrap(), (Value::Null, json!({})));
+
     settings.include_all(&indoor, true);
     settings.color_spaces.insert(output_key(&indoor.sbs_path(), "base_color"), materialcraft_engine::ColorSpace::Linear);
-    assert_eq!(settings.selection(&indoor).unwrap().1["base_color"], "linear");
-    assert_eq!(settings.selection(&outdoor).unwrap().1["base_color"], "srgb");
+
+    assert_eq!(settings.selection(&indoor).unwrap(), (Value::Null, json!({"base_color":"linear"})));
+    assert_eq!(settings.selection(&outdoor).unwrap(), (Value::Null, json!({})));
 }
 
 #[test]

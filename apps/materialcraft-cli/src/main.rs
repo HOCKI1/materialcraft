@@ -187,9 +187,9 @@ fn graph_selector(selector: &str) -> Value {
 }
 
 fn output_size(size: &str) -> Result<Value, String> {
-    let pixels = |n: &str| n.parse::<u32>().map_err(|_| "--size expects pixels or WIDTHxHEIGHT".to_string());
+    let pixels = |side: &str| side.parse::<u32>().map_err(|_| "--size expects pixels or WIDTHxHEIGHT".to_string());
     match size.split_once('x') {
-        Some((w, h)) => Ok(json!([pixels(w)?, pixels(h)?])),
+        Some((width, height)) => Ok(json!([pixels(width)?, pixels(height)?])),
         None => Ok(json!(pixels(size)?)),
     }
 }
@@ -201,6 +201,7 @@ fn cook_parameters(a: &Args) -> Result<Value, String> {
         if flag != "--set" && flag != "--input" {
             continue;
         }
+
         let (id, value) =
             value.as_deref().and_then(|v| v.split_once('=')).filter(|(id, _)| !id.is_empty()).ok_or_else(|| format!("{flag} expects identifier=value"))?;
         if flag == "--set" {
@@ -285,6 +286,7 @@ fn run(cmd: &str, a: &Args) -> Result<(), String> {
             if !r["failed"].is_null() {
                 return Err("the batch stopped at an error".into());
             }
+
             if let Some(out) = save {
                 h.save(Some(out)).map_err(|e| e.to_string())?;
             }
@@ -323,7 +325,10 @@ fn run(cmd: &str, a: &Args) -> Result<(), String> {
             p["pattern"] = json!(a.get("--pattern"));
             p["profile"] = json!(a.get("--profile"));
             p["normalFormat"] = json!(a.get("--normal-format"));
-            p["displacementScale"] = json!(a.num::<f64>("--displacement-scale")?);
+            if let Some(scale) = a.num::<f64>("--displacement-scale")? {
+                p["displacementScale"] = serde_json::Number::from_f64(scale).ok_or("--displacement-scale must be finite")?.into();
+            }
+
             print(&h.export(&p).map_err(|e| e.to_string())?);
         }
         "render" => {

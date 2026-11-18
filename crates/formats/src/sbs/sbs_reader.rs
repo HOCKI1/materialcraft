@@ -3,10 +3,12 @@ use super::component_usage;
 use super::connection::connect_all;
 use super::constant::{MAX_NODES, MAX_WIRES};
 use super::constant::{NODE_HALF_SIZE, SELF_DEPENDENCY};
-use super::embedded::{EmbeddedError, decode_embedded, decode_embedded_bounded};
+use super::embedded::{decode_embedded, decode_embedded_bounded};
+use super::embedded_error::EmbeddedError;
 use super::filter_map::{BASE_PARAMS, FilterMap, HANDLED_PARAMS, filter_by_sbs_name};
 use super::function_graph;
 use super::input_bridge::InputBridge;
+use super::instance_interface::MAX_INPUTS;
 use super::placeholder::{add_placeholder_input, fill_placeholder, placeholder_outputs};
 use super::read_node::ReadNode;
 use super::sbs_value::{SbsValue, exposed_default, sbs_constant, to_natural_value, to_param_value};
@@ -118,15 +120,14 @@ impl<'text> SbsReader<'text, '_> {
             match decoded {
                 Ok(data) if !font || !data.is_empty() => {
                     if let Some(budget) = self.resource_budget {
-                        // The decoder bounded its output and checked the retained length.
+                        // The decoder checked the retained length
                         budget.set(budget.get().saturating_sub(data.len() as u64));
                     }
                     bytes = Some(data);
                 }
                 Ok(_) => why_missing = "its embedded font data is empty".into(),
                 Err(error @ (EmbeddedError::Budget | EmbeddedError::WorkBudget)) => {
-                    // A valid inline asset wins over linked data. Never silently change
-                    // the material when retaining that asset would exhaust its budget.
+                    // Reject a budget error to preserve inline asset precedence
                     self.warnings.add(format!("resource `{path}`: {error}"));
                     return unique_name(&mut self.used_resource_names, if identifier.is_empty() { "resource" } else { identifier });
                 }
@@ -154,7 +155,7 @@ impl<'text> SbsReader<'text, '_> {
             }
         }
 
-        // A supplied font, including cour.ttf or embedded data, always wins. Only absence uses the shared fallback
+        // Prefer supplied font bytes before trying the shared fallback
         if font && bytes.is_none() {
             if let Some(name) = super::resource_replacement::load_font(self, pkg, identifier, path, linked) {
                 return name;
@@ -402,6 +403,13 @@ impl<'text> SbsReader<'text, '_> {
                         if let Some(node) = graph.nodes.get_mut(to.index) {
                             if let Some(instance) = &mut node.instance {
                                 if !instance.inputs.iter().any(|port| port.identifier == sbs_input) {
+                                    if instance.inputs.len() >= MAX_INPUTS || sbs_input.is_empty() {
+                                        self.warnings.add(format!(
+                                            "graph `{name}`: invalid input `{sbs_input}` or instance at its {MAX_INPUTS}-input limit; wire was dropped"
+                                        ));
+                                        continue;
+                                    }
+
                                     instance.inputs.push(materialcraft_core::GraphPort { identifier: sbs_input.into(), type_code: 1 });
                                 }
                             } else {

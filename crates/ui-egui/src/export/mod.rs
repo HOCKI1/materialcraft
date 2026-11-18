@@ -101,11 +101,12 @@ fn tabs(ui: &mut Ui, current: &mut ExportTab) {
 }
 
 fn from_graph(app: &mut MaterialCraftApp, ui: &mut Ui, settings: &mut ExportSettings) {
-    let graph = app.session.graph().ok().filter(|graph| graph.function.is_none()).cloned();
-    image_options(app, ui, settings, graph.as_ref());
+    image_options(app, ui, settings);
+
+    let graph = app.session.graph().ok().filter(|graph| graph.function.is_none());
     ui.add_space(6.0);
     ui.label(RichText::new(tr("Outputs")).strong());
-    outputs::tree(ui, settings, graph.as_slice().iter().collect::<Vec<_>>().as_slice());
+    outputs::tree(ui, settings, graph.as_slice());
     all_or_none(ui, settings, graph.as_slice());
 
     ui.add_space(4.0);
@@ -119,11 +120,12 @@ fn from_graph(app: &mut MaterialCraftApp, ui: &mut Ui, settings: &mut ExportSett
 }
 
 fn batch(app: &mut MaterialCraftApp, ui: &mut Ui, settings: &mut ExportSettings) {
-    let graphs = material_graphs(app);
-    image_options(app, ui, settings, graphs.first());
+    image_options(app, ui, settings);
+
+    let graphs: Vec<_> = app.session.pkg.graphs.iter().filter(|graph| graph.function.is_none()).collect();
     ui.add_space(6.0);
     ui.label(RichText::new(tr("Outputs")).strong());
-    outputs::tree(ui, settings, graphs.iter().collect::<Vec<_>>().as_slice());
+    outputs::tree(ui, settings, &graphs);
     all_or_none(ui, settings, &graphs);
 
     ui.add_space(4.0);
@@ -149,8 +151,14 @@ fn batch(app: &mut MaterialCraftApp, ui: &mut Ui, settings: &mut ExportSettings)
 }
 
 /// Destination, format, bit depth, file name pattern and its preview
-fn image_options(app: &mut MaterialCraftApp, ui: &mut Ui, settings: &mut ExportSettings, preview_graph: Option<&Graph>) {
+fn image_options(app: &mut MaterialCraftApp, ui: &mut Ui, settings: &mut ExportSettings) {
+    let preview_graph = if app.ui.export_tab == ExportTab::Batch {
+        app.session.pkg.graphs.iter().find(|graph| graph.function.is_none())
+    } else {
+        app.session.graph().ok().filter(|graph| graph.function.is_none())
+    };
     let preview = preview_graph.and_then(|graph| preview_file(settings, graph)).unwrap_or_default();
+
     form(ui, "export-image-options", |ui, width| {
         #[cfg(not(target_arch = "wasm32"))]
         {
@@ -161,9 +169,6 @@ fn image_options(app: &mut MaterialCraftApp, ui: &mut Ui, settings: &mut ExportS
             }
             ui.end_row();
         }
-        #[cfg(target_arch = "wasm32")]
-        let _ = &app;
-
         form_label(ui, tr("Format"));
         let selected = ExportFormat::find(&settings.format).map_or_else(|| settings.format.clone(), ExportFormat::title);
         dropdown(ui, "Format", width, selected, |ui| {
@@ -241,12 +246,13 @@ pub(super) fn path_field(ui: &mut Ui, path: &mut String, width: f32) -> bool {
 
 /// The file name the first checked output of `graph` is written to
 fn preview_file(settings: &ExportSettings, graph: &Graph) -> Option<String> {
-    let output = outputs::listed(graph).into_iter().find(|output| settings.includes(&graph.sbs_path(), &output.identifier))?;
+    let graph_path = graph.sbs_path();
+    let output = outputs::listed(graph).into_iter().find(|output| settings.includes(&graph_path, &output.identifier))?;
     let name = materialcraft_engine::formats::output_name(&settings.pattern, &graph.name, &output.identifier, output.usage);
     Some(format!("{name}.{}", settings.format))
 }
 
-fn all_or_none(ui: &mut Ui, settings: &mut ExportSettings, graphs: &[Graph]) {
+fn all_or_none(ui: &mut Ui, settings: &mut ExportSettings, graphs: &[&Graph]) {
     ui.horizontal(|ui| {
         for (label, include) in [("All", true), ("None", false)] {
             if ui.add(egui::Button::new(tr(label)).min_size(vec2(100.0, 0.0))).clicked() {
@@ -290,11 +296,6 @@ fn footer(ui: &mut Ui, tab: ExportTab) -> Option<Action> {
     action
 }
 
-/// The package's material graphs, in package order
-fn material_graphs(app: &MaterialCraftApp) -> Vec<Graph> {
-    app.session.pkg.graphs.iter().filter(|graph| graph.function.is_none()).cloned().collect()
-}
-
 /// Export what the current tab describes; true when the window can close
 fn export(app: &mut MaterialCraftApp, settings: &ExportSettings) -> bool {
     match app.ui.export_tab {
@@ -319,6 +320,7 @@ fn export_images(app: &mut MaterialCraftApp, settings: &ExportSettings, graphs: 
         app.toast(crate::i18n::trf("{format} export isn't available yet", &[("format", &format.title())]), true);
         return false;
     }
+
     if settings.destination.trim().is_empty() && !cfg!(target_arch = "wasm32") {
         app.toast(tr("Choose a folder to export to"), true);
         return false;
@@ -358,15 +360,18 @@ fn export_images(app: &mut MaterialCraftApp, settings: &ExportSettings, graphs: 
 
 fn publish(app: &mut MaterialCraftApp, settings: &ExportSettings) -> bool {
     let material = &settings.material;
-    // Graph paths are only unique within a package. Never resolve a stale dialog against another one.
+
+    // Keep the draft tied to its package because graph paths can repeat across documents
     if !app.session.has_package() || material.document != Some(app.session.document_id) {
         app.toast(tr("The export package changed. Reopen the Export window"), true);
         return false;
     }
+
     let Some((index, graph)) = app.session.pkg.graph_by_name(&material.root) else {
         app.toast(tr("Choose a root graph"), true);
         return false;
     };
+
     let is_archive = app.ui.export_tab == ExportTab::Mcmat;
     let (command, params) = if is_archive {
         ("file.exportMaterial", json!({"graph":index,"path":material.archive}))
@@ -375,6 +380,7 @@ fn publish(app: &mut MaterialCraftApp, settings: &ExportSettings) -> bool {
             app.toast(tr("Check at least one output to export"), true);
             return false;
         };
+
         let depth = match material.texture_depth {
             TextureDepth::Automatic => None,
             TextureDepth::Eight => Some(8),
@@ -392,10 +398,12 @@ fn publish(app: &mut MaterialCraftApp, settings: &ExportSettings) -> bool {
             app.toast(tr("A material export is running"), true);
             return false;
         }
+
         if (if is_archive { &material.archive } else { &material.folder }).trim().is_empty() {
             app.toast(tr("Choose an export destination"), true);
             return false;
         }
+
         let package = app.session.pkg.clone();
         let environment = app.session.environment;
         let (sender, receiver) = std::sync::mpsc::channel();
@@ -472,5 +480,6 @@ pub(crate) fn poll(app: &mut MaterialCraftApp, ctx: &egui::Context) {
 /// Keep native and browser exports explicit about omitted shader connections.
 fn material_export_message(report: &Value) -> String {
     let unmapped = report["unmapped"].as_array().into_iter().flatten().filter_map(Value::as_str).collect::<Vec<_>>();
+
     if unmapped.is_empty() { tr("Material exported").to_string() } else { format!("{}: {}", tr("Exported without shader connections"), unmapped.join(", ")) }
 }

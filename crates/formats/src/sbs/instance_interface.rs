@@ -1,10 +1,10 @@
-//! Retain typed, including unconnected, material graph inputs when references become local.
+//! Preserve typed graph inputs, including unconnected inputs, when localizing graph references.
 use super::xml::{child_element, child_value, children_named, xml_escape};
 use materialcraft_core::GraphPort;
 use roxmltree::Node;
 use std::{collections::BTreeSet, fmt::Write};
 
-const MAX_INPUTS: usize = 4096;
+pub(super) const MAX_INPUTS: usize = 4096;
 
 pub(super) fn read(element: Node<'_, '_>) -> Option<Result<Vec<GraphPort>, String>> {
     let interface = child_element(element, "materialcraftInterface")?;
@@ -13,12 +13,14 @@ pub(super) fn read(element: Node<'_, '_>) -> Option<Result<Vec<GraphPort>, Strin
         let mut names = BTreeSet::new();
         for port in children_named(interface, "input") {
             if inputs.len() == MAX_INPUTS {
-                return Err("Graph instance exceeds the 4096-input limit".into());
+                return Err(format!("Graph instance exceeds the {MAX_INPUTS}-input limit"));
             }
+
             let identifier = child_value(port, "identifier").unwrap_or("");
             if identifier.is_empty() || !names.insert(identifier) {
                 return Err("Invalid or duplicate graph input identifier".into());
             }
+
             let type_code = child_value(port, "type").and_then(|value| value.parse().ok()).ok_or("Invalid graph input type")?;
             inputs.push(GraphPort { identifier: identifier.into(), type_code });
         }
@@ -26,21 +28,19 @@ pub(super) fn read(element: Node<'_, '_>) -> Option<Result<Vec<GraphPort>, Strin
     })())
 }
 
-// XML 1.0 characters: escaping must not silently remove identifier characters.
-fn xml_identifier_char(c: char) -> bool {
-    matches!(c, '\t' | '\n' | '\r' | '\u{20}'..='\u{d7ff}' | '\u{e000}'..='\u{fffd}' | '\u{10000}'..='\u{10ffff}')
-}
-
 pub(super) fn write(out: &mut String, inputs: &[GraphPort]) -> Result<(), String> {
     if inputs.len() > MAX_INPUTS {
-        return Err("Graph instance exceeds the 4096-input limit".into());
+        return Err(format!("Graph instance exceeds the {MAX_INPUTS}-input limit"));
     }
+
+    // Validate before writing because the XML escaper drops unsupported characters
     let mut names = BTreeSet::new();
     for port in inputs {
-        if port.identifier.is_empty() || !port.identifier.chars().all(xml_identifier_char) || !names.insert(&port.identifier) {
+        if port.identifier.is_empty() || !port.identifier.chars().all(craft_xml::is_xml_char) || !names.insert(&port.identifier) {
             return Err("Invalid or duplicate graph input identifier".into());
         }
     }
+
     out.push_str("<materialcraftInterface>");
     for port in inputs {
         let _ = write!(out, "<input><identifier v=\"{}\"/><type v=\"{}\"/></input>", xml_escape(&port.identifier), port.type_code);
@@ -60,13 +60,16 @@ mod tests {
             let document = roxmltree::Document::parse(&xml).unwrap();
             read(document.root_element()).unwrap()
         };
+
         assert!(parse("<input><identifier v=\"a\"/><type v=\"bad\"/></input>").is_err());
         assert!(parse("<input><identifier v=\"a\"/><type v=\"1\"/></input>".repeat(2).as_str()).is_err());
+
         let mut body = String::new();
-        for index in 0..4096 {
+        for index in 0..MAX_INPUTS {
             write!(body, "<input><identifier v=\"p{index}\"/><type v=\"2\"/></input>").unwrap();
         }
-        assert_eq!(parse(&body).unwrap().len(), 4096);
+
+        assert_eq!(parse(&body).unwrap().len(), MAX_INPUTS);
         body.push_str("<input><identifier v=\"extra\"/><type v=\"2\"/></input>");
         assert!(parse(&body).is_err());
     }
@@ -82,16 +85,20 @@ mod writer_tests {
             let inputs =
                 vec![GraphPort { identifier: "roughness".into(), type_code: 2 }, GraphPort { identifier: format!("roughness{invalid}"), type_code: 2 }];
             let mut out = String::from("unchanged");
+
             assert!(write(&mut out, &inputs).is_err());
             assert_eq!(out, "unchanged");
             assert!(write(&mut out, &inputs[1..]).is_err());
             assert_eq!(out, "unchanged");
         }
+
         let inputs = vec![GraphPort { identifier: "é😀<&\"'\t\n\r".into(), type_code: 2 }];
         let mut xml = String::from("<compInstance>");
+
         write(&mut xml, &inputs).unwrap();
         xml.push_str("</compInstance>");
         let document = roxmltree::Document::parse(&xml).unwrap();
+
         assert_eq!(read(document.root_element()).unwrap().unwrap(), inputs);
     }
 
@@ -99,19 +106,33 @@ mod writer_tests {
     fn writer_matches_reader_limits_and_refuses_before_appending() {
         let mut inputs: Vec<_> = (0..MAX_INPUTS).map(|index| GraphPort { identifier: format!("p{index}"), type_code: 2 }).collect();
         let mut xml = String::from("<compInstance>");
+
         write(&mut xml, &inputs).unwrap();
         xml.push_str("</compInstance>");
         let document = roxmltree::Document::parse(&xml).unwrap();
+
         assert_eq!(read(document.root_element()).unwrap().unwrap(), inputs);
+
         inputs.push(GraphPort { identifier: "extra".into(), type_code: 2 });
         let mut out = String::from("unchanged");
         assert!(write(&mut out, &inputs).unwrap_err().contains("4096"));
         assert_eq!(out, "unchanged");
+
         inputs.truncate(2);
         inputs[1].identifier = inputs[0].identifier.clone();
         assert!(write(&mut out, &inputs).is_err());
+
         inputs[1].identifier.clear();
         assert!(write(&mut out, &inputs).is_err());
         assert_eq!(out, "unchanged");
+    }
+
+    #[test]
+    fn writer_rejects_input_identifiers_that_xml_would_change() {
+        let mut xml = String::new();
+        let inputs = [GraphPort { identifier: "roughness".into(), type_code: 2 }, GraphPort { identifier: "roughness\u{1f}".into(), type_code: 2 }];
+
+        assert!(write(&mut xml, &inputs).is_err());
+        assert!(xml.is_empty());
     }
 }

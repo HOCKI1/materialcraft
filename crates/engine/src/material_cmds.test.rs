@@ -87,6 +87,7 @@ fn published_entry_cooks_independently_with_values_sizes_and_image_inputs() {
                 let (original, _) = bake(&source);
                 let (packed, report) = bake(&opened);
                 assert_eq!(original.len(), 4);
+                assert_eq!(packed.len(), original.len());
                 assert_eq!(report["maps"][0]["size"], json!([size, size / 2]));
                 for (a, b) in original.iter().zip(&packed) {
                     assert_eq!(a.file, b.file);
@@ -107,10 +108,8 @@ fn published_entry_cooks_independently_with_values_sizes_and_image_inputs() {
     assert!(
         material_bake::cook(&opened, &json!({"values":{"missing":0}}), |path| Err(crate::EngineError::Other(format!("unexpected file read: {path}")))).is_err()
     );
-    assert!(
-        material_bake::cook(&opened, &json!({"inputs":{"missing":"x"}}), |path| Err(crate::EngineError::Other(format!("unexpected file read: {path}"))))
-            .is_err()
-    );
+    let error = material_bake::cook(&opened, &json!({"inputs":{"missing":"x"}}), |path| panic!("unexpected file read: {path}")).unwrap_err();
+    assert!(error.to_string().contains("unknown image input `missing`"));
 }
 
 #[test]
@@ -138,7 +137,8 @@ fn preset_values_apply_before_explicit_overrides() {
 
 #[test]
 fn publishing_sbs_and_project_archives_survives_removing_the_entire_source_tree() {
-    let dir = std::env::temp_dir().join(format!("materialcraft-source-closure-{}", std::process::id()));
+    let directory = tempfile::tempdir().unwrap();
+    let dir = directory.path();
     let authored = dir.join("authored");
     std::fs::create_dir_all(&authored).unwrap();
     let source = fixture();
@@ -149,7 +149,8 @@ fn publishing_sbs_and_project_archives_survives_removing_the_entire_source_tree(
     }
     for ext in ["sbs", "mcraft"] {
         let path = authored.join(format!("studio.{ext}"));
-        // Save the independent project beside its library packages and their original bitmaps.
+
+        // Save the independent project beside its library packages and their original bitmaps
         let files = materialcraft_formats::project::ProjectFiles::build(&source.pkg, &format!("studio.{ext}"), ext == "mcraft").unwrap();
         if ext == "mcraft" {
             std::fs::write(&path, files.zip().unwrap()).unwrap();
@@ -175,7 +176,6 @@ fn publishing_sbs_and_project_archives_survives_removing_the_entire_source_tree(
         };
         assert_eq!(bake(&source), bake(&viewer));
     }
-    std::fs::remove_dir_all(dir).unwrap();
 }
 
 #[test]
@@ -338,6 +338,35 @@ fn an_openpbr_scalar_rejects_an_unrepresentable_srgb_override() {
 }
 
 #[test]
+fn explicit_srgb_is_rejected_when_the_profile_requires_float_textures() {
+    let session = export_fixture("uniform", &[], "baseColor");
+    let automatic = json!({"profile":"materialx","depth":32});
+    let explicit_srgb = json!({"profile":"materialx","depth":32,"colorSpaces":{"result":"srgb"}});
+
+    let (_, report) = material_bake::export(&session, &automatic, material_bake::read_input).unwrap();
+    let error = material_bake::export(&session, &explicit_srgb, material_bake::read_input).err().expect("an explicit sRGB override cannot produce linear EXR");
+
+    assert_eq!(report["maps"][0]["colorSpace"], "linear");
+    assert!(report["maps"][0]["file"].as_str().unwrap().ends_with(".exr"));
+    assert!(error.to_string().contains("requires linear values"));
+}
+
+#[test]
+fn profile_controls_fail_when_the_requested_export_cannot_apply_them() {
+    let session = export_fixture("uniform", &[], "baseColor");
+
+    for (params, option) in [
+        (json!({"profile":"maps","displacementScale":2}), "displacementScale"),
+        (json!({"profile":"maps","depth":8.4}), "depth"),
+        (json!({"profile":"maps","depth":"mistyped"}), "depth"),
+    ] {
+        let error = material_bake::export(&session, &params, material_bake::read_input).err().expect("an unused option must be rejected");
+
+        assert!(error.to_string().contains(option), "{error}");
+    }
+}
+
+#[test]
 fn legacy_grayscale_float_exports_keep_linear_defaults_and_explicit_overrides() {
     let session = export_fixture("uniform", &[("color", Value::Color([0.25; 4])), ("color_mode", Value::Bool(false))], "baseColor");
     for format in ["exr", "hdr"] {
@@ -388,7 +417,7 @@ fn published_disabled_and_typed_instance_cooks_match_source() {
     let bytes = materialcraft_formats::material::write_material(&package, 0).unwrap();
     let (opened, entry) = materialcraft_formats::material::read_material(&bytes).unwrap();
     let cook = |pkg: Package, entry| {
-        // Cook the decoded package directly: Session::new refreshes interfaces and could mask a serialization defect.
+        // Cook without Session::new because it can reconstruct a missing interface
         let options = materialcraft_eval::Options::new(&|_| None);
         let cache = std::sync::Mutex::new(materialcraft_eval::Cache::default());
         let cooked = materialcraft_eval::cook(&pkg, entry, &options, &cache);
@@ -431,7 +460,7 @@ fn material_options_size_errors_name_the_material_command() {
     let error =
         MaterialOptions::from_params(session.graph().unwrap(), &parameters, |_| Err(crate::EngineError::Other("unexpected image read".into()))).unwrap_err();
     assert!(matches!(error, crate::EngineError::BadParams { cmd, msg } if cmd == "material.cook" && msg.contains("size")));
-    let error = crate::export_request::export_size(parameters.get("size")).unwrap_err();
+    let error = crate::export_request::export_size("file.export", parameters.get("size")).unwrap_err();
     assert!(matches!(error, crate::EngineError::BadParams { cmd, msg } if cmd == "file.export" && msg.contains("size")));
 }
 

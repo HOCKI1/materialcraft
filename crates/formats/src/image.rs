@@ -64,8 +64,9 @@ pub fn encode(image: &Image, ext: &str, depth: Depth, srgb: bool) -> Result<Vec<
     let ext = ext.trim_start_matches('.').to_ascii_lowercase();
     let encode_channel = |v: f32| if srgb { linear_to_srgb(v) } else { v };
     let (w, h) = (image.width(), image.height());
-    // Grayscale files are imported as raw data for compatibility. Color-valued
-    // grayscale exports need RGB storage so the decoder applies their sRGB transfer.
+
+    // Store sRGB grayscale colors as RGB so readers apply the transfer
+    // Preserve single-channel storage for raw grayscale data
     let source_color = image.kind() == Kind::Color;
     let color = source_color || srgb;
     let pixel = |i: usize| -> [f32; 4] {
@@ -146,7 +147,7 @@ mod transfer_tests {
                 assert_eq!(decoded.kind(), if srgb { Kind::Color } else { Kind::Gray });
                 assert!((decoded.data()[0] - 0.25).abs() < 0.003);
                 if !srgb {
-                    // Existing grayscale data imports stay linear even at the default setting.
+                    // Existing grayscale data imports stay linear even at the default setting
                     assert!((decode(&bytes, false).unwrap().data()[0] - 0.25).abs() < 0.003);
                 }
                 let stored = decode(&bytes, true).unwrap();

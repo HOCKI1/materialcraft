@@ -13,7 +13,8 @@ pub(crate) fn read_regular(path: &std::path::Path) -> std::io::Result<Vec<u8>> {
     #[cfg(unix)]
     {
         use std::os::unix::fs::OpenOptionsExt;
-        // A named pipe must reach the regular-file check without waiting for a writer.
+
+        // A named pipe must reach the regular-file check without waiting for a writer
         open.custom_flags(rustix::fs::OFlags::NONBLOCK.bits() as i32);
     }
     let file = open.open(path)?;
@@ -22,13 +23,16 @@ pub(crate) fn read_regular(path: &std::path::Path) -> std::io::Result<Vec<u8>> {
     if !metadata.is_file() || metadata.len() > MAX_LINKED_RESOURCE_BYTES {
         return Err(invalid());
     }
+
     let mut data = Vec::new();
     file.take(MAX_LINKED_RESOURCE_BYTES + 1).read_to_end(&mut data)?;
     if data.len() as u64 > MAX_LINKED_RESOURCE_BYTES {
         return Err(invalid());
     }
+
     Ok(data)
 }
+
 /// Read resource paths relative to an SBS package, including portable library aliases.
 pub fn reader(path: &str) -> impl Fn(&str) -> Option<Vec<u8>> + use<> {
     let owner = path.to_string();

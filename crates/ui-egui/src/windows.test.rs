@@ -130,6 +130,7 @@ mod import_tests {
         assert_eq!(app.session.history().len(), base);
     }
 }
+
 #[test]
 fn project_dialogs_offer_separate_formats_and_import_filters_show_full_names() {
     use super::{package_filters, resource_filters};

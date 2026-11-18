@@ -36,21 +36,21 @@ impl AuthorizedWorkspace {
         Ok(self.read_path.as_ref().ok_or_else(|| denied("read"))?.join(relative_path(path)?))
     }
 
-    /// Absolute destination identity for rebasing links; writes still use the capability.
-    pub(crate) fn save_document_path(&self, path: &str) -> Result<PathBuf, AutomationError> {
+    /// Resolve a save once and keep its destination capability through serialization and writes.
+    pub(crate) fn save_destination(&self, path: &str) -> Result<(PathBuf, Self, String), AutomationError> {
         let relative = relative_path(path)?;
         let root = self.write.as_ref().ok_or_else(|| denied("write"))?;
         let parent = relative.parent().filter(|p| !p.as_os_str().is_empty()).unwrap_or(Path::new("."));
-        // A permitted directory symlink can change the number of parent traversals
-        // needed by saved links. Resolve it inside the same write capability.
+
+        // Resolve directory symlinks inside the capability so rebased links use the correct depth
         let mut ancestor = parent;
         let mut suffix = PathBuf::new();
-        let parent = loop {
+        let resolved_ancestor = loop {
             match root.canonicalize(ancestor) {
-                Ok(resolved) => break resolved.join(&suffix),
+                Ok(resolved) => break resolved,
                 Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
-                    // Preserve save-to-new-directory behavior without creating anything
-                    // before serialization. Do not treat a dangling symlink as missing.
+                    // Defer directory creation until after serialization
+                    // Reject dangling symlinks
                     match root.symlink_metadata(ancestor) {
                         Err(missing) if missing.kind() == std::io::ErrorKind::NotFound => {}
                         _ => return Err(file_error("resolve destination", path, error)),
@@ -62,14 +62,24 @@ impl AuthorizedWorkspace {
                 Err(error) => return Err(file_error("resolve destination", path, error)),
             }
         };
+
         let leaf = relative.file_name().ok_or_else(|| bad("missing destination filename"))?;
-        Ok(self.write_path.as_ref().ok_or_else(|| denied("write"))?.join(parent).join(leaf))
+        let relative = suffix.join(leaf);
+        let save_path = relative.to_str().ok_or_else(|| bad("the save path must be UTF-8"))?.replace('\\', "/");
+        let write_path = self.write_path.as_ref().ok_or_else(|| denied("write"))?.join(&resolved_ancestor);
+
+        // Writes through this handle no longer traverse the original directory alias
+        let dir = root.open_dir(&resolved_ancestor).map_err(|error| file_error("resolve destination", path, error))?;
+        let destination = write_path.join(relative);
+        let workspace = Self { write: Some(Arc::new(dir)), write_path: Some(write_path), ..Self::default() };
+        Ok((destination, workspace, save_path))
     }
 
     pub(crate) fn read_dependency(&self, path: &str) -> Option<Vec<u8>> {
         if path.starts_with("sbs://") {
             return materialcraft_engine::formats::sbs::library::read(path).ok();
         }
+
         let relative = Path::new(path).strip_prefix(self.read_path.as_ref()?).ok()?;
         self.read(&relative.to_str()?.replace('\\', "/")).ok()
     }
@@ -87,11 +97,13 @@ impl AuthorizedWorkspace {
         if metadata.len() > MAX_READ_BYTES {
             return Err(bad(format!("file too large: `{path}` is {} bytes (limit {MAX_READ_BYTES})", metadata.len())));
         }
+
         let mut bytes = Vec::new();
         file.take(MAX_READ_BYTES + 1).read_to_end(&mut bytes).map_err(|e| file_error("read", path, e))?;
         if bytes.len() as u64 > MAX_READ_BYTES {
             return Err(bad(format!("file too large: `{path}` exceeds the {MAX_READ_BYTES}-byte limit")));
         }
+
         Ok(bytes)
     }
 
@@ -103,17 +115,17 @@ impl AuthorizedWorkspace {
         let tmp = rel.with_file_name(format!(".{leaf}.{}.tmp", std::process::id()));
         let mut options = OpenOptions::new();
         options.write(true).create_new(true);
-        let res = root
-            .open_with(&tmp, &options)
-            .and_then(|mut f| {
-                f.write_all(bytes)?;
-                f.sync_all()
-            })
-            .and_then(|()| root.rename(&tmp, root, &rel));
-        if let Err(e) = res {
+
+        // Only the writer that acquired the staging file may remove it
+        let mut file = root.open_with(&tmp, &options).map_err(|error| file_error("write", path, error))?;
+        let written = file.write_all(bytes).and_then(|()| file.sync_all());
+        drop(file);
+
+        if let Err(error) = written.and_then(|()| root.rename(&tmp, root, &rel)) {
             let _ = root.remove_file(&tmp);
-            return Err(file_error("write", path, e));
+            return Err(file_error("write", path, error));
         }
+
         Ok(())
     }
 
@@ -150,9 +162,7 @@ impl AuthorizedWorkspace {
                     return Err(bad(format!("Resource filename collision: `{path}`")));
                 }
 
-                let mut existing = Vec::new();
-                file.take(bytes.len() as u64 + 1).read_to_end(&mut existing).map_err(|error| file_error("read", path, error))?;
-                if existing != bytes {
+                if !resource_matches(file, bytes).map_err(|error| file_error("read", path, error))? {
                     return Err(bad(format!("Resource filename collision: `{path}`")));
                 }
             }
@@ -162,7 +172,28 @@ impl AuthorizedWorkspace {
     }
 }
 
-// Keep capability-based resolution while preventing FIFO opens from waiting for a writer.
+// A repeated save compares immutable assets without buffering a second copy
+fn resource_matches(mut file: cap_std::fs::File, mut expected: &[u8]) -> std::io::Result<bool> {
+    const COMPARISON_BUFFER_BYTES: usize = 8 * 1024;
+    let mut buffer = [0; COMPARISON_BUFFER_BYTES];
+    loop {
+        let count = match file.read(&mut buffer) {
+            Err(error) if error.kind() == std::io::ErrorKind::Interrupted => continue,
+            result => result?,
+        };
+        if count == 0 {
+            return Ok(expected.is_empty());
+        }
+
+        let Some(rest) = expected.strip_prefix(&buffer[..count]) else {
+            return Ok(false);
+        };
+
+        expected = rest;
+    }
+}
+
+// Keep capability-based resolution while preventing FIFO opens from waiting for a writer
 fn regular_read_options() -> OpenOptions {
     let mut options = OpenOptions::new();
     options.read(true);
@@ -179,6 +210,7 @@ fn open_root(path: Option<&Path>, authority: &str) -> Result<Option<Arc<Dir>>, A
     if path.as_os_str().is_empty() {
         return Err(bad(format!("the automation {authority} root is empty")));
     }
+
     let dir =
         Dir::open_ambient_dir(path, ambient_authority()).map_err(|e| AutomationError::Io(format!("cannot open {authority} root `{}`: {e}", path.display())))?;
     Ok(Some(Arc::new(dir)))
@@ -190,29 +222,36 @@ pub fn relative_path(raw: &str) -> Result<PathBuf, AutomationError> {
     if raw.is_empty() {
         return Err(reject("empty"));
     }
+
     if raw.contains('\\') {
         return Err(reject("backslash"));
     }
+
     if raw.starts_with('/') {
         return Err(reject("absolute"));
     }
+
     if raw.contains(':') {
         return Err(reject("drive, scheme or stream prefix"));
     }
-    for c in raw.split('/') {
-        if c.is_empty() || c == "." || c == ".." {
+
+    for component in raw.split('/') {
+        if component.is_empty() || component == "." || component == ".." {
             return Err(reject("empty, `.` or `..` component"));
         }
-        if c.ends_with(['.', ' ']) || c.chars().any(char::is_control) {
+
+        if component.ends_with(['.', ' ']) || component.chars().any(char::is_control) {
             return Err(reject("component ends in a dot or space, or has control characters"));
         }
-        let stem = c.split('.').next().unwrap_or(c).to_ascii_uppercase();
+
+        let stem = component.split('.').next().unwrap_or(component).to_ascii_uppercase();
         let device = matches!(stem.as_str(), "CON" | "PRN" | "AUX" | "NUL" | "CONIN$" | "CONOUT$")
             || (stem.len() == 4 && (stem.starts_with("COM") || stem.starts_with("LPT")) && stem.ends_with(|ch: char| ch.is_ascii_digit()));
         if device {
             return Err(reject("reserved device name"));
         }
     }
+
     Ok(PathBuf::from(raw))
 }
 
@@ -245,9 +284,7 @@ mod tests {
     use super::*;
     use serde_json::json;
 
-    fn roots(name: &str) -> (PathBuf, PathBuf, AuthorizedWorkspace) {
-        let base = std::env::temp_dir().join(format!("mc-ws-{}-{name}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&base);
+    fn roots(base: &Path) -> (PathBuf, PathBuf, AuthorizedWorkspace) {
         let (inside, outside) = (base.join("inside"), base.join("outside"));
         std::fs::create_dir_all(&inside).unwrap();
         std::fs::create_dir_all(&outside).unwrap();
@@ -261,7 +298,8 @@ mod tests {
         use std::os::unix::fs::OpenOptionsExt;
         use std::time::Duration;
         for collision in [false, true] {
-            let (inside, _, ws) = roots(if collision { "fifo-collision" } else { "fifo-read" });
+            let directory = tempfile::tempdir().unwrap();
+            let (inside, _, ws) = roots(directory.path());
             let path = inside.join("pipe");
             assert!(std::process::Command::new("mkfifo").arg(&path).status().unwrap().success());
             let (sender, receiver) = std::sync::mpsc::channel();
@@ -271,19 +309,20 @@ mod tests {
             });
             let result = receiver.recv_timeout(Duration::from_secs(2));
             if result.is_err() {
-                // Release the regression's blocked read before failing the test.
+                // Release the regression's blocked read before failing the test
                 let writer = std::fs::OpenOptions::new().write(true).custom_flags(rustix::fs::OFlags::NONBLOCK.bits() as i32).open(&path).unwrap();
                 drop(writer);
             }
+
             worker.join().unwrap();
-            std::fs::remove_dir_all(inside.parent().unwrap()).unwrap();
             assert!(result.expect("FIFO open must not wait for a writer").is_err());
         }
     }
 
     #[test]
     fn reads_and_writes_stay_in_the_root() {
-        let (inside, _, ws) = roots("valid");
+        let directory = tempfile::tempdir().unwrap();
+        let (inside, _, ws) = roots(directory.path());
         std::fs::write(inside.join("a.txt"), b"canary").unwrap();
         assert_eq!(ws.read("a.txt").unwrap(), b"canary");
         ws.create_dir_all("out/deep").unwrap();
@@ -296,8 +335,38 @@ mod tests {
     }
 
     #[test]
+    fn immutable_resources_compare_the_last_byte_of_a_partial_buffer() {
+        let directory = tempfile::tempdir().unwrap();
+        let (inside, _, workspace) = roots(directory.path());
+        let mut bytes = vec![17; 32 * 1024 + 1];
+        workspace.write_resource("asset.bin", &bytes).unwrap();
+        workspace.write_resource("asset.bin", &bytes).unwrap();
+
+        *bytes.last_mut().unwrap() = 42;
+        let collision = workspace.write_resource("asset.bin", &bytes).unwrap_err();
+
+        assert!(collision.to_string().contains("collision"));
+        assert_eq!(std::fs::read(inside.join("asset.bin")).unwrap().last(), Some(&17));
+    }
+
+    #[test]
+    fn a_busy_save_preserves_the_existing_staging_file() {
+        let directory = tempfile::tempdir().unwrap();
+        let (inside, _, workspace) = roots(directory.path());
+        let staging = inside.join(format!(".scene.sbs.{}.tmp", std::process::id()));
+        std::fs::write(&staging, b"pending save").unwrap();
+
+        let result = workspace.write("scene.sbs", b"second save");
+
+        assert!(result.is_err());
+        assert_eq!(std::fs::read(staging).unwrap(), b"pending save");
+        assert!(!inside.join("scene.sbs").exists());
+    }
+
+    #[test]
     fn escapes_and_malformed_paths_are_rejected() {
-        let (_, outside, ws) = roots("reject");
+        let directory = tempfile::tempdir().unwrap();
+        let (_, outside, ws) = roots(directory.path());
         let abs = outside.join("x.txt").display().to_string();
         for p in ["", "/abs", "../x", "a/../../x", "a\\b", "C:/x", "a//b", "./a", "a:b", "NUL", "con.txt", "x/COM1.log", "dot.", abs.as_str()] {
             assert!(ws.read(p).is_err(), "read accepted {p:?}");
@@ -308,7 +377,8 @@ mod tests {
 
     #[test]
     fn authorities_are_separate_and_fail_closed() {
-        let (inside, _, _) = roots("separate");
+        let directory = tempfile::tempdir().unwrap();
+        let (inside, _, _) = roots(directory.path());
         std::fs::write(inside.join("r.txt"), b"r").unwrap();
         let ro = AuthorizedWorkspace::new(Some(&inside), None).unwrap();
         assert!(ro.read("r.txt").is_ok());
@@ -320,7 +390,8 @@ mod tests {
     #[cfg(unix)]
     #[test]
     fn oversized_reads_are_rejected_without_allocating() {
-        let (inside, _, ws) = roots("oversized");
+        let directory = tempfile::tempdir().unwrap();
+        let (inside, _, ws) = roots(directory.path());
         let file = std::fs::File::create(inside.join("huge.bin")).unwrap();
         file.set_len(MAX_READ_BYTES + 1).unwrap();
         let err = ws.read("huge.bin").unwrap_err().to_string();
@@ -330,7 +401,8 @@ mod tests {
     #[cfg(unix)]
     #[test]
     fn symlink_escape_is_rejected() {
-        let (inside, outside, ws) = roots("symlink");
+        let directory = tempfile::tempdir().unwrap();
+        let (inside, outside, ws) = roots(directory.path());
         std::fs::write(outside.join("secret.txt"), b"s").unwrap();
         std::os::unix::fs::symlink(&outside, inside.join("link")).unwrap();
         assert!(ws.read("link/secret.txt").is_err());
@@ -338,10 +410,37 @@ mod tests {
         assert!(!outside.join("new.txt").exists());
     }
 
+    #[cfg(unix)]
+    #[test]
+    fn save_keeps_the_resolved_destination_when_an_alias_is_retargeted() {
+        use std::os::unix::fs::symlink;
+
+        let directory = tempfile::tempdir().unwrap();
+        let (inside, _, workspace) = roots(directory.path());
+        std::fs::create_dir(inside.join("original")).unwrap();
+        std::fs::create_dir_all(inside.join("alternate/deep")).unwrap();
+        let alias = inside.join("alias");
+        symlink("original", &alias).unwrap();
+        let (destination, writer, save_path) = workspace.save_destination("alias/scene.sbs").unwrap();
+
+        std::fs::remove_file(&alias).unwrap();
+        symlink("alternate/deep", &alias).unwrap();
+        let parent = save_path.rsplit_once('/').map_or(String::new(), |(parent, _)| format!("{parent}/"));
+        writer.create_dir_all(&format!("{parent}resources")).unwrap();
+        writer.write_resource(&format!("{parent}resources/asset.bin"), b"asset").unwrap();
+        writer.write(&save_path, b"source").unwrap();
+
+        assert_eq!(destination, inside.join("original/scene.sbs"));
+        assert_eq!(std::fs::read(destination).unwrap(), b"source");
+        assert_eq!(std::fs::read(inside.join("original/resources/asset.bin")).unwrap(), b"asset");
+        assert_eq!(std::fs::read_dir(inside.join("alternate/deep")).unwrap().count(), 0);
+    }
+
     #[cfg(windows)]
     #[test]
     fn junction_escape_is_rejected() {
-        let (inside, outside, ws) = roots("junction");
+        let directory = tempfile::tempdir().unwrap();
+        let (inside, outside, ws) = roots(directory.path());
         std::fs::write(outside.join("secret.txt"), b"s").unwrap();
         let link = inside.join("junction");
         let made = std::process::Command::new("cmd.exe").args(["/D", "/C", "mklink", "/J"]).arg(&link).arg(&outside).output();
@@ -349,6 +448,7 @@ mod tests {
             eprintln!("skipping: cannot create a junction");
             return;
         }
+
         assert!(ws.read("junction/secret.txt").is_err());
         assert!(ws.write("junction/new.txt", b"x").is_err());
         assert!(!outside.join("new.txt").exists());

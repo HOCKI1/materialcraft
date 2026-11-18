@@ -272,9 +272,7 @@ mod tests {
     }
 
     /// A workspace session rooted at a fresh `inside` folder, with an `outside` sibling.
-    fn workspace_session(name: &str, write: bool) -> (std::path::PathBuf, std::path::PathBuf, Mutex<Headless>) {
-        let base = std::env::temp_dir().join(format!("mc-rpc-{}-{name}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&base);
+    fn workspace_session(base: &std::path::Path, write: bool) -> (std::path::PathBuf, std::path::PathBuf, Mutex<Headless>) {
         let (inside, outside) = (base.join("inside"), base.join("outside"));
         std::fs::create_dir_all(&inside).unwrap();
         std::fs::create_dir_all(&outside).unwrap();
@@ -289,24 +287,29 @@ mod tests {
 
     #[test]
     fn material_export_writes_a_portable_material_below_the_write_root() {
-        let (inside, _, h) = workspace_session("mat-ok", true);
+        let directory = tempfile::tempdir().unwrap();
+        let (inside, _, h) = workspace_session(directory.path(), true);
         std::fs::create_dir(inside.join("out")).unwrap();
-        let r = call(&h, "material.export", json!({"path": "out/brick"})).unwrap();
-        assert_eq!(r["path"], "out/brick.mcmat");
+
+        let published = call(&h, "material.export", json!({"path": "out/brick"})).unwrap();
+
+        assert_eq!(published["path"], "out/brick.mcmat");
         let bytes = std::fs::read(inside.join("out/brick.mcmat")).unwrap();
-        assert_eq!(r["bytes"], bytes.len());
+        assert_eq!(published["bytes"], bytes.len());
         let (package, entry) = materialcraft_engine::formats::material::read_material(&bytes).unwrap();
         assert!(package.graph(entry).unwrap().nodes.iter().any(|node| node.def == "output"));
         assert_eq!(std::fs::read_dir(inside.join("out")).unwrap().count(), 1, "no temporary files left behind");
-        // An explicit extension is kept (case-insensitively) and the file can be opened again.
-        let r = call(&h, "material.export", json!({"path": "again.MCMAT"})).unwrap();
-        assert_eq!(r["path"], "again.MCMAT");
+
+        // Preserve the caller’s extension spelling when reopening the archive
+        let published = call(&h, "material.export", json!({"path": "again.MCMAT"})).unwrap();
+        assert_eq!(published["path"], "again.MCMAT");
         assert!(call(&h, "package.open", json!({"path": "again.MCMAT"})).is_ok());
     }
 
     #[test]
     fn material_export_reports_bad_requests() {
-        let (inside, _, h) = workspace_session("mat-bad", true);
+        let directory = tempfile::tempdir().unwrap();
+        let (inside, _, h) = workspace_session(directory.path(), true);
         for bad in [json!({}), json!({"path": "m", "graph": 99}), json!({"path": "m", "values": {"no_such_input": 1}})] {
             assert!(call(&h, "material.export", bad.clone()).is_err(), "{bad}");
         }
@@ -319,7 +322,8 @@ mod tests {
         let denied = session();
         let e = call(&denied, "material.export", json!({"path": "m.mcmat"})).unwrap_err();
         assert!(e.contains("not granted"), "{e}");
-        let (inside, _, read_only) = workspace_session("mat-readonly", false);
+        let directory = tempfile::tempdir().unwrap();
+        let (inside, _, read_only) = workspace_session(directory.path(), false);
         let e = call(&read_only, "material.export", json!({"path": "m.mcmat"})).unwrap_err();
         assert!(e.contains("no write root"), "{e}");
         assert_eq!(std::fs::read_dir(&inside).unwrap().count(), 0);
@@ -327,7 +331,8 @@ mod tests {
 
     #[test]
     fn material_export_cannot_escape_the_write_root() {
-        let (_inside, outside, h) = workspace_session("mat-escape", true);
+        let directory = tempfile::tempdir().unwrap();
+        let (_inside, outside, h) = workspace_session(directory.path(), true);
         let abs = outside.join("abs.mcmat").display().to_string();
         for p in ["../outside/m.mcmat", "a/../../outside/m.mcmat", "/tmp/m.mcmat", "a\\b.mcmat", "C:/m.mcmat", "./m.mcmat", abs.as_str()] {
             let e = call(&h, "material.export", json!({"path": p}));
@@ -339,7 +344,8 @@ mod tests {
             assert!(call(&h, "material.export", json!({"path": "link/m.mcmat"})).is_err());
         }
         assert_eq!(std::fs::read_dir(&outside).unwrap().count(), 0, "nothing written outside the root");
-        // The generic command path stays closed too: host paths are still refused.
+
+        // The generic command must enforce the same file access boundary
         let e = call(&h, "command.run", json!({"id": "file.exportMaterial", "params": {"path": abs}})).unwrap_err();
         assert!(e.contains("disabled for automation"), "{e}");
     }

@@ -12,6 +12,7 @@ pub(super) fn write(out: &mut String, graph: &Graph, uids: &HashMap<String, u64>
     if graph.presets.is_empty() {
         return;
     }
+
     out.push_str("<sbspresets>");
     for preset in &graph.presets {
         let _ = write!(out, "<sbspreset><label v=\"{}\"/><presetinputs>", xml_escape(&preset.name));
@@ -34,11 +35,13 @@ pub(super) fn read(element: Node<'_, '_>, graph: &mut Graph) {
     let Some(presets) = child_element(element, "sbspresets") else {
         return;
     };
+
     let exposed: HashMap<_, _> = graph.exposed.iter().map(|p| (p.id.as_str(), p)).collect();
     for preset in children_named(presets, "sbspreset") {
         let Some(name) = child_value(preset, "label") else {
             continue;
         };
+
         let values = child_element(preset, "presetinputs")
             .into_iter()
             .flat_map(|inputs| children_named(inputs, "presetinput"))

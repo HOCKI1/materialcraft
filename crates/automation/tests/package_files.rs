@@ -87,19 +87,31 @@ fn both_formats_save_and_reopen_using_separate_workspace_capabilities() {
 
 #[test]
 fn scoped_publication_resolves_linked_graphs_and_images_using_the_granted_read_root() {
-    use materialcraft_engine::core::{Graph, GraphInstance, GraphPort, Value};
-    use materialcraft_engine::{formats, samples};
-    let temporary = tempfile::tempdir().unwrap();
-    let dir = temporary.path().to_path_buf();
+    use materialcraft_engine::core::{Graph, GraphInstance, GraphPort, Resource, ResourceBytes, Value};
+    use materialcraft_engine::{formats, image};
+
+    let directory = tempfile::tempdir().unwrap();
+    let dir = directory.path();
     let input = dir.join("input");
     let output = dir.join("published");
     std::fs::create_dir_all(input.join("parts")).unwrap();
     std::fs::create_dir_all(&output).unwrap();
+
+    let image = image::Image::filled(2, 2, image::Kind::Color, [0.25, 0.5, 0.75, 1.0]);
+    let pixels = formats::encode(&image, "png", formats::Depth::U8, false).unwrap();
     let mut helpers = Package::new("Helpers");
-    helpers.graphs.push(samples::template("pbr", "Finish", 4).unwrap());
-    let helper = formats::sbs::write_sbs(&helpers).unwrap();
-    std::fs::write(input.join("parts/finish.sbs"), &helper).unwrap();
-    std::fs::write(dir.join("outside.sbs"), &helper).unwrap();
+    helpers.resources.push(Resource::new("finish", "finish.png", ResourceBytes::new(pixels.clone())));
+    let mut finish = Graph::new("Finish");
+    let bitmap = finish.add_node("bitmap", [0.0; 2]);
+    finish.node_mut(bitmap).unwrap().params.insert("resource".into(), Value::Text("finish".into()));
+    let finish_output = finish.add_node("output", [0.0; 2]);
+    finish.node_mut(finish_output).unwrap().params.insert("identifier".into(), Value::Text("basecolor".into()));
+    finish.connect(bitmap, "output", finish_output, "input").unwrap();
+    helpers.graphs.push(finish);
+    let helper = formats::project::ProjectFiles::build(&helpers, "finish.sbs", false).unwrap();
+    formats::project::write_files(&input.join("parts/finish.sbs"), &helper).unwrap();
+    std::fs::write(dir.join("outside.sbs"), helper.xml().unwrap()).unwrap();
+
     for (project, dependency) in [("surface.sbs", "parts/finish.sbs"), ("missing.sbs", "../outside.sbs")] {
         let mut graph = Graph::new("Oak");
         let call = graph.add_node("graph_instance", [0.; 2]);
@@ -124,21 +136,22 @@ fn scoped_publication_resolves_linked_graphs_and_images_using_the_granted_read_r
         if project == "surface.sbs" {
             assert!(result.is_ok(), "{result:?}");
             let (pkg, entry) = formats::material::read_material(&std::fs::read(output.join("surface.sbs.mcmat")).unwrap()).unwrap();
-            assert_eq!(pkg.graph(entry).unwrap().name, "Oak");
+            let entry = pkg.graph(entry).unwrap();
+            assert_eq!(entry.name, "Oak");
             assert_eq!(pkg.graphs.len(), 2);
-            assert!(pkg.graphs.iter().any(|graph| graph.name == "Finish"));
-            let calls: Vec<_> = pkg.graph(entry).unwrap().instances().collect();
-            assert_eq!(calls.len(), 1);
-            assert!(calls[0].package.is_empty());
-            assert!(pkg.graph_by_name(&calls[0].graph).is_some());
+            let instance = entry.instances().next().unwrap();
+            assert!(instance.package.is_empty());
+            assert_eq!(entry.instances().count(), 1);
+            assert_eq!(pkg.graph_by_name(&instance.graph).unwrap().1.name, "Finish");
+            assert_eq!(pkg.resources.len(), 1);
+            assert_eq!(pkg.resources[0].bytes.as_slice(), pixels);
 
-            // Saving under a different granted root rebases links from that actual
-            // destination, not from the process working directory or a relative path.
+            // Rebase links from the actual destination under the granted write root
             app.save(Some("saved.sbs")).unwrap();
             let xml = std::fs::read_to_string(output.join("saved.sbs")).unwrap();
             assert!(xml.contains("../input/parts/finish.sbs"), "{xml}");
             assert_eq!(app.session.path.as_deref(), Some("saved.sbs"));
-            let workspace = AuthorizedWorkspace::new(Some(&dir), Some(&output)).unwrap();
+            let workspace = AuthorizedWorkspace::new(Some(dir), Some(&output)).unwrap();
             let mut reopened = Headless::new(Session::new(Package::new("Empty")), Filesystem::Workspace(workspace));
             reopened.load("published/saved.sbs").unwrap();
             let helper_path = input.join("parts/finish.sbs").canonicalize().unwrap().to_string_lossy().into_owned();

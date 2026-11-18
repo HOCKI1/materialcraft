@@ -45,10 +45,17 @@ pub fn material_bytes(session: &Session, graph: usize) -> Result<Vec<u8>> {
     Ok(materialcraft_formats::material::write_material(&session.pkg, graph)?)
 }
 
+/// Publish with an additional budget for the combined uncompressed source assets.
+pub fn material_bytes_with_resource_limit(session: &Session, graph: usize, maximum_resource_bytes: u64) -> Result<Vec<u8>> {
+    crate::material_bake::check_publish(session, graph)?;
+    Ok(materialcraft_formats::material::write_material_with_resource_limit(&session.pkg, graph, maximum_resource_bytes)?)
+}
+
 pub fn publish_graph(s: &Session, p: &J) -> Result<usize> {
     if ["size", "values", "inputs", "preset"].iter().any(|key| p.get(key).is_some_and(|v| !v.is_null())) {
         return Err(bad("file.exportMaterial", "pass size, values, preset and image inputs when cooking or exporting outputs"));
     }
+
     crate::graph_cmds::graph_index(s, p)
 }
 

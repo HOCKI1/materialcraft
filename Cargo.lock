@@ -1000,6 +1000,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "craft-platform"
+version = "0.1.0"
+source = "git+https://github.com/storytold/craft-libs?rev=453b0da782ccef39be9a6dac8d27c80b553ef1cc#453b0da782ccef39be9a6dac8d27c80b553ef1cc"
+dependencies = [
+ "js-sys",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
 name = "craft-quit"
 version = "0.1.0"
 source = "git+https://github.com/storytold/craft-libs?rev=453b0da782ccef39be9a6dac8d27c80b553ef1cc#453b0da782ccef39be9a6dac8d27c80b553ef1cc"
@@ -2874,6 +2884,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
+ "tempfile",
  "thiserror 2.0.21",
 ]
 
@@ -2954,6 +2965,7 @@ dependencies = [
  "craft-atomic",
  "craft-dialogs",
  "craft-keymap",
+ "craft-platform",
  "craft-quit",
  "craft-ui",
  "craft-update",
@@ -2963,7 +2975,6 @@ dependencies = [
  "egui-phosphor",
  "egui_kittest",
  "image",
- "js-sys",
  "log",
  "materialcraft-engine",
  "materialcraft-render",
@@ -2973,7 +2984,6 @@ dependencies = [
  "sha2",
  "sys-locale",
  "tempfile",
- "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
  "zip 2.6.1",

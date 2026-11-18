@@ -4,6 +4,7 @@ mod component_usage;
 mod connection;
 mod constant;
 mod embedded;
+mod embedded_error;
 mod filter_map;
 mod function_graph;
 mod function_instance;

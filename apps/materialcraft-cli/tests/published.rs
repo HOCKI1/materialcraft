@@ -13,19 +13,31 @@ fn run(dir: &Path, args: &[&str]) -> Value {
 
 #[test]
 fn a_published_graph_bakes_openpbr_variations_after_the_project_is_removed() {
-    let temporary = tempfile::tempdir().unwrap();
-    let dir = temporary.path().to_path_buf();
-    run(&dir, &["new", "pbr", "source.sbs", "--name", "Oak", "--size", "32"]);
-    run(&dir, &["run", "source.sbs", "graph.exposed.add", r#"{"id":"tint","bind":{"node":1,"param":"color"}}"#, "-o", "studio.mcraft"]);
-    run(&dir, &["publish", "studio.mcraft", "oak.mcmat", "--graph", "Oak"]);
+    let temp = tempfile::tempdir().unwrap();
+    let dir = temp.path();
+    run(dir, &["new", "pbr", "source.sbs", "--name", "Oak", "--size", "32"]);
+    run(dir, &["run", "source.sbs", "graph.exposed.add", r#"{"id":"tint","bind":{"node":1,"param":"color"}}"#, "-o", "studio.mcraft"]);
+    run(dir, &["publish", "studio.mcraft", "oak.mcmat", "--graph", "Oak"]);
     std::fs::remove_file(dir.join("studio.mcraft")).unwrap();
     std::fs::remove_file(dir.join("source.sbs")).unwrap();
-    let initial = run(&dir, &["info", "oak.mcmat"]);
+
+    let invalid_scale = Command::new(env!("CARGO_BIN_EXE_materialcraft-cli"))
+        .current_dir(dir)
+        .args(["export", "oak.mcmat", "invalid", "--profile", "materialx", "--displacement-scale", "NaN"])
+        .output()
+        .unwrap();
+
+    assert!(!invalid_scale.status.success(), "an invalid displacement scale produced a material");
+    assert!(String::from_utf8_lossy(&invalid_scale.stderr).contains("displacement-scale"));
+    assert!(!dir.join("invalid").exists());
+
+    let initial = run(dir, &["info", "oak.mcmat"]);
     assert_eq!(initial["parameters"][0]["id"], "tint");
     for (folder, size, tint) in [("small", 32, "#ff0000"), ("large", 64, "#0000ff")] {
         let report =
-            run(&dir, &["export", "oak.mcmat", "--out", folder, "--profile", "materialx", "--size", &size.to_string(), "--set", &format!("tint={tint}")]);
+            run(dir, &["export", "oak.mcmat", "--out", folder, "--profile", "materialx", "--size", &size.to_string(), "--set", &format!("tint={tint}")]);
         let maps = report["maps"].as_array().unwrap();
+        assert_eq!(maps.len(), 6, "every output of the material template is exported");
         let base = maps.iter().find(|m| m["usage"] == "baseColor").unwrap();
         let relative = base["file"].as_str().unwrap();
         assert_eq!(base["size"], json!([size, size]));
@@ -42,21 +54,21 @@ fn a_published_graph_bakes_openpbr_variations_after_the_project_is_removed() {
         assert!((displacement.get(0, 0, false)[0] + 0.5).abs() < 1e-5);
         assert!(report["unmapped"].as_array().unwrap().iter().any(|id| id == "ambientocclusion"));
     }
-    let rectangular = run(&dir, &["cook", "oak.mcmat", "--size", "64x32"]);
+    let rectangular = run(dir, &["cook", "oak.mcmat", "--size", "64x32"]);
     assert_eq!(rectangular["outputs"][0]["size"], json!([64, 32]));
-    assert_eq!(run(&dir, &["info", "oak.mcmat"]), initial);
+    assert_eq!(run(dir, &["info", "oak.mcmat"]), initial);
 }
 
 #[test]
 fn failed_materialx_reexport_preserves_the_last_complete_material() {
-    let temporary = tempfile::tempdir().unwrap();
-    let dir = temporary.path().to_path_buf();
-    run(&dir, &["new", "pbr", "source.sbs", "--name", "Oak", "--size", "32"]);
-    let export = |folder, size| run(&dir, &["export", "source.sbs", folder, "--profile", "materialx", "--size", size]);
+    let temp = tempfile::tempdir().unwrap();
+    let dir = temp.path();
+    run(dir, &["new", "pbr", "source.sbs", "--name", "Oak", "--size", "32"]);
+    let export = |folder, size| run(dir, &["export", "source.sbs", folder, "--profile", "materialx", "--size", size]);
     let first = export("material", "32");
-    let added = run(&dir, &["run", "source.sbs", "graph.node.add", r#"{"def":"output","params":{"identifier":"extra"}}"#, "-o", "source.sbs"]);
+    let added = run(dir, &["run", "source.sbs", "graph.node.add", r#"{"def":"output","params":{"identifier":"extra"}}"#, "-o", "source.sbs"]);
     let wire = json!({"from":1,"to":added["id"],"toPort":"input"}).to_string();
-    run(&dir, &["run", "source.sbs", "graph.connect", &wire, "-o", "source.sbs"]);
+    run(dir, &["run", "source.sbs", "graph.connect", &wire, "-o", "source.sbs"]);
     let next = export("reference", "64");
     let material = dir.join("material");
     let original_files: Vec<_> = first["maps"]
@@ -74,12 +86,14 @@ fn failed_materialx_reexport_preserves_the_last_complete_material() {
     std::fs::create_dir(&blocked).unwrap();
 
     let failed = Command::new(env!("CARGO_BIN_EXE_materialcraft-cli"))
-        .current_dir(&dir)
+        .current_dir(dir)
         .args(["export", "source.sbs", "material", "--profile", "materialx", "--size", "64"])
         .output()
         .unwrap();
 
     assert!(!failed.status.success());
+    let error = String::from_utf8_lossy(&failed.stderr);
+    assert!(error.contains(blocked.file_name().unwrap().to_str().unwrap()), "{error}");
     assert_eq!(std::fs::read(material.join("material.mtlx")).unwrap(), document);
     for (name, bytes) in original_files {
         assert_eq!(std::fs::read(material.join(name)).unwrap(), bytes, "{name}");

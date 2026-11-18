@@ -2,7 +2,7 @@
 
 use serde_json::{Value as J, json};
 
-use materialcraft_core::{MAX_SIZE_LOG2, MIN_SIZE_LOG2, NodeId, OutputFormat, Value};
+use materialcraft_core::{Graph, MAX_SIZE_LOG2, MIN_SIZE_LOG2, NodeId, OutputFormat, Value};
 
 use crate::commands::{CommandSpec, always, bad, boolp, has_graph, has_selection, i64p, ids_param, strp, u64p};
 use crate::{Result, Session, cmd};
@@ -235,14 +235,17 @@ fn preset_apply(s: &mut Session, p: &J) -> Result<J> {
     s.edit("Apply preset", |s| {
         let g = s.graph_mut()?;
         let preset = g.presets.iter().find(|x| x.name == name).cloned().ok_or_else(|| bad("graph.preset.apply", format!("no preset `{name}`")))?;
-        for (k, v) in preset.values {
-            // Only inputs that still exist, with their current type
-            if g.exposed.iter().any(|e| e.id == k && e.default.type_name() == v.type_name()) {
-                g.inputs.insert(k, v);
+        for (identifier, value) in preset.values {
+            if preset_value_matches(g, &identifier, &value) {
+                g.inputs.insert(identifier, value);
             }
         }
         Ok(J::Null)
     })
+}
+
+pub(crate) fn preset_value_matches(graph: &Graph, identifier: &str, value: &Value) -> bool {
+    graph.exposed.iter().any(|input| input.id == identifier && input.default.type_name() == value.type_name())
 }
 
 fn preset_delete(s: &mut Session, p: &J) -> Result<J> {

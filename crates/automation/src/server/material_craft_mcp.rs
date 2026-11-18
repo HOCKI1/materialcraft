@@ -299,21 +299,22 @@ mod tests {
 
     #[tokio::test(flavor = "multi_thread")]
     async fn material_export_tool_writes_through_the_workspace_only() {
-        let base = std::env::temp_dir().join(format!("mc-mcp-{}-material", std::process::id()));
-        let _ = std::fs::remove_dir_all(&base);
-        std::fs::create_dir_all(&base).unwrap();
+        let directory = tempfile::tempdir().unwrap();
+        let write_root = directory.path().join("workspace");
+        std::fs::create_dir(&write_root).unwrap();
         let args = || Parameters(MaterialExportParams { path: "m".into(), graph: None });
 
         let denied = MaterialCraftMcp::headless(Headless::new(materialcraft_engine::sample_session(), Filesystem::Denied));
         assert_eq!(denied.material_export(args()).await.unwrap().is_error, Some(true));
 
-        let ws = crate::AuthorizedWorkspace::new(None, Some(&base)).unwrap();
+        let ws = crate::AuthorizedWorkspace::new(None, Some(&write_root)).unwrap();
         let mcp = MaterialCraftMcp::headless(Headless::new(materialcraft_engine::sample_session(), Filesystem::Workspace(ws)));
         assert_eq!(mcp.material_export(args()).await.unwrap().is_error, Some(false));
-        assert!(base.join("m.mcmat").is_file());
+        assert!(write_root.join("m.mcmat").is_file());
+
         let escape = Parameters(MaterialExportParams { path: "../m.mcmat".into(), graph: None });
         assert_eq!(mcp.material_export(escape).await.unwrap().is_error, Some(true));
-        assert!(!base.parent().unwrap().join("m.mcmat").exists());
+        assert!(!directory.path().join("m.mcmat").exists());
     }
 
     /// Every sub-schema must be a JSON object. Claude Desktop's proxy rejects a boolean schema

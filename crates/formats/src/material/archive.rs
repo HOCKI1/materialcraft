@@ -10,7 +10,19 @@ pub fn is_material(bytes: &[u8]) -> bool {
 }
 
 pub fn write_material(package: &Package, entry: usize) -> Result<Vec<u8>> {
+    write_material_with_resource_limit(package, entry, craft_mcmat::Limits::default().max_total_bytes)
+}
+
+/// Limit the aggregate source assets before generating the output archive.
+pub fn write_material_with_resource_limit(package: &Package, entry: usize, maximum_resource_bytes: u64) -> Result<Vec<u8>> {
     let snapshot = super::snapshot(package, entry)?;
+    let mut remaining = maximum_resource_bytes;
+    for resource in &snapshot.resources {
+        remaining = remaining.checked_sub(resource.bytes.len() as u64).ok_or_else(|| {
+            FormatError::BadPackage(format!("material source assets exceed the {maximum_resource_bytes}-byte limit; reduce source asset sizes"))
+        })?;
+    }
+
     let files = ProjectFiles::build(&snapshot, craft_mcmat::SOURCE_ENTRY, false)?;
     let resources = files.files.iter().filter(|(name, _)| **name != files.entry).map(|(name, bytes)| (name.as_str(), bytes.as_slice()));
     craft_mcmat::write(files.xml()?, resources).map_err(|err| FormatError::BadPackage(err.to_string()))
@@ -38,18 +50,30 @@ pub fn read_material(bytes: &[u8]) -> Result<(Package, usize)> {
     Ok((pkg, entry))
 }
 
-// Linked aliases and inline SBS assets must share the same decoded-byte budget.
+// Linked aliases and inline SBS assets share one decoded-byte budget
 fn read_source(material: &craft_mcmat::Material, budget: u64) -> Result<sbs::SbsRead> {
     let remaining = Cell::new(budget);
-    sbs::SbsDocument::parse(&material.source)?.read_with_resource_budget(
+    let over_budget = Cell::new(false);
+    let mut read = sbs::SbsDocument::parse(&material.source)?.read_with_resource_budget(
         craft_mcmat::SOURCE_ENTRY,
         &|name| {
             let data = material.resources.get(name)?;
-            remaining.set(remaining.get().checked_sub(data.len() as u64)?);
+            let Some(bytes_left) = remaining.get().checked_sub(data.len() as u64) else {
+                over_budget.set(true);
+                return None;
+            };
+
+            remaining.set(bytes_left);
             Some(data.clone())
         },
         &remaining,
-    )
+    )?;
+
+    if over_budget.get() {
+        read.warnings.insert(0, "archive member exceeds the remaining material resource budget".into());
+    }
+
+    Ok(read)
 }
 
 /// Whether maps of `usage` hold colors (stored sRGB-encoded) rather than data (linear)
@@ -74,6 +98,7 @@ pub fn srgb_usage(usage: &str) -> bool {
 mod tests {
     use super::*;
     use base64::Engine as _;
+    use materialcraft_core::{Graph, Resource, ResourceBytes, Value};
     use std::io::Write;
 
     fn inline(bytes: &[u8]) -> String {
@@ -91,6 +116,30 @@ mod tests {
         let source = format!("<package><content>{content}</content></package>");
         let bytes = craft_mcmat::write(source.as_bytes(), [("resources/member.png", b"abc".as_slice())]).unwrap();
         craft_mcmat::Material::open(&bytes, craft_mcmat::Limits::default()).unwrap()
+    }
+
+    #[test]
+    fn publication_checks_the_combined_bytes_of_distinct_source_assets() {
+        const ASSET_BYTES: usize = 4096;
+        let mut package = Package::new("Assets");
+        let mut graph = Graph::new("Root");
+        for (index, name) in ["a", "b"].into_iter().enumerate() {
+            package.resources.push(Resource::new(name, format!("{name}.bin"), ResourceBytes::new(vec![index as u8; ASSET_BYTES])));
+            let bitmap = graph.add_node("bitmap", [0.0; 2]);
+            graph.node_mut(bitmap).unwrap().params.insert("resource".into(), Value::Text(name.into()));
+            let output = graph.add_node("output", [0.0; 2]);
+            graph.connect(bitmap, "output", output, "input").unwrap();
+        }
+        package.graphs.push(graph);
+        let total = (2 * ASSET_BYTES) as u64;
+
+        let error = write_material_with_resource_limit(&package, 0, total - 1).unwrap_err();
+        let archive = write_material_with_resource_limit(&package, 0, total).unwrap();
+        let (reopened, _) = read_material(&archive).unwrap();
+
+        assert!(error.to_string().contains("material source assets exceed"));
+        assert!(archive.len() < ASSET_BYTES);
+        assert_eq!(reopened.resources.iter().map(|resource| resource.bytes.len()).sum::<usize>(), total as usize);
     }
 
     #[test]
@@ -119,6 +168,7 @@ mod tests {
                 "<resource><identifier v=\"inline\"/><filepath v=\"resources/member.png\"/><source><binembedded><strdata v=\"{encoded}\"/></binembedded></source></resource>"
             );
             let read = read_source(&make_material(&content), 3).unwrap();
+
             assert!(read.warnings.is_empty());
             assert_eq!(read.pkg.resources[0].bytes.as_slice(), b"abc");
         }
@@ -133,6 +183,7 @@ mod tests {
             "<resource><identifier v=\"inline\"/><filepath v=\"resources/member.png\"/><source><binembedded><strdata v=\"{encoded}\"/></binembedded></source></resource>"
         );
         let read = read_source(&make_material(&content), 3).unwrap();
+
         assert!(read.warnings.is_empty(), "{:?}", read.warnings);
         assert_eq!(read.pkg.resources[0].bytes.as_slice(), b"abc");
     }
@@ -141,6 +192,7 @@ mod tests {
     fn repeated_oversized_inline_probes_exhaust_document_work() {
         let content = format!("{}{}{}", inline(b"four"), inline(b"four"), inline(b""));
         let read = read_source(&make_material(&content), 3).unwrap();
+
         assert!(read.pkg.resources.is_empty());
         assert!(read.warnings.iter().any(|warning| warning.contains("inflation work budget")));
     }
@@ -167,6 +219,16 @@ mod tests {
             assert!(!read.warnings.is_empty());
             assert_eq!(read.pkg.resources.iter().map(|resource| resource.bytes.len()).sum::<usize>(), 3);
         }
+    }
+
+    #[test]
+    fn archive_budget_errors_name_the_budget_rather_than_a_missing_member() {
+        let material = make_material(&format!("{}{}", linked("a"), linked("b")));
+
+        let read = read_source(&material, 5).unwrap();
+
+        assert!(read.warnings.first().unwrap().contains("resource budget"));
+        assert_eq!(read.pkg.resources.iter().map(|resource| resource.bytes.len()).sum::<usize>(), 3);
     }
 
     #[test]

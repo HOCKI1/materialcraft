@@ -18,21 +18,16 @@ pub struct MaterialOptions {
 impl MaterialOptions {
     pub fn from_params(graph: &Graph, p: &J, read: impl Fn(&str) -> Result<Vec<u8>>) -> Result<Self> {
         let invalid = |msg| bad("material.cook", msg);
-        let size = crate::export_request::export_size(p.get("size")).map_err(|error| match error {
-            crate::EngineError::BadParams { msg, .. } => invalid(msg),
-            other => other,
-        })?;
-        let mut options = Self { size, ..Default::default() };
+        let mut options = Self { size: crate::export_request::export_size("material.cook", p.get("size"))?, ..Default::default() };
 
         if let Some(value) = p.get("preset").filter(|v| !v.is_null()) {
             let name = value.as_str().ok_or_else(|| invalid("preset must be a name".into()))?;
             let preset = graph.presets.iter().find(|preset| preset.name == name).ok_or_else(|| invalid(format!("unknown preset `{name}`")))?;
-            // Match preset.apply: stale identifiers and changed parameter types are ignored.
             options.values.extend(
                 preset
                     .values
                     .iter()
-                    .filter(|(id, value)| graph.exposed.iter().any(|parameter| parameter.id == **id && parameter.default.type_name() == value.type_name()))
+                    .filter(|(id, value)| crate::graph_cmds::preset_value_matches(graph, id, value))
                     .map(|(id, value)| (id.clone(), value.clone())),
             );
         }

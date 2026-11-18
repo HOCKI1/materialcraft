@@ -68,10 +68,12 @@ pub(crate) fn check_publish(s: &Session, index: usize) -> Result<()> {
     if graph.function.is_some() {
         return Err(bad("file.exportMaterial", "select a material graph"));
     }
+
     let cooked = MaterialOptions::default().cook(s, index, None, Some(1 << materialcraft_core::MIN_SIZE_LOG2))?;
     if !outputs(graph, &cooked).into_iter().any(|(id, _, _, image)| image.is_some() && graph.connections.iter().any(|wire| wire.to == id)) {
         return Err(bad("file.exportMaterial", format!("graph `{}` has no connected, cookable material outputs", graph.sbs_path())));
     }
+
     Ok(())
 }
 
@@ -88,45 +90,48 @@ pub fn cook(s: &Session, p: &J, read: impl Fn(&str) -> Result<Vec<u8>>) -> Resul
 
 /// Encode every file before the caller writes to its destination. Paths in the report are relative.
 pub fn export(s: &Session, p: &J, read: impl Fn(&str) -> Result<Vec<u8>>) -> Result<(Vec<Exported>, J)> {
+    let option = |key| p.get(key).filter(|value| !value.is_null());
     let request = ExportRequest::from_params(s, p)?;
-    let has = |key| p.get(key).is_some_and(|value| !value.is_null());
-    if has("profile") {
-        if has("format") || has("pattern") {
-            return Err(bad("file.export", "named profiles choose their own format and filenames; omit format and pattern"));
-        }
-    } else if has("normalFormat") || has("displacementScale") {
-        return Err(bad("file.export", "normalFormat and displacementScale require an explicit export profile"));
-    }
-
     let graph = s.pkg.graph(request.graph)?;
-    let options = MaterialOptions::from_params(graph, p, read)?;
     let selected = request.outputs.as_deref();
-    let materialx = match p.get("profile").filter(|value| !value.is_null()) {
+    let materialx = match option("profile") {
         Some(value) if value == "materialx" => true,
         Some(value) if value == "maps" => false,
         Some(value) => return Err(bad("file.export", format!("unknown export profile {value}"))),
         None => {
+            if option("normalFormat").is_some() || option("displacementScale").is_some() {
+                return Err(bad("file.export", "normalFormat and displacementScale require an explicit export profile"));
+            }
+
+            let options = MaterialOptions::from_params(graph, p, read)?;
             let cooked = options.cook(s, request.graph, selected, None)?;
             return Ok((crate::file_cmds::encode_outputs(graph, &cooked, &request)?, json!({})));
         }
     };
 
-    let scale = match p.get("displacementScale").filter(|value| !value.is_null()) {
+    if option("format").is_some() || option("pattern").is_some() {
+        return Err(bad("file.export", "named profiles choose their own format and filenames; omit format and pattern"));
+    }
+
+    let scale = match option("displacementScale") {
+        Some(_) if !materialx => return Err(bad("file.export", "`displacementScale` requires the materialx profile")),
         Some(value) => {
             value.as_f64().map(|x| x as f32).filter(|x| x.is_finite() && *x >= 0.0).ok_or_else(|| bad("file.export", "invalid displacementScale"))?
         }
         None => 1.0,
     };
-    let normal_y_down = match p.get("normalFormat").filter(|value| !value.is_null()) {
+    let normal_y_down = match option("normalFormat") {
         None => None,
         Some(value) if value == "opengl" => Some(false),
         Some(value) if value == "directx" => Some(true),
         Some(_) => return Err(bad("file.export", "normalFormat must be opengl or directx")),
     };
 
+    let options = MaterialOptions::from_params(graph, p, read)?;
     let cooked = options.cook(s, request.graph, selected, None)?;
     let (files, mut report) = encode_maps(graph, &cooked, &request, materialx, scale, normal_y_down)?;
-    // Use the graph already selected by file.export, including its legacy numeric coercion.
+
+    // Report the same graph selected by the legacy numeric coercion
     let mut interface = info(s, &json!({"graph": request.graph}))?;
     if let Some(params) = interface["parameters"].as_array_mut() {
         for parameter in params {
@@ -197,6 +202,7 @@ fn encode_maps(
     let mut shader_inputs = BTreeSet::new();
     for (id, usage, identifier, image) in outputs(graph, cooked) {
         let Some(image) = image.filter(|_| request.includes(&identifier) && !index.incoming(id).is_empty()) else { continue };
+
         let shader = shader_input(usage);
         let color = materialcraft_formats::material::srgb_usage(usage);
         let space = request.color_space(&identifier, usage);
@@ -222,6 +228,7 @@ fn encode_maps(
         if float && request.color_spaces.get(&identifier).is_some_and(|space| space.encodes_srgb()) {
             return Err(bad("file.export", format!("EXR output `{identifier}` requires linear values; omit the sRGB override or select raw or linear")));
         }
+
         let (ext, depth) = if float {
             ("exr", Depth::F32)
         } else {
@@ -236,7 +243,7 @@ fn encode_maps(
         let srgb = !float && space.encodes_srgb();
         let bytes = encode(image, ext, depth, srgb)?;
         let file = if materialx {
-            // An interrupted re-export must leave every texture referenced by the previous document intact
+            // Keep every texture referenced by the last complete document until the new write succeeds
             const MAX_STEM_CHARS: usize = 32;
             let digest = Sha256::new().chain_update(stem.as_bytes()).chain_update([0]).chain_update(&bytes).finalize();
             let prefix: String = stem.chars().take(MAX_STEM_CHARS).collect();

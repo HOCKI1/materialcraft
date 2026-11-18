@@ -60,6 +60,7 @@ pub(crate) fn load_scoped(package: &mut Package, read: &dyn Fn(&str) -> Option<V
         if path.starts_with("sbs://") {
             return load_file(path);
         }
+
         let bytes = read(path).ok_or_else(|| format!("missing or inaccessible dependency `{path}`"))?;
         let assets = |reference: &str| read(&document_path::resolve(path, reference));
         crate::file_cmds::read_package_bytes(&bytes, path, &assets).map_err(|error| error.to_string())
@@ -78,11 +79,14 @@ fn load_file(path: &str) -> Result<materialcraft_formats::sbs::SbsRead, String> 
     crate::file_cmds::read_package_bytes(&bytes, path, &crate::file_cmds::linked_files(path)).map_err(|error| error.to_string())
 }
 
+const MAX_DEPENDENCY_READS: usize = 4096;
+
 fn resolve(package: &mut Package, mut pending: Vec<String>, read: &dyn Fn(&str) -> Result<materialcraft_formats::sbs::SbsRead, String>) -> Vec<String> {
     use std::{collections::BTreeSet, sync::Arc};
+
     let mut visited = BTreeSet::new();
     let mut warnings = Vec::new();
-    let mut reads = 0;
+    let mut read_attempts = 0;
     while let Some(path) = pending.pop() {
         if !visited.insert(path.clone()) {
             continue;
@@ -93,13 +97,13 @@ fn resolve(package: &mut Package, mut pending: Vec<String>, read: &dyn Fn(&str) 
             continue;
         }
 
-        // Cached snapshots need traversal, but must not consume the new-read budget.
-        // Count failed attempts too; visited still prevents repeated reads and cycles.
-        if reads >= 4096 {
-            warnings.push("linked material exceeds the package dependency limit".into());
+        // Cached snapshots only need traversal, while failed reads still spend the allowance
+        if read_attempts == MAX_DEPENDENCY_READS {
+            warnings.push("linked material exceeds the package dependency read limit".into());
             break;
         }
-        reads += 1;
+
+        read_attempts += 1;
         match read(&path) {
             Ok(read) => {
                 warnings.extend(read.warnings);
@@ -127,7 +131,7 @@ mod tests {
         for cached_first in [true, false] {
             let mut package = Package::new("root");
             let mut pending = vec!["new".to_string()];
-            for i in 0..4096 {
+            for i in 0..MAX_DEPENDENCY_READS {
                 let name = format!("cached{i}");
                 package.dependencies.insert(name.clone(), Arc::new(Package::new(&name)));
                 pending.push(name);
@@ -150,12 +154,12 @@ mod tests {
     #[test]
     fn failed_new_reads_still_spend_the_budget_and_duplicates_do_not() {
         let calls = Cell::new(0);
-        let pending = (0..4097).flat_map(|i| [format!("missing{i}"), format!("missing{i}")]).collect();
+        let pending = (0..=MAX_DEPENDENCY_READS).flat_map(|i| [format!("missing{i}"), format!("missing{i}")]).collect();
         let warnings = resolve(&mut Package::new("root"), pending, &|_| {
             calls.set(calls.get() + 1);
             Err("missing".into())
         });
-        assert_eq!(calls.get(), 4096);
-        assert!(warnings.last().unwrap().contains("dependency limit"));
+        assert_eq!(calls.get(), MAX_DEPENDENCY_READS);
+        assert!(warnings.last().unwrap().contains("dependency read limit"));
     }
 }
