@@ -253,6 +253,40 @@ Literal-only pixel graphs at 16², seed 23, give 512/768 exact pixels for each l
 
 The shared-lookup ridged root still matches 5,160/16,384 at changed roughness in F32, maximum 1.78813934e−7. Its one-octave .7 control still matches 1,847/4,096, maximum 2.38418579e−7. For positive normal x on the signed field, the reference's general power agrees with exp(y×ln(x)) on all 32,614 pixels. On .7 with exponent 1 it returns `3f333334`. Further work on general power and natural exponential is tracked with the [octave controls](#ridged-noise-octave-isolation).
 
+### Normal maps, panoramas and primitive shapes
+
+| Root | Renders | Exact pixels / compared | Maximum U8 / U16 levels | Maximum F16 / F32 error |
+|---|---:|---:|---:|---:|
+| Normalize normal map | 18 | 171,264/171,264 | 0 / 0 | 0 / 0 |
+| Transform normal map | 18 | 171,264/171,264 | 0 / 0 | 0 / 0 |
+| Panoramic 3D position | 18 | 171,264/171,264 | 0 / 0 | 0 / 0 |
+| Panorama line light | 18 | 171,207/171,264 | 0 / 0 | 2.38418579e-07 / 7.86781311e-06 |
+| Panorama shape | 18 | 171,264/171,264 | 0 / 0 | 0 / 0 |
+| Panorama shape 2 | 18 | 171,264/171,264 | 0 / 0 | 0 / 0 |
+| Straighten panorama horizon | 18 | 171,231/171,264 | 1 / 204 | 0.0029296875 / 0.00311285257 |
+| Cube | 18 | 171,264/171,264 | 0 / 0 | 0 / 0 |
+| Cube position, normal, depth and UV | 60 | 685,056/685,056 | 0 / 0 | 0 / 0 |
+| Hemisphere | 18 | 171,264/171,264 | 0 / 0 | 0 / 0 |
+
+The totals include the original defaults, original changed settings, four requested output formats, the independent 32² screen and nine additional renders per output. For the new fields let u and v be texel-center coordinates. In each input, number pins j in identifier order and channels c from zero. Use H=((37x+41y+7xy+53j) mod 509)/508. For ordinary color inputs add 61c+5xc to the numerator before the modulus. Gray inputs use H. For normal inputs use (.5+.5a,.5+.5b,.5+.5√(1−a²−b²),.25+.75H), with a=.625(2u−1) and b=.625(2v−1). The transform's normal input uses j=−1. Position inputs use (u,v,.25+.5H,1).
+
+Use F32 inputs and the following output settings. Use defaults at 16²/seed 43. Use A at 64²/157 in U8, U16, F16 and F32. Use B at 128² F32/293 and with 32×16 inputs at 32² F32/599. Use C at 32² F32/463 with every input value v replaced by 2.5v−.75. Repeat A at 64² F32/751. Generators use the same sizes and seeds. Let k equal 1, 2 and 3 for A, B and C.
+
+| Control | A, B and C |
+|---|---|
+| Normalization | No exposed numeric control. |
+| Normal transform | Matrix (.8125,.34375,−.1875,1.125) for A/C and (0,−.75,1.25,0) for B. Offset (.1875,−.3125) for A/B and (−.5,.0625) for C. Normal format 1 only in B. Disable scale/skew compensation only in C. |
+| Panoramic position and line light | Up vector 1 only in B. For the light, position mode 1 only in B, grid enabled only in C, UV endpoints (.1875,.25) and (.71875,.4375), height .625, distance 1.375, color mode k mod 3, temperature 4375 and exposure 1.25. |
+| Panorama shape | Same matrices and offsets as the normal transform. Shape k mod 3, color (.75,.34375,.625), intensity 1.375, soft borders .1875, hotspot size .375 at (.25,.6875). Disable background only in C and texture only in B. |
+| Panorama shape 2 | Same matrices, offsets, shape and color. Use color mode k mod 3, temperature 4375, exposure 1.25 and hardness .6875. Use image gamma 1 only in B and disable background only in C. |
+| Straighten horizon | Points (.1875,.34375) and (.71875,.59375). Horizontal rotation .0625 in B and −.1875 in A/C. Disable horizon correction only in C. |
+| Cube and four cube buffers | Orientation (.0625k,−.1875), size (.625,.875,1.125). Scale .34375 in B and .5 in A/C. Disable non-square expansion only in C. |
+| Hemisphere | Scale .625 in B and .875 in A/C, size (.6875,1.125), rotation .09375k. Disable non-square expansion only in C. |
+
+The four 64² F32 cube buffers contain 3,187 distinct position tuples, four normals, 2,969 depths and 3,187 UV tuples. The transformed normal map contains 4,094 distinct tuples. All four stored components count toward an RGBA pixel match.
+
+The line-light differences begin in its pixel processor. On the signed field, pixel (6,2) stores 1.98653376 in the three color channels in the reference and 1.98652911 in MaterialCraft. For the horizon, the input matches. Its pixel processor differs at two texels in the 64² A case. Pixel (39,49) has reference red .756740689 and MaterialCraft red .753627837. Both roots remain in progress.
+
 ### Quarter-turn directional blur
 
 Anisotropic noise matches **171,264/171,264 grayscale pixels in 18 renders**, maximum error zero. The [noise settings and seeds](#color-conversion-gradient-height-and-histogram-controls) include the rotated 128² and 32² cases. At 128² the directional stage improved from 15,226/16,384 to 16,384/16,384. Every sampled stage matches on the 64², 128² and rectangular-input controls. The final outputs comprise 122,880 U16 pixels, 32,000 F32 pixels and 8,192 each U8 and F16.
