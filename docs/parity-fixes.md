@@ -253,6 +253,36 @@ Literal-only pixel graphs at 16², seed 23, give 512/768 exact pixels for each l
 
 The shared-lookup ridged root still matches 5,160/16,384 at changed roughness in F32, maximum 1.78813934e−7. Its one-octave .7 control still matches 1,847/4,096, maximum 2.38418579e−7. For positive normal x on the signed field, the reference's general power agrees with exp(y×ln(x)) on all 32,614 pixels. On .7 with exponent 1 it returns `3f333334`. Further work on general power and natural exponential is tracked with the [octave controls](#ridged-noise-octave-isolation).
 
+### Signed Levels, driven grayscale weights and grayscale gradients
+
+The **grayscale HDR range viewer** matches **167,424/167,424 pixels across 18 cases**, maximum error zero. This includes all 35,328 pixels of the nine signed range inputs described under [gradient interpolation](#gradient-interpolation-color-blend-and-chrominance). At 64² the input to the inverted Levels filter was already exact. An independent pixel expression that takes the absolute value, evaluates 2 raised to its base-two logarithm, restores the sign and subtracts from one matched its entire 4,096-pixel intermediate. Direct subtraction matched 2,503/4,096, maximum 9.53674316e−7. Levels now honors the intermediate clamp on load, cook and save and uses the signed power curve.
+
+The **color to mask** root matches all 132,096 pixels of its original four cases, four 64² format cases and independent 32² case. In nine further cases **36,075/36,096** match. The only differences are 21 pixels in the 64² F32 output, maximum 1.19209290e−7. Capturing every connected primitive locates all 21 at the final Levels filter. Its incoming images and every earlier filter match, including the grayscale weights driven by a function.
+
+For the nine mask cases, form each original float channel c at integer (x,y) as ((x×(13+4c)+y×(29+2c)+xy×(3+c)+17c) mod 257)/256. In the left half replace RGB by .5×RGB−.25+target. Set column zero to the target RGB and columns one and two to alpha zero and one. Each 64² case uses seed 91 and the same field. The signed case additionally maps RGB to 3×RGB−1. All other rows use F32.
+
+| Input and output dimensions | Seed | Target RGB | Keying type | Flatten alpha | Range / softness |
+|---|---:|---|---:|---|---|
+| 16² | 17 | (.25,.5,.75) | 0 | off | .25 / .125 |
+| 64², U8, U16, F16 and F32 | 91 | (.375,.625,.8125) | 1 | on | .375 / .1875 |
+| 128² | 73 | (.3125,.6875,.25) | 1 | off | .5 / .25 |
+| 32×16 input, 32² output | 39 | (.125,.75,.375) | 0 | on | .5625 / .25 |
+| 32² | 137 | (.375,.625,.8125) | 0 | off | .0625 / .03125 |
+| 32², signed | 159 | (.3125,.4375,.6875) | 1 | on | .5 / .375 |
+
+The isolated **grayscale conversion** matches **122,880/122,880 pixels across 30 cases**, including the sign of zero and all four output formats. At 64² let channel c be (((13x+31y+7xy+47c) mod 1024)−384)/96. Replace the first 16 pixels of row zero by −2, −1, −.5, −.25, −.125, −.0625, −0, +0, .125, .25, .5, .75, 1, 1.5, 2 and 3 in all lanes. Use weights (.125,.25,.5,.125) as a literal four-vector, a constant-returning function and a function reading an exposed four-vector. Run all three with flattening off and on, matte .3125, seed 131 and each output format. In F32 repeat the exposed vector at seeds 199–201 with (1,0,0,0), (0,.625,.125,.25), and (.299,.587,.114,0). The four fused multiply-adds start from positive zero. Flattening is a fused interpolation from the weighted pixel toward the matte by one minus alpha.
+
+For **Levels**, use the same signed four-channel field, size and seed. Test the omitted clamp, explicit false and explicit true. With the input range [0,1], neutral, inverted output endpoints and per-channel midpoints (.25,.375,.625,.75) give **147,456/147,456** pixels across 36 cases, maximum zero. A second pair of probes maps [.125,.75] to [.1875,.8125] and reverses both ranges, with neutral midpoints. These 24 cases match 24,576/24,576 U8 and 24,576/24,576 U16, 23,925/24,576 F16 (maximum .00390625) and 19,527/24,576 F32 (maximum 1.43051147e−6).
+
+Grayscale gradient output reads the same four-channel stops as color output. Saving a scalar-key document writes the equivalent native four-channel array. Grayscale interpolation first averages RGB at each stop. For a smooth grayscale segment, multiply the color difference by u and multiply the result by u×(3−2u) before adding the left stop. A repeated position uses its first stop on both sides. The following measurements use the three indexed input ramps and seed 103 from [gradient interpolation](#gradient-interpolation-color-blend-and-chrominance). Grayscale covers the unit ramp, the three-stop ramp with distinct RGB and the same three-stop ramp with R replicated into G and B. Each uses linear and smooth interpolation. The duplicate-position color ramp uses positions (.125,.5,.5,.75), signed biases (.5,.25,−.25,0) and colors (.375,.75,.875,.6875), (.875,.0625,.3125,.25), (.1875,.75,.25,.8125), (.25,.5625,.75,.375).
+
+| Controls | U8 exact / total | U16 exact / total | F16 exact / total | F32 exact / total |
+|---|---:|---:|---:|---:|
+| Six grayscale ramps | 405,239/405,504 | 336,699/405,504 | 405,504/405,504 | 405,504/405,504 |
+| Two duplicate-position color ramps | 135,168/135,168 | 125,227/135,168 | 135,168/135,168 | 135,168/135,168 |
+
+Every floating-point maximum in the gradient table is zero. Each unsigned mismatch is one stored level. The four-stop irregular-position F32 control from the previous batch remains open.
+
 ### Gradient interpolation, color blend and chrominance
 
 The **color blend** and **chrominance extract** roots each match **171,264/171,264 pixels in 18 cases**, maximum error zero. The original four cases account for 114,688 pixels per root. The four 64² output formats at seed 42 and the independent 32² F32 case account for 17,408. Repeat the nine [original color input cases](#color-burn-and-color-dodge) for a further 39,168. Color blend uses the same foreground, background and mask with opacity .375 in the 16², 128² and signed cases and .8125 elsewhere. Chrominance takes only the original foreground. Before the fix the independent color blend matched 1,021/1,024 pixels, maximum .00676953793. Seven of its grayscale-to-color gradient pixels differed by up to 23 byte levels. The incoming scalar image matched in full.

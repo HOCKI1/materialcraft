@@ -35,6 +35,18 @@ impl ParameterDescriptor {
     }
 
     pub fn for_node(package: &Package, node: &Node, parameter: &str) -> Option<Self> {
+        if node.def == "grayscale_conversion" && parameter == "weights" {
+            // A single function can drive the four channel controls together.
+            return Some(Self {
+                id: parameter.into(),
+                label: "RGBA weights".into(),
+                default: Value::Float4([1.0 / 3.0, 1.0 / 3.0, 1.0 / 3.0, 0.0]),
+                min: 0.0,
+                max: 1.0,
+                options: Vec::new(),
+                supports_function: true,
+            });
+        }
         if node.def == "graph_instance" {
             let source = node
                 .instance

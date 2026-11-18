@@ -12,6 +12,7 @@ pub(super) fn definition() -> NodeDefinition {
         .float4("in_high", "Level in high", [1.0; 4], 0.0, 1.0)
         .float4("out_low", "Level out low", [0.0; 4], 0.0, 1.0)
         .float4("out_high", "Level out high", [1.0; 4], 0.0, 1.0)
+        .boolean("clamp_intermediate", "Clamp intermediate values", true)
         .any_out()
         .cook(levels)
 }
@@ -23,24 +24,28 @@ fn levels(context: &CookContext) -> CookResult {
     let high = context.v4("in_high");
     let output_low = context.v4("out_low");
     let output_high = context.v4("out_high");
+    let clamp = context.b("clamp_intermediate");
 
-    Ok(vec![image.map(image.kind(), |pixel| {
-        std::array::from_fn(|channel| levels_fn(pixel[channel], low[channel], mid[channel], high[channel], output_low[channel], output_high[channel]))
-    })])
+    Ok(vec![image.map(image.kind(), |pixel| std::array::from_fn(|c| remap(pixel[c], low[c], mid[c], high[c], output_low[c], output_high[c], clamp)))])
 }
 
 pub fn levels_fn(v: f32, in_low: f32, in_mid: f32, in_high: f32, out_low: f32, out_high: f32) -> f32 {
+    remap(v, in_low, in_mid, in_high, out_low, out_high, true)
+}
+
+fn remap(v: f32, in_low: f32, in_mid: f32, in_high: f32, out_low: f32, out_high: f32, clamp: bool) -> f32 {
     let span = in_high - in_low;
-    let t = if span.abs() < 1e-6 { if v >= in_high { 1.0 } else { 0.0 } } else { ((v - in_low) / span).clamp(0.0, 1.0) };
+    let t = if span.abs() < 1e-6 { if v >= in_high { 1.0 } else { 0.0 } } else { (v - in_low) / span };
 
     // NaN (from an input or a hostile parameter) would otherwise spread through the graph
     let t = if t.is_finite() { t } else { 0.0 };
+    let t = if clamp { t.clamp(0.0, 1.0) } else { t };
     let mid = if in_mid.is_finite() { in_mid.clamp(0.0, 1.0) } else { 0.5 };
 
     // The midpoint slider controls reciprocal gamma below neutral and gamma above it
     // Treating it as an input value that maps to 0.5 changes authored levels curves
     let g = if mid <= 0.5 { 1.0 / (9.0 - 16.0 * mid) } else { 16.0 * mid - 7.0 };
-    out_low + t.powf(g) * (out_high - out_low)
+    out_low + crate::function::signed_pixel_power(t, g) * (out_high - out_low)
 }
 
 #[cfg(test)]

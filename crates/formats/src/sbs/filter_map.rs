@@ -56,7 +56,7 @@ pub(super) const FILTERS: &[FilterMap] = &[
         sbs: "grayscaleconversion",
         def: "grayscale_conversion",
         inputs: &[("input1", "input")],
-        params: &[("alphamult", "flatten_alpha"), ("mattelevel", "matte")],
+        params: &[("alphamult", "flatten_alpha"), ("mattelevel", "matte"), ("channelsweights", "weights")],
     },
     FilterMap { sbs: "hsl", def: "hsl", inputs: &[("input1", "input")], params: &[("hue", "hue"), ("saturation", "saturation"), ("luminosity", "lightness")] },
     FilterMap { sbs: "bitmap", def: "bitmap", inputs: &[], params: &[("colorswitch", "color_mode"), ("colorspace", "colour_space")] },
@@ -64,7 +64,14 @@ pub(super) const FILTERS: &[FilterMap] = &[
         sbs: "levels",
         def: "levels",
         inputs: &[("input1", "input")],
-        params: &[("levelinlow", "in_low"), ("levelinmid", "in_mid"), ("levelinhigh", "in_high"), ("leveloutlow", "out_low"), ("levelouthigh", "out_high")],
+        params: &[
+            ("levelinlow", "in_low"),
+            ("levelinmid", "in_mid"),
+            ("levelinhigh", "in_high"),
+            ("leveloutlow", "out_low"),
+            ("levelouthigh", "out_high"),
+            ("clampinterm", "clamp_intermediate"),
+        ],
     },
     FilterMap {
         sbs: "normal",
@@ -126,8 +133,7 @@ pub(super) const FILTERS: &[FilterMap] = &[
     },
 ];
 pub(super) const BASE_PARAMS: &[&str] = &["outputsize", "format", "randomseed", "tiling", "pixelsize", "pixelratio", "quality"];
-pub(super) const HANDLED_PARAMS: &[(&str, &str)] =
-    &[("bitmap", "bitmapresourcepath"), ("grayscaleconversion", "channelsweights"), ("transformation", "matrix22"), ("curve", "exposecurve")];
+pub(super) const HANDLED_PARAMS: &[(&str, &str)] = &[("bitmap", "bitmapresourcepath"), ("transformation", "matrix22"), ("curve", "exposecurve")];
 
 pub(super) fn filter_by_sbs_name(name: &str) -> Option<&'static FilterMap> {
     FILTERS.iter().find(|f| f.sbs == name)

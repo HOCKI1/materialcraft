@@ -678,6 +678,16 @@ impl<'text> SbsReader<'text, '_> {
             }
 
             if let Some(&(_, mc_name)) = filter.params.iter().find(|(sbs, _)| *sbs == param_name) {
+                if filter.sbs == "grayscaleconversion" && mc_name == "weights" {
+                    if let Some(weights) = value {
+                        for (i, channel) in ["red", "green", "blue", "alpha"].into_iter().enumerate() {
+                            node.params.insert(channel.into(), Value::Float(weights.float(i)));
+                        }
+                    } else {
+                        self.set_param(node, mc_name, &Value::Float4([0.0; 4]), 0, *param, graph_name);
+                    }
+                    continue;
+                }
                 let Some(param_def) = def.param(mc_name) else { continue };
 
                 self.set_param(node, mc_name, &param_def.default, param_def.options.len(), *param, graph_name);
@@ -688,11 +698,6 @@ impl<'text> SbsReader<'text, '_> {
                 ("bitmap", "bitmapresourcepath", Some(SbsValue::Text(url))) | ("svg", "vectorresourcepath", Some(SbsValue::Text(url))) => {
                     if let Some(name) = self.resource_binding(&url, graph_name) {
                         node.params.insert("resource".into(), Value::Text(name));
-                    }
-                }
-                ("grayscaleconversion", "channelsweights", Some(weights)) => {
-                    for (i, channel) in ["red", "green", "blue", "alpha"].into_iter().enumerate() {
-                        node.params.insert(channel.into(), Value::Float(weights.float(i)));
                     }
                 }
                 _ if HANDLED_PARAMS.contains(&(filter.sbs, param_name)) => {}

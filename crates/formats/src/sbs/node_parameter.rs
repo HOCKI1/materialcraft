@@ -29,10 +29,6 @@ pub(super) fn special_filter_params_xml<'a>(
             .unwrap_or_default(),
             _ => String::new(),
         },
-        "grayscaleconversion" => {
-            let weight = |channel: &str| value_of(channel).and_then(Value::as_f32).unwrap_or(0.0);
-            param_xml("channelsweights", &Value::Float4([weight("red"), weight("green"), weight("blue"), weight("alpha")])).unwrap_or_default()
-        }
         _ => String::new(),
     }
 }

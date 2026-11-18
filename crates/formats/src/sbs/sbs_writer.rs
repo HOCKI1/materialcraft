@@ -327,7 +327,10 @@ impl SbsWriter {
             def => match (filter_by_def(def), find(def)) {
                 (Some(filter), Some(catalog_def)) => {
                     let _ = write!(out, "<compFilter><filter v=\"{}\"/><parameters>{base}", filter.sbs);
-                    let value_of = |id: &str| node.params.get(id).or_else(|| catalog_def.param(id).map(|p| &p.default));
+                    let stored = |id: &str| node.params.get(id).or_else(|| catalog_def.param(id).map(|p| &p.default));
+                    let weights = (filter.sbs == "grayscaleconversion")
+                        .then(|| Value::Float4(["red", "green", "blue", "alpha"].map(|id| stored(id).and_then(Value::as_f32).unwrap_or(0.0))));
+                    let value_of = |id: &str| stored(id).or_else(|| if id == "weights" { weights.as_ref() } else { None });
                     for (sbs_name, mc_name) in filter.params {
                         let Some(value) = value_of(mc_name) else { continue };
 
@@ -367,7 +370,7 @@ impl SbsWriter {
                     out.push_str("</parameters>");
                     for parameter in ["curve", "gradient"] {
                         if let Some(value) = value_of(parameter) {
-                            out.push_str(&super::parameter_array::write(value, value_of("color_mode").and_then(Value::as_bool).unwrap_or(true), self));
+                            out.push_str(&super::parameter_array::write(value, self));
                         }
                     }
                     if let Some(Value::PatternGraph(graph)) = value_of("pattern") {

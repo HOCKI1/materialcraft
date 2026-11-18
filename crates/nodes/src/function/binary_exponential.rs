@@ -56,6 +56,10 @@ pub(super) fn ln(value: f32) -> f32 {
     log2(value) * std::f32::consts::LN_2
 }
 
+pub(crate) fn signed_pixel_power(value: f32, exponent: f32) -> f32 {
+    exp2(log2(value.abs()) * exponent).copysign(value)
+}
+
 pub(super) fn exp(value: f32) -> f32 {
     if value < -88.0 || value.is_nan() {
         return 0.0;

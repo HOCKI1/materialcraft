@@ -1,6 +1,6 @@
 use super::ATOMIC;
 use crate::{CookContext, CookResult, NodeDefinition, node, texture_sampler};
-use craft_texture::{Image, Kind, Limits, luminance};
+use craft_texture::{Image, Kind, Limits};
 use materialcraft_core::{Gradient, OutputFormat};
 
 pub(super) fn definition() -> NodeDefinition {
@@ -17,18 +17,17 @@ pub(super) fn definition() -> NodeDefinition {
 
 fn gradient_map(context: &CookContext) -> CookResult {
     let input = context.gray_or(0, 0.0);
-    let table = lookup_table(context.gradient("gradient"), context.i("interpolation") == 1, context.format)?;
-    let width = table.width() as f32;
     let gray = !context.b("color_mode");
     let kind = if gray { Kind::Gray } else { Kind::Color };
+    let table = lookup_table(context.gradient("gradient"), context.i("interpolation") == 1, context.format, gray)?;
+    let width = table.width() as f32;
     Ok(vec![input.map(kind, |p| {
         let u = (p[0].clamp(0.0, 1.0) * (width - 1.0) + 0.5) / width;
-        let color = texture_sampler::sample(&table, [u, 0.5], [false; 2], OutputFormat::F32, None);
-        if gray && (color[0] != color[1] || color[1] != color[2]) { [luminance(color); 4] } else { color }
+        texture_sampler::sample(&table, [u, 0.5], [false; 2], OutputFormat::F32, None)
     })])
 }
 
-fn lookup_table(mut gradient: Gradient, smooth: bool, format: OutputFormat) -> Result<Image, String> {
+fn lookup_table(mut gradient: Gradient, smooth: bool, format: OutputFormat, gray: bool) -> Result<Image, String> {
     let levels = match format {
         OutputFormat::U8 => Some(255.0),
         OutputFormat::Inherit | OutputFormat::U16 => Some(65535.0),
@@ -41,10 +40,15 @@ fn lookup_table(mut gradient: Gradient, smooth: bool, format: OutputFormat) -> R
         gradient = Gradient::default();
     }
     gradient.sort();
+    // The first authored stop owns both sides of a shared position.
+    gradient.keys.dedup_by(|later, earlier| later.pos == earlier.pos);
     for key in &mut gradient.keys {
         let position = key.pos.clamp(0.0, 1.0);
         key.pos = if levels.is_some() { (position * 65535.0).round() / 257.0 } else { position * last_index };
-        if levels.is_some() {
+        if gray {
+            let [r, g, b, _] = key.color;
+            key.color = [(r + g + b) / 3.0; 4];
+        } else if levels.is_some() {
             // Integer ramp stops store byte colors even when the output uses 16 bits.
             key.color = key.color.map(|v| (v.clamp(0.0, 1.0) * 255.0).round() / 255.0);
         }
@@ -56,8 +60,12 @@ fn lookup_table(mut gradient: Gradient, smooth: bool, format: OutputFormat) -> R
     }
     for pair in gradient.keys.windows(2) {
         let [left, right] = pair else { continue };
+        // Different authored stops can collapse to one position in an integer table.
+        if right.pos <= left.pos {
+            continue;
+        }
         let first = left.pos.ceil() as usize;
-        let end = right.pos.ceil() as usize;
+        let end = if gray { right.pos.floor() as usize + 1 } else { right.pos.ceil() as usize };
         let Some(segment) = entries.get_mut(first..end).filter(|s| !s.is_empty()) else { continue };
         let step = (right.pos - left.pos).recip();
         let mut t = (first as f32 - left.pos) * step;
@@ -66,8 +74,12 @@ fn lookup_table(mut gradient: Gradient, smooth: bool, format: OutputFormat) -> R
             let bias = 2.0 * left.midpoint - 1.0;
             for entry in segment {
                 let u = t * (1.0 - bias * (1.0 - t));
-                let weight = u * u * (3.0 - 2.0 * u);
-                *entry = std::array::from_fn(|c| left.color[c] + delta[c] * weight);
+                *entry = if gray {
+                    [left.color[0] + (delta[0] * u) * (u * (3.0 - 2.0 * u)); 4]
+                } else {
+                    let weight = u * u * (3.0 - 2.0 * u);
+                    std::array::from_fn(|c| left.color[c] + delta[c] * weight)
+                };
                 // Each addition rounds at the table's working precision.
                 t += step;
             }

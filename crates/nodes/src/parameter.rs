@@ -17,6 +17,13 @@ fn clamp_finite(v: f32, lo: f32, hi: f32, fallback: f32) -> f32 {
 }
 
 pub fn clamp_params(definition: &NodeDefinition, params: &mut BTreeMap<String, Value>) {
+    if definition.id == "grayscale_conversion"
+        && let Some(Value::Float4(weights)) = params.get_mut("weights")
+    {
+        for (weight, fallback) in weights.iter_mut().zip([1.0 / 3.0, 1.0 / 3.0, 1.0 / 3.0, 0.0]) {
+            *weight = clamp_finite(*weight, -HARD_SPAN, 1.0 + HARD_SPAN, fallback);
+        }
+    }
     for parameter in &definition.params {
         let Some(value) = params.get_mut(parameter.id) else { continue };
         if let Value::Enum(index) = value {
@@ -79,6 +86,11 @@ pub fn resolve_params(def: &NodeDefinition, overrides: &BTreeMap<String, Value>)
         {
             m.insert(k.clone(), v.clone());
         }
+    }
+    if def.id == "grayscale_conversion"
+        && let Some(Value::Float4(weights)) = overrides.get("weights")
+    {
+        m.insert("weights".into(), Value::Float4(*weights));
     }
     clamp_params(def, &mut m);
     m

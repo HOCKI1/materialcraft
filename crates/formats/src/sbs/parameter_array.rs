@@ -51,16 +51,10 @@ pub(super) fn read(node: &mut Node, implementation: XmlNode<'_, '_>) {
     }
 }
 
-pub(super) fn write(value: &Value, color_mode: bool, writer: &mut SbsWriter) -> String {
+pub(super) fn write(value: &Value, writer: &mut SbsWriter) -> String {
     let name = match value {
         Value::Curve(_) => "curveluminance",
-        Value::Gradient(_) => {
-            if color_mode {
-                "gradientrgba"
-            } else {
-                "gradientluminance"
-            }
-        }
+        Value::Gradient(_) => "gradientrgba",
         _ => return String::new(),
     };
 
@@ -91,8 +85,7 @@ pub(super) fn write(value: &Value, color_mode: bool, writer: &mut SbsWriter) -> 
         }
         Value::Gradient(gradient) => {
             for key in &gradient.keys {
-                let color = if color_mode { Value::Color(key.color) } else { Value::Float(craft_texture::luminance(key.color)) };
-                cell(vec![("position", Value::Float(key.pos)), ("midpoint", Value::Float(2.0 * key.midpoint - 1.0)), ("value", color)]);
+                cell(vec![("position", Value::Float(key.pos)), ("midpoint", Value::Float(2.0 * key.midpoint - 1.0)), ("value", Value::Float4(key.color))]);
             }
         }
         _ => {}

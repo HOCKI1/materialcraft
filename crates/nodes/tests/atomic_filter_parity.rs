@@ -25,6 +25,56 @@ fn cook(id: &str, inputs: &[Option<Image>], values: &[(&str, Value)], size: [u32
 }
 
 #[test]
+fn grayscale_uses_all_driven_weights_and_flattens_signed_alpha() {
+    let px = [0xbfd95555, 0xbf9aaaab, 0xbf380000, 0xbe6aaaab].map(f32::from_bits);
+    let inp = Image::generate(2, 1, Kind::Color, |x, _| if x == 0 { [-0.0; 4] } else { px });
+    let weights = ("weights", Value::Float4([0.125, 0.25, 0.5, 0.125]));
+    let gray = cook("grayscale_conversion", &[Some(inp.clone())], std::slice::from_ref(&weights), [2, 1], false);
+    assert_eq!(gray.get_gray(0, 0, false).to_bits(), 0);
+    let params = [weights, ("flatten_alpha", Value::Bool(true)), ("matte", Value::Float(0.3125))];
+    let flattened = cook("grayscale_conversion", &[Some(inp)], &params, [2, 1], false);
+    assert_eq!(flattened.get_gray(1, 0, false).to_bits(), 0x3f174555);
+}
+
+#[test]
+fn levels_applies_signed_gamma_before_mapping_the_output_range() {
+    let input = Image::generate(2, 1, Kind::Color, |x, _| if x == 0 { [-0.5; 4] } else { [3.0; 4] });
+    let params = [("clamp_intermediate", Value::Bool(false)), ("in_mid", Value::Float4([0.25, 0.375, 0.625, 0.75]))];
+    let output = cook("levels", &[Some(input)], &params, [2, 1], false);
+    assert_eq!(output.get(0, 0, false).map(f32::to_bits), [0xbf5edc67, 0xbf4b2ff5, 0xbe000003, 0xbd000003]);
+    assert_eq!(output.get(1, 0, false).map(f32::to_bits), [0x3f9f741c, 0x3fb89ba3, 0x41d80001, 0x4372fffe]);
+}
+
+#[test]
+fn gradient_keeps_the_first_stop_at_a_shared_position() {
+    let input = Image::gray(1, 1, |_, _| 640.0 / 1023.0);
+    let keys = vec![
+        GradientKey::new(0.125, [0.375, 0.75, 0.875, 0.6875]),
+        GradientKey::new(0.5, [0.875, 0.0625, 0.3125, 0.25]),
+        GradientKey::new(0.5, [0.1875, 0.75, 0.25, 0.8125]),
+        GradientKey::new(0.75, [0.25, 0.5625, 0.75, 0.375]),
+    ];
+    let output = cook("gradient_map", &[Some(input)], &[("gradient", Value::Gradient(Gradient { keys }))], [1, 1], false);
+    assert_eq!(output.get(0, 0, false).map(f32::to_bits), [0x3f0f9be7, 0x3ea0a028, 0x3f084612, 0x3ea0280a]);
+}
+
+#[test]
+fn grayscale_gradient_averages_stops_before_interpolating() {
+    let input = Image::gray(1, 1, |_, _| 640.0 / 1023.0);
+    let keys = vec![
+        GradientKey::new(0.0625, [0.1875, 0.25, 0.4375, 0.8125]),
+        GradientKey::new(0.34375, [0.59375, 0.9375, 0.3125, 0.5625]),
+        GradientKey::new(0.890625, [0.8125, 0.125, 0.75, 0.375]),
+    ];
+    for (mode, bits) in [(0, 0x3f167617), (1, 0x3f165bd5)] {
+        let params = [("gradient", Value::Gradient(Gradient { keys: keys.clone() })), ("interpolation", Value::Enum(mode)), ("color_mode", Value::Bool(false))];
+        let output = cook("gradient_map", &[Some(input.clone())], &params, [1, 1], false);
+        assert_eq!(output.kind(), Kind::Gray);
+        assert_eq!(output.get_gray(0, 0, false).to_bits(), bits);
+    }
+}
+
+#[test]
 fn gradient_filter_preserves_linear_and_biased_smooth_segments() {
     let input = Image::gray(1, 1, |_, _| f32::from_bits(0x3e414c15));
     let keys = vec![

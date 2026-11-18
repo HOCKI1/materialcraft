@@ -51,6 +51,9 @@ fn native_gradient_default_midpoints_are_linear_and_components_are_preserved() {
             assert!((gradient.eval(0.5)[3] - if color { 0.4 } else { 1.0 }).abs() < 1e-6);
 
             let saved = write_sbs(&read.pkg).unwrap();
+            let xml = std::str::from_utf8(&saved).unwrap();
+            assert!(xml.contains(r#"<name v="gradientrgba"/>"#));
+            assert_eq!(xml.matches("<constantValueFloat4 ").count(), 2);
             read = read_sbs(&saved, "saved.sbs", &|_| None).unwrap();
         }
     }
