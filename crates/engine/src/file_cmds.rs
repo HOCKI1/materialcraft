@@ -344,7 +344,13 @@ pub(crate) fn encode_outputs(graph: &materialcraft_core::Graph, cooked: &materia
         let node = graph.node(id)?;
         let output_format = if node.base.format == materialcraft_core::OutputFormat::Inherit { graph.format } else { node.base.format };
         let depth = request.depth.unwrap_or_else(|| Depth::from_format(output_format));
-        let bytes = encode(image, &request.format, depth, request.color_space(&identifier, usage).encodes_srgb())?;
+        // Grayscale floating-point exports historically stored scene-linear samples, even
+        // for color usages. Keep that default; an explicit color-space choice still wins.
+        let srgb = request.color_space(&identifier, usage).encodes_srgb()
+            && !(image.kind() == craft_texture::Kind::Gray
+                && matches!(request.format.as_str(), "exr" | "hdr")
+                && !request.color_spaces.contains_key(&identifier));
+        let bytes = encode(image, &request.format, depth, srgb)?;
         files.push(Exported { file, bytes });
     }
 

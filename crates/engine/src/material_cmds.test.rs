@@ -336,3 +336,20 @@ fn an_openpbr_scalar_rejects_an_unrepresentable_srgb_override() {
 
     assert!(result.err().is_some_and(|error| error.to_string().contains("linear")));
 }
+
+#[test]
+fn legacy_grayscale_float_exports_keep_linear_defaults_and_explicit_overrides() {
+    let session = export_fixture("uniform", &[("color", Value::Color([0.25; 4])), ("color_mode", Value::Bool(false))], "baseColor");
+    for format in ["exr", "hdr"] {
+        for explicit in [None, Some("raw"), Some("linear"), Some("srgb")] {
+            let mut params = json!({"format": format});
+            if let Some(space) = explicit {
+                params["colorSpaces"] = json!({"result": space});
+            }
+            let (files, _) = material_bake::export(&session, &params, material_bake::read_input).unwrap();
+            let decoded = materialcraft_formats::decode(&files[0].bytes, false).unwrap();
+            let expected = if explicit == Some("srgb") { craft_texture::linear_to_srgb(0.25) } else { 0.25 };
+            assert!((decoded.get(0, 0, false)[0] - expected).abs() < 0.005, "{format} {explicit:?}");
+        }
+    }
+}
