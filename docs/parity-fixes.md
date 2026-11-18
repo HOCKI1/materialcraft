@@ -247,6 +247,27 @@ Literal-only pixel graphs at 16², seed 23, give 512/768 exact pixels for each l
 
 The shared-lookup ridged root still matches 5,160/16,384 at changed roughness in F32, maximum 1.78813934e−7. Its one-octave .7 control still matches 1,847/4,096, maximum 2.38418579e−7. For positive normal x on the signed field, the reference's general power agrees with exp(y×ln(x)) on all 32,614 pixels. On .7 with exponent 1 it returns `3f333334`. Further work on general power and natural exponential is tracked with the [octave controls](#ridged-noise-octave-isolation).
 
+### Color temperature, range reductions, sky parameters and polygon paths
+
+The four roots below match every recorded case. Both the first-pass defaults and the [four-format and independent comparisons](#four-format-inventory-comparison) were replayed with their original procedural inputs. Typed results include a float32 bit comparison for every component.
+
+| Root | Cases | Exact / compared | Maximum absolute error |
+|---|---:|---:|---:|
+| Color temperature adjustment | 18 | 171,264/171,264 RGBA pixels | 0 |
+| Min/max | 25 per output | 50/50 float outputs | 0 |
+| Sky `Impl/GetOneParam` | 25 | 25/25 float3 outputs | 0 |
+| Polygon paths | 19 | 5,120/5,120 RGBA buffer pixels | 0 |
+
+For **color temperature**, repeat the nine input sizes, seeds and output formats under [color burn and color dodge](#color-burn-and-color-dodge) using only the foreground input. The signed input uses the same RGB and alpha scaling. Use temperature −.5625, magenta/green .3125 and color space 1 in the 16², 128² and signed cases. Use .375, −.1875 and color space 0 in the others. The 32² byte endpoint field sets blue to 0 where `(x+3y) mod 4=0` and to 255 elsewhere.
+
+For **min/max and the sky parameter**, generate a byte field `V=(17x+37y+3xy+19) mod 256`. The scalar input takes V. For the sky parameter, set RGBA to `(V,(11x−13y+17) mod 256,(43x+5y+61) mod 256,42×((7x+11y+17) mod 7))`. Cook 16²/seed 59, four formats at 64²/73, 128²/211, 32×16 input at 32²/113, and a signed float input at 32²/237. Use F32 outside the four-format sweep. For the last field, divide byte channels by 79 and subtract .6875. Use three equal RGB channels and alpha one for the scalar float input. Sky controls use albedo .3125, elevation .1875 at 16² and .8125 elsewhere, turbidity 3.25 at 128² and 5.5 elsewhere, and parameter index 1 at 16² and 6 elsewhere.
+
+Eight additional byte ranges use `V=((7x+13y+3xy) mod (13+5j))+19j+11`, with `j=0..7`. Use sizes (16,32,64,64,64,128,32,16), seeds (97,127,211,317,41,53,181,149), and cycle the four output formats. For j=3 use the constant byte 83. For j=4 use 113 throughout with 49 in the upper-left corner and 171 in the lower-right corner. The constant's two reported values are .32549017667770386 and .32549020648002625 in both apps. For the sky lookup use RGBA `(V,(3x+11y+17j) mod 256,(27x+5y+19j) mod 256,255)`, with elevation `(j+1)/9`, turbidity `1.125+.875j`, albedo `j/8` and parameter index j.
+
+For **polygon paths**, vary the side count, requested parent size and seed as (3,16,73), (4,32,53), (5,128,317), (8,64,7), (11,128,211), (17,64,127). Use RGBA32F and compare the whole buffer. Seventeen sides produces a 32×16 buffer and the other five produce 16×16. Seven sides at 64²/seed 199 also matches at U8, U16, F16 and F32.
+
+The **nonuniform color rotation** and **panorama rotation** roots still differ on a new 128² input. Each passed the four original cases and five inventory comparisons. In the eight additional size/format cases above, color rotation matches 35,067/35,072 pixels, maximum .00257879496. Panorama rotation matches 35,070/35,072, maximum .00306707621. All seven smaller cases are exact. For color rotation use the same byte field and channel formulas with t=1,2,3 in place of the channel offsets' multipliers (19t,17t,61t,17t) for the rotation map, pivot map and input, respectively. Set angle multiplier to −.6875 at 16² and .78125 elsewhere, angle offset to .09375 at 128² and −.1875 elsewhere, and pivot to (.8125,.21875). For panorama use the sky color field, rotation .3125 at 16² and −.1875 elsewhere, direction −.34375 at 128² and .5625 elsewhere, and pre/post pole rotations .28125 and −.40625.
+
 ### Color burn and color dodge
 
 Color burn and color dodge each match **171,264/171,264 RGBA pixels in 18 cases**, maximum error zero. Each root passed the four original 128²/256² cases (114,688 pixels), the [four-format and independent comparisons](#four-format-inventory-comparison) (17,408), and nine additional cases (39,168). In the independent 32² color-burn field, four pixels had blue foreground 0 and blue background 255. The divide stage differed by 255 levels at precisely those pixels. In color dodge the final switch previously matched 524/1,024 on that field with a maximum of 5.96046448e−8.
