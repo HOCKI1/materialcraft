@@ -9,6 +9,23 @@ fn no_linked_files(_: &str) -> Option<Vec<u8>> {
 }
 
 #[test]
+fn absolute_graph_output_size_survives_parent_size_changes_and_save() {
+    let xml = br#"<package><content><graph><identifier v="Fixed"/>
+        <baseParameters><parameter><name v="outputsize"/><relativeTo v="0"/>
+        <paramValue><constantValueInt2 v="6 5"/></paramValue></parameter></baseParameters>
+        <options><option><name v="defaultParentSize"/><value v="7x8"/></option></options>
+        </graph></content></package>"#;
+    let mut package = read_sbs(xml, "fixed.sbs", &no_linked_files).unwrap().pkg;
+    assert_eq!(package.graphs[0].size, [7, 8]);
+    assert_eq!(package.graphs[0].size_px(), [64, 32]);
+    package.graphs[0].size = [8, 7];
+    let saved = write_sbs(&package).unwrap();
+    let loaded = read_sbs(&saved, "fixed.sbs", &no_linked_files).unwrap().pkg;
+    assert_eq!(loaded.graphs[0].size, [8, 7]);
+    assert_eq!(loaded.graphs[0].size_px(), [64, 32]);
+}
+
+#[test]
 fn shuffle_roundtrip_preserves_signed_channel_selectors() {
     for selector in [-2_i32, -1, 8, 9, 16, 255] {
         let xml = format!(

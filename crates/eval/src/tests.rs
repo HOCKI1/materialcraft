@@ -186,6 +186,61 @@ fn instancing(name: &str, target: &str) -> (Graph, NodeId) {
 }
 
 #[test]
+fn an_instanced_graph_uses_its_declared_absolute_output_size() {
+    let (parent, instance) = instancing("Parent", "Rectangle");
+    let mut child = Graph::new("Rectangle");
+    child.absolute_output_size = Some([6, 5]);
+    let generator = child.add_node("uniform", [0.0; 2]);
+    let output = child.add_node("output", [100.0, 0.0]);
+    child.connect(generator, "output", output, "input").unwrap();
+    let mut package = Package::new("Dimensions");
+    package.graphs.extend([parent, child]);
+    let cache = Mutex::new(Cache::default());
+    for (size, expected) in [(Some([6, 5]), [64, 32]), (Some([5, 0]), [32, 1]), (None, [16, 16])] {
+        package.graphs[1].absolute_output_size = size;
+        let cooked = cook(&package, 0, &Options::new(&no_res), &cache);
+        let image = cooked.image(instance, 0).unwrap();
+        assert_eq!([image.width(), image.height()], expected);
+        assert_eq!(cooked.nodes[&instance].base.size, expected);
+    }
+}
+
+#[test]
+fn instance_outputs_keep_each_sources_dimensions_and_precision() {
+    use materialcraft_core::{OutputFormat, SizeMode};
+    let (mut parent, instance) = instancing("Parent", "TwoOutputs");
+    let mut source = Graph::new("TwoOutputs");
+    let mut consumers = Vec::new();
+    for (name, size, format) in [("output", [6, 5], OutputFormat::F32), ("small", [2, 3], OutputFormat::U8)] {
+        let fill = source.add_node("uniform", [0.0; 2]);
+        let base = &mut source.node_mut(fill).unwrap().base;
+        base.size_mode = SizeMode::Absolute;
+        base.size = size;
+        base.format = format;
+        let bridge = source.add_node("output", [100.0, 0.0]);
+        source.node_mut(bridge).unwrap().params.insert("identifier".into(), Value::Text(name.into()));
+        source.connect(fill, "output", bridge, "input").unwrap();
+        let consumer = parent.add_node("levels", [200.0, 0.0]);
+        parent.connect(instance, name, consumer, "input").unwrap();
+        consumers.push((consumer, size.map(|power| 1u32 << power), format));
+    }
+    let mut package = Package::new("Per-port dimensions");
+    package.graphs.extend([parent, source]);
+    let cache = Mutex::new(Cache::default());
+    for cached in [false, true] {
+        let cooked = cook(&package, 0, &Options::new(&no_res), &cache);
+        assert_eq!(cooked.nodes[&instance].cached, cached);
+        for &(id, size, format) in &consumers {
+            let result = &cooked.nodes[&id];
+            assert_eq!(result.base.size, size);
+            assert_eq!(result.base.format, format);
+            let image = cooked.image(id, 0).unwrap();
+            assert_eq!([image.width(), image.height()], size);
+        }
+    }
+}
+
+#[test]
 fn editing_a_nested_graph_recooks_the_top() {
     let mut c = Graph::new("c");
     c.size = [4, 4];

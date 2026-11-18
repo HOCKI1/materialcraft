@@ -125,6 +125,46 @@ For the grayscale root bind `(17*x+31*y) mod 256`. For the color root use the sa
 
 At the first directional pass the default color case matches 11,944/16,384 pixels with maximum error 1. With angle .125 it matches 2,997/16,384 with maximum error 21. A separate F32 impulse at (64,64) on a 128² field, intensity 10 and angle .125, has nonzero samples on both sides of the diagonal.
 
+### Fixed graph and instance output sizes
+
+Both `pattern_tile_sampler.sbs/arrow` and `tile_sampler.sbs/arrow` specify an absolute 512×512 graph output. MaterialCraft now imports and saves that size separately from the default parent canvas. Each output of a graph instance also retains the dimensions and storage precision of its source. Downstream connections and cache hits use the selected output port.
+
+For a size control, draw a centered white square half the canvas width and height on black. Give its graph an absolute output size of (6,5) in base-two exponents. With parent sizes 64²/U8, 128²/U16, 256²/F16 and 128²/F32, the stored output is 64×32. All four cases match 2,048/2,048 pixels, maximum error zero. Use seed zero for the first two cases and 42 for the last two.
+
+A second control fixes only the final processor to 64×32 F32. Place the child in an original wrapper with a 128² or 64² parent. Exercise inherited instance size, parent-relative (0,0), and absolute (5,4). For each setting also request U8, U16, F16 and F32 on the instance. Each of these 18 cases produces a 64×32 LUM32F image and matches 2,048/2,048 pixels, maximum error zero. A two-output evaluator regression separately exercises a 64×32 F32 port, a 4×8 U8 port, their downstream consumers and a cached cook.
+
+Neither Arrow root has input pins or exposed parameters. Each matches 261,338/262,144 LUM8 pixels at its default 512² size, including seed 42, with maximum error 131. With a 64² parent and seed 42 the stored dimensions remain 512². Both roots give the following counts, measured separately.
+
+| Stored format | Exact pixels / total | Maximum error |
+|---|---:|---:|
+| LUM8 | 261,338/262,144 | 131 |
+| LUM16 | 261,338/262,144 | 33,667 |
+| LUM16F | 260,826/262,144 | 0.513916015625 |
+| LUM32F | 260,826/262,144 | 0.5137255192 |
+
+### Atlas crop with wired value inputs
+
+For `atlas_spliter.sbs/crop_and_transform_sub`, connect constant value processors to `shape_count` and `shape_data_table_size`. Use count 1, table size (1,1), and a single RGBA32F table texel (0,0,1,1). Bind a transparent 16² background and solid white 16² shape-index and opacity images. For the 128² color image, use linear RGBA8 texels `((17*x+31*y)%256, floor(255*x/127), 255-floor(255*y/127), (7*x+13*y)%256)`. Give the instance a parent-relative (0,0) size. The reference app returns RGBA32F at its authored precision.
+
+| Rotation | 128² seed 0 or 42, exact / max | 256² seed 0, exact / max | 64² seed 42, exact / max |
+|---|---:|---:|---:|
+| Default | 16,384/16,384 · 0 | 49,152/65,536 · 0.250003815 | 4,096/4,096 · 0 |
+| .125 turns | 16,320/16,384 · 1 | 49,091/65,536 · 1 | 4,064/4,096 · 0.996078431 |
+
+The 16,384 differences at default rotation and 256² occupy exactly the lower-right 128² quadrant. At 128², three further controls each match 16,384/16,384, maximum error zero. Enable grid view, set count and table dimensions to zero, or set count to 2 and table dimensions to (1,2), respectively. All three use the same single table texel.
+
+Set the final Pixel Processor's storage explicitly, keep the 128² input, and cook at 64² with seed 42. At default rotation, RGBA8, RGBA16, RGBA16F and RGBA32F each match 4,096/4,096 pixels, maximum error zero. At .125 turns, each matches 4,064/4,096. The respective maximum errors are 254, 65,278, 0.995605469 and 0.996078431.
+
+### Spline preprocessing with wired counts
+
+For `spline_tools.sbs/internal_tools/scatter_splines_on_splines_preprocess`, wire integer value processors to `input_spline_amount` and `custom_spline_amount`. Use input counts 1 and 2, custom count 1, `side=3`, `amount_mode=0` and `spline_amount_per_spline=1`. The 16² grayscale mask stores `(11*x+7*y)%256`. An original 16² circle coordinate buffer and its tangent buffer supply the other two images.
+
+At 16² with seed zero or 42 and at 32² with seed zero, the two input counts return the exact integers 1 and 2 in all six comparisons, maximum error zero. With count 1 the image has two distinct RGBA8 values. All three images match 32,768/32,768 pixels after the instance retains the 2048×16 source dimensions. Before the fix MaterialCraft returned a 16² or 32² image through the wrapper.
+
+To reproduce with a fresh pair of circle buffers, initialize two 16×16 RGBA32F images to zero. For `x=0..15`, let `a=2π(x+.5)/16`. In row zero, store `(.375+.1875*cos(a), .625+.1875*sin(a), 1, -1)` and `(-sin(a), cos(a), 0, 1)`. A separate run with these fields also matches all six typed integers and all 98,304 RGBA8 pixels through the wrapper, maximum error zero.
+
+With the 16² parent, seed zero and count 1, set the output FX-Map storage explicitly to RGBA8, RGBA16, RGBA16F and RGBA32F. Each matches 32,768/32,768 pixels, maximum error zero. The reference app twice failed to return an image for the disconnected zero-count default within six minutes. That case has no pixel count or error measurement.
+
 ## 2026-11-17 root comparisons
 
 The clean-room comparisons below use the 16.0.7 reference app with the Direct3D 11 backend and a release MaterialCraft CPU cook. They compare the raw output bridge at its stored precision. A pixel counts only when every channel agrees. Integer errors are in stored levels. Floating errors are absolute. Each case starts from the graph defaults. Where a row selects another storage format, set the final processor's format to absolute in both apps before cooking.

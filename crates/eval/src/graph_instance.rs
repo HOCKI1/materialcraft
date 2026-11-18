@@ -44,11 +44,10 @@ pub(crate) fn cook_instance(
     output_ports: &[Port],
     inputs: &[Option<&NodeOutput>],
     params: &BTreeMap<String, Value>,
-    size: (u32, u32),
     base: crate::resolved_base_parameters::ResolvedBaseParameters,
     options: &Options,
     cache: &Mutex<Cache>,
-) -> Result<Vec<NodeOutput>, String> {
+) -> Result<Vec<(NodeOutput, crate::ResolvedBaseParameters)>, String> {
     if options.depth >= MAX_DEPTH {
         return Err("graph instances nest too deep (does a graph use itself?)".into());
     }
@@ -100,17 +99,16 @@ pub(crate) fn cook_instance(
     output_ports
         .iter()
         .map(|port| {
-            let output = source_graph
+            let result = source_graph
                 .nodes
                 .iter()
                 .find(|candidate| candidate.def == "output" && identifier(candidate) == port.id)
                 .and_then(|node| cooked.nodes.get(&node.id))
-                .and_then(|result| result.outputs.first())
                 .ok_or_else(|| format!("the source output `{}` is missing", port.id))?;
-            Ok(match output {
-                NodeOutput::Image(image) => NodeOutput::Image(image.resize(size.0, size.1, true)),
-                NodeOutput::Value(value) => NodeOutput::Value(value.clone()),
-            })
+            let output = result.outputs.first().ok_or_else(|| format!("the source output `{}` is empty", port.id))?;
+            let source_base = result.base;
+            let port_base = crate::ResolvedBaseParameters { size: source_base.size, format: source_base.format, ..base };
+            Ok((output.clone(), port_base))
         })
         .collect()
 }

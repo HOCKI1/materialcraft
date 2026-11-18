@@ -28,6 +28,9 @@ pub struct Graph {
     pub pins: Vec<Pin>,
     /// log2 of the graph ("parent") size per axis
     pub size: [u32; 2],
+    /// An authored absolute output size, in log2 texels, independent of the default parent size.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub absolute_output_size: Option<[i32; 2]>,
     #[serde(default)]
     pub format: OutputFormat,
     #[serde(default)]
@@ -82,6 +85,7 @@ impl Graph {
             comments: Vec::new(),
             pins: Vec::new(),
             size: [10, 10],
+            absolute_output_size: None,
             format: OutputFormat::U16,
             seed: 0,
             pixel_ratio: 0,
@@ -232,7 +236,12 @@ impl Graph {
 
     /// Graph size in pixels
     pub fn size_px(&self) -> [u32; 2] {
-        [1 << self.size[0].clamp(MIN_SIZE_LOG2, MAX_SIZE_LOG2), 1 << self.size[1].clamp(MIN_SIZE_LOG2, MAX_SIZE_LOG2)]
+        self.output_size_px(self.size.map(|side| 1 << side.clamp(MIN_SIZE_LOG2, MAX_SIZE_LOG2)))
+    }
+
+    /// Resolve this graph's output for the caller's parent size, including graph instances.
+    pub fn output_size_px(&self, parent: [u32; 2]) -> [u32; 2] {
+        self.absolute_output_size.map_or(parent, |size| size.map(|side| 1 << side.clamp(0, MAX_SIZE_LOG2 as i32)))
     }
 }
 

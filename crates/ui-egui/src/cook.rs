@@ -40,6 +40,7 @@ fn report_failure(app: &mut MaterialCraftApp, msg: String) {
                 base_values: Default::default(),
                 parameters: Default::default(),
                 outputs: Default::default(),
+                output_bases: None,
                 error: Some(msg.clone()),
                 ms: 0.0,
                 key: 0,

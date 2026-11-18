@@ -315,7 +315,8 @@ pub fn export_outputs(s: &Session, request: &ExportRequest) -> Result<Vec<Export
     let mut package = s.pkg.clone();
     if let Some(size) = request.size {
         let graph = package.graph_mut(request.graph)?;
-        graph.size = size.log2_size(graph.size);
+        graph.size = size.log2_size(graph.size_px().map(u32::ilog2));
+        graph.absolute_output_size = None;
     }
 
     let graph = package.graph(request.graph)?;

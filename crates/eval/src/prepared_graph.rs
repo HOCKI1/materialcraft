@@ -38,7 +38,8 @@ impl<'a> PreparedGraph<'a> {
             .filter(|port| port.kind != materialcraft_nodes::PortKind::Value && primary.is_none_or(|primary| port.id == primary))
             .find_map(|port| {
                 let connection = self.index.input_of(id, &port.id)?;
-                cooked.nodes.get(&connection.from).map(|result| result.base)
+                let port_index = self.ports(connection.from).1.iter().position(|output| output.id == connection.from_port)?;
+                cooked.nodes.get(&connection.from)?.output_base(port_index)
             })?;
 
         // Only bypassed generators take their image dimensions from the input

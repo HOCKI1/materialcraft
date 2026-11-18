@@ -128,6 +128,11 @@ fn export_size_keeps_proportions_and_clamps() {
 
     assert!(dims(&s, json!(32)).iter().all(|d| *d == (32, 32)));
     assert!(dims(&s, json!([1, u64::MAX])).iter().all(|d| *d == (16, 8192)), "sides clamp to 16..8192");
+
+    s.pkg.graphs[0].absolute_output_size = Some([6, 5]);
+    assert!(dims(&s, json!(0)).iter().all(|d| *d == (64, 32)));
+    assert!(dims(&s, json!(32)).iter().all(|d| *d == (32, 16)));
+    assert_eq!(s.pkg.graphs[0].absolute_output_size, Some([6, 5]));
 }
 
 /// A scratch folder for one test, removed when dropped

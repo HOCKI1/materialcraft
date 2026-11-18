@@ -100,6 +100,7 @@ pub(crate) fn cook_node(
         base_values: base_values.clone(),
         parameters: BTreeMap::new(),
         outputs: Arc::new(vec![NodeOutput::Image(error_image(w, h)); output_ports.len().max(1)]),
+        output_bases: None,
         error: Some(message),
         ms: 0.0,
         key,
@@ -157,10 +158,12 @@ pub(crate) fn cook_node(
     ));
     if let Some(outputs) = lock(cache).get(key) {
         parameters.retain(|_, value| materialcraft_core::ValueType::of(value).is_some());
-        return NodeResult { base, base_values, parameters, outputs, error: None, ms: 0.0, key, cached: true };
+        let base = outputs.bases.as_deref().and_then(|ports| ports.first()).copied().unwrap_or(base);
+        return NodeResult { base, base_values, parameters, outputs: outputs.values, output_bases: outputs.bases, error: None, ms: 0.0, key, cached: true };
     }
 
     let started_ms = now_ms();
+    let mut output_bases: Option<Arc<[_]>> = None;
     let result: Result<Vec<NodeOutput>, String> = if node.disabled {
         let input = if let Some(primary) = definition.and_then(|definition| definition.primary_input) {
             input_ports.iter().position(|port| port.id == primary).and_then(|index| incoming.get(index)).copied().flatten()
@@ -205,7 +208,11 @@ pub(crate) fn cook_node(
 
         Err(format!("unsupported node `{name}`"))
     } else if node.def == "graph_instance" {
-        cook_instance(package, graph_index, node, input_ports, output_ports, &incoming, &parameters, (w, h), base, options, cache)
+        cook_instance(package, graph_index, node, input_ports, output_ports, &incoming, &parameters, base, options, cache).map(|ports| {
+            let (values, bases): (Vec<_>, Vec<_>) = ports.into_iter().unzip();
+            output_bases = Some(bases.into());
+            values
+        })
     } else if let Some(definition) = definition {
         let context = CookContext { format: base.format, w, h, seed, tile, inputs: &inputs, params: &parameters, resource: options.resource, vars: variables };
         (definition.cook)(&context).map(|images| {
@@ -227,8 +234,9 @@ pub(crate) fn cook_node(
     match result {
         Ok(outputs) if outputs.len() == output_ports.len().max(1) || output_ports.is_empty() => {
             let outputs = Arc::new(outputs);
-            lock(cache).put(key, outputs.clone());
-            NodeResult { base, base_values, parameters, outputs, error: None, ms: (now_ms() - started_ms) as f32, key, cached: false }
+            lock(cache).put(key, outputs.clone(), output_bases.clone());
+            let base = output_bases.as_deref().and_then(|ports| ports.first()).copied().unwrap_or(base);
+            NodeResult { base, base_values, parameters, outputs, output_bases, error: None, ms: (now_ms() - started_ms) as f32, key, cached: false }
         }
         Ok(outputs) => fail(format!("`{}` made {} images for {} outputs", node.def, outputs.len(), output_ports.len()), key),
         Err(error) => fail(error, key),
