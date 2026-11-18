@@ -35,7 +35,7 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **200 Parity**, **25 In progress** and **321 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **202 Parity**, **25 In progress** and **319 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
 
 [Grayscale sampler measurements](parity-fixes.md#grayscale-sampling-of-color-inputs) · [Value sampling across 240 typed comparisons](parity-fixes.md#value-processor-texture-filtering)
 
@@ -48,7 +48,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [3d_gradient.sbs/3d_linear_gradient](../assets/sbs/3d_gradient.sbs) | 1 | No | [Parity · 12 wired and 5 disconnected cases, four formats](parity-fixes.md#runtime-reciprocal-and-3d-gradient-contrast) |
 | [3d_perlin_noise.sbs/3D_perlin_noise](../assets/sbs/3d_perlin_noise.sbs) | 1 | No | [In progress · shared lookup exact across seven cases, stock lookup differs](parity-fixes.md#pixel-processor-products-and-sums) |
 | [3d_perlin_noise.sbs/3D_perlin_noise_fractal](../assets/sbs/3d_perlin_noise.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
-| [3d_perlin_noise.sbs/3D_ridged_noise_fractal](../assets/sbs/3d_perlin_noise.sbs) | 1 | No | [In progress · shared lookup exact in LUM8, higher precision differs](parity-fixes.md#basic-and-ridged-3d-perlin) |
+| [3d_perlin_noise.sbs/3D_ridged_noise_fractal](../assets/sbs/3d_perlin_noise.sbs) | 1 | No | [In progress · 13 octave controls isolate a one-level roughness difference](parity-fixes.md#ridged-noise-octave-isolation) |
 | [3d_planar_projection.sbs/3d_planar_projection](../assets/sbs/3d_planar_projection.sbs) | 3 | No | [In progress · default exact, rotated samples differ](parity-fixes.md#grayscale-and-color-3d-planar-projection) |
 | [3d_planar_projection.sbs/3d_planar_projection_color](../assets/sbs/3d_planar_projection.sbs) | 3 | No | [In progress · default RGBA exact, rotated samples differ](parity-fixes.md#grayscale-and-color-3d-planar-projection) |
 | [3d_simplex_noise.sbs/3d_simplex_noise](../assets/sbs/3d_simplex_noise.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
@@ -532,7 +532,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [slope_blur.sbs/slope_blur](../assets/sbs/slope_blur.sbs) | 2 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [slope_blur.sbs/slope_blur_grayscale](../assets/sbs/slope_blur.sbs) | 2 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [slope_blur.sbs/slope_blur_grayscale_2](../assets/sbs/slope_blur.sbs) | 2 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [smart_auto_tile.sbs/pattern_find_edges_step](../assets/sbs/smart_auto_tile.sbs) | 4 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [smart_auto_tile.sbs/pattern_find_edges_step](../assets/sbs/smart_auto_tile.sbs) | 4 | Yes | [Parity · 16 cases, 3,185,920 exact pixels](parity-fixes.md#tile-edge-masks-and-normalized-spline-distances) |
 | [splatter.sbs/splatter](../assets/sbs/splatter.sbs) | 1 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [splatter_circular.sbs/splatter_circular](../assets/sbs/splatter_circular.sbs) | 2 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [splatter_circular.sbs/splatter_circular_color](../assets/sbs/splatter_circular.sbs) | 2 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
@@ -547,7 +547,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [spline_tools.sbs/internal_tools/compute_spline_tangents](../assets/sbs/spline_tools.sbs) | 3 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [spline_tools.sbs/internal_tools/get_spline_point_data](../assets/sbs/spline_tools.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [spline_tools.sbs/internal_tools/modify_spline_property_sub](../assets/sbs/spline_tools.sbs) | 4 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [spline_tools.sbs/internal_tools/normalize_spline_distance](../assets/sbs/spline_tools.sbs) | 1 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [spline_tools.sbs/internal_tools/normalize_spline_distance](../assets/sbs/spline_tools.sbs) | 1 | Yes | [Parity · 16 cases, 52,480 exact pixels](parity-fixes.md#tile-edge-masks-and-normalized-spline-distances) |
 | [spline_tools.sbs/internal_tools/points_preview](../assets/sbs/spline_tools.sbs) | 3 | Yes | [Too hard: value-input case not verified](parity-fixes.md#remaining-differences) |
 | [spline_tools.sbs/internal_tools/resample_spline_data](../assets/sbs/spline_tools.sbs) | 3 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [spline_tools.sbs/internal_tools/scatter_splines_on_splines_preprocess](../assets/sbs/spline_tools.sbs) | 5 | Yes | [In progress · nonzero counts and images exact, zero count timed out](parity-fixes.md#spline-preprocessing-with-wired-counts) |

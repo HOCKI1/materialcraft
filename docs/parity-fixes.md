@@ -209,6 +209,35 @@ The color and grayscale Crop roots each match **229,376/229,376** pixels across 
 
 For the independent case, enable Show Crop Area, set Input Size to (64,128), Matrix to (.75,−.125,.375,1.25), Offset to (−.1875,.3125) and Filtering to 0. Use the original color or height field under [height distance, texture mapping and skew](#height-distance-texture-mapping-skew-and-weave) at the output dimensions. At 128² seed 71 F32 and 64² seed 137 in all four storage formats, each root’s Output matches 32,768/32,768 pixels. Area matches in U8, U16 and F32. At 64² F16, color Area matches 4,054/4,096 and grayscale Area matches 4,087/4,096. Both maxima are .00048828125. The last operation on both Area outputs is a blend.
 
+### Tile edge masks and normalized spline distances
+
+| Root | First four captures | Four 64² parent formats, seed 42 | Independent 32², seed 113 | Seven new cases | Total exact / compared |
+|---|---:|---:|---:|---:|---:|
+| `smart_auto_tile.sbs/pattern_find_edges_step` | 3,146,752 | 4,096 | 1,024 | 34,048 | 3,185,920/3,185,920 |
+| `spline_tools.sbs/internal_tools/normalize_spline_distance` | 1,024 | 16,384 | 1,024 | 34,048 | 52,480/52,480 |
+
+All 16 cases per root match at the stored precision, with maximum error zero. In the edge-mask root the default grid exponent is 10, so the first three results are each 1,024² at parent sizes 128² or 256² and seeds zero or 42. Setting the grid exponent to 5 produces a 32² result. The normalized distance root has a single grayscale input and no additional exposed settings. Its first four outputs are 16² LUM32F. The earlier precision and independent input definitions are in the [four-format inventory](#four-format-inventory-comparison).
+
+The seven new cases per root use 16² F32 at seed 17, 64² U8/U16/F16/F32 at seed 71, 128² F32 at seed 137 and 32² F32 at seed 211. Use integer coordinates starting at zero, with N equal to the requested side. Set the edge-mask grid exponent to log₂(N), blur and smoothness to .25, combined threshold to .375 and per-channel thresholds for base color, normal and height to .1875, .3125 and .125. Enable per-channel thresholds except at 32². Disable height at 16², base color at 32² and normal at 128². Bind linear byte fields using z=(13x+7y+3xy) mod 256. Base color is (z,19x+3y,7x−23y,255−z), normal is (127+2x,91+3y,255−floor(z/5),255) and height is 19x+23y+7xy, reducing all byte channels modulo 256. The mask alpha is 255. Its RGB channels are 255 where (floor(x/4)+2floor(y/5)) mod 3 is nonzero, x < N/2 and y mod 7 ≥ 3, respectively, and zero otherwise. The 64² F32 output contains ten distinct RGBA tuples.
+
+For normalized distance at 16² and 64² use a grayscale byte field (17x+7y+3xy) mod 256, with the rightmost column replaced by 13y mod 256. At 128² use 16-bit levels (311x+1861y+31xy) mod 65536 and zero the final column on rows y mod 3=0. At 32² store (((13x−31y+2xy) mod 253)−87)/32 in each RGB channel of a linear float image, alpha one, with the final column zero on rows y mod 4=0. The 64² F32 output has 3,330 distinct levels.
+
+The [wired bridge distance](#height-distance-texture-mapping-skew-and-weave) root was also retested. With count two, 32² and 64² now match 1,024/1,024 and 4,096/4,096. The 16² case matches 252/256 with maximum 5.96046448e−8. All three count-one cases remain exact.
+
+### Ridged noise octave isolation
+
+Use the position ramp and original 1024×16 lookup under [basic and ridged 3D Perlin](#basic-and-ridged-3d-perlin). Retain the 128² position input and cook 64² LUM32F at seed 42. Each cell gives exact pixels out of 4,096 and maximum absolute error. Roughness .5 with one or two active levels matches every pixel. Roughness .7 already differs with a single active level.
+
+| Minimum–maximum level | Roughness .5 | Roughness .7 |
+|---|---:|---:|
+| 1–1 | 4,096 · 0 | 1,847 · 2.38418579e−7 |
+| 1–2 | 4,096 · 0 | 1,210 · 1.19209290e−7 |
+| 1–3 | 3,704 · 5.96046448e−8 | 1,100 · 1.19209290e−7 |
+| 1–4 | 3,331 · 1.19209290e−7 | 144 · 2.38418579e−7 |
+| 1–7 | 3,004 · 1.19209290e−7 | 1,320 · 1.78813934e−7 |
+
+Selecting only level 2, 3 or 7 at roughness .7 gives 2,040, 1,871 and 1,841 exact pixels out of 4,096, each with maximum 2.38418579e−7. With the same lookup at 128² and roughness .7, U16, F16 and F32 still match 16,337, 16,380 and 5,160 of 16,384, respectively.
+
 ### Runtime pixel sine, cosine and atlas rotation
 
 Sine and cosine match **1,443,840/1,443,840 LUM32F pixels** across 30 original Pixel Processor cases. Exactness includes signed zero and all 84 nonfinite output components. Maximum finite error is zero. Direct Cartesian coordinates and separately multiplying the radius by the cosine and sine match another **197,632/197,632 component pixels**. With radius −1.25 and angle float32(π/4), the two coordinate components have bits `bf62462e bf624630`.
