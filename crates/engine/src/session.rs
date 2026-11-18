@@ -59,6 +59,8 @@ pub struct Session {
     pub pkg: Package,
     /// Where the package was opened from or last saved to.
     pub path: Option<String>,
+    /// Original link base when import warnings require a new save destination.
+    pub(crate) recovery_origin: Option<String>,
     /// Index of the graph being edited.
     pub graph: usize,
     pub selection: Vec<NodeId>,
@@ -136,6 +138,7 @@ impl Session {
             material_cooked: std::collections::BTreeMap::new(),
             pkg,
             path: None,
+            recovery_origin: None,
             graph: 0,
             selection: Vec::new(),
             annotation_selection: None,

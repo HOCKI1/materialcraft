@@ -117,6 +117,7 @@ pub fn replace_package(s: &mut Session, pkg: Package, path: Option<String>) {
     s.embedded_clipboard = None;
     s.clear_decoded();
     s.path = path;
+    s.recovery_origin = None;
     s.graph = 0;
     s.material_preview = crate::MaterialPreview::for_graph(&s.pkg, 0);
     s.clear_preview_results();
@@ -166,9 +167,10 @@ pub fn open_bytes_linked(session: &mut Session, bytes: &[u8], name: Option<Strin
         read.pkg.dependencies.entry(path.clone()).or_insert_with(|| source.clone());
     }
     let link_warnings = crate::linked_files::load(&mut read.pkg);
-    let path = if read.warnings.is_empty() { name } else { None };
+    let (path, recovery_origin) = if read.warnings.is_empty() { (name, None) } else { (None, name) };
     read.warnings.extend(link_warnings);
     session.open_package(read.pkg, path)?;
+    session.recovery_origin = recovery_origin;
     for warning in &read.warnings {
         session.warn(warning.clone());
     }
@@ -200,7 +202,8 @@ pub(crate) fn save_bytes_at(session: &Session, path: Option<&str>) -> Result<Vec
     }
 
     // Byte-only consumers (portable materials and recovery) retain standalone embedded SBS
-    Ok(materialcraft_formats::sbs::write_sbs(&package_for_save(session, path))?)
+    // A recovered document still has an import folder for its authored links.
+    Ok(materialcraft_formats::sbs::write_sbs(&package_for_save(session, path.or(session.recovery_origin.as_deref())))?)
 }
 
 fn package_for_save(session: &Session, path: Option<&str>) -> Package {
