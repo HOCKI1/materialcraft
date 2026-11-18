@@ -141,10 +141,11 @@ fn filter_float(taps: &[([f32; 4], u32); 4], channel: usize, format: OutputForma
 }
 
 fn axis(uv: f32, size: u32, tile: bool) -> (i64, u32) {
-    // Reduce before converting to a texel so even extreme finite coordinates have bounded neighbors.
-    // One extra image width on either side retains outside taps for a transform's matte.
-    let uv = if tile { uv.rem_euclid(1.0) } else { uv.clamp(-1.0, 2.0) };
-    let texel = uv * size as f32 - 0.5;
+    // Keep the signed fraction until the integer texel is addressed. Adding a repeat in f32 can
+    // round a negative coordinate across an eight-bit weight boundary. Reduce before scaling to
+    // keep even extreme coordinates bounded, and retain the half-texel offset exactly.
+    let uv = if tile { uv.fract() } else { uv.clamp(-1.0, 2.0) };
+    let texel = f64::from(uv) * f64::from(size) - 0.5;
     let first = texel.floor();
     (first as i64, ((texel - first) * 256.0).round() as u32)
 }
@@ -155,6 +156,17 @@ mod tests {
     use craft_texture::{Image, Kind};
     use materialcraft_core::{FunctionGraph, Value};
     use std::collections::BTreeMap;
+
+    #[test]
+    fn filtered_coordinates_keep_fraction_bits_through_wrap_and_texel_centering() {
+        use materialcraft_core::OutputFormat;
+
+        let image = Image::gray(128, 1, |x, _| (x % 2) as f32);
+        for (bits, value) in [(0xbdfff801, 0.5), (0xbdffe801, 0.49609375), (0x3b7effff, 0.00390625), (0xbb808001, 0.99609375)] {
+            let sample = super::sample(&image, [f32::from_bits(bits), 0.5], [true; 2], OutputFormat::F32, None);
+            assert_eq!(sample[0], value, "{bits:08x}");
+        }
+    }
 
     #[test]
     fn value_sampler_repeats_and_filters_at_full_coordinate_precision() {

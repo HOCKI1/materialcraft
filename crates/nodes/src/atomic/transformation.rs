@@ -44,14 +44,12 @@ fn transformation(context: &CookContext) -> CookResult {
     let matte = crate::output_precision::store_pixel(context.v4("matte"), sample_format);
     // A centered resize extends an untiled edge texel, including after a manually selected mip.
     let border = (!centered).then_some(matte);
+    // Fold the pivot into the translation once. SBS stores matrix columns consecutively.
+    let translation = [0.5 - (0.5 * matrix[0] + 0.5 * matrix[2]) + offset[0], 0.5 - (0.5 * matrix[1] + 0.5 * matrix[3]) + offset[1]];
 
     Ok(vec![Image::generate_uv(context.w, context.h, input.kind(), |u, v| {
-        let x = u - 0.5;
-        let y = v - 0.5;
-
-        // SBS stores matrix columns consecutively; interpreting rows reverses rotations
-        let source_u = matrix[0] * x + matrix[2] * y + 0.5 + offset[0];
-        let source_v = matrix[1] * x + matrix[3] * y + 0.5 + offset[1];
+        let source_u = matrix[2].mul_add(v, matrix[0] * u) + translation[0];
+        let source_v = matrix[3].mul_add(v, matrix[1] * u) + translation[1];
         if nearest {
             if (!tiling[0] && !(0.0..1.0).contains(&source_u)) || (!tiling[1] && !(0.0..1.0).contains(&source_v)) {
                 matte
@@ -126,6 +124,35 @@ mod tests {
     use crate::resolve_params;
     use materialcraft_core::Value;
     use std::collections::BTreeMap;
+
+    #[test]
+    fn affine_texture_coordinates_keep_the_fraction_at_rotated_texel_boundaries() {
+        let image = Image::generate(128, 128, Kind::Color, |x, y| [(x & 1) as f32, (y & 1) as f32, ((x / 2) & 1) as f32, ((y / 2) & 1) as f32]);
+        let params = resolve_params(
+            &definition(),
+            &BTreeMap::from([
+                ("matrix".into(), Value::Float4([2.494_419_6, -1.666_711_1, 1.111_140_7, 1.662_946_3])),
+                ("offset".into(), Value::Float2([0.1875, -0.3125])),
+                ("mip_mode".into(), Value::Enum(1)),
+            ]),
+        );
+        let context = CookContext {
+            w: 64,
+            h: 64,
+            seed: 773,
+            format: OutputFormat::F32,
+            tile: true,
+            inputs: &[Some(image.with_integer_sampling(true))],
+            input_formats: &[OutputFormat::U8],
+            params: &params,
+            resource: &|_| None,
+            vars: &BTreeMap::new(),
+        };
+        let result = transformation(&context).unwrap();
+        for (x, y, bits) in [(62, 9, [0x3eae00ae, 0x3f800000, 0x3f28ffa9, 0x3f800000]), (15, 33, [0x3f04ff85, 0x3f01ff82, 0, 0x3f01ff82])] {
+            assert_eq!(result[0].get(x, y, false).map(f32::to_bits), bits);
+        }
+    }
 
     #[test]
     fn centered_resizes_filter_rectangular_levels_in_source_coordinates() {

@@ -253,6 +253,23 @@ Literal-only pixel graphs at 16², seed 23, give 512/768 exact pixels for each l
 
 The shared-lookup ridged root still matches 5,160/16,384 at changed roughness in F32, maximum 1.78813934e−7. Its one-octave .7 control still matches 1,847/4,096, maximum 2.38418579e−7. For positive normal x on the signed field, the reference's general power agrees with exp(y×ln(x)) on all 32,614 pixels. On .7 with exponent 1 it returns `3f333334`. Further work on general power and natural exponential is tracked with the [octave controls](#ridged-noise-octave-isolation).
 
+### Rotated transforms and fractional texture coordinates
+
+| Root | Renders | Exact pixels / compared | Maximum error |
+|---|---:|---:|---:|
+| Non-square color transform | 23 | 204,032/204,032 | 0 |
+| Non-square grayscale transform | 23 | 204,032/204,032 | 0 |
+| Safe color transform | 18 | 171,264/171,264 | 0 |
+| Safe grayscale transform | 18 | 171,264/171,264 | 0 |
+
+Four archived renders, four output-format changes, a second 32² image and nine further procedural fields cover each root. The non-square roots also match five integer-input renders with tile (3,2), offset (−.1875,.3125), rotation .3125 and tile-safe rotation disabled. Use 128² F32 at seed 71 and 64² in all four formats at seed 137. For the nine fields, use the [float image formula, dimensions, formats and seeds](#stored-precision-in-transform-mip-levels). The 16² case uses defaults. Otherwise use offset (.1875,−.3125), rotation .09375, background (.125,.375,.5625,.6875) or .375 for grayscale. For non-square set tile mode 1 and tile (3,2). For safe transform set tile 2, offset mode 1, symmetry 1 and automatic mip. At 128² use rotation .1875 with tile (2,3) or 3. The signed 32² case enables tile-safe rotation and uses manual mip 2 for safe transform. Its rectangular-source case uses symmetry 2.
+
+A rotated two-color checker exposed a one-step difference in a bilinear weight. In the transform, first compute the pivot translation from the matrix columns. For the first coordinate it is .5−(.5m₀+.5m₂)+offsetₓ. Evaluate m₂v+m₀u with the second multiplication rounded and the first fused with the sum, then add the translation. The other coordinate uses m₁ and m₃. For bilinear reads, retain the signed fractional texture coordinate when forming the texel and half-texel offset. Wrap the integer neighbors individually. At 128 texels, input F32 bits bdfff801 on a repeating 0,1 stripe give .5. The previous result was .49609375.
+
+Direct reads matched 360,448/360,448 F32 pixels across 22 renders. With integer x,y in a 128² field, let a=shift+(x+.5)/32768+(floor(y/4)−16)/128 in F32. On rows y mod 4 equal to 0 or 2, replace a with its next float toward negative or positive infinity, respectively. Use a and its reversed transpose as the two read coordinates and x mod 2 and y mod 2 as the channels to read bilinearly. Use shifts 0, −.25, −.5, −1, −2, −8, .25, .5, 1, 2 and 6, starting at seed 829 and incrementing by one.
+
+Eleven matrices and offsets with manual mip 0 matched 405,504/405,504 RGBA32F pixels across 33 renders. The two checker renders use a 128² U8 source with channels 255 times (x mod 2, y mod 2, floor(x/2) mod 2, floor(y/2) mod 2) at 64² and 128². The third uses a procedural 128² byte field at 128². Seed is 773. One distinguishing matrix is (2.494419575,−1.666711092,1.111140728,1.662946343) with offset (.1875,−.3125). At (62,9) in its 64² checker output the component bits are 3eae00ae, 3f800000, 3f28ffa9, 3f800000. Four direct renders of matrices used by the roots matched 40,960/40,960. The 42 large-offset controls matched 688,128/688,128, and 118 square and rectangular resize controls matched 444,032/444,032. All maximum errors were zero.
+
 ### Centered transform resizing and untiled edges
 
 | Root | Renders | Exact pixels / compared | Maximum error |
