@@ -4,7 +4,9 @@ use std::collections::{BTreeMap, BTreeSet};
 
 pub fn compile(graph: &FunctionGraph, seed: u32) -> Result<Program, String> {
     let mut remaining = super::MAX_EXPANDED_NODES;
-    compile_nested(graph, seed, 0, &mut remaining)
+    let mut program = compile_nested(graph, seed, 0, &mut remaining)?;
+    mark_literals(&mut program, BTreeSet::new());
+    Ok(program)
 }
 
 fn compile_nested(graph: &FunctionGraph, seed: u32, depth: usize, remaining: &mut usize) -> Result<Program, String> {
@@ -148,13 +150,8 @@ fn compile_nested(graph: &FunctionGraph, seed: u32, depth: usize, remaining: &mu
         let input_type = |index: usize| inputs.get(index).and_then(|index| instructions.get(*index)).map_or(256, |instruction| instruction.type_code);
         let inferred = super::inferred_type::inferred_type(&node.op, value.as_ref(), input_type);
         let type_code = call.as_ref().map_or_else(|| if node.type_code == 0 { inferred } else { node.type_code }, |call| call.program.output_type());
-        let literal = definition.id.starts_with("const_")
-            || (call.is_none()
-                && !inputs.is_empty()
-                && !matches!(definition.id, "rand" | "samplelum" | "samplecol" | "set" | "while")
-                && inputs.iter().all(|index| instructions.get(*index).is_some_and(|input| input.literal)));
         indices.insert(id, instructions.len());
-        instructions.push(Instruction { id, definition, inputs, value, type_code, literal, pixel_product_sum: None, repeated: Vec::new(), call });
+        instructions.push(Instruction { id, definition, inputs, value, type_code, literal: false, pixel_product_sum: None, repeated: Vec::new(), call });
     }
 
     // Instructions come after their inputs, so walking back from a loop reaches its whole condition and body
@@ -167,10 +164,39 @@ fn compile_nested(graph: &FunctionGraph, seed: u32, depth: usize, remaining: &mu
         }
     }
 
-    super::product_sum::identify(&mut instructions);
     let output = indices.get(&output).copied().ok_or("missing result instruction")?;
 
     Ok(Program { instructions, output, seed })
+}
+
+fn mark_literals(program: &mut Program, mut arguments: BTreeSet<&str>) {
+    // A write in the callee can replace a literal argument before its next read.
+    for op in &program.instructions {
+        if op.call.as_ref().is_some_and(|call| call.exports) {
+            arguments.clear();
+            break;
+        }
+        if op.definition.id == "set"
+            && let Some(materialcraft_core::Value::Text(name)) = &op.value
+        {
+            arguments.remove(name.as_str());
+        }
+    }
+    let mut literals = Vec::with_capacity(program.instructions.len());
+    for op in &mut program.instructions {
+        let literal = |index: &usize| literals.get(*index) == Some(&true);
+        let id = op.definition.id;
+        if let Some(call) = &mut op.call {
+            let bound = call.inputs.iter().zip(&op.inputs).filter(|(_, index)| literal(index)).map(|(name, _)| name.as_str()).collect();
+            mark_literals(&mut call.program, bound);
+        } else {
+            op.literal = id.starts_with("const_")
+                || (id.starts_with("get_") && matches!(&op.value, Some(materialcraft_core::Value::Text(name)) if arguments.contains(name.as_str())))
+                || (!op.inputs.is_empty() && !matches!(id, "rand" | "samplelum" | "samplecol" | "set" | "while") && op.inputs.iter().all(literal));
+        }
+        literals.push(op.literal);
+    }
+    super::product_sum::identify(&mut program.instructions);
 }
 
 /// The instructions the condition and the body of loop `index` evaluate again on every iteration

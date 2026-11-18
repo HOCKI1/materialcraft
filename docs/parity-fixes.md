@@ -273,6 +273,22 @@ For shape mapper, the five earlier comparison sizes and four-format inputs are l
 
 For ten further shape mapper renders use H=(((59x+41y+5xy) mod 1021)/1020+u+2v)/4, where u,v are source texel centers. Use defaults at 16²/83, four formats at 64²/167, F32 at 128²/347, a 32×16 input at 32²/499, signed 32²/631 with 3H−1.375, 64²/787 and 64²/827. Set radius .375, width .71875, rotation .09375, nine patterns and seven segments. Use shape 0 and disable non-square expansion for the rectangular input. Use shape 1 elsewhere. Link segments and pattern count for the signed input. Disable alternate flipping and select nearest filtering at seed 787. Together the ten smooth-field renders match all 43,264 stored pixels.
 
+### Literal arguments inside pixel function calls
+
+The color-temperature root now matches all 42,496 RGBA pixels across its 19 renders. All 29,440 F32 pixels and all 4,352 pixels in each of U8, U16 and F16 are bit-exact. The previous F32 result differed by up to 1.1920929e−7. The root exposes a scalar temperature, with a default of 3,000. The [temperature cases and scalar fit](#volume-density-dithering-and-color-temperature-controls) give the original settings and varying-input controls.
+
+| Independently constructed F32 controls | Renders | Exact before / compared | Exact after / compared | Maximum error after |
+|---|---:|---:|---:|---:|
+| Nested sum and difference, signed hash field | 24 | 134,270/141,312 | 141,312/141,312 | 0 |
+| Nested arithmetic, logarithm and sine, modular fields | 48 | 247,296/282,624 | 282,624/282,624 | 0 |
+| Temperature fit with warm, cool, unit or varying coefficients and full RGB | 25 | 98,576/113,920 | 113,920/113,920 | 0 |
+
+Create a separate four-input scalar function for each expression a×b+c×d, a×b−c×d, ln(a) or sin(a). Give each function a distinct identifier. Bind the first pair, the second pair, all four or none of the arguments to literal values (.1875, 1.25, −.375, 2.75). For the remaining arguments sample the corresponding channels of an original RGBA32F image at pixel centers. Use 16²/seed 83, 128²/311 and 32²/577. For the first row use 4H/2³²−2 with the [row-major hash](#runtime-pixel-sine-cosine-and-atlas-rotation) at index 4(yN+x)+channel. For the second row use ((73x+93y+7xy+47c+7cy) mod 1024)/256. Double this and subtract four at 32². Inlining the same expressions also matches on all 529,920 control pixels.
+
+When a and b are literals, their product rounds first and the other product can fuse with the sum. At (2,0) of the 128² hash field, c and d have F32 bits be7ff6a8 and bf68ddb9. The expected sum ends in 3eec6a9d. Rounding c×d first gives 3eec6a9c. A literal read inside a function also uses literal arithmetic for its logarithm and sine. The function compiler carries that information through explicit argument connections and accounts for assignments that can replace their values.
+
+Omitting a connection is a separate case. With the same declared defaults and both first-pair ports left open, the hash-field sum/difference agrees on 0/35,328 pixels, maximum .234375238. The four modular-field expressions agree on 0/70,656 pixels, maximum 1.67397642. The measured color-temperature root uses explicit connections for its fit.
+
 ### Five-texel blur kernels
 
 | Original controls with 1.5 < radius ≤ 2.5 | Renders | Exact RGBA pixels / compared | Maximum error |

@@ -875,6 +875,46 @@ fn exposed_choices_are_integers_inside_functions() {
 }
 
 #[test]
+fn nested_pixel_products_keep_the_callers_literal_arguments() {
+    let mut inner = FunctionGraph::default();
+    let names = ["a", "b", "c", "d"];
+    let [a, b, c, d] = names.map(|name| inner.add("get_float1", &[], Some(Value::Text(name.into()))));
+    let left = inner.add("mul", &[a, b], None);
+    let right = inner.add("mul", &[c, d], None);
+    inner.output = Some(inner.add("add", &[left, right], None));
+
+    let mut graph = FunctionGraph::default();
+    let a = graph.add_constant(Value::Float(0.1875));
+    let b = graph.add_constant(Value::Float(1.25));
+    let [c, d] = ["x", "y"].map(|name| graph.add("get_float1", &[], Some(Value::Text(name.into()))));
+    graph.output = Some(graph.add("instance", &[a, b, c, d], None));
+    let call = graph.nodes.last_mut().unwrap();
+    call.instance = Some(materialcraft_core::GraphInstance {
+        label: String::new(),
+        package: String::new(),
+        graph: "sum_products".into(),
+        inputs: names.map(|name| materialcraft_core::GraphPort { identifier: name.into(), type_code: 256 }).into(),
+        outputs: Vec::new(),
+        defaults: names.into_iter().map(|name| (name.into(), Value::Float(0.0))).collect(),
+    });
+    call.source = Some(Ok(std::sync::Arc::new(inner)));
+    let program = compile(&graph, 0).unwrap();
+    for (x, y, expected) in [(0xbe7ff6a8, 0xbf68ddb9, 0x3eec6a9d), (0x3eccdf41, 0xbfaa12de, 0xbe9836b5)] {
+        let variables = BTreeMap::from([("x".into(), Value::Float(f32::from_bits(x))), ("y".into(), Value::Float(f32::from_bits(y)))]);
+        let context = EvaluationContext {
+            scope: super::FunctionScope::PixelProcessor,
+            position: [0.5; 2],
+            size: [1.0; 2],
+            images: &[],
+            image_formats: &[],
+            tile: true,
+            variables: &variables,
+        };
+        assert_eq!(program.evaluate_pixel(&context, &mut EvaluationState::default()).unwrap(), Value::Float(f32::from_bits(expected)));
+    }
+}
+
+#[test]
 fn nested_function_assignments_escape_but_arguments_stay_local() {
     let mut inner = FunctionGraph::default();
     let argument = inner.add("get_integer1", &[], Some(Value::Text("argument".into())));

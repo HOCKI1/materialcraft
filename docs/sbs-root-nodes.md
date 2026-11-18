@@ -35,7 +35,7 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **259 Parity**, **35 In progress** and **252 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **260 Parity**, **34 In progress** and **252 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
 
 [Grayscale sampler measurements](parity-fixes.md#grayscale-sampling-of-color-inputs) · [Value sampling across 240 typed comparisons](parity-fixes.md#value-processor-texture-filtering)
 
@@ -80,7 +80,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [bevel_smooth.sbs/blur_gaussian_grayscale](../assets/sbs/bevel_smooth.sbs) | 1 | Yes | [In progress · 160,049/311,552 pixels, higher intensities differ](parity-fixes.md#five-texel-blur-kernels) |
 | [bevel_smooth.sbs/debug/bevel_smooth_debug_position](../assets/sbs/bevel_smooth.sbs) | 1 | Yes | [In progress · 280,307/285,952 exact pixels](parity-fixes.md#segment-mapping-and-normal-graph-rechecks) |
 | [bevel_smooth.sbs/jump_flood_segment_iteration](../assets/sbs/bevel_smooth.sbs) | 1 | Yes | [Parity · 171,264 exact pixels in 18 renders](parity-fixes.md#segment-mapping-and-normal-graph-rechecks) |
-| [blackbody.sbs/blackbody](../assets/sbs/blackbody.sbs) | 0 | No | [In progress · 34,048/42,496 pixels across 19 renders](parity-fixes.md#volume-density-dithering-and-color-temperature-controls) |
+| [blackbody.sbs/blackbody](../assets/sbs/blackbody.sbs) | 0 | No | [Parity · 19 renders, 42,496 exact RGBA pixels](parity-fixes.md#literal-arguments-inside-pixel-function-calls) |
 | [blend.sbs/add](../assets/sbs/blend.sbs) | 3 | Yes | [Parity: 5 cases](parity-fixes.md#verified-cases) |
 | [blend.sbs/add_sub](../assets/sbs/blend.sbs) | 3 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [blend.sbs/color](../assets/sbs/blend.sbs) | 3 | No | [Parity · 18 cases, 171,264 exact pixels](parity-fixes.md#gradient-interpolation-color-blend-and-chrominance) |
