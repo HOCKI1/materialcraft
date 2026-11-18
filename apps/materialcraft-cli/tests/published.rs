@@ -47,3 +47,43 @@ fn a_published_graph_bakes_openpbr_variations_after_the_project_is_removed() {
     assert_eq!(run(&dir, &["info", "oak.mcmat"]), initial);
     std::fs::remove_dir_all(&dir).unwrap();
 }
+
+#[test]
+fn failed_materialx_reexport_preserves_the_last_complete_material() {
+    let dir = std::env::temp_dir().join(format!("materialcraft-cli-reexport-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    run(&dir, &["new", "pbr", "source.sbs", "--name", "Oak", "--size", "32"]);
+    let export = |folder, size| run(&dir, &["export", "source.sbs", folder, "--profile", "materialx", "--size", size]);
+    let first = export("material", "32");
+    let added = run(&dir, &["run", "source.sbs", "graph.node.add", r#"{"def":"output","params":{"identifier":"extra"}}"#, "-o", "source.sbs"]);
+    let wire = json!({"from":1,"to":added["id"],"toPort":"input"}).to_string();
+    run(&dir, &["run", "source.sbs", "graph.connect", &wire, "-o", "source.sbs"]);
+    let next = export("reference", "64");
+    let material = dir.join("material");
+    let original_files: Vec<_> = first["maps"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|map| {
+            let name = map["file"].as_str().unwrap();
+            (name, std::fs::read(material.join(name)).unwrap())
+        })
+        .collect();
+    let document = std::fs::read(material.join("material.mtlx")).unwrap();
+    let extra = next["maps"].as_array().unwrap().iter().find(|map| map["identifier"] == "extra").unwrap();
+    let blocked = material.join(extra["file"].as_str().unwrap());
+    std::fs::create_dir(&blocked).unwrap();
+
+    let failed = Command::new(env!("CARGO_BIN_EXE_materialcraft-cli"))
+        .current_dir(&dir)
+        .args(["export", "source.sbs", "material", "--profile", "materialx", "--size", "64"])
+        .output()
+        .unwrap();
+
+    assert!(!failed.status.success());
+    assert_eq!(std::fs::read(material.join("material.mtlx")).unwrap(), document);
+    for (name, bytes) in original_files {
+        assert_eq!(std::fs::read(material.join(name)).unwrap(), bytes, "{name}");
+    }
+    std::fs::remove_dir_all(dir).unwrap();
+}

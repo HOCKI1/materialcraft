@@ -7,10 +7,12 @@ mod export_tests;
 mod material_export_settings;
 mod material_tab;
 mod outputs;
+mod texture_depth;
 
 pub use export_format::ExportFormat;
 pub use export_settings::{BatchExportSettings, ExportSettings, ExportTab, output_key};
-pub use material_export_settings::{MaterialExportSettings, TextureDepth};
+pub use material_export_settings::MaterialExportSettings;
+pub use texture_depth::TextureDepth;
 
 use egui::{RichText, Ui, vec2};
 use egui_phosphor::regular as icon;
@@ -375,7 +377,7 @@ fn publish(app: &mut MaterialCraftApp, settings: &ExportSettings) -> bool {
         (
             "file.export",
             json!({"graph":index,"dir":material.folder,"profile":"materialx","size":material.size,"depth":depth,"outputs":outputs,
-            "colorSpaces":color_spaces,"displacementScale":material.displacement_scale}),
+            "colorSpaces":color_spaces,"displacementScale":material.displacement_scale,"normalFormat":material.normal_y_down.map(|down| if down { "directx" } else { "opengl" })}),
         )
     };
     #[cfg(not(target_arch = "wasm32"))]

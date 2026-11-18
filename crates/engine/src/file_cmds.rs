@@ -38,7 +38,7 @@ pub(crate) fn specs() -> Vec<CommandSpec> {
             "Export outputs...",
             ["File"],
             Some("Ctrl+Shift+E"),
-            "{dir, format? (png|jpg|tga|bmp|webp|exr|hdr), pattern? ($(graph)_$(identifier)), depth? (8|16|32), size? (px of the larger side, or [width, height]; rounded down to powers of two, 16..8192; default the graph's size, keeping its proportions), outputs? ([identifier]: default every connected output), colorSpaces? ({identifier: srgb|linear|raw}: default sRGB for color usages, raw for data; linear and raw write values unchanged), graph?, profile? (maps|materialx), preset?, values? {parameter: value}, inputs? {identifier: image path}, displacementScale?} cooks the selected outputs and writes the requested export",
+            "{dir, format? (png|jpg|tga|bmp|webp|exr|hdr), pattern? ($(graph)_$(identifier)), depth? (8|16|32), size? (px of the larger side, or [width, height]; rounded down to powers of two, 16..8192; default the graph's size, keeping its proportions), outputs? ([identifier]: default every connected output), colorSpaces? ({identifier: srgb|linear|raw}: default sRGB for color usages, raw for data; linear and raw write values unchanged), graph?, profile? (maps|materialx), preset?, values? {parameter: value}, inputs? {identifier: image path}, normalFormat? (opengl|directx), displacementScale?} cooks the selected outputs and writes the requested export",
             has_graph,
             export
         ),
@@ -326,7 +326,7 @@ fn save(_: &mut Session, _: &J) -> Result<J> {
 /// Cook the requested graph at full size and encode its requested outputs (`pattern` names files)
 pub fn export_outputs(s: &Session, request: &ExportRequest) -> Result<Vec<Exported>> {
     let options = crate::MaterialOptions { size: request.size, ..Default::default() };
-    let cooked = options.cook(s, request.graph, None)?;
+    let cooked = options.cook(s, request.graph, request.outputs.as_deref(), None)?;
     encode_outputs(s.pkg.graph(request.graph)?, &cooked, request)
 }
 
@@ -364,7 +364,9 @@ fn export(s: &mut Session, p: &J) -> Result<J> {
     std::fs::create_dir_all(folder).map_err(|error| bad("file.export", format!("{dir}: {error}")))?;
 
     // Check every name first so a rejected export leaves the folder untouched
-    if let Some(existing) = files.iter().find(|exported| folder.join(&exported.file).exists()) {
+    if p.get("profile").and_then(J::as_str) != Some("materialx")
+        && let Some(existing) = files.iter().find(|exported| folder.join(&exported.file).exists())
+    {
         return Err(bad(
             "file.export",
             format!("duplicate export filename `{}`: use unique output identifiers or a different filename pattern", existing.file),

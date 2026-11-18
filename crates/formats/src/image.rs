@@ -62,7 +62,7 @@ pub fn decode(bytes: &[u8], linear: bool) -> Result<Image> {
 /// Encode `image` as `ext` (see [`EXPORT_FORMATS`]). `srgb`: color values are written through the sRGB curve (base color); data maps (normal, roughness…) are written linear
 pub fn encode(image: &Image, ext: &str, depth: Depth, srgb: bool) -> Result<Vec<u8>> {
     let ext = ext.trim_start_matches('.').to_ascii_lowercase();
-    let encode_channel = |v: f32| if srgb && image.kind() == Kind::Color { linear_to_srgb(v) } else { v };
+    let encode_channel = |v: f32| if srgb { linear_to_srgb(v) } else { v };
     let (w, h) = (image.width(), image.height());
     let color = image.kind() == Kind::Color;
     let pixel = |i: usize| -> [f32; 4] {
@@ -70,7 +70,7 @@ pub fn encode(image: &Image, ext: &str, depth: Depth, srgb: bool) -> Result<Vec<
             let s = image.data().get(i * 4..i * 4 + 4).unwrap_or(&[0.0, 0.0, 0.0, 1.0]);
             [encode_channel(s[0]), encode_channel(s[1]), encode_channel(s[2]), s[3]]
         } else {
-            let v = image.data().get(i).copied().unwrap_or(0.0);
+            let v = encode_channel(image.data().get(i).copied().unwrap_or(0.0));
             [v, v, v, 1.0]
         }
     };

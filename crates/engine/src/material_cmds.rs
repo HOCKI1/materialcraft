@@ -58,7 +58,8 @@ pub fn image_inputs(g: &Graph) -> Vec<ImageInput> {
     for n in g.nodes.iter().filter(|n| matches!(n.def.as_str(), "input_grayscale" | "input_color")) {
         let identifier = materialcraft_eval::identifier(n);
         if !out.iter().any(|i| i.identifier == identifier) {
-            out.push(ImageInput { identifier, kind: if n.def == "input_grayscale" { "gray" } else { "color" }.into() });
+            let usage = if n.params.contains_key("usage") { materialcraft_eval::output_usage(n) } else { "any" };
+            out.push(ImageInput { identifier, kind: if n.def == "input_grayscale" { "gray" } else { "color" }.into(), usage: usage.into() });
         }
     }
     out

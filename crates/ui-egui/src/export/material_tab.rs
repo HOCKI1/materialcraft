@@ -35,6 +35,15 @@ pub(super) fn show(app: &mut MaterialCraftApp, ui: &mut Ui, settings: &mut Expor
                 }
             });
             ui.end_row();
+            super::form_label(ui, tr("Source normals"));
+            let conventions = [(None, "Automatic"), (Some(false), "OpenGL (Y+)"), (Some(true), "DirectX (Y-)")];
+            let label = conventions.iter().find(|(value, _)| *value == material.normal_y_down).map_or("Automatic", |(_, label)| *label);
+            super::dropdown(ui, "Source normals", width, tr(label), |ui| {
+                for (value, label) in conventions {
+                    ui.selectable_value(&mut material.normal_y_down, value, tr(label));
+                }
+            });
+            ui.end_row();
             super::form_label(ui, tr("Displacement scale"));
             ui.add(egui::DragValue::new(&mut material.displacement_scale).speed(0.01).range(0.0..=100.0));
             ui.end_row();
@@ -45,6 +54,7 @@ pub(super) fn show(app: &mut MaterialCraftApp, ui: &mut Ui, settings: &mut Expor
         outputs::tree(ui, settings, graph.as_slice());
     }
 }
+
 /// A folder for MaterialX, an archive path for MCMAT
 #[cfg(not(target_arch = "wasm32"))]
 fn ask_destination(app: &mut MaterialCraftApp, tab: ExportTab, root: &str) {

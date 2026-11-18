@@ -1,8 +1,8 @@
 use craft_texture::Image;
-use materialcraft_core::{Graph, Value};
+use materialcraft_core::{BaseParameter, Graph, SizeMode, Value};
 use materialcraft_eval::{Cooked, Options};
 use serde_json::Value as J;
-use std::collections::BTreeMap;
+use std::{borrow::Cow, collections::BTreeMap};
 
 use crate::commands::bad;
 use crate::{ExportSize, Result, Session};
@@ -19,11 +19,13 @@ impl MaterialOptions {
     pub fn from_params(graph: &Graph, p: &J, read: impl Fn(&str) -> Result<Vec<u8>>) -> Result<Self> {
         let invalid = |msg| bad("material.cook", msg);
         let mut options = Self { size: crate::export_request::export_size(p.get("size"))?, ..Default::default() };
+
         if let Some(value) = p.get("preset").filter(|v| !v.is_null()) {
             let name = value.as_str().ok_or_else(|| invalid("preset must be a name".into()))?;
             let preset = graph.presets.iter().find(|preset| preset.name == name).ok_or_else(|| invalid(format!("unknown preset `{name}`")))?;
             options.values.clone_from(&preset.values);
         }
+
         if let Some(value) = p.get("values").filter(|v| !v.is_null()) {
             for (id, v) in value.as_object().ok_or_else(|| invalid("values must map parameter identifiers to values".into()))? {
                 let param = graph.exposed.iter().find(|e| e.id == *id).ok_or_else(|| invalid(format!("unknown exposed parameter `{id}`")))?;
@@ -31,39 +33,64 @@ impl MaterialOptions {
                 options.values.insert(id.clone(), value);
             }
         }
+
         if let Some(value) = p.get("inputs").filter(|v| !v.is_null()) {
             let declared = crate::material_cmds::image_inputs(graph);
-            let mut remaining = 1usize << 30;
+            const MAX_DECODED_INPUT_BYTES: usize = 1 << 30;
+            let mut remaining = MAX_DECODED_INPUT_BYTES;
             for (id, path) in value.as_object().ok_or_else(|| invalid("inputs must map image identifiers to file paths".into()))? {
-                if !declared.iter().any(|input| input.identifier == *id) {
-                    return Err(invalid(format!("unknown image input `{id}`")));
-                }
+                let input = declared.iter().find(|input| input.identifier == *id).ok_or_else(|| invalid(format!("unknown image input `{id}`")))?;
+                let linear = if graph.input_images.contains_key(id) {
+                    graph.input_images_linear.contains(id)
+                } else {
+                    let usage = if input.usage == "any" { id } else { &input.usage };
+                    !materialcraft_formats::material::srgb_usage(usage)
+                };
                 let path = path.as_str().ok_or_else(|| invalid(format!("inputs.{id} must be an image path")))?;
-                let image = materialcraft_formats::decode(&read(path)?, !materialcraft_formats::material::srgb_usage(id))?;
+                let image = materialcraft_formats::decode(&read(path)?, linear)?;
                 remaining = remaining.checked_sub(std::mem::size_of_val(image.data())).ok_or_else(|| invalid("decoded image inputs exceed 1 GiB".into()))?;
                 options.inputs.insert(id.clone(), image);
             }
         }
+
         Ok(options)
     }
 
-    pub fn cook(&self, session: &Session, index: usize, max_size: Option<u32>) -> Result<Cooked> {
-        let mut package = session.pkg.clone();
-        let graph = package.graph_mut(index)?;
+    pub(crate) fn cook(&self, session: &Session, index: usize, selected: Option<&[String]>, max_size: Option<u32>) -> Result<Cooked> {
+        let graph = session.pkg.graph(index)?;
+        let roots = graph
+            .nodes
+            .iter()
+            .filter(|node| node.def == "output")
+            .filter(|node| selected.is_none_or(|ids| ids.contains(&materialcraft_eval::identifier(node))))
+            .map(|node| node.id)
+            .collect();
+        let mut package = Cow::Borrowed(&session.pkg);
         if let Some(size) = self.size {
+            let graph = package.to_mut().graph_mut(index)?;
             graph.size = size.log2_size(graph.size);
+
+            // Fixed-size generators keep their native detail while final output bridges resample to the requested size
+            for output in graph.nodes.iter_mut().filter(|node| node.def == "output") {
+                output.base.size_mode = SizeMode::RelativeToParent;
+                output.base.size = [0, 0];
+                output.base.functions.remove(&BaseParameter::OutputSize);
+            }
         }
+
         let decoder = session.resource_decoder();
         let mut options = Options::new(&decoder);
         options.environment = session.environment;
         options.max_size = max_size;
-        options.only = Some(graph.nodes.iter().filter(|node| node.def == "output").map(|node| node.id).collect());
+        options.only = Some(roots);
         options.inputs.clone_from(&self.inputs);
         options.overrides.clone_from(&self.values);
+
         let cooked = materialcraft_eval::cook(&package, index, &options, &session.cache);
         if let Some((id, error)) = cooked.nodes.iter().find_map(|(id, r)| Some((id, r.error.as_ref()?))) {
-            return Err(bad("material.cook", format!("graph `{}`, node {}: {error}", session.pkg.graph(index)?.sbs_path(), id.0)));
+            return Err(bad("material.cook", format!("graph `{}`, node {}: {error}", graph.sbs_path(), id.0)));
         }
+
         Ok(cooked)
     }
 }

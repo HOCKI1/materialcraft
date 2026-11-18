@@ -222,3 +222,117 @@ fn snapshots_transitive_function_calls_and_rejects_recursion_or_missing_assets()
     std::sync::Arc::make_mut(s.pkg.dependencies.get_mut("a.sbs").unwrap()).resources.clear();
     assert!(materialcraft_formats::material::write_material(&s.pkg, s.graph).unwrap_err().to_string().contains("missing resource"));
 }
+
+fn export_fixture(source: &str, params: &[(&str, Value)], usage: &str) -> Session {
+    let mut graph = Graph::new("Surface");
+    graph.size = [5, 5];
+    let generator = node(&mut graph, source, params);
+    output(&mut graph, generator, "output", "result", usage);
+
+    let mut package = Package::new("Studio");
+    package.graphs.push(graph);
+    Session::new(package)
+}
+
+#[test]
+fn grayscale_base_color_uses_the_transfer_declared_to_materialx() {
+    let session = export_fixture("uniform", &[("color", Value::Color([0.5; 4])), ("color_mode", Value::Bool(false))], "baseColor");
+
+    let (files, report) = material_bake::export(&session, &json!({"profile":"materialx"}), material_bake::read_input).unwrap();
+    let map = &report["maps"][0];
+    let image = image::load_from_memory(&files.iter().find(|file| file.file == map["file"]).unwrap().bytes).unwrap();
+
+    assert_eq!(map["colorSpace"], "srgb");
+    assert_eq!(image.into_rgb8().get_pixel(0, 0).0, [188; 3]);
+}
+
+#[test]
+fn an_overridden_color_input_keeps_the_published_transfer() {
+    let session =
+        export_fixture("input_color", &[("identifier", Value::Text("swatch".into())), ("usage", Value::Enum(ComponentUsage::index("baseColor")))], "baseColor");
+    let png = encode(&Image::filled(32, 32, Kind::Color, [0.21586; 4]), "png", Depth::U8, true).unwrap();
+
+    let cooked = material_bake::cook(&session, &json!({"inputs":{"swatch":"color.png"}}), |_| Ok(png.clone())).unwrap();
+
+    assert!((cooked["outputs"][0]["mean"][0].as_f64().unwrap() - 0.21586).abs() < 0.001);
+}
+
+#[test]
+fn normal_node_conventions_produce_the_same_published_y_up_map() {
+    let mut session = export_fixture("normal", &[("intensity", Value::Float(8.0))], "normal");
+    let graph = session.graph_mut().unwrap();
+    let normal = graph.nodes[0].id;
+    let input = node(graph, "input_grayscale", &[("identifier", Value::Text("slope".into()))]);
+    graph.connect(input, "output", normal, "input").unwrap();
+    let slope = Image::generate(32, 32, Kind::Gray, |_, y| [if y < 16 { 0.0 } else { 1.0 }; 4]);
+    let png = encode(&slope, "png", Depth::U8, false).unwrap();
+    let mut greens = Vec::new();
+
+    for open_gl in [None, Some(false), Some(true)] {
+        if let Some(open_gl) = open_gl {
+            session.graph_mut().unwrap().node_mut(normal).unwrap().params.insert("opengl".into(), Value::Bool(open_gl));
+        }
+        let (files, report) = material_bake::export(&session, &json!({"profile":"materialx","inputs":{"slope":"input.png"}}), |_| Ok(png.clone())).unwrap();
+        let bytes = &files.iter().find(|file| file.file == report["maps"][0]["file"]).unwrap().bytes;
+        let pixel = materialcraft_formats::decode(bytes, true).unwrap().get(16, 16, false);
+
+        assert_eq!(report["normalOrientation"], "Y+");
+        greens.push(pixel[1]);
+    }
+
+    assert!(greens[2] > 0.8);
+    assert!(greens.iter().all(|green| (green - greens[2]).abs() < 0.0001), "{greens:?}");
+}
+
+#[test]
+fn raw_normal_inputs_accept_an_explicit_source_convention() {
+    let session = export_fixture("input_color", &[("identifier", Value::Text("normal".into()))], "normal");
+    let png = encode(&Image::filled(32, 32, Kind::Color, [0.5, 0.25, 1.0, 1.0]), "png", Depth::U16, false).unwrap();
+
+    for (format, expected) in [(J::Null, 0.25), (json!("opengl"), 0.25), (json!("directx"), 0.75)] {
+        let params = json!({"profile":"maps","inputs":{"normal":"normal.png"},"normalFormat":format});
+        let (files, _) = material_bake::export(&session, &params, |_| Ok(png.clone())).unwrap();
+        let green = materialcraft_formats::decode(&files[0].bytes, true).unwrap().get(0, 0, false)[1];
+        assert!((green - expected).abs() < 0.0001);
+    }
+}
+
+#[test]
+fn selecting_a_healthy_output_excludes_other_cook_failures() {
+    let mut session = export_fixture("uniform", &[], "baseColor");
+    let graph = session.graph_mut().unwrap();
+    let missing = node(graph, "bitmap", &[("resource", Value::Text("missing".into()))]);
+    output(graph, missing, "output", "broken", "roughness");
+
+    for profile in [J::Null, json!("maps"), json!("materialx")] {
+        let (files, _) = material_bake::export(&session, &json!({"profile":profile,"outputs":["result"]}), material_bake::read_input).unwrap();
+        assert!(!files.is_empty());
+
+        assert!(material_bake::export(&session, &json!({"profile":profile,"outputs":["broken"]}), material_bake::read_input).is_err());
+    }
+}
+
+#[test]
+fn requested_bake_dimensions_apply_to_fixed_size_source_nodes() {
+    let mut session = export_fixture("uniform", &[], "baseColor");
+    let id = session.graph().unwrap().nodes[0].id;
+    execute(&mut session, "graph.node.base", &json!({"id":id,"sizeMode":"absolute","size":[4,4]})).unwrap();
+
+    let settings = json!({"profile":"materialx","size":[128,64]});
+    let (files, report) = material_bake::export(&session, &settings, material_bake::read_input).unwrap();
+    let pixels = materialcraft_formats::decode(&files[0].bytes, false).unwrap();
+
+    assert_eq!([pixels.width(), pixels.height()], [128, 64]);
+    assert_eq!(report["maps"][0]["size"], json!([128, 64]));
+    assert_eq!(material_bake::cook(&session, &settings, material_bake::read_input).unwrap()["outputs"][0]["size"], json!([128, 64]));
+}
+
+#[test]
+fn an_openpbr_scalar_rejects_an_unrepresentable_srgb_override() {
+    let session = export_fixture("uniform", &[], "roughness");
+    let settings = json!({"profile":"materialx","colorSpaces":{"result":"srgb"}});
+
+    let result = material_bake::export(&session, &settings, material_bake::read_input);
+
+    assert!(result.err().is_some_and(|error| error.to_string().contains("linear")));
+}

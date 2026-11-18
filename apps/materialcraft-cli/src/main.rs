@@ -33,6 +33,7 @@ USAGE:
                    [--depth 8|16|32] [--size <px|WxH>] [--pattern <p>] [--profile maps|materialx]
                    [--preset <name>] [--input <id>=<image>]...
       Write output images, or material.mtlx and its baked textures with --profile materialx.
+      --normal-format opengl|directx declares the input convention for opaque normal maps.
       --displacement-scale <units> scales signed MaterialX displacement (default 1).
   materialcraft-cli render <input> <out.png> [--size <W>x<H>] [--view 3d|2d] [--scene <id>] [--node <id>]
                    [--yaw <deg>] [--pitch <deg>] [--graph <index>] [--set <input>=<value>]... [--full]
@@ -61,7 +62,24 @@ const SUBCOMMANDS: &[(&str, &[&str], &[&str])] = &[
     ("batch", &[], &[]),
     ("new", &["--size", "--name"], &[]),
     ("cook", &["--graph", "--set", "--size", "--input", "--preset"], &["--full"]),
-    ("export", &["--graph", "--set", "--format", "--depth", "--size", "--pattern", "--profile", "--input", "--preset", "--out", "--displacement-scale"], &[]),
+    (
+        "export",
+        &[
+            "--graph",
+            "--set",
+            "--format",
+            "--depth",
+            "--size",
+            "--pattern",
+            "--profile",
+            "--input",
+            "--preset",
+            "--out",
+            "--displacement-scale",
+            "--normal-format",
+        ],
+        &[],
+    ),
     ("render", &["--size", "--view", "--scene", "--node", "--yaw", "--pitch", "--graph", "--set", "--tiling", "--displacement"], &["--full", "--hq"]),
     ("mcp", &["--bridge", "--token", "--read-root", "--write-root", "--automation-read-root", "--automation-write-root"], &[]),
     ("serve", &["--port", "--read-root", "--write-root", "--automation-read-root", "--automation-write-root"], &[]),
@@ -289,6 +307,7 @@ fn run(cmd: &str, a: &Args) -> Result<(), String> {
             p["depth"] = json!(a.num::<u32>("--depth")?);
             p["pattern"] = json!(a.get("--pattern"));
             p["profile"] = json!(a.get("--profile"));
+            p["normalFormat"] = json!(a.get("--normal-format"));
             p["displacementScale"] = json!(a.num::<f64>("--displacement-scale")?);
             print(&h.export(&p).map_err(|e| e.to_string())?);
         }

@@ -35,6 +35,7 @@ mod warnings;
 mod xml;
 
 pub use constant::SBS_EXT;
+pub(crate) use constant::{MAX_GRAPHS, MAX_NODES};
 pub use layout_frame::LayoutFrame;
 pub use layout_item::LayoutItem;
 pub use library_layout::read_layout;
