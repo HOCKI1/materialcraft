@@ -42,16 +42,16 @@ pub(super) fn decode_embedded_bounded(strdata: &str, remaining: u64) -> std::res
         return Err("embedded resource exceeds the 256 MiB limit".into());
     }
 
-    // Check before inflating: a small inline payload can expand past the package budget.
-    if length as u64 > remaining {
-        return Err(EmbeddedError::Budget);
-    }
-
     let mut out = Vec::new();
 
-    // Reading one extra byte detects data that contradicts the declared format length
-    let mut decoder = flate2::read::ZlibDecoder::new(compressed).take(length as u64 + 1);
+    // Probe only one byte beyond the tighter cap. Corruption detected within that
+    // prefix remains damaged data regardless of the untrusted declared length.
+    // Stop at budget + 1; damage later in an oversized stream is not inspected.
+    let mut decoder = flate2::read::ZlibDecoder::new(compressed).take((length as u64).min(remaining) + 1);
     decoder.read_to_end(&mut out).map_err(|e| format!("bad compressed data: {e}"))?;
+    if out.len() as u64 > remaining {
+        return Err(EmbeddedError::Budget);
+    }
     if out.len() != length {
         return Err(format!("{} bytes where {length} were declared", out.len()).into());
     }
@@ -97,13 +97,16 @@ mod tests {
     }
 
     #[test]
-    fn aggregate_budget_is_checked_before_inflating() {
-        // Deliberately invalid zlib data: the budget guard must run before decompression.
-        let raw = [0, 0, 0, 4, 255];
-        let encoded = base64_engine().encode(raw);
-        assert!(decode_embedded_bounded(&encoded, 3).unwrap_err().to_string().contains("remaining material resource budget"));
-        assert!(!decode_embedded_bounded(&encoded, 4).unwrap_err().to_string().contains("remaining material resource budget"));
-        assert_eq!(decode_embedded_bounded(&encode_embedded(b"four").unwrap(), 4).unwrap(), b"four");
+    fn aggregate_budget_bounds_inflation_without_masking_early_corruption() {
+        for length in [3_u32, 4] {
+            let mut raw = length.to_be_bytes().to_vec();
+            raw.push(255);
+            let encoded = base64_engine().encode(raw);
+            assert!(matches!(decode_embedded_bounded(&encoded, 3), Err(EmbeddedError::Damaged(_))));
+        }
+        let encoded = encode_embedded(b"four").unwrap();
+        assert!(matches!(decode_embedded_bounded(&encoded, 3), Err(EmbeddedError::Budget)));
+        assert_eq!(decode_embedded_bounded(&encoded, 4).unwrap(), b"four");
     }
 
     #[test]

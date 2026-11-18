@@ -26,13 +26,18 @@ pub(super) fn read(element: Node<'_, '_>) -> Option<Result<Vec<GraphPort>, Strin
     })())
 }
 
+// XML 1.0 characters: escaping must not silently remove identifier characters.
+fn xml_identifier_char(c: char) -> bool {
+    matches!(c, '\t' | '\n' | '\r' | '\u{20}'..='\u{d7ff}' | '\u{e000}'..='\u{fffd}' | '\u{10000}'..='\u{10ffff}')
+}
+
 pub(super) fn write(out: &mut String, inputs: &[GraphPort]) -> Result<(), String> {
     if inputs.len() > MAX_INPUTS {
         return Err("Graph instance exceeds the 4096-input limit".into());
     }
     let mut names = BTreeSet::new();
     for port in inputs {
-        if port.identifier.is_empty() || !names.insert(&port.identifier) {
+        if port.identifier.is_empty() || !port.identifier.chars().all(xml_identifier_char) || !names.insert(&port.identifier) {
             return Err("Invalid or duplicate graph input identifier".into());
         }
     }
@@ -70,6 +75,25 @@ mod tests {
 #[cfg(test)]
 mod writer_tests {
     use super::*;
+
+    #[test]
+    fn writer_preserves_identifiers_or_refuses_before_appending() {
+        for invalid in ['\0', '\u{1f}', '\u{fffe}', '\u{ffff}'] {
+            let inputs =
+                vec![GraphPort { identifier: "roughness".into(), type_code: 2 }, GraphPort { identifier: format!("roughness{invalid}"), type_code: 2 }];
+            let mut out = String::from("unchanged");
+            assert!(write(&mut out, &inputs).is_err());
+            assert_eq!(out, "unchanged");
+            assert!(write(&mut out, &inputs[1..]).is_err());
+            assert_eq!(out, "unchanged");
+        }
+        let inputs = vec![GraphPort { identifier: "é😀<&\"'\t\n\r".into(), type_code: 2 }];
+        let mut xml = String::from("<compInstance>");
+        write(&mut xml, &inputs).unwrap();
+        xml.push_str("</compInstance>");
+        let document = roxmltree::Document::parse(&xml).unwrap();
+        assert_eq!(read(document.root_element()).unwrap().unwrap(), inputs);
+    }
 
     #[test]
     fn writer_matches_reader_limits_and_refuses_before_appending() {

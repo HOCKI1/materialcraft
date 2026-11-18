@@ -110,6 +110,21 @@ mod tests {
     }
 
     #[test]
+    fn corrupt_inline_headers_on_either_side_of_the_budget_keep_linked_fallback() {
+        for length in [3_u32, 4] {
+            let mut raw = length.to_be_bytes().to_vec();
+            raw.push(255);
+            let encoded = base64::engine::general_purpose::STANDARD.encode(raw);
+            let content = format!(
+                "<resource><identifier v=\"inline\"/><filepath v=\"resources/member.png\"/><source><binembedded><strdata v=\"{encoded}\"/></binembedded></source></resource>"
+            );
+            let read = read_source(&make_material(&content), 3).unwrap();
+            assert!(read.warnings.is_empty());
+            assert_eq!(read.pkg.resources[0].bytes.as_slice(), b"abc");
+        }
+    }
+
+    #[test]
     fn inline_and_member_assets_share_the_exact_budget_in_either_order() {
         for content in [format!("{}{}", inline(b"four"), linked("member")), format!("{}{}", linked("member"), inline(b"four"))] {
             let material = make_material(&content);

@@ -471,14 +471,12 @@ fn a_saved_package_goes_to_the_document_that_asked() {
     assert_ne!(first, second, "a second package is open");
 
     // SBS saves also write adjacent resources; isolate this test from parallel saves.
-    let directory = temp("asking-document");
-    std::fs::create_dir_all(&directory).unwrap();
-    let path = directory.join("first.sbs");
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("first.sbs");
     let saved = save_to(&mut app, first, false, &path.display().to_string());
     assert!(saved, "{}", app.toasts.last().map_or("no error toast", |toast| toast.text.as_str()));
     assert_eq!(app.session.document_id, first, "the asking package is active again");
     assert_eq!(app.session.path.as_deref().map(std::path::PathBuf::from), std::fs::canonicalize(&path).ok());
-    std::fs::remove_dir_all(directory).unwrap();
 }
 
 #[test]
