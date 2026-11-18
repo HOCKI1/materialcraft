@@ -308,7 +308,7 @@ impl SbsWriter {
                     dependency
                 );
                 if let Some(instance) = &node.instance {
-                    super::instance_interface::write(out, &instance.inputs);
+                    super::instance_interface::write(out, &instance.inputs).map_err(FormatError::Io)?;
                 }
                 write_bridgings(out, outputs);
                 out.push_str("</compInstance>");

@@ -4,13 +4,15 @@ use materialcraft_core::GraphPort;
 use roxmltree::Node;
 use std::{collections::BTreeSet, fmt::Write};
 
+const MAX_INPUTS: usize = 4096;
+
 pub(super) fn read(element: Node<'_, '_>) -> Option<Result<Vec<GraphPort>, String>> {
     let interface = child_element(element, "materialcraftInterface")?;
     Some((|| {
         let mut inputs = Vec::new();
         let mut names = BTreeSet::new();
         for port in children_named(interface, "input") {
-            if inputs.len() == 4096 {
+            if inputs.len() == MAX_INPUTS {
                 return Err("Graph instance exceeds the 4096-input limit".into());
             }
             let identifier = child_value(port, "identifier").unwrap_or("");
@@ -24,12 +26,22 @@ pub(super) fn read(element: Node<'_, '_>) -> Option<Result<Vec<GraphPort>, Strin
     })())
 }
 
-pub(super) fn write(out: &mut String, inputs: &[GraphPort]) {
+pub(super) fn write(out: &mut String, inputs: &[GraphPort]) -> Result<(), String> {
+    if inputs.len() > MAX_INPUTS {
+        return Err("Graph instance exceeds the 4096-input limit".into());
+    }
+    let mut names = BTreeSet::new();
+    for port in inputs {
+        if port.identifier.is_empty() || !names.insert(&port.identifier) {
+            return Err("Invalid or duplicate graph input identifier".into());
+        }
+    }
     out.push_str("<materialcraftInterface>");
     for port in inputs {
         let _ = write!(out, "<input><identifier v=\"{}\"/><type v=\"{}\"/></input>", xml_escape(&port.identifier), port.type_code);
     }
     out.push_str("</materialcraftInterface>");
+    Ok(())
 }
 
 #[cfg(test)]
@@ -52,5 +64,30 @@ mod tests {
         assert_eq!(parse(&body).unwrap().len(), 4096);
         body.push_str("<input><identifier v=\"extra\"/><type v=\"2\"/></input>");
         assert!(parse(&body).is_err());
+    }
+}
+
+#[cfg(test)]
+mod writer_tests {
+    use super::*;
+
+    #[test]
+    fn writer_matches_reader_limits_and_refuses_before_appending() {
+        let mut inputs: Vec<_> = (0..MAX_INPUTS).map(|index| GraphPort { identifier: format!("p{index}"), type_code: 2 }).collect();
+        let mut xml = String::from("<compInstance>");
+        write(&mut xml, &inputs).unwrap();
+        xml.push_str("</compInstance>");
+        let document = roxmltree::Document::parse(&xml).unwrap();
+        assert_eq!(read(document.root_element()).unwrap().unwrap(), inputs);
+        inputs.push(GraphPort { identifier: "extra".into(), type_code: 2 });
+        let mut out = String::from("unchanged");
+        assert!(write(&mut out, &inputs).unwrap_err().contains("4096"));
+        assert_eq!(out, "unchanged");
+        inputs.truncate(2);
+        inputs[1].identifier = inputs[0].identifier.clone();
+        assert!(write(&mut out, &inputs).is_err());
+        inputs[1].identifier.clear();
+        assert!(write(&mut out, &inputs).is_err());
+        assert_eq!(out, "unchanged");
     }
 }
