@@ -35,7 +35,7 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **299 Parity**, **44 In progress** and **203 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **301 Parity**, **44 In progress** and **201 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
 
 [Grayscale sampler measurements](parity-fixes.md#grayscale-sampling-of-color-inputs) · [Value sampling across 240 typed comparisons](parity-fixes.md#value-processor-texture-filtering)
 
@@ -370,7 +370,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [normal_invert.sbs/normal_invert](../assets/sbs/normal_invert.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [normal_mapper.sbs/normal_mapper](../assets/sbs/normal_mapper.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [normal_normalise.sbs/normal_normalise](../assets/sbs/normal_normalise.sbs) | 1 | No | [Parity · 18 renders, all 171,264 pixels exact](parity-fixes.md#normal-maps-panoramas-and-primitive-shapes) |
-| [normal_sobel.sbs/normal_sobel](../assets/sbs/normal_sobel.sbs) | 1 | Yes | [In progress · 171,032/171,264 exact pixels](parity-fixes.md#segment-mapping-and-normal-graph-rechecks) |
+| [normal_sobel.sbs/normal_sobel](../assets/sbs/normal_sobel.sbs) | 1 | Yes | [Parity · 27 renders, all 213,504 pixels exact](parity-fixes.md#sobel-normals-and-nadir-projection) |
 | [normal_sobel.sbs/normal_sobel_2](../assets/sbs/normal_sobel.sbs) | 1 | No | [Parity · 171,264 exact pixels in 18 renders](parity-fixes.md#segment-mapping-and-normal-graph-rechecks) |
 | [normal_to_height_2.sbs/normal_to_height](../assets/sbs/normal_to_height_2.sbs) | 1 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [normal_to_height_hq.sbs/base_algorithm_height_distance](../assets/sbs/normal_to_height_hq.sbs) | 1 | Yes | [Parity · 13 cases, 163,840 exact pixels](parity-fixes.md#height-distance-texture-mapping-skew-and-weave) |
@@ -379,8 +379,8 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [normal_vector_rotation.sbs/normal_vector_rotation](../assets/sbs/normal_vector_rotation.sbs) | 2 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [panorama_gradients.sbs/panorama_gradient_2_points](../assets/sbs/panorama_gradients.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [panorama_gradients.sbs/panorama_gradient_linear](../assets/sbs/panorama_gradients.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [panorama_nadir_extract.sbs/nadir_extract](../assets/sbs/panorama_nadir_extract.sbs) | 1 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [panorama_nadir_patch.sbs/panorama_nadir_patch](../assets/sbs/panorama_nadir_patch.sbs) | 2 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [panorama_nadir_extract.sbs/nadir_extract](../assets/sbs/panorama_nadir_extract.sbs) | 1 | No | [Parity · 18 renders, all 174,336 pixels exact](parity-fixes.md#sobel-normals-and-nadir-projection) |
+| [panorama_nadir_patch.sbs/panorama_nadir_patch](../assets/sbs/panorama_nadir_patch.sbs) | 2 | No | [In progress · 17 renders, 172,780/173,312 exact pixels](parity-fixes.md#sobel-normals-and-nadir-projection) |
 | [panorama_physical_sun_sky.sbs/Impl/GetOneParam](../assets/sbs/panorama_physical_sun_sky.sbs) | 1 | Yes | [Parity · 25 exact float3 outputs](parity-fixes.md#color-temperature-range-reductions-sky-parameters-and-polygon-paths) |
 | [panorama_position.sbs/panorama_3d_position](../assets/sbs/panorama_position.sbs) | 0 | No | [Parity · 18 renders, all 171,264 pixels exact](parity-fixes.md#normal-maps-panoramas-and-primitive-shapes) |
 | [panorama_rotation.sbs/panorama_rotation](../assets/sbs/panorama_rotation.sbs) | 1 | No | [Parity · 206,336 exact pixels in 26 renders](parity-fixes.md#segment-mapping-and-normal-graph-rechecks) |

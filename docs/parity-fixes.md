@@ -790,6 +790,20 @@ For a square side N, fill R with an impulse at (N/2,N/2), G with the column x=N/
 
 Wider kernels still differ. For an F32 impulse blurred at 128² and intensity 4, the five horizontal stripe samples centered on the impulse are .12451171875, .25048828125, .25, .25048828125 and .12451171875. Both outer texels differ from a uniformly weighted window with fractional ends.
 
+### Sobel normals and nadir projection
+
+| Root | Renders | Exact RGBA pixels / compared | Maximum U8 / U16 / F16 / F32 error |
+|---|---:|---:|---|
+| First Sobel normal | 27 | 213,504/213,504 | 0 / 0 / 0 / 0 |
+| Nadir extract | 18 | 174,336/174,336 | 0 / 0 / 0 / 0 |
+| Nadir patch | 17 | 172,780/173,312 | 0 / 1 / 3.814697266e-06 / 0.0004730224609 |
+
+The first Sobel normal now matches all 171,264 pixels in the [earlier Sobel matrix](#segment-mapping-and-normal-graph-rechecks), including the 232 differing pixels in that report. Nadir extract now matches all 132,096 pixels in its original, four-format and independent cases. The earlier binary matched 132,064 with maximum F32 error .00468292832. Its 32 differences were present before the [pixel quotient correction](#pixel-quotients-and-volume-mask-interpolation). Use the original linear byte foreground at 128² and 256² with seed zero, then 128² at seed 42. The changed render uses rotation .125, scale 3 and gamma mode 1 at 128². Repeat that setting in the [four-format and independent cases](#four-format-inventory-comparison).
+
+For nine more renders per root, set D=((7 floor(x/3)+11 floor(y/5)) mod 19)/18. Use 16² F32 at seed 83, four output formats at 64²/179, 128² F32/277, 64×32 input on a 64² F32 canvas/379, 32×64 input on a 32² F32 canvas/479, and repeat 64² F32/577. For Sobel, use height −.375 on columns divisible by 13, 1.625 on the remaining rows divisible by 11, and D elsewhere. Use defaults at 16². At 64², 128², 64×32 and 32×64 use intensities .375, 2.625, 0 and −1.25 and normal formats 0, 1, 0 and 1 respectively. For nadir extract, use (u,v,D,A) at normalized texel centers with A=.875 on x<W/8 or y<2 and .3125 elsewhere. Use defaults at 16², then scale (2.625,8.125,.875,4.5), rotation (.1875,−.3125,.5,−.0625), and gamma mode (1,0,1,0) in the same size order. Each root matches all 42,240 pixels in these nine renders.
+
+For nadir patch, use the eight [banded inputs and seeds](#panoramic-line-light-and-horizon-across-the-seam), with defaults at 16². At 64², 128² and with rectangular input use patch rotation .0625, .125 and .1875 and patch alpha modes 1, 0 and 1, respectively. Use frame thickness .09375, patch scale .4375, size (.8125,1.125), hardness .3125, source rotation offset −.09375, source position (.96875,.8125) and patch position (.03125,.96875). Show frames at 128² and disable the patch only for the rectangular input. The two input bridges match in the 64² and 128² F32 probes. The pixel processor is the first differing buffer, with 4,008/4,096 and 16,204/16,384 exact pixels and maxima 2.98023224e−7 and 3.57627869e−7.
+
 ### Segment, mapping and normal graph rechecks
 
 | Root | Renders | Exact pixels / compared | Maximum error |
