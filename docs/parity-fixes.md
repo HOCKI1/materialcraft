@@ -95,6 +95,18 @@ Two other roots match the original four eight-bit cases at 128²/256², includin
 
 Each format column compares all channels of 4,096 pixels. Clone uses 128² input fields in the 64² cases.
 
+### Clone mask and alpha rounding
+
+In the 64² Clone graph the transformed foreground, source image and blurred mask each matched all 4,096 source pixels. The final normal-copy Blend produced the entire U16 and F32 discrepancy. After correcting that operation, all eight cases listed above match **131,072/131,072 pixels**, maximum error zero. This includes 4,096/4,096 each in RGBA8, RGBA16, RGBA16F and RGBA32F at 64².
+
+For an independent 64² Blend control, form byte-valued foreground `(17*x+31*y, 7*x+3*y, 11*x+5*y, 5*x+11*y)`, background `(29*x+13*y, 128+7*x, 5+5*y, 13*x+3*y)` and mask `7*x+9*y`, each modulo 256. Use default normal-copy blending and seed zero. Test each as linear U8 and as float32 normalized by 255. The grayscale float fields may be encoded as equal RGB channels with an opaque alpha and connected to a grayscale input.
+
+For each input format, compare the varying fields, an opaque foreground, a white mask, white and black foreground RGB, white and black background RGB, zero background alpha, and constant foreground alpha 127 with mask 159. Repeat the first three controls with grayscale source and background. Each of these 24 float-output cases matches 4,096/4,096 pixels, maximum error zero.
+
+With float inputs, repeat the varying field, black background RGB and zero background alpha at global opacity .3 and .625. Repeat at .3 with alpha blending disabled. For signed fields replace each normalized input component `v` with `3*v-1` and run at opacity .3 and 1. Finally test opacity .07 with and without the mask, and opacity 1e-8 with the mask. All 24 controls match 4,096/4,096 pixels each, maximum error zero.
+
+The measured operation first takes the complement of mask transparency in float32, then multiplies by the global opacity. Color weights take the complement of foreground transparency. Output coverage uses the original foreground alpha. Fusing the background contribution into the weighted foreground reproduces the measured RGB rounding, including negative inputs and non-opaque coverage.
+
 ### Height to normal in world units
 
 Both roots in `height_to_normal_world_units.sbs` match **131,072/131,072 RGBA pixels each** across eight cases. For a square grayscale height input, store `(17*x+31*y) mod 256` at each integer coordinate. Use default settings at 128² and 256², repeat 128² with seed 42, then set `surface_size=100`, `height_depth=8`, `normal_format=0` and `sampling=1` at 128² with seed zero. Each root matches 16,384, 65,536, 16,384 and 16,384 RGBA8 pixels respectively. Keep those changed settings and the 128² input, then cook at 64² with seed 42. U8, U16, F16 and F32 each match 4,096/4,096 pixels for both roots. Every maximum error is zero. Each 64² output contains 49 distinct normals.

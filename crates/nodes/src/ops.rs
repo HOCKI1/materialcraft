@@ -366,6 +366,22 @@ pub fn blend_channel(mode: i32, b: f32, f: f32) -> f32 {
 /// `blend_alpha`: composite coverage; false preserves background alpha.
 #[inline]
 pub fn blend_px(mode: i32, bg: [f32; 4], fg: [f32; 4], opacity: f32, color_blending: i32, blend_alpha: bool, clamp: bool) -> [f32; 4] {
+    if mode == 0 && color_blending == 0 {
+        // The color weights use the complement of transparency. Coverage uses the original alpha.
+        let alpha = 1.0 - (1.0 - fg[3]);
+        let source_weight = alpha * opacity;
+        let background_weight = (-alpha).mul_add(opacity, 1.0);
+        let mut out = bg;
+        for k in 0..3 {
+            let color = bg[k].mul_add(background_weight, fg[k] * source_weight);
+            out[k] = if clamp { color.clamp(0.0, 1.0) } else { color };
+        }
+        if blend_alpha {
+            out[3] = (1.0 - bg[3]).mul_add(fg[3] * opacity, bg[3]);
+        }
+        return out;
+    }
+
     // Switch already interpolates RGBA; another alpha weight composites twice
     let t = opacity * if mode != 7 { fg[3] } else { 1.0 };
     let coverage = bg[3] * (1.0 - t) + t;
