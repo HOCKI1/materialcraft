@@ -1,6 +1,11 @@
 use craft_texture::Image;
 use materialcraft_core::OutputFormat;
 
+/// Resample a single stored input level with clamped edges at destination pixel centers.
+pub fn resize_input_level(image: &Image, width: u32, height: u32, format: OutputFormat) -> Image {
+    Image::generate_uv(width, height, image.kind(), |u, v| sample(image, [u, v], [false; 2], format, None))
+}
+
 /// Bilinear texture filtering. Untiled axes clamp unless the caller supplies a border color.
 pub(crate) fn sample(image: &Image, uv: [f32; 2], tiling: [bool; 2], format: OutputFormat, matte: Option<[f32; 4]>) -> [f32; 4] {
     if !uv.iter().all(|v| v.is_finite()) {

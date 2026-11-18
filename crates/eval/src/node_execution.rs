@@ -7,7 +7,7 @@ use crate::{
     value_execution::evaluate_value,
 };
 use craft_texture::{Image, Kind};
-use materialcraft_core::{Node, Package, Value};
+use materialcraft_core::{Node, OutputFormat, Package, Value};
 use materialcraft_nodes::{CookContext, find};
 use std::{
     collections::BTreeMap,
@@ -81,7 +81,7 @@ pub(crate) fn cook_node(
             input_formats.push(source.map_or(materialcraft_core::OutputFormat::F32, |source| source.2));
         }
 
-        incoming.push(output);
+        incoming.push(source.map(|(output, _, format)| (output, format)));
     }
 
     let input_base = prepared.input_base(node.id, cooked);
@@ -133,7 +133,11 @@ pub(crate) fn cook_node(
     let tile = base.tiling[0] && base.tiling[1];
 
     // Input nodes read the caller's image for their identifier
-    let input_image = node.def.starts_with("input_").then(|| options.inputs.get(&identifier(node))).flatten();
+    let input_image = node
+        .def
+        .starts_with("input_")
+        .then(|| identifier(node))
+        .and_then(|name| Some((options.inputs.get(&name)?, options.input_formats.get(&name).copied().unwrap_or(OutputFormat::F32))));
     let resource_hash = match parameters.get("resource") {
         Some(Value::Text(name)) => package.resource(name).map_or(0, |r| r.bytes.content_hash()),
         _ => 0,
@@ -155,7 +159,7 @@ pub(crate) fn cook_node(
         subgraph_hash,
         // A cached graph instance includes results evaluated with its host environment
         (node.def == "graph_instance").then(|| serde_json::to_string(&options.environment).unwrap_or_default()),
-        input_image.map(|image| image_key(image, cache)),
+        input_image.map(|(image, format)| (image_key(image, cache), format)),
         variable_key(node, &parameters, variables),
     ));
     if let Some(outputs) = lock(cache).get(key) {
@@ -172,38 +176,20 @@ pub(crate) fn cook_node(
         } else {
             incoming.iter().find_map(|output| *output)
         };
-        let output = input.cloned().unwrap_or_else(|| NodeOutput::Image(Image::filled(w, h, Kind::Gray, [0.0; 4])));
+        let output = input.map(|(output, _)| output.clone()).unwrap_or_else(|| NodeOutput::Image(Image::filled(w, h, Kind::Gray, [0.0; 4])));
         Ok(vec![output; output_ports.len().max(1)])
     } else if node.def == "input_value" {
         let value = variables.get(&identifier(node)).or_else(|| parameters.get("default")).cloned().unwrap_or(Value::Float(0.0));
         Ok(vec![NodeOutput::Value(value)])
     } else if node.def == "value_processor" {
         evaluate_value(&parameters, variables, seed, [w, h], &inputs, tile).map(|value| vec![NodeOutput::Value(value)])
-    } else if matches!(node.def.as_str(), "output" | "dot") && incoming.first().and_then(Option::as_ref).is_some_and(|output| output.as_value().is_some()) {
-        incoming.first().copied().flatten().cloned().map(|output| vec![output]).ok_or("missing value input".into())
-    } else if let Some(image) = input_image {
-        let mut image = if node.def == "input_grayscale" && image.kind() == Kind::Color {
-            // Grayscale bridges use equal RGB weights and preserve fused float order
-            let weight = 1.0 / 3.0;
-            image.map(Kind::Gray, |pixel| [pixel[2].mul_add(weight, pixel[1].mul_add(weight, pixel[0] * weight)), 0.0, 0.0, 0.0])
-        } else if node.def == "input_color" {
-            image.to_color()
-        } else {
-            image.clone()
-        };
-
-        // Bound resources clamp edges through stored factor-two levels
-        // Preserve resampling and storage conversion for HDR bridges
-        let resized = image.width() != w || image.height() != h;
-        while image.width() != w || image.height() != h {
-            let next = |current: u32, target: u32| {
-                if current < target { current.saturating_mul(2).min(target) } else { current.div_ceil(2).max(target) }
-            };
-            image = crate::output_precision::apply(image.resize(next(image.width(), w), next(image.height(), h), false), base.format);
-        }
-
-        // Resized inputs already store the final level at the declared precision
-        let image = if resized { image } else { crate::output_precision::apply(image, base.format) };
+    } else if matches!(node.def.as_str(), "output" | "dot")
+        && let Some(Some((NodeOutput::Value(value), _))) = incoming.first()
+    {
+        Ok(vec![NodeOutput::Value(value.clone())])
+    } else if let Some((image, format)) = input_image {
+        let kind = if node.def == "input_grayscale" { Kind::Gray } else { Kind::Color };
+        let image = cook_bound_image(image.clone(), (w, h), kind, format, base.format);
         Ok(vec![NodeOutput::Image(image)])
     } else if node.def == materialcraft_core::MISSING_NODE {
         let name = if node.label.is_empty() { "this node" } else { node.label.as_str() };
@@ -253,5 +239,31 @@ pub(crate) fn cook_node(
         }
         Ok(outputs) => fail(format!("`{}` made {} images for {} outputs", node.def, outputs.len(), output_ports.len()), key),
         Err(error) => fail(error, key),
+    }
+}
+
+fn cook_bound_image(mut image: Image, size: (u32, u32), kind: Kind, mut source_format: OutputFormat, output_format: OutputFormat) -> Image {
+    let next = |current: u32, target: u32| {
+        if current < target { current.saturating_mul(2).min(target) } else { current.div_ceil(2).max(target) }
+    };
+    loop {
+        if (image.width(), image.height()) != size {
+            image = materialcraft_nodes::resize_input_level(&image, next(image.width(), size.0), next(image.height(), size.1), source_format);
+        }
+        // The first filtered level supplies RGB for conversion. Later levels read the stored gray texels.
+        if image.kind() != kind {
+            image = match kind {
+                Kind::Gray => {
+                    let weight = 1.0 / 3.0;
+                    image.map(Kind::Gray, |p| [p[2].mul_add(weight, p[1].mul_add(weight, p[0] * weight)), 0.0, 0.0, 0.0])
+                }
+                Kind::Color => image.to_color(),
+            };
+        }
+        image = crate::output_precision::apply(image, output_format);
+        if (image.width(), image.height()) == size {
+            return image;
+        }
+        source_format = output_format;
     }
 }

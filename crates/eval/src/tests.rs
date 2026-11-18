@@ -340,6 +340,73 @@ fn same_size_resources_key_differently() {
 }
 
 #[test]
+fn bound_image_resizing_filters_normalized_levels_before_float_storage() {
+    let mut graph = Graph::new("levels");
+    graph.size = [4, 4];
+    graph.format = materialcraft_core::OutputFormat::F32;
+    let input = graph.add_node("input_color", [0.0; 2]);
+    let mut package = Package::new("levels");
+    package.graphs.push(graph);
+    let stripe = Image::generate(8, 8, Kind::Color, |x, _| [(x % 2) as f32; 4]);
+    let cache = Mutex::new(Cache::default());
+    for (normalized, expected) in [(true, 16384.0 / 65535.0), (false, 0.25)] {
+        let mut options = Options::new(&no_res);
+        options.inputs.insert("input".into(), stripe.clone().with_integer_sampling(normalized));
+        let result = cook(&package, 0, &options, &cache);
+        assert_eq!(result.image(input, 0).unwrap().get(1, 0, false), [expected; 4]);
+        assert_eq!(result.image(input, 0).unwrap().get(0, 0, false), [0.0; 4]);
+    }
+}
+
+#[test]
+fn bound_image_resizing_filters_rgb_before_grayscale_conversion() {
+    let mut graph = Graph::new("Grayscale input");
+    graph.size = [4, 4];
+    graph.format = materialcraft_core::OutputFormat::F32;
+    let input = graph.add_node("input_grayscale", [0.0; 2]);
+    let mut package = Package::new("Channel order");
+    package.graphs.push(graph);
+    let level = 1.0 / 65535.0;
+    let stripe = Image::generate(8, 8, Kind::Color, |x, _| [if x % 2 == 1 { level } else { 0.0 }, 0.0, 0.0, 1.0]);
+    let mut options = Options::new(&no_res);
+    options.inputs.insert("input".into(), stripe.with_integer_sampling(true));
+    let result = cook(&package, 0, &options, &Mutex::new(Cache::default()));
+    let image = result.image(input, 0).unwrap();
+    assert_eq!(image.get(1, 0, false)[0], 0.0);
+    assert_eq!(image.get(2, 0, false)[0], level * (1.0 / 3.0));
+}
+
+#[test]
+fn bound_image_resizing_reads_the_upstream_float_format_inside_instances() {
+    use materialcraft_core::{OutputFormat, SizeMode};
+    let (mut parent, instance) = instancing("Parent", "Resized");
+    let source = parent.add_node("input_grayscale", [0.0; 2]);
+    let base = &mut parent.node_mut(source).unwrap().base;
+    base.size_mode = SizeMode::Absolute;
+    base.size = [3, 3];
+    parent.connect(source, "output", instance, "input").unwrap();
+    let mut child = Graph::new("Resized");
+    child.absolute_output_size = Some([4, 4]);
+    let bridge = child.add_node("input_grayscale", [0.0; 2]);
+    child.node_mut(bridge).unwrap().base.format = OutputFormat::F32;
+    let output = child.add_node("output", [100.0, 0.0]);
+    child.connect(bridge, "output", output, "input").unwrap();
+    let mut package = Package::new("Stored levels");
+    package.graphs.extend([parent, child]);
+    let corners = [0x3fd0e000, 0xbfa46000, 0xc02d8000, 0x407f0000];
+    let image = Image::gray(8, 8, |x, y| f32::from_bits(corners[((y % 2) * 2 + x % 2) as usize]));
+    let mut options = Options::new(&no_res);
+    options.inputs.insert("input".into(), image);
+    let cache = Mutex::new(Cache::default());
+    for (format, expected) in [(OutputFormat::F32, 0x3ed5f000), (OutputFormat::F16, 0x3ed60000), (OutputFormat::F32, 0x3ed5f000)] {
+        package.graphs[0].node_mut(source).unwrap().base.format = format;
+        let cooked = cook(&package, 0, &options, &cache);
+        assert_eq!(cooked.nodes[&instance].error, None);
+        assert_eq!(cooked.image(instance, 0).unwrap().get(1, 1, false)[0].to_bits(), expected);
+    }
+}
+
+#[test]
 fn input_nodes_read_bound_preview_images() {
     let mut p = Package::new("p");
     let mut g = Graph::new("g");

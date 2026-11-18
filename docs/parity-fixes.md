@@ -95,6 +95,26 @@ With Position disconnected, both apps return zero in U8 and U16 and quiet NaN in
 
 Four independent 32² image functions distinguish output storage from scalar parameter validation. Bind an RGBA32F field with `R=(x mod 7)-3`, `G=1` on every fourth row starting at zero and `G=0` elsewhere, `B=0` and `A=1`. Output, in turn, B/B, A/B, R/B and R/G. In U8, U16, F16 and F32 each run matches 1,024/1,024 stored samples, **16,384/16,384** overall. The mixed R/G float images each contain 256 finite values, 120 quiet NaNs, 288 positive infinities and 360 negative infinities. Every special value matches bit for bit and the maximum finite error is zero. Integer storage maps NaNs and negative infinities to zero and positive infinities to white.
 
+### Resizing images bound to graph inputs
+
+Bind a 128² linear image directly to a graph input, set the input bridge to the indicated storage format, and nearest-sample its output at pixel centers into RGBA32F. The CPU cook and the reference app match **4,534,272/4,534,272 pixels across 72 cases**, maximum component error zero. All four channels count toward each pixel.
+
+| Source | Bridge | Output sides | Cases | Exact pixels / total |
+|---|---|---|---:|---:|
+| Original RGBA8 atlas field | Color in U8, U16, F16 and F32 | 64, 128, 256 | 12 | 344,064/344,064 |
+| Original RGBA16 and signed RGBA32F fields | Color in U8, U16, F16 and F32 | 32, 64, 128, 256, 512 | 40 | 2,793,472/2,793,472 |
+| Same RGBA16 and signed RGBA32F fields | Grayscale in U16 and F32 | 32, 64, 128, 256, 512 | 20 | 1,396,736/1,396,736 |
+
+Use the RGBA8 formula under [atlas crop with wired value inputs](#atlas-crop-with-wired-value-inputs) and the signed RGBA32F field under [3D linear gradient](#3d-linear-gradient). For the RGBA16 field, map each signed input component `v` to the nearest integer to `65535*(v+4)/8`. Use seed 42 below 128² and zero otherwise. The grayscale bridge result was also read directly before expansion to RGBA.
+
+Each factor-two step filters four clamped texels at the source storage precision, then stores the result in the bridge format. For grayscale, the first step filters the three color channels before computing the equal-weight mean. Further steps read stored grayscale. Before the fix, the 256² RGBA8 source case with an F32 bridge matched 4/65,536 pixels, maximum error 7.629395e-6. Filtering the same RGBA16 field after conversion to gray matched only 53,819/65,536 gray U16 pixels at 256².
+
+The 256² atlas wrapper now matches 65,281/65,536 at default rotation, maximum .250003815. Its 255 differing pixels lie on the first row and column of the lower-right quadrant. Rotation .125 matches 65,089/65,536, maximum 1. The directly bound controls above and this wrapper exercise different graph connections.
+
+With the inputs and settings under [panoramic LOD](#panoramic-lod), the four 64² seed-42 format runs now match 4,096/4,096 each, maximum zero. The 128² opaque, alpha and changed-seed outputs each match 16,128/16,384, maximum 125 byte levels. At 256² the opaque image matches 64,768/65,536, maximum 126. Both 128² flat controls match 16,128/16,384, maximum 116.
+
+The rotated 3D planar projection runs still differ. At 128² the grayscale output matches 16,335/16,384 in LUM16, maximum 226 levels, and color matches 16,378/16,384 in RGBA8, maximum one level. At 64² both roots match 4,094/4,096 in U8 and 4,093/4,096 in each of U16, F16 and F32. The respective maxima are 1, 32, .00048828125 and .000488288701. All three default and changed-seed runs for each root match 98,304/98,304 pixels. With the [shared lookup](#basic-and-ridged-3d-perlin), ridged 3D Perlin matches all four eight-bit cases. Its changed U16, F16 and F32 runs match 16,337, 16,380 and 5,160 of 16,384 pixels, with maxima 1, .00048828125 and 1.78813935e-7.
+
 ### Pixel Processor random draws
 
 Emit four independent calls to `rand(1)` as RGBA32F. In the reference app the four values recover a unique initial 24-bit state at each of **27,968/27,968 pixels**. Advance the state with `s=(3626811*s+51137) mod 2^24` and return `floor(s/2)/2^23`. The four outputs then match at every pixel, maximum error zero. Use square canvases of sides 8, 16, 32, 64 and 128 at seed zero, also 32² at seeds 1, 2, 42 and 137, and 32×16 and 16×32 at seeds zero and 42. The first 32² pixel starts from 9,091,073 at seed zero and 3,342,178 at seed 42.

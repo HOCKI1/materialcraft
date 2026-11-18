@@ -1,5 +1,5 @@
 use crate::{Cache, MAX_DEPTH, NodeOutput, Options, Port, cook, identifier};
-use materialcraft_core::{Graph, Node, Package, Value};
+use materialcraft_core::{Graph, Node, OutputFormat, Package, Value};
 use std::{collections::BTreeMap, sync::Mutex};
 
 pub(crate) fn resolve<'a>(registry: &'a Package, current: &'a Package, node: &Node) -> Option<(&'a Package, usize, &'a Graph)> {
@@ -42,7 +42,7 @@ pub(crate) fn cook_instance(
     node: &Node,
     input_ports: &[Port],
     output_ports: &[Port],
-    inputs: &[Option<&NodeOutput>],
+    inputs: &[Option<(&NodeOutput, OutputFormat)>],
     params: &BTreeMap<String, Value>,
     base: crate::resolved_base_parameters::ResolvedBaseParameters,
     options: &Options,
@@ -84,9 +84,19 @@ pub(crate) fn cook_instance(
     source_options.graph_stack = options.graph_stack.clone();
     source_options.graph_stack.push(identity);
     source_options.only = Some(source_graph.nodes.iter().filter(|node| node.def == "output").map(|node| node.id).collect());
-    source_options.inputs = input_ports.iter().zip(inputs).filter_map(|(port, input)| Some((port.id.clone(), input.as_ref()?.as_image()?.clone()))).collect();
     source_options.overrides = params.iter().filter(|(k, _)| source_graph.exposed.iter().any(|e| &e.id == *k)).map(|(k, v)| (k.clone(), v.clone())).collect();
-    source_options.overrides.extend(input_ports.iter().zip(inputs).filter_map(|(port, input)| Some((port.id.clone(), input.as_ref()?.as_value()?.clone()))));
+    for (port, input) in input_ports.iter().zip(inputs) {
+        match input {
+            Some((NodeOutput::Image(image), format)) => {
+                source_options.inputs.insert(port.id.clone(), image.clone());
+                source_options.input_formats.insert(port.id.clone(), *format);
+            }
+            Some((NodeOutput::Value(value), _)) => {
+                source_options.overrides.insert(port.id.clone(), value.clone());
+            }
+            None => {}
+        }
+    }
     let cooked = cook(source, source_graph_index, &source_options, cache);
     if cooked.cancelled {
         return Err("cancelled".into());

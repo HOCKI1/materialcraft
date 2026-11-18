@@ -23,7 +23,14 @@ pub fn cook(package: &Package, graph_index: usize, options: &Options, cache: &Mu
             })
             .collect();
         inputs.extend(options.inputs.iter().map(|(name, value)| (name.clone(), value.clone())));
-        bound = Options { only: options.only.clone(), inputs, overrides: options.overrides.clone(), graph_stack: options.graph_stack.clone(), ..*options };
+        bound = Options {
+            only: options.only.clone(),
+            inputs,
+            input_formats: options.input_formats.clone(),
+            overrides: options.overrides.clone(),
+            graph_stack: options.graph_stack.clone(),
+            ..*options
+        };
         &bound
     } else {
         options
