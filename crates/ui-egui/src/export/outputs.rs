@@ -20,13 +20,12 @@ pub struct ListedOutput {
 }
 
 /// `graph`'s output nodes in node order
-pub fn listed(graph: &Graph) -> Vec<ListedOutput> {
+pub fn listed(graph: &Graph) -> impl Iterator<Item = ListedOutput> {
     graph
         .nodes
         .iter()
         .filter(|node| node.def == "output")
         .map(|node| ListedOutput { identifier: materialcraft_engine::eval::identifier(node), usage: materialcraft_engine::eval::output_usage(node) })
-        .collect()
 }
 
 impl ExportSettings {
@@ -55,7 +54,7 @@ impl ExportSettings {
     /// The `file.export` `outputs` and `colorSpaces` for `graph`; `None` when none of its outputs is checked
     pub fn selection(&self, graph: &Graph) -> Option<(Value, Value)> {
         let graph_path = graph.sbs_path();
-        let outputs = listed(graph);
+        let outputs: Vec<_> = listed(graph).collect();
         let included: Vec<&ListedOutput> = outputs.iter().filter(|output| self.includes(&graph_path, &output.identifier)).collect();
         if included.is_empty() {
             return None;
@@ -85,7 +84,7 @@ pub fn tree(ui: &mut Ui, settings: &mut ExportSettings, graphs: &[&Graph]) {
     egui::ScrollArea::vertical().id_salt("export-outputs").max_height(240.0).auto_shrink([false, true]).show(ui, |ui| {
         for graph in graphs {
             let graph_path = graph.sbs_path();
-            let outputs = listed(graph);
+            let outputs: Vec<_> = listed(graph).collect();
             let included = outputs.iter().filter(|output| settings.includes(&graph_path, &output.identifier)).count();
             let id = ui.make_persistent_id(("export-graph", &graph_path));
             egui::collapsing_header::CollapsingState::load_with_default_open(ui.ctx(), id, true)

@@ -247,7 +247,7 @@ pub(super) fn path_field(ui: &mut Ui, path: &mut String, width: f32) -> bool {
 /// The file name the first checked output of `graph` is written to
 fn preview_file(settings: &ExportSettings, graph: &Graph) -> Option<String> {
     let graph_path = graph.sbs_path();
-    let output = outputs::listed(graph).into_iter().find(|output| settings.includes(&graph_path, &output.identifier))?;
+    let output = outputs::listed(graph).find(|output| settings.includes(&graph_path, &output.identifier))?;
     let name = materialcraft_engine::formats::output_name(&settings.pattern, &graph.name, &output.identifier, output.usage);
     Some(format!("{name}.{}", settings.format))
 }

@@ -42,6 +42,7 @@ mod package_file_commands;
 mod preview_cook;
 mod preview_fingerprint;
 mod resource_commands;
+mod save_all_commands;
 pub use material_preview::MaterialPreview;
 pub use material_source::MaterialSource;
 pub use open_document::OpenDocument;

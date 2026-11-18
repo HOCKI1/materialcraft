@@ -7,6 +7,21 @@ fn app() -> MaterialCraftApp {
     MaterialCraftApp::headless(materialcraft_engine::sample_session(), UiState::default())
 }
 
+#[test]
+fn exported_log_keeps_events_and_strips_raw_document_details() {
+    let mut app = app();
+    app.session.log("Opened C:\\My projects\\Client sample.sbs");
+    app.session.warn("Invalid resource at /home/person/private textures/input.png");
+
+    let report = log_for_export(&app.session);
+
+    assert!(report.contains("Opened package"));
+    assert!(report.contains("Package warning"));
+    assert!(report.contains("Node errors in the active graph: 0"));
+    assert!(!report.contains("Client sample"));
+    assert!(!report.contains("/home/person"));
+}
+
 /// Answer every queued dialog with `answer` and collect what was asked
 fn answer_all(app: &mut MaterialCraftApp, answer: impl Fn() -> Answer + 'static) -> Vec<Request> {
     let asked = std::rc::Rc::new(std::cell::RefCell::new(Vec::new()));

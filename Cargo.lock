@@ -2905,6 +2905,7 @@ name = "materialcraft-formats"
 version = "0.4.1"
 dependencies = [
  "base64 0.22.1",
+ "craft-atomic",
  "craft-fonts-build",
  "craft-mcmat",
  "craft-mesh",

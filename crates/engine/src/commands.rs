@@ -90,6 +90,7 @@ pub fn command_specs() -> &'static [CommandSpec] {
         v.extend(crate::view_cmds::specs());
         v.extend(crate::display_cmds::specs());
         v.extend(crate::view3d_commands::specs());
+        v.extend(crate::save_all_commands::specs());
         v.extend(crate::material_preview_commands::specs());
         v.extend(crate::wire_cmds::specs());
         v

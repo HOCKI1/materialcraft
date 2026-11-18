@@ -6,7 +6,7 @@ use serde_json::{Value as J, json};
 use materialcraft_core::{Package, Resource, ResourceBytes};
 use materialcraft_formats::{Depth, encode, output_name};
 
-use crate::commands::{CommandSpec, always, bad, has_graph, has_package, strp, u64p};
+use crate::commands::{CommandSpec, always, bad, boolp, has_graph, has_package, strp, u64p};
 use crate::samples::{TEMPLATES, template};
 use crate::{ExportRequest, Result, Session, cmd};
 
@@ -17,7 +17,7 @@ pub(crate) fn specs() -> Vec<CommandSpec> {
             "Graph...",
             ["File", "New"],
             Some("Ctrl+N"),
-            "{name?, folder?, kind? (material|function), template? (see graph.templates), size? (px, power of two)} adds a new graph to the package and opens it",
+            "{name?, folder?, kind? (material|function), template? (see graph.templates), size? (px, power of two), height? (px, power of two; default size), document? (open package id), newPackage?} adds a graph and opens it",
             always,
             new_graph
         ),
@@ -63,32 +63,61 @@ fn new_graph(session: &mut Session, parameters: &J) -> Result<J> {
         "function" => materialcraft_core::GraphKind::Function,
         _ => return Err(bad("file.new", "kind must be material or function")),
     };
+
     let template_id = strp(parameters, "template").unwrap_or("pbr");
     let label = if kind == materialcraft_core::GraphKind::Function {
         "Function Graph"
     } else {
         TEMPLATES.iter().find(|entry| entry.0 == template_id).map_or("Graph", |entry| entry.1)
     };
-    let size = u64p(parameters, "size").unwrap_or(1024).clamp(16, 8192);
-    let log2 = 63 - size.leading_zeros();
+    let width = u64p(parameters, "size").unwrap_or(1024).clamp(16, 8192);
+    let height = u64p(parameters, "height").unwrap_or(width).clamp(16, 8192);
+    let [width_log2, height_log2] = [width, height].map(|side| 63 - side.leading_zeros());
     let base = strp(parameters, "name").map(str::to_string).unwrap_or_else(|| label.replace(' ', "_"));
     let folder = strp(parameters, "folder").unwrap_or("");
-    crate::folder_path::require(&session.pkg, folder)?;
+    let in_new_package = boolp(parameters, "newPackage").unwrap_or(false);
+    let target_document = parameters
+        .get("document")
+        .filter(|document| !document.is_null())
+        .map(|document| document.as_u64().ok_or_else(|| bad("file.new", "`document` must be an open package id")))
+        .transpose()?;
+    if in_new_package && target_document.is_some() {
+        return Err(bad("file.new", "`document` and `newPackage` cannot be used together"));
+    }
+
+    let target = target_document.map(|document| session.package(document)).transpose()?;
+    let target = target.or_else(|| (!in_new_package && session.has_package()).then_some(&session.pkg));
+    if let Some(package) = target {
+        crate::folder_path::require(package, folder)?;
+    } else if !folder.is_empty() {
+        return Err(bad("file.new", "a new package has no folders yet"));
+    }
+
     crate::folder_path::require_graph_folder(folder)?;
     let base = crate::folder_path::name(&base)?;
+    let mut new_package = None;
+    let destination = target.unwrap_or_else(|| new_package.insert(Package::new("Untitled package")));
+    let name = crate::folder_path::unique(destination, folder, base);
 
-    let name = crate::folder_path::unique(&session.pkg, folder, base);
     let mut graph = if kind == materialcraft_core::GraphKind::Function {
         let mut graph = materialcraft_core::Graph::new(&name);
         graph.function = Some(materialcraft_core::FunctionGraph::default());
         graph
     } else {
-        template(template_id, &name, log2)?
+        template(template_id, &name, width_log2)?
     };
-    graph.folder = folder.into();
-    if !session.has_package() {
-        session.open_package(Package::new("Untitled package"), None)?;
+    if kind == materialcraft_core::GraphKind::Material {
+        graph.size = [width_log2, height_log2];
     }
+    graph.folder = folder.into();
+
+    // Validate the graph before changing the active package
+    if let Some(document) = target_document {
+        session.activate_document(document)?;
+    } else if let Some(package) = new_package {
+        session.open_package(package, None)?;
+    }
+
     session.edit("New graph", |session| {
         session.pkg.graphs.push(graph);
         session.graph = session.pkg.graphs.len() - 1;
@@ -108,25 +137,28 @@ fn new_package(s: &mut Session, p: &J) -> Result<J> {
 }
 
 /// Replace the active document explicitly, resetting its history and views
-pub fn replace_package(s: &mut Session, pkg: Package, path: Option<String>) {
+pub fn replace_package(session: &mut Session, package: Package, path: Option<String>) {
     // Reloaded archive dependencies must replace cached snapshots before links are refreshed
-    s.linked_sources.extend(pkg.dependencies.clone());
-    s.pkg = pkg;
-    s.document_open = true;
-    s.clipboard = None;
-    s.embedded_clipboard = None;
-    s.clear_decoded();
-    s.path = path;
-    s.graph = 0;
-    s.material_preview = crate::MaterialPreview::for_graph(&s.pkg, 0);
-    s.clear_preview_results();
-    s.selection.clear();
-    s.annotation_selection = None;
-    s.view2d.node = None;
-    s.reset_history();
-    s.modified = false;
-    s.dirty = true;
-    s.load_warnings.clear();
+    session.linked_sources.extend(package.dependencies.clone());
+    session.pkg = package;
+    session.document_open = true;
+    session.path = path;
+    session.graph = 0;
+
+    session.clipboard = None;
+    session.embedded_clipboard = None;
+    session.clear_decoded();
+    session.material_preview = Default::default();
+    session.open_material_preview();
+    session.clear_preview_results();
+    session.selection.clear();
+    session.annotation_selection = None;
+    session.view2d.node = None;
+
+    session.reset_history();
+    session.modified = false;
+    session.dirty = true;
+    session.load_warnings.clear();
 }
 
 fn has_extension(path: &str, ext: &str) -> bool {
@@ -238,25 +270,26 @@ fn package_for_save(session: &Session, path: Option<&str>) -> Package {
 }
 
 pub fn save_files_at(session: &Session, path: &str) -> Result<materialcraft_formats::project::ProjectFiles> {
-    session.package(session.document_id)?;
-    let archive = is_mcraft(path);
-    let package = if archive { session.pkg.clone() } else { package_for_save(session, Some(path)) };
+    let active_package = session.package(session.document_id)?;
     let filename = std::path::Path::new(path).file_name().and_then(|name| name.to_str()).unwrap_or("package.sbs");
+    if is_mcraft(path) {
+        return Ok(materialcraft_formats::project::ProjectFiles::build(active_package, filename, true)?);
+    }
+
+    let package = package_for_save(session, Some(path));
     #[cfg(not(target_arch = "wasm32"))]
-    if !archive && materialcraft_formats::sbs::library::contains_file(std::path::Path::new(path)) {
+    if materialcraft_formats::sbs::library::contains_file(std::path::Path::new(path)) {
         return Ok(materialcraft_formats::project::ProjectFiles::build_linked(&package, filename)?);
     }
 
-    Ok(materialcraft_formats::project::ProjectFiles::build(&package, filename, archive)?)
+    Ok(materialcraft_formats::project::ProjectFiles::build(&package, filename, false)?)
 }
 
 #[cfg(not(target_arch = "wasm32"))]
 pub fn write_package_at(session: &Session, path: &str) -> Result<usize> {
     let files = save_files_at(session, path)?;
     if is_mcraft(path) {
-        let bytes = files.zip()?;
-        materialcraft_formats::write_atomic(std::path::Path::new(path), &bytes)?;
-        Ok(bytes.len())
+        Ok(files.write_archive(std::path::Path::new(path))?)
     } else {
         materialcraft_formats::project::write_files(std::path::Path::new(path), &files)?;
         Ok(files.xml()?.len())
@@ -301,7 +334,14 @@ fn save(s: &mut Session, p: &J) -> Result<J> {
         None => s.path.clone().ok_or_else(|| bad("file.save", "the package has no file yet (new, or opened from another program): give a `path`"))?,
     };
 
-    let path = crate::document_path::normalize(&path);
+    let reply = save_to_path(s, &path)?;
+    s.log(format!("Saved {}", reply["path"].as_str().unwrap_or_default()));
+    Ok(reply)
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) fn save_to_path(s: &mut Session, path: &str) -> Result<J> {
+    let path = crate::document_path::normalize(path);
     if path.contains("://") {
         return Err(bad("file.save", "library aliases cannot be overwritten; save to a local .sbs path"));
     }
@@ -314,7 +354,6 @@ fn save(s: &mut Session, p: &J) -> Result<J> {
     s.path = Some(path.clone());
     s.refresh_links();
     s.modified = false;
-    s.log(format!("Saved {path}"));
     Ok(json!({"path": path, "bytes": bytes}))
 }
 
