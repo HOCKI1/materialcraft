@@ -19,15 +19,16 @@ fn blur(context: &CookContext) -> CookResult {
     let tile = context.tiling_axes();
     let source_format = context.input_formats.first().copied().unwrap_or(materialcraft_core::OutputFormat::F32);
 
-    if radius > 0.5 && radius <= 2.5 {
-        let horizontal = box_filter::short_axis(&input, radius, [1, 0], tile, source_format);
+    let reach = radius - 0.5;
+    if reach > 0.0 && reach <= 2.0 {
+        let horizontal = box_filter::short_axis(&input, reach, [1, 0], tile, source_format);
         let stored = crate::output_precision::apply(horizontal, context.format);
-        return Ok(vec![box_filter::short_axis(&stored, radius, [0, -1], tile, context.format)]);
+        return Ok(vec![box_filter::short_axis(&stored, reach, [0, -1], tile, context.format)]);
     }
     if radius <= 0.5 || !radius.is_finite() {
         return Ok(vec![input]);
     }
-    let horizontal = box_filter::axis(&input, radius, true, tile[0], source_format, context.format);
+    let horizontal = box_filter::axis(&input, reach, true, tile[0], source_format, context.format);
     let stored = crate::output_precision::apply(horizontal, context.format);
-    Ok(vec![box_filter::axis(&stored, radius, false, tile[1], context.format, context.format)])
+    Ok(vec![box_filter::axis(&stored, reach, false, tile[1], context.format, context.format)])
 }

@@ -26,20 +26,30 @@ pub(super) fn blur(context: &CookContext, angle: f32) -> CookResult {
         return Ok(vec![input]);
     }
 
-    let (dx, dy) = direction(angle);
-
-    // Image-space rotation follows increasing rows
-    let dy = -dy;
     let tile = context.tiling_axes();
-    if dy == 0.0 {
+    let quarters = angle * 4.0;
+    if quarters.fract() == 0.0 {
+        let horizontal = quarters % 2.0 == 0.0;
+        // Rotated axial footprints project their reach one float below unity before normalization.
+        let projection = if angle == 0.0 { 1.0 } else { f32::from_bits(0x3f7f_ffff) };
+        let reach = (radius - 0.5) * projection;
         let source_format = context.input_formats.first().copied().unwrap_or(materialcraft_core::OutputFormat::F32);
-        if radius <= 2.5 {
-            let step = if radius <= 1.5 { [-1, 0] } else { [1, 0] };
-            return Ok(vec![box_filter::short_axis(&input, radius, step, tile, source_format)]);
+        if reach <= 2.0 {
+            let step = if !horizontal {
+                [0, -1]
+            } else if reach <= 1.0 {
+                [-1, 0]
+            } else {
+                [1, 0]
+            };
+            return Ok(vec![box_filter::short_axis(&input, reach, step, tile, source_format)]);
         }
-        return Ok(vec![box_filter::axis(&input, radius, true, tile[0], source_format, context.format)]);
+        return Ok(vec![box_filter::axis(&input, reach, horizontal, tile[usize::from(!horizontal)], source_format, context.format)]);
     }
 
+    let (dx, dy) = direction(angle);
+    // Image-space rotation follows increasing rows.
+    let dy = -dy;
     let major = dx.abs().max(dy.abs());
     let projected_radius = 0.5 + (radius - 0.5) * major;
     let half_samples = (projected_radius + 0.5).floor().clamp(1.0, MAX_HALF_SAMPLES as f32) as i32;

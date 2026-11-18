@@ -253,6 +253,18 @@ Literal-only pixel graphs at 16², seed 23, give 512/768 exact pixels for each l
 
 The shared-lookup ridged root still matches 5,160/16,384 at changed roughness in F32, maximum 1.78813934e−7. Its one-octave .7 control still matches 1,847/4,096, maximum 2.38418579e−7. For positive normal x on the signed field, the reference's general power agrees with exp(y×ln(x)) on all 32,614 pixels. On .7 with exponent 1 it returns `3f333334`. Further work on general power and natural exponential is tracked with the [octave controls](#ridged-noise-octave-isolation).
 
+### Quarter-turn directional blur
+
+Anisotropic noise matches **171,264/171,264 grayscale pixels in 18 renders**, maximum error zero. The [noise settings and seeds](#color-conversion-gradient-height-and-histogram-controls) include the rotated 128² and 32² cases. At 128² the directional stage improved from 15,226/16,384 to 16,384/16,384. Every sampled stage matches on the 64², 128² and rectangular-input controls. The final outputs comprise 122,880 U16 pixels, 32,000 F32 pixels and 8,192 each U8 and F16.
+
+A single directional filter on an original 128² linear RGBA32F field matches **1,769,472/1,769,472 pixels in 108 renders**. Use an impulse at (64,64) in R, its column in G and its row in B. Use 3H−1.25 for alpha, where H=((97x+43y+7xy) mod 1024)/1023. Test turns 0, .25, .5, .75, 1, −.75, −.25, −.5 and 1.25. For each angle use radii .5625, .75, 1, 1.25, 1.5, 2, 2.375, 2.5, 3.125, 4.375, 5 and 8.25, with seed 113+17j at zero-based radius index j. At this size set intensity to twice the radius.
+
+For a nonzero whole-quarter turn, project radius−.5 by the F32 factor immediately below one before calculating weights. With projected reach d, the center weight is .5/(.5+d). The short-window side weight is d times that weight. For a wider window retain d−(ceil(d)−1) for the partial outer texel. At radius 1, the quarter-turn impulse stores F32 bits 3e7fffff one row above center. At radii 2 and 5, its central texel stores 3e800001 and 3dccccce. At zero turns the same three readings along the horizontal axis are 3e800000, 3e800000 and 3dcccccd.
+
+Forty additional 64×128 quarter-turn renders on the original modular RGBA8 field, with both axes wrapped or both clamped, match **327,680/327,680 pixels**. For channel c round 255 times ((37x+71y+11xy+47c+3xc) mod 1021)/1020 to the nearest byte, with ties to even. Use radii .75, 1.25, 1.5, the next F32 above 1.5, 2, 2.5, the next F32 above 2.5, 3.125, 4.375, 9.5 and 15.5625. Multiply the radius by four for intensity. Use seed 97+23j and F32 output. At radii 1.25, 2 and 4.375 also use U8, U16 and F16. Each of those three formats contributes 49,152 pixels.
+
+The same 128² impulse and stripes at .125 and .0625 turns still differ. At .125 turns, 32,768/196,608 pixels match, maximum .750733346. At .0625 turns, 0/196,608 match, maximum .433206394. The mismatches include both short and wide kernels.
+
 ### Alpha maximum and one-texel reductions
 
 The alpha-maximum helper matches **36/36 RGBA output pixels in 33 renders**, maximum error zero. Its output has one texel for inputs through 256² and four for a 512² input. The 128² position and alpha field previously selected a different tuple with maximum component error .968627451. Reading the whole reduction chain on this input showed that the final processor received an exact 2×2 image. At requested exponent −1 it samples the lower-right texel. The earlier cook treated the one-texel allocation as logical exponent zero.

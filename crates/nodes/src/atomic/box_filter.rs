@@ -4,16 +4,16 @@ use rayon::prelude::*;
 
 mod mip_window;
 
-pub(super) fn short_axis(input: &Image, radius: f32, step: [i64; 2], tile: [bool; 2], source_format: OutputFormat) -> Image {
-    let center_weight = 0.5 / radius;
-    let edge_weight = (radius - 0.5) * center_weight;
+pub(super) fn short_axis(input: &Image, reach: f32, step: [i64; 2], tile: [bool; 2], source_format: OutputFormat) -> Image {
+    let center_weight = 0.5 / (0.5 + reach);
+    let edge_weight = reach * center_weight;
     // The two passes visit samples in different directions. Cancellation exposes their order.
     let combine = |first: [f32; 4], center: [f32; 4], last: [f32; 4]| {
         std::array::from_fn(|c| last[c].mul_add(edge_weight, center[c].mul_add(center_weight, first[c] * edge_weight)))
     };
-    if radius > 1.5 {
+    if reach > 1.0 {
         // Each side combines its two texels in one filtered read at the source storage precision.
-        let offset = 2.0 - 1.0 / (radius - 0.5);
+        let offset = 2.0 - 1.0 / reach;
         let du = step[0] as f32 * offset / input.width() as f32;
         let dv = step[1] as f32 * offset / input.height() as f32;
         return Image::generate(input.width(), input.height(), input.kind(), |x, y| {
@@ -34,19 +34,20 @@ pub(super) fn short_axis(input: &Image, radius: f32, step: [i64; 2], tile: [bool
     })
 }
 
-pub(super) fn axis(input: &Image, radius: f32, horizontal: bool, tile: bool, source: OutputFormat, destination: OutputFormat) -> Image {
-    if !radius.is_finite() || radius <= 0.5 {
+pub(super) fn axis(input: &Image, reach: f32, horizontal: bool, tile: bool, source: OutputFormat, destination: OutputFormat) -> Image {
+    if !reach.is_finite() || reach <= 0.0 {
         return input.clone();
     }
 
     // Bound work for hostile strengths to the largest supported image dimension
-    let radius = radius.min(MAX_SIDE as f32);
+    let reach = reach.min(MAX_SIDE as f32 - 0.5);
+    let radius = 0.5 + reach;
     let length = if horizontal { input.width() } else { input.height() };
     // Wide windows sum before normalization. Keep the finite HDR and non-finite
     // behavior of the extended-precision path when those intermediate sums can overflow.
     let limit = f32::MAX / (2.0 * radius + 2.0);
     if length.is_power_of_two() && radius <= length as f32 && input.data().iter().all(|v| v.abs() <= limit) {
-        return mip_window::filter(input, radius, horizontal, tile, source, destination);
+        return mip_window::filter(input, reach, horizontal, tile, source, destination);
     }
     let extent = (radius + 0.5).floor() as i64;
     let weight = 1.0 / (2.0 * f64::from(radius));

@@ -226,18 +226,38 @@ fn three_texel_blurs_keep_tap_order_and_intermediate_storage() {
     assert_eq!(directional.get_gray(32, 32, true).to_bits(), 0xbdfdbf73);
 }
 
-#[test]
-fn five_texel_blurs_filter_the_outer_pairs_before_accumulating() {
-    let field = Image::generate(128, 128, Kind::Color, |x, y| {
+fn impulse_and_stripes() -> Image {
+    Image::generate(128, 128, Kind::Color, |x, y| {
         let value = f64::from((97 * x + 43 * y + 7 * x * y) % 1024) / 1023.0;
         [f32::from(x == 64 && y == 64), f32::from(x == 64), f32::from(y == 64), (3.0 * value - 1.25) as f32]
-    });
-    let input = [Some(field)];
+    })
+}
+
+#[test]
+fn five_texel_blurs_filter_the_outer_pairs_before_accumulating() {
+    let input = [Some(impulse_and_stripes())];
     let params = [("intensity", Value::Float(4.0))];
     let directional = cook("directional_blur", &input, &params, [128; 2], true);
     assert_eq!(directional.get(62, 64, false).map(f32::to_bits), [0x3dff0000, 0x3dff0000, 0x3f800000, 0x3d6739cc]);
     let separable = cook("blur", &input, &params, [128; 2], true);
     assert_eq!(separable.get(63, 64, false).map(f32::to_bits), [0x3d804000, 0x3e804000, 0x3e800000, 0x3e1e66da]);
+}
+
+#[test]
+fn rotated_axial_blurs_project_the_outer_texel_coverage() {
+    let input = [Some(impulse_and_stripes())];
+    for (angle, strength, x, y, expected) in [
+        (0.0, 2.0, 63, 64, [0x3e800000, 0x3e800000, 0x3f800000, 0x3e1e6799]),
+        (0.25, 2.0, 64, 63, [0x3e7fffff, 0x3f800000, 0x3e7fffff, 0x3ea04810]),
+        (-0.25, 4.0, 64, 64, [0x3e800001, 0x3f800000, 0x3e800001, 0x3e800001]),
+        (0.75, 10.0, 64, 64, [0x3dccccce, 0x3f800001, 0x3dccccce, 0x3e80e835]),
+        (0.5, 2.0, 63, 64, [0x3e7fffff, 0x3e7fffff, 0x3f800000, 0x3e1e6796]),
+        (1.0, 10.0, 64, 64, [0x3dccccce, 0x3dccccce, 0x3f800001, 0x3e80e427]),
+    ] {
+        let params = [("intensity", Value::Float(strength)), ("angle", Value::Float(angle))];
+        let image = cook("directional_blur", &input, &params, [128; 2], true);
+        assert_eq!(image.get(x, y, false).map(f32::to_bits), expected, "angle {angle}, strength {strength}");
+    }
 }
 
 #[test]

@@ -18,9 +18,9 @@ impl Tap {
     }
 }
 
-fn window(position: u32, length: u32, radius: f32, tile: bool) -> Vec<Tap> {
-    let extent = (radius - 0.5).ceil() as i64;
-    let fraction = radius - (extent as f32 - 0.5);
+fn window(position: u32, length: u32, reach: f32, tile: bool) -> Vec<Tap> {
+    let extent = reach.ceil() as i64;
+    let fraction = reach - (extent - 1) as f32;
     let pair_weight = 1.0 + fraction;
     let center = (position as f32 + 0.5) / length as f32;
     let filtered = |offset| Tap { read: Read::Filtered(center + offset / length as f32), weight: pair_weight };
@@ -60,7 +60,8 @@ fn window(position: u32, length: u32, radius: f32, tile: bool) -> Vec<Tap> {
     taps
 }
 
-pub(super) fn filter(input: &Image, radius: f32, horizontal: bool, tile: bool, source: OutputFormat, destination: OutputFormat) -> Image {
+pub(super) fn filter(input: &Image, reach: f32, horizontal: bool, tile: bool, source: OutputFormat, destination: OutputFormat) -> Image {
+    let radius = 0.5 + reach;
     let length = if horizontal { input.width() } else { input.height() };
     let mut levels = vec![input.clone()];
     let mut format = source;
@@ -76,7 +77,7 @@ pub(super) fn filter(input: &Image, radius: f32, horizontal: bool, tile: bool, s
     }
     let windows: Vec<_> = (0..length)
         .map(|position| {
-            let mut taps = window(position, length, radius, tile);
+            let mut taps = window(position, length, reach, tile);
             if horizontal {
                 taps.reverse();
             }
