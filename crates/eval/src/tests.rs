@@ -807,7 +807,7 @@ fn cooked_parameters_retain_values_without_processor_graph_copies() {
 fn enabled_generators_use_parent_size_and_seed_with_input_image_properties() {
     use materialcraft_core::{BaseParameter, FunctionGraph, OutputFormat, ParameterInheritance, SizeMode, ValueType};
 
-    for definition in ["svg", "fx_map"] {
+    for (definition, port) in [("pixel_processor", "input0"), ("svg", "background"), ("fx_map", "background")] {
         for dynamic in [false, true] {
             let mut graph = Graph::new("Generator sizes");
             graph.size = [6, 5];
@@ -824,7 +824,11 @@ fn enabled_generators_use_parent_size_and_seed_with_input_image_properties() {
             base.pixel_size = [0.25, 0.5];
             base.pixel_size_mode = ParameterInheritance::Absolute;
             let generator = graph.add_node(definition, [200.0, 0.0]);
-            graph.node_mut(generator).unwrap().base.format_mode = ParameterInheritance::RelativeToInput;
+            let node = graph.node_mut(generator).unwrap();
+            node.base.format_mode = ParameterInheritance::RelativeToInput;
+            if definition == "pixel_processor" {
+                node.params.insert("function".into(), Value::Function(Box::new(FunctionGraph::constant(Value::Float4([0.25; 4])))));
+            }
             if dynamic {
                 let mut function = FunctionGraph::input("$sizelog2", ValueType::Float2);
                 let size = function.output.unwrap();
@@ -833,7 +837,7 @@ fn enabled_generators_use_parent_size_and_seed_with_input_image_properties() {
                 function.output = Some(function.add("toint2", &[difference], None));
                 graph.node_mut(generator).unwrap().base.functions.insert(BaseParameter::OutputSize, function);
             }
-            graph.connect(background, "output", generator, "background").unwrap();
+            graph.connect(background, "output", generator, port).unwrap();
             let mut package = Package::new("Generator sizes");
             package.graphs.push(graph);
             let cache = Mutex::new(Cache::default());
@@ -865,6 +869,10 @@ fn enabled_generators_use_parent_size_and_seed_with_input_image_properties() {
             assert_eq!(cooked.nodes[&generator].error, None);
             assert_eq!(cooked.nodes[&generator].base.size, cooked.nodes[&background].base.size);
             assert_eq!(cooked.image(generator, 0).map(|image| (image.width(), image.height())), Some((8, 16)));
+            assert_eq!(
+                node_size(&package.graphs[0], materialcraft_nodes::find(definition), package.graphs[0].node(generator).unwrap(), Some((32, 64)), Some(16)),
+                (8, 16)
+            );
         }
     }
 }

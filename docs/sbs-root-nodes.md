@@ -35,7 +35,7 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **204 Parity**, **23 In progress** and **319 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **206 Parity**, **23 In progress** and **317 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
 
 [Grayscale sampler measurements](parity-fixes.md#grayscale-sampling-of-color-inputs) · [Value sampling across 240 typed comparisons](parity-fixes.md#value-processor-texture-filtering)
 
@@ -500,10 +500,10 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [rt_irradiance.sbs/compute_irradiance](../assets/sbs/rt_irradiance.sbs) | 5 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [rt_irradiance.sbs/compute_ray_direction](../assets/sbs/rt_irradiance.sbs) | 4 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [rt_irradiance.sbs/debug_hit_uv](../assets/sbs/rt_irradiance.sbs) | 3 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [rt_irradiance.sbs/mip_max](../assets/sbs/rt_irradiance.sbs) | 1 | Yes | [Too hard: output size differs](parity-fixes.md#remaining-differences) |
+| [rt_irradiance.sbs/mip_max](../assets/sbs/rt_irradiance.sbs) | 1 | Yes | [Parity · 167,168 exact pixels in 17 cases](parity-fixes.md#pixel-processor-canvas-and-mip-maxima) |
 | [rt_irradiance.sbs/panoramic_lod](../assets/sbs/rt_irradiance.sbs) | 1 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [rt_irradiance.sbs/template/pp_template](../assets/sbs/rt_irradiance.sbs) | 3 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
-| [rt_shadows.sbs/mip_max](../assets/sbs/rt_shadows.sbs) | 1 | Yes | [Too hard: output size differs](parity-fixes.md#remaining-differences) |
+| [rt_shadows.sbs/mip_max](../assets/sbs/rt_shadows.sbs) | 1 | Yes | [Parity · 167,168 exact pixels in 17 cases](parity-fixes.md#pixel-processor-canvas-and-mip-maxima) |
 | [rt_shadows.sbs/template/pp_template](../assets/sbs/rt_shadows.sbs) | 4 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [rt_shadows_v2.sbs/mip_max_step](../assets/sbs/rt_shadows_v2.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [safe_transform.sbs/safe_transform](../assets/sbs/safe_transform.sbs) | 1 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |

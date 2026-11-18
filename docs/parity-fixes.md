@@ -401,6 +401,23 @@ For the grayscale root bind `(17*x+31*y) mod 256`. For the color root use the sa
 
 At the first directional pass the default color case matches 11,944/16,384 pixels with maximum error 1. With angle .125 it matches 2,997/16,384 with maximum error 21. A separate F32 impulse at (64,64) on a 128² field, intensity 10 and angle .125, has nonzero samples on both sides of the diagonal.
 
+### Pixel Processor canvas and mip maxima
+
+The `mip_max` helpers in `rt_irradiance.sbs` and `rt_shadows.sbs` each match **167,168/167,168 pixels in 17 cases**, maximum error zero. Each exposes one grayscale input and uses fixed internal parameters. The four first-pass cases account for 114,688 pixels, the four precision cases and independent 32² case for 17,408, and the eight cases below for 35,072. The earlier four-format table records the original size discrepancy.
+
+At 64², compare the input bridge, nine reduced-resolution processors, the final processor and its output bridge on the 64² levels field from the four-format table. Each root matches 13,656/13,656 pixels across all twelve stages. The reductions produce LUM8 at 32², 16², 8², 4², 2² and four times at 1². The last processor and output bridge produce LUM32F at 64². Previously the final processor inherited its first sampled texture's 32² dimensions.
+
+| Original grayscale input | Output and seed | Exact pixels per root | Maximum error |
+|---|---|---:|---:|
+| U8 at 16² and 128², (17x+53y+7xy) mod 251 | Same size, F32, seeds 41 and 137 respectively | 16,640/16,640 | 0 |
+| U16 at 64², (711x+1337y+17xy) mod 65521 | 64² U8, U16, F16 and F32, seed 71 | 16,384/16,384 | 0 |
+| 64×16 F32, (((17x−31y+3xy) mod 237)−63)/127 in RGB, alpha one | 32² F32, seed 211 | 1,024/1,024 | 0 |
+| 16×32 U8, constant 93 | 32² U16, seed 313 | 1,024/1,024 | 0 |
+
+For the isolated size control, supply a 16×8 linear RGBA8 texture with (11x+31y+3xy) mod 256 in RGB and opaque alpha. Sample red at `$pos` with nearest filtering in a grayscale F32 processor. Use graph sides 32, 64 and 128 with seeds 0, 42 and 137 respectively. Missing output size, parent-relative (0,0) and input-relative (0,0) each match 1,024, 4,096 and 16,384 pixels at the parent sizes. Absolute size exponents (5,4) match all 512 pixels at each parent size. The 16×8 input is exact throughout.
+
+With the same input, a zero-intensity blur uses the input dimensions for missing or input-relative size and matches 128/128 pixels. Absolute 32×16 matches 512/512 at every parent size. Explicit parent-relative blur still differs when resizing to 32², 64² and 128². The exact counts are 631/1,024, 1,476/4,096 and 4,738/16,384, with maximum byte errors 17, 38 and 49 respectively.
+
 ### Fixed graph and instance output sizes
 
 Both `pattern_tile_sampler.sbs/arrow` and `tile_sampler.sbs/arrow` specify an absolute 512×512 graph output. MaterialCraft now imports and saves that size separately from the default parent canvas. Each output of a graph instance also retains the dimensions and storage precision of its source. Downstream connections and cache hits use the selected output port.
