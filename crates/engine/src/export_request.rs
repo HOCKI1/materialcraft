@@ -36,7 +36,13 @@ impl ExportRequest {
 
     /// Read `file.export` params, checking them against the session's package
     pub fn from_params(s: &Session, p: &J) -> Result<Self> {
-        let graph_index = crate::graph_cmds::graph_index(s, p)?;
+        // Keep file.export's historical numeric selector coercion (including JSON 1.0)
+        // while allowing the new exact SBS path selector without changing other commands.
+        let graph_index = if p.get("graph").is_some_and(J::is_number) {
+            u64p(p, "graph").and_then(|i| usize::try_from(i).ok()).ok_or_else(|| bad(CMD, "`graph` must be a nonnegative index"))?
+        } else {
+            crate::graph_cmds::graph_index(s, p)?
+        };
         let graph = s.pkg.graph(graph_index)?;
 
         let format = strp(p, "format").unwrap_or("png").trim_start_matches('.').to_ascii_lowercase();
@@ -139,5 +145,26 @@ pub(crate) fn export_size(value: Option<&J>) -> Result<Option<ExportSize>> {
             Some(side) => Ok(Some(ExportSize::LargerSide(clamp(side)))),
             None => Err(bad(CMD, "`size` is a pixel count or [width, height]")),
         },
+    }
+}
+
+#[cfg(test)]
+mod selector_tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn file_export_keeps_numeric_coercion_and_exact_graph_paths() {
+        let mut package = materialcraft_core::Package::new("selectors");
+        package.graphs.push(Graph::new("1"));
+        package.graphs.push(Graph::new("Second"));
+        let session = Session::new(package);
+        for selector in [json!(1), json!(1.0), json!(0.6)] {
+            assert_eq!(ExportRequest::from_params(&session, &json!({"graph":selector})).unwrap().graph, 1);
+        }
+        assert_eq!(ExportRequest::from_params(&session, &json!({"graph":"1"})).unwrap().graph, 0);
+        for selector in [json!(-1), json!(2.0), json!(1e100)] {
+            assert!(ExportRequest::from_params(&session, &json!({"graph":selector})).is_err());
+        }
     }
 }

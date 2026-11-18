@@ -241,7 +241,7 @@ pub(super) fn path_field(ui: &mut Ui, path: &mut String, width: f32) -> bool {
 
 /// The file name the first checked output of `graph` is written to
 fn preview_file(settings: &ExportSettings, graph: &Graph) -> Option<String> {
-    let output = outputs::listed(graph).into_iter().find(|output| settings.includes(&graph.name, &output.identifier))?;
+    let output = outputs::listed(graph).into_iter().find(|output| settings.includes(&graph.sbs_path(), &output.identifier))?;
     let name = materialcraft_engine::formats::output_name(&settings.pattern, &graph.name, &output.identifier, output.usage);
     Some(format!("{name}.{}", settings.format))
 }
@@ -422,21 +422,25 @@ fn publish(app: &mut MaterialCraftApp, settings: &ExportSettings) -> bool {
         let result = if command == "file.exportMaterial" {
             materialcraft_engine::material_cmds::material_bytes(&app.session, index).map_err(|e| e.to_string()).and_then(|bytes| {
                 let name = format!("{}.mcmat", materialcraft_engine::formats::safe_file_name(&graph.name));
-                crate::web_files::download(&name, &bytes)
+                crate::web_files::download(&name, &bytes).map(|()| Value::Null)
             })
         } else {
             materialcraft_engine::material_bake::export(&app.session, &params, materialcraft_engine::material_bake::read_input)
                 .map_err(|e| e.to_string())
-                .and_then(|(files, _)| {
+                .and_then(|(files, report)| {
                     let files = files.into_iter().map(|f| (f.file, f.bytes)).collect::<Vec<_>>();
                     crate::web_files::download(
                         &format!("{}_materialx.zip", materialcraft_engine::formats::safe_file_name(&graph.name)),
                         &crate::web_files::zip_files(&files)?,
                     )
+                    .map(|()| report)
                 })
         };
         match result {
-            Ok(()) => true,
+            Ok(report) => {
+                app.toast(material_export_message(&report), false);
+                true
+            }
             Err(error) => {
                 app.toast(error, true);
                 false
@@ -459,14 +463,14 @@ pub(crate) fn poll(app: &mut MaterialCraftApp, ctx: &egui::Context) {
     app.material_export_job = None;
     match result {
         Ok(report) => {
-            let unmapped = report["unmapped"].as_array().into_iter().flatten().filter_map(Value::as_str).collect::<Vec<_>>();
-            let message = if unmapped.is_empty() {
-                tr("Material exported").to_string()
-            } else {
-                format!("{}: {}", tr("Exported without shader connections"), unmapped.join(", "))
-            };
-            app.toast(message, false);
+            app.toast(material_export_message(&report), false);
         }
         Err(error) => app.toast(error, true),
     }
+}
+
+/// Keep native and browser exports explicit about omitted shader connections.
+fn material_export_message(report: &Value) -> String {
+    let unmapped = report["unmapped"].as_array().into_iter().flatten().filter_map(Value::as_str).collect::<Vec<_>>();
+    if unmapped.is_empty() { tr("Material exported").to_string() } else { format!("{}: {}", tr("Exported without shader connections"), unmapped.join(", ")) }
 }

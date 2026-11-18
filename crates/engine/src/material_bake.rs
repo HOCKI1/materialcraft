@@ -89,6 +89,15 @@ pub fn cook(s: &Session, p: &J, read: impl Fn(&str) -> Result<Vec<u8>>) -> Resul
 /// Encode every file before the caller writes to its destination. Paths in the report are relative.
 pub fn export(s: &Session, p: &J, read: impl Fn(&str) -> Result<Vec<u8>>) -> Result<(Vec<Exported>, J)> {
     let request = ExportRequest::from_params(s, p)?;
+    let has = |key| p.get(key).is_some_and(|value| !value.is_null());
+    if has("profile") {
+        if has("format") || has("pattern") {
+            return Err(bad("file.export", "named profiles choose their own format and filenames; omit format and pattern"));
+        }
+    } else if has("normalFormat") || has("displacementScale") {
+        return Err(bad("file.export", "normalFormat and displacementScale require an explicit export profile"));
+    }
+
     let graph = s.pkg.graph(request.graph)?;
     let options = MaterialOptions::from_params(graph, p, read)?;
     let selected = request.outputs.as_deref();
@@ -117,7 +126,8 @@ pub fn export(s: &Session, p: &J, read: impl Fn(&str) -> Result<Vec<u8>>) -> Res
 
     let cooked = options.cook(s, request.graph, selected, None)?;
     let (files, mut report) = encode_maps(graph, &cooked, &request, materialx, scale, normal_y_down)?;
-    let mut interface = info(s, p)?;
+    // Use the graph already selected by file.export, including its legacy numeric coercion.
+    let mut interface = info(s, &json!({"graph": request.graph}))?;
     if let Some(params) = interface["parameters"].as_array_mut() {
         for parameter in params {
             if let Some(value) = parameter["id"].as_str().and_then(|id| options.values.get(id)) {
@@ -209,6 +219,9 @@ fn encode_maps(
         };
 
         let float = height || request.depth == Some(Depth::F32) || image.data().iter().any(|value| !(0.0..=1.0).contains(value));
+        if float && request.color_spaces.get(&identifier).is_some_and(|space| space.encodes_srgb()) {
+            return Err(bad("file.export", format!("EXR output `{identifier}` requires linear values; omit the sRGB override or select raw or linear")));
+        }
         let (ext, depth) = if float {
             ("exr", Depth::F32)
         } else {

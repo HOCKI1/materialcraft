@@ -405,3 +405,70 @@ fn published_disabled_and_typed_instance_cooks_match_source() {
     assert_eq!(restored, original);
     assert!((restored[0] - 0.2).abs() < 0.01, "disabled levels must preserve its input: {restored:?}");
 }
+
+#[test]
+fn material_options_ignore_stale_presets_but_validate_explicit_values() {
+    let mut session = fixture();
+    let graph = session.graph_mut().unwrap();
+    graph.presets[0].values.insert("removed".into(), Value::Float(0.5));
+    graph.presets[0].values.insert("tint".into(), Value::Text("old type".into()));
+    let before = graph.clone();
+    let read = |_: &str| -> crate::Result<Vec<u8>> { Err(crate::EngineError::Other("unexpected image read".into())) };
+    let options = MaterialOptions::from_params(graph, &json!({"preset":"Dark"}), read).unwrap();
+    assert!(options.values.is_empty());
+    let options = MaterialOptions::from_params(graph, &json!({"preset":"Dark", "values":{"tint":[0.7,0.6,0.5,1.0]}}), read).unwrap();
+    assert_eq!(options.values.len(), 1);
+    assert_eq!(options.values["tint"], Value::Color([0.7, 0.6, 0.5, 1.0]));
+    assert!(MaterialOptions::from_params(graph, &json!({"values":{"removed":0.5}}), read).is_err());
+    assert!(MaterialOptions::from_params(graph, &json!({"values":{"tint":"wrong"}}), read).is_err());
+    assert_eq!(*graph, before);
+}
+
+#[test]
+fn material_options_size_errors_name_the_material_command() {
+    let session = fixture();
+    let parameters = json!({"size":"bad"});
+    let error =
+        MaterialOptions::from_params(session.graph().unwrap(), &parameters, |_| Err(crate::EngineError::Other("unexpected image read".into()))).unwrap_err();
+    assert!(matches!(error, crate::EngineError::BadParams { cmd, msg } if cmd == "material.cook" && msg.contains("size")));
+    let error = crate::export_request::export_size(parameters.get("size")).unwrap_err();
+    assert!(matches!(error, crate::EngineError::BadParams { cmd, msg } if cmd == "file.export" && msg.contains("size")));
+}
+
+#[test]
+fn named_profiles_reject_ignored_format_and_pattern() {
+    let session = fixture();
+    for extra in [json!({"format":"jpg"}), json!({"pattern":"oak_$(identifier)"})] {
+        let mut params = json!({"graph":"Materials/Oak","profile":"maps"});
+        params.as_object_mut().unwrap().extend(extra.as_object().unwrap().clone());
+        let err = material_bake::export(&session, &params, |_| panic!("invalid options must precede input reads")).err().expect("invalid export must fail");
+        assert!(err.to_string().contains("omit format and pattern"));
+    }
+    let err =
+        material_bake::export(&session, &json!({"graph":"Materials/Oak","normalFormat":"directx"}), |_| panic!("invalid options must precede input reads"))
+            .err()
+            .expect("invalid export must fail");
+    assert!(err.to_string().contains("require an explicit export profile"));
+}
+
+#[test]
+fn float_maps_reject_explicit_srgb_instead_of_ignoring_it() {
+    let session = fixture();
+    let params = json!({"graph":"Materials/Oak","profile":"maps","outputs":["albedo"],"depth":32,"colorSpaces":{"albedo":"srgb"}});
+    let err = material_bake::export(&session, &params, material_bake::read_input).err().expect("invalid export must fail");
+    assert!(err.to_string().contains("requires linear values"));
+}
+
+#[test]
+fn named_profiles_report_the_validated_numeric_graph_selector() {
+    let session = fixture();
+    for profile in ["maps", "materialx"] {
+        for selector in [json!(1.0), json!(0.6)] {
+            let (files, report) =
+                material_bake::export(&session, &json!({"graph":selector,"profile":profile,"outputs":["albedo"],"size":16}), material_bake::read_input)
+                    .unwrap();
+            assert!(!files.is_empty());
+            assert_eq!(report["material"]["graph"], "Materials/Oak");
+        }
+    }
+}

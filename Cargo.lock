@@ -2832,6 +2832,7 @@ dependencies = [
  "schemars",
  "serde",
  "serde_json",
+ "tempfile",
  "thiserror 2.0.21",
  "tokio",
 ]
@@ -2843,6 +2844,7 @@ dependencies = [
  "materialcraft-automation",
  "materialcraft-engine",
  "serde_json",
+ "tempfile",
  "tokio",
  "winresource",
 ]

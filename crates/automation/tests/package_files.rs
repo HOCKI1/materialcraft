@@ -4,7 +4,8 @@ use serde_json::json;
 
 #[test]
 fn reopening_relative_paths_activates_the_existing_document_and_preserves_edits() {
-    let root = std::env::temp_dir().join(format!("materialcraft-workspace-reopen-{}", std::process::id()));
+    let temporary = tempfile::tempdir().unwrap();
+    let root = temporary.path().to_path_buf();
     std::fs::create_dir_all(&root).unwrap();
 
     for extension in ["sbs", "mcraft"] {
@@ -42,13 +43,12 @@ fn reopening_relative_paths_activates_the_existing_document_and_preserves_edits(
         assert!(root.join(&filename).is_file());
         assert_eq!(reopened.session.path.as_deref(), Some(filename.as_str()));
     }
-
-    std::fs::remove_dir_all(root).unwrap();
 }
 
 #[test]
 fn both_formats_save_and_reopen_using_separate_workspace_capabilities() {
-    let root = std::env::temp_dir().join(format!("materialcraft-workspace-packages-{}", std::process::id()));
+    let temporary = tempfile::tempdir().unwrap();
+    let root = temporary.path().to_path_buf();
     let input = root.join("input");
     let output = root.join("output");
     std::fs::create_dir_all(&input).unwrap();
@@ -83,14 +83,14 @@ fn both_formats_save_and_reopen_using_separate_workspace_capabilities() {
 
     // Release workspace directory handles before Windows removes the test tree
     drop(app);
-    std::fs::remove_dir_all(root).unwrap();
 }
 
 #[test]
 fn scoped_publication_resolves_linked_graphs_and_images_using_the_granted_read_root() {
     use materialcraft_engine::core::{Graph, GraphInstance, GraphPort, Value};
     use materialcraft_engine::{formats, samples};
-    let dir = std::env::temp_dir().join(format!("materialcraft-publish-workspace-{}", std::process::id()));
+    let temporary = tempfile::tempdir().unwrap();
+    let dir = temporary.path().to_path_buf();
     let input = dir.join("input");
     let output = dir.join("published");
     std::fs::create_dir_all(input.join("parts")).unwrap();
@@ -126,6 +126,11 @@ fn scoped_publication_resolves_linked_graphs_and_images_using_the_granted_read_r
             let (pkg, entry) = formats::material::read_material(&std::fs::read(output.join("surface.sbs.mcmat")).unwrap()).unwrap();
             assert_eq!(pkg.graph(entry).unwrap().name, "Oak");
             assert_eq!(pkg.graphs.len(), 2);
+            assert!(pkg.graphs.iter().any(|graph| graph.name == "Finish"));
+            let calls: Vec<_> = pkg.graph(entry).unwrap().instances().collect();
+            assert_eq!(calls.len(), 1);
+            assert!(calls[0].package.is_empty());
+            assert!(pkg.graph_by_name(&calls[0].graph).is_some());
 
             // Saving under a different granted root rebases links from that actual
             // destination, not from the process working directory or a relative path.
@@ -155,9 +160,12 @@ fn scoped_publication_resolves_linked_graphs_and_images_using_the_granted_read_r
                 assert!(reopened.session.pkg.dependencies.values().any(|dependency| dependency.name == "Helpers"));
             }
         } else {
-            assert!(result.is_err());
+            let error = result.unwrap_err().to_string();
+            assert!(error.contains("the instanced graph does not exist"), "{error}");
+            let outside = dir.join("outside.sbs").canonicalize().unwrap().to_string_lossy().into_owned();
+            assert!(!app.session.pkg.dependencies.contains_key(&outside));
+            assert!(!app.session.pkg.dependencies.values().any(|dependency| dependency.name == "Helpers"));
             assert!(!output.join("missing.sbs.mcmat").exists());
         }
     }
-    std::fs::remove_dir_all(dir).unwrap();
 }

@@ -33,7 +33,9 @@ USAGE:
                    [--depth 8|16|32] [--size <px|WxH>] [--pattern <p>] [--profile maps|materialx]
                    [--preset <name>] [--input <id>=<image>]...
       Write output images, or material.mtlx and its baked textures with --profile materialx.
-      --normal-format opengl|directx declares the input convention for opaque normal maps.
+      --normal-format opengl|directx requires --profile maps|materialx and declares the input convention.
+      --graph-path <SBS path> selects a literal path, including numeric names, instead of --graph.
+      Named profiles choose their own format and filenames; omit --format and --pattern.
       --displacement-scale <units> scales signed MaterialX displacement (default 1).
   materialcraft-cli render <input> <out.png> [--size <W>x<H>] [--view 3d|2d] [--scene <id>] [--node <id>]
                    [--yaw <deg>] [--pitch <deg>] [--graph <index>] [--set <input>=<value>]... [--full]
@@ -55,17 +57,18 @@ USAGE:
 /// (name, flags taking a value, bare flags)
 const SUBCOMMANDS: &[(&str, &[&str], &[&str])] = &[
     ("info", &[], &[]),
-    ("publish", &["--graph"], &[]),
+    ("publish", &["--graph", "--graph-path"], &[]),
     ("commands", &["--filter"], &[]),
     ("nodes", &["--filter", "--category"], &[]),
     ("run", &["-o"], &[]),
     ("batch", &[], &[]),
     ("new", &["--size", "--name"], &[]),
-    ("cook", &["--graph", "--set", "--size", "--input", "--preset"], &["--full"]),
+    ("cook", &["--graph", "--graph-path", "--set", "--size", "--input", "--preset"], &["--full"]),
     (
         "export",
         &[
             "--graph",
+            "--graph-path",
             "--set",
             "--format",
             "--depth",
@@ -80,7 +83,11 @@ const SUBCOMMANDS: &[(&str, &[&str], &[&str])] = &[
         ],
         &[],
     ),
-    ("render", &["--size", "--view", "--scene", "--node", "--yaw", "--pitch", "--graph", "--set", "--tiling", "--displacement"], &["--full", "--hq"]),
+    (
+        "render",
+        &["--size", "--view", "--scene", "--node", "--yaw", "--pitch", "--graph", "--graph-path", "--set", "--tiling", "--displacement"],
+        &["--full", "--hq"],
+    ),
     ("mcp", &["--bridge", "--token", "--read-root", "--write-root", "--automation-read-root", "--automation-write-root"], &[]),
     ("serve", &["--port", "--read-root", "--write-root", "--automation-read-root", "--automation-write-root"], &[]),
 ];
@@ -155,7 +162,7 @@ fn print(v: &Value) {
 
 /// Open `--graph` and apply every `--set <input>=<value>` (the value is JSON, else a string)
 fn select_graph(h: &mut Headless, a: &Args) -> Result<(), String> {
-    if let Some(g) = a.get("--graph").map(graph_selector) {
+    if let Some(g) = selected_graph(a)? {
         h.command_run("graph.open", json!({"graph": g})).map_err(|e| e.to_string())?;
     }
     for (_, v) in a.flags.iter().filter(|(f, _)| f == "--set") {
@@ -164,6 +171,15 @@ fn select_graph(h: &mut Headless, a: &Args) -> Result<(), String> {
         h.command_run("graph.exposed.set", json!({"id": id, "value": value})).map_err(|e| format!("--set {id}: {e}"))?;
     }
     Ok(())
+}
+
+fn selected_graph(a: &Args) -> Result<Option<Value>, String> {
+    match (a.get("--graph"), a.get("--graph-path")) {
+        (Some(_), Some(_)) => Err("use either --graph or --graph-path, not both".into()),
+        (_, Some(path)) => Ok(Some(json!(path))),
+        (Some(selector), None) => Ok(Some(graph_selector(selector))),
+        (None, None) => Ok(None),
+    }
 }
 
 fn graph_selector(selector: &str) -> Value {
@@ -193,7 +209,7 @@ fn cook_parameters(a: &Args) -> Result<Value, String> {
             inputs.insert(id.to_string(), json!(value));
         }
     }
-    let graph = a.get("--graph").map(graph_selector);
+    let graph = selected_graph(a)?;
     Ok(json!({"graph":graph,"size":a.get("--size").map(output_size).transpose()?,"preset":a.get("--preset"),"values":values,"inputs":inputs}))
 }
 
@@ -285,8 +301,7 @@ fn run(cmd: &str, a: &Args) -> Result<(), String> {
         }
         "publish" => {
             let mut h = open(a.pos(0, "<project>")?)?;
-            let graph = a.get("--graph").ok_or("publish requires --graph <SBS path or index>")?;
-            let graph = graph_selector(graph);
+            let graph = selected_graph(a)?.ok_or("publish requires --graph <SBS path or index> or --graph-path <SBS path>")?;
             print(&h.export_material(&json!({"path":a.pos(1,"<out.mcmat>")?, "graph":graph})).map_err(|e| e.to_string())?);
         }
         "cook" => {
@@ -392,6 +407,16 @@ mod tests {
 
     fn strings(v: &[&str]) -> Vec<String> {
         v.iter().map(|s| s.to_string()).collect()
+    }
+
+    #[test]
+    fn graph_paths_remain_literal_even_when_numeric() {
+        let a = parse("publish", &strings(&["--graph-path", "1"])).unwrap();
+        assert_eq!(selected_graph(&a).unwrap(), Some(json!("1")));
+        let a = parse("publish", &strings(&["--graph", "1"])).unwrap();
+        assert_eq!(selected_graph(&a).unwrap(), Some(json!(1)));
+        let a = parse("publish", &strings(&["--graph", "1", "--graph-path", "1"])).unwrap();
+        assert!(selected_graph(&a).is_err());
     }
 
     #[test]

@@ -27,7 +27,7 @@ type Key = (String, usize);
 struct SnapshotBuilder<'a> {
     root: &'a Package,
     result: Package,
-    paths: BTreeMap<Key, String>,
+    paths: BTreeMap<Key, (String, usize)>,
     active: BTreeSet<Key>,
     resources: BTreeMap<(String, String), String>,
     nodes: usize,
@@ -42,24 +42,31 @@ impl<'a> SnapshotBuilder<'a> {
         self.root.dependencies.get(owner).map(AsRef::as_ref).ok_or_else(|| bad(format!("missing source package `{owner}`")))
     }
 
-    fn reference(&mut self, owner: &str, name: &str) -> Result<String> {
+    fn reference(&mut self, owner: &str, name: &str, height: &mut usize) -> Result<String> {
         let (index, _) = self.package(owner)?.graph_by_name(name).ok_or_else(|| bad(format!("missing or ambiguous graph `{name}` in `{owner}`")))?;
-        self.copy_graph(owner, index)
+        let (path, child_height) = self.copy_graph(owner, index)?;
+        *height = (*height).max(child_height + 1);
+        Ok(path)
     }
 
-    fn copy_graph(&mut self, owner: &str, index: usize) -> Result<String> {
+    fn copy_graph(&mut self, owner: &str, index: usize) -> Result<(String, usize)> {
         let key = (owner.to_owned(), index);
         let source = self.package(owner)?.graph(index).map_err(|e| bad(e.to_string()))?;
         if self.active.contains(&key) {
             return Err(bad(format!("cyclic graph reference at `{}`", source.sbs_path())));
         }
 
-        if let Some(path) = self.paths.get(&key) {
-            return Ok(path.clone());
+        // Bound the complete path, including a shared tail copied on an earlier branch.
+        // Active entries are rejected above, so cached heights here are complete.
+        const MAX_DEPENDENCY_DEPTH: usize = 32;
+        if let Some((path, height)) = self.paths.get(&key) {
+            if self.active.len() + height > MAX_DEPENDENCY_DEPTH {
+                return Err(bad("published graph dependencies exceed the depth or graph count limit"));
+            }
+            return Ok((path.clone(), *height));
         }
 
         // Bound publishing independently of the cooker's per-function and per-instance limits
-        const MAX_DEPENDENCY_DEPTH: usize = 32;
         if self.active.len() >= MAX_DEPENDENCY_DEPTH || self.paths.len() >= crate::sbs::MAX_GRAPHS {
             return Err(bad("published graph dependencies exceed the depth or graph count limit"));
         }
@@ -87,11 +94,12 @@ impl<'a> SnapshotBuilder<'a> {
 
         graph.folder = if self.paths.is_empty() { String::new() } else { format!("Dependencies/g{}", self.paths.len()) };
         let path = graph.sbs_path();
-        self.paths.insert(key.clone(), path.clone());
+        self.paths.insert(key.clone(), (path.clone(), 0));
+        let mut height = 1;
         self.active.insert(key.clone());
         for instance in graph.instances_mut() {
             let package = if instance.package.is_empty() { owner } else { &instance.package };
-            instance.graph = self.reference(package, &instance.graph)?;
+            instance.graph = self.reference(package, &instance.graph, &mut height)?;
             instance.package.clear();
         }
         for node in &mut graph.nodes {
@@ -103,7 +111,7 @@ impl<'a> SnapshotBuilder<'a> {
                 if let Some(instance) = &node.instance {
                     node.params.insert("graph".into(), Value::Text(instance.graph.clone()));
                 } else if let Some(Value::Text(target)) = node.params.get_mut("graph") {
-                    *target = self.reference(owner, target)?;
+                    *target = self.reference(owner, target, &mut height)?;
                 } else {
                     return Err(bad(format!("missing graph reference in `{path}`")));
                 }
@@ -131,8 +139,9 @@ impl<'a> SnapshotBuilder<'a> {
         }
 
         self.active.remove(&key);
+        self.paths.insert(key, (path.clone(), height));
         self.result.graphs.push(graph);
-        Ok(path)
+        Ok((path, height))
     }
 
     fn resource(&mut self, owner: &str, name: &str) -> Result<String> {
@@ -161,5 +170,56 @@ pub fn entry_graph(pkg: &Package) -> Result<usize> {
     match (roots.next(), roots.next()) {
         (Some((index, Graph { function: None, .. })), None) => Ok(index),
         _ => Err(bad("source.sbs must have exactly one root material graph; put helper graphs and functions in a dependency folder")),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn graph(name: &str, children: &[String]) -> Graph {
+        let mut graph = Graph::new(name);
+        if children.is_empty() {
+            let source = graph.add_node("uniform", [0.0; 2]);
+            let output = graph.add_node("output", [0.0; 2]);
+            graph.connect(source, "output", output, "input").unwrap();
+        }
+        for child in children {
+            let source = graph.add_node("graph_instance", [0.0; 2]);
+            graph.node_mut(source).unwrap().params.insert("graph".into(), Value::Text(child.clone()));
+            let output = graph.add_node("output", [0.0; 2]);
+            graph.connect(source, "output", output, "input").unwrap();
+        }
+        graph
+    }
+
+    fn shared_tail(chain: usize, tail: usize, cached_first: bool) -> Package {
+        let mut package = Package::new("depth");
+        let mut children = vec!["tail0".into(), "chain0".into()];
+        if !cached_first {
+            children.reverse();
+        }
+        package.graphs.push(graph("root", &children));
+        for i in 0..chain {
+            let next = if i + 1 == chain { "tail0".into() } else { format!("chain{}", i + 1) };
+            package.graphs.push(graph(&format!("chain{i}"), &[next]));
+        }
+        for i in 0..tail {
+            let children = if i + 1 == tail { vec![] } else { vec![format!("tail{}", i + 1)] };
+            package.graphs.push(graph(&format!("tail{i}"), &children));
+        }
+        package
+    }
+
+    #[test]
+    fn cached_graph_depth_is_independent_of_reference_order() {
+        for cached_first in [true, false] {
+            // Root + chain + shared tail: 32 is valid, 33 is not. The cached
+            // tail can itself contain dependencies, not just a leaf.
+            for tail in [1, 5] {
+                assert!(snapshot(&shared_tail(31 - tail, tail, cached_first), 0).is_ok());
+                assert!(snapshot(&shared_tail(32 - tail, tail, cached_first), 0).is_err());
+            }
+        }
     }
 }

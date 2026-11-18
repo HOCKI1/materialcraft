@@ -366,6 +366,11 @@ The ZIP contains a version marker (`material.json` with `{"version":3}`), a DEFL
 
 TextureCraft requests `--profile maps` at its texture set's resolution and supplies mesh maps through repeated `--input identifier=path`. Common identifiers include `ambientOcclusion`, `curvature`, `thickness`, `position`, `worldNormal`, `normal`, `height`, `id`, `bentNormal`, `opacity`, `colorMap` and `worldDirection`. An image override uses the published preview binding’s color space when present. Otherwise the input’s declared usage determines the transfer, with the identifier as a fallback for untagged inputs. The JSON report lists each map's identifier, usage, filename, color space and actual dimensions.
 
+Named bake profiles select their own output formats and filenames: do not supply `format` or `pattern`.
+`normalFormat` requires an explicit bake profile. Explicit sRGB overrides are refused for floating-point
+EXR outputs; omit the override or choose raw/linear. The CLI's `--graph-path` selects a literal SBS path,
+including a numeric name, while `--graph` retains numeric-index shorthand.
+
 The `materialx` profile writes `material.mtlx` with relative texture paths and an OpenPBR surface. Color textures default to sRGB PNG, data textures to linear 16-bit PNG, and out-of-range values to floating-point EXR. Both bake profiles write tangent-space Y+ normals. A directly connected Normal node supplies its evaluated convention, including through routing dots. Other normal sources default to Y+. Use `--normal-format directx` for a Y− source or `--normal-format opengl` for Y+. OpenPBR scalar and normal inputs require linear data. Height becomes signed EXR displacement in scene units using `(height - 0.5) × displacementScale`. The CLI accepts `--displacement-scale`. MaterialX texture filenames include a hash of the output name and bytes. Re-export writes the document last and keeps earlier texture versions, so a failed export leaves the previous material usable. Outputs without an OpenPBR connection are written alongside the document and listed in `unmapped`.
 
 | Command | Params |

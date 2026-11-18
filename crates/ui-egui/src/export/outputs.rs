@@ -41,7 +41,7 @@ impl ExportSettings {
     /// Check or uncheck every output of `graph`
     pub fn include_all(&mut self, graph: &Graph, include: bool) {
         for output in listed(graph) {
-            let key = output_key(&graph.name, &output.identifier);
+            let key = output_key(&graph.sbs_path(), &output.identifier);
             if include {
                 self.skipped_outputs.remove(&key);
             } else {
@@ -53,7 +53,7 @@ impl ExportSettings {
     /// The `file.export` `outputs` and `colorSpaces` for `graph`; `None` when none of its outputs is checked
     pub fn selection(&self, graph: &Graph) -> Option<(Value, Value)> {
         let outputs = listed(graph);
-        let included: Vec<&ListedOutput> = outputs.iter().filter(|output| self.includes(&graph.name, &output.identifier)).collect();
+        let included: Vec<&ListedOutput> = outputs.iter().filter(|output| self.includes(&graph.sbs_path(), &output.identifier)).collect();
         if included.is_empty() {
             return None;
         }
@@ -61,7 +61,7 @@ impl ExportSettings {
         let identifiers =
             if included.len() == outputs.len() { Value::Null } else { json!(included.iter().map(|output| &output.identifier).collect::<Vec<_>>()) };
         let color_spaces: serde_json::Map<String, Value> =
-            included.iter().map(|output| (output.identifier.clone(), json!(self.color_space(&graph.name, output).id()))).collect();
+            included.iter().map(|output| (output.identifier.clone(), json!(self.color_space(&graph.sbs_path(), output).id()))).collect();
         Some((identifiers, Value::Object(color_spaces)))
     }
 }
@@ -77,8 +77,8 @@ pub fn tree(ui: &mut Ui, settings: &mut ExportSettings, graphs: &[&Graph]) {
     egui::ScrollArea::vertical().id_salt("export-outputs").max_height(240.0).auto_shrink([false, true]).show(ui, |ui| {
         for graph in graphs {
             let outputs = listed(graph);
-            let included = outputs.iter().filter(|output| settings.includes(&graph.name, &output.identifier)).count();
-            let id = ui.make_persistent_id(("export-graph", &graph.name));
+            let included = outputs.iter().filter(|output| settings.includes(&graph.sbs_path(), &output.identifier)).count();
+            let id = ui.make_persistent_id(("export-graph", graph.sbs_path()));
             egui::collapsing_header::CollapsingState::load_with_default_open(ui.ctx(), id, true)
                 .show_header(ui, |ui| {
                     let mut all = !outputs.is_empty() && included == outputs.len();
@@ -102,10 +102,10 @@ fn outputs_grid(ui: &mut Ui, settings: &mut ExportSettings, graph: &Graph, outpu
         return;
     }
 
-    egui::Grid::new(("export-outputs-grid", &graph.name)).num_columns(2).min_col_width(OUTPUT_COLUMN_WIDTH).spacing([8.0, 4.0]).show(ui, |ui| {
+    egui::Grid::new(("export-outputs-grid", graph.sbs_path())).num_columns(2).min_col_width(OUTPUT_COLUMN_WIDTH).spacing([8.0, 4.0]).show(ui, |ui| {
         for output in outputs {
-            let key = output_key(&graph.name, &output.identifier);
-            let mut included = settings.includes(&graph.name, &output.identifier);
+            let key = output_key(&graph.sbs_path(), &output.identifier);
+            let mut included = settings.includes(&graph.sbs_path(), &output.identifier);
             let checkbox = ui.checkbox(&mut included, &output.identifier);
             crate::widgets::name(&checkbox, egui::Role::CheckBox, &output.identifier);
             if checkbox.changed() {
@@ -116,14 +116,14 @@ fn outputs_grid(ui: &mut Ui, settings: &mut ExportSettings, graph: &Graph, outpu
                 }
             }
 
-            let mut space = settings.color_space(&graph.name, output);
+            let mut space = settings.color_space(&graph.sbs_path(), output);
             let combo = egui::ComboBox::from_id_salt(("export-color-space", &key)).width(110.0).selected_text(space.label()).show_ui(ui, |ui| {
                 for choice in ColorSpace::ALL {
                     ui.selectable_value(&mut space, choice, choice.label());
                 }
             });
             crate::widgets::name(&combo.response, egui::Role::ComboBox, &format!("{} {}", output.identifier, tr("color space")));
-            if space != settings.color_space(&graph.name, output) {
+            if space != settings.color_space(&graph.sbs_path(), output) {
                 settings.color_spaces.insert(key, space);
             }
             ui.end_row();

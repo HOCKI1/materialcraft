@@ -155,3 +155,29 @@ fn material_dialog_identity_is_not_saved_in_preferences() {
     let restored: ExportSettings = serde_json::from_value(stored).unwrap();
     assert_eq!(restored.material.document, None);
 }
+
+#[test]
+fn folder_graphs_keep_independent_output_selection_and_color_spaces() {
+    let app = app();
+    let mut indoor = app.session.graph().unwrap().clone();
+    indoor.name = "Oak".into();
+    indoor.folder = "Indoor".into();
+    let mut outdoor = indoor.clone();
+    outdoor.folder = "Outdoor".into();
+    let mut settings = ExportSettings::default();
+    settings.include_all(&indoor, false);
+    assert!(settings.selection(&indoor).is_none());
+    assert!(settings.selection(&outdoor).is_some());
+    settings.include_all(&indoor, true);
+    settings.color_spaces.insert(output_key(&indoor.sbs_path(), "base_color"), materialcraft_engine::ColorSpace::Linear);
+    assert_eq!(settings.selection(&indoor).unwrap().1["base_color"], "linear");
+    assert_eq!(settings.selection(&outdoor).unwrap().1["base_color"], "srgb");
+}
+
+#[test]
+fn material_export_reports_missing_shader_connections_on_every_platform() {
+    assert_eq!(material_export_message(&Value::Null), tr("Material exported"));
+    let message = material_export_message(&json!({"unmapped":["custom_output"]}));
+    assert!(message.contains(tr("Exported without shader connections")));
+    assert!(message.contains("custom_output"));
+}

@@ -148,6 +148,7 @@ cargo run --release -p materialcraft-cli -- mcp               # MCP server (stdi
 cargo run --release -p materialcraft-cli -- new wood wood.sbs
 cargo run --release -p materialcraft-cli -- render wood.sbs wood.png --scene sphere --full --hq
 cargo run --release -p materialcraft-cli -- export wood.sbs textures --format png --depth 16
+# Given a separate my.sbs with Materials/Oak and an exposed wear parameter:
 cargo run --release -p materialcraft-cli -- export my.sbs out --set wear=0.7    # with a graph input "wear" set first
 cargo run --release -p materialcraft-cli -- publish my.sbs my.mcmat --graph Materials/Oak
 cargo run --release -p materialcraft-cli -- export my.mcmat build/oak --profile materialx --size 2048 --set wear=0.7

@@ -13,8 +13,8 @@ fn run(dir: &Path, args: &[&str]) -> Value {
 
 #[test]
 fn a_published_graph_bakes_openpbr_variations_after_the_project_is_removed() {
-    let dir = std::env::temp_dir().join(format!("materialcraft-cli-published-{}", std::process::id()));
-    std::fs::create_dir_all(&dir).unwrap();
+    let temporary = tempfile::tempdir().unwrap();
+    let dir = temporary.path().to_path_buf();
     run(&dir, &["new", "pbr", "source.sbs", "--name", "Oak", "--size", "32"]);
     run(&dir, &["run", "source.sbs", "graph.exposed.add", r#"{"id":"tint","bind":{"node":1,"param":"color"}}"#, "-o", "studio.mcraft"]);
     run(&dir, &["publish", "studio.mcraft", "oak.mcmat", "--graph", "Oak"]);
@@ -45,13 +45,12 @@ fn a_published_graph_bakes_openpbr_variations_after_the_project_is_removed() {
     let rectangular = run(&dir, &["cook", "oak.mcmat", "--size", "64x32"]);
     assert_eq!(rectangular["outputs"][0]["size"], json!([64, 32]));
     assert_eq!(run(&dir, &["info", "oak.mcmat"]), initial);
-    std::fs::remove_dir_all(&dir).unwrap();
 }
 
 #[test]
 fn failed_materialx_reexport_preserves_the_last_complete_material() {
-    let dir = std::env::temp_dir().join(format!("materialcraft-cli-reexport-{}", std::process::id()));
-    std::fs::create_dir_all(&dir).unwrap();
+    let temporary = tempfile::tempdir().unwrap();
+    let dir = temporary.path().to_path_buf();
     run(&dir, &["new", "pbr", "source.sbs", "--name", "Oak", "--size", "32"]);
     let export = |folder, size| run(&dir, &["export", "source.sbs", folder, "--profile", "materialx", "--size", size]);
     let first = export("material", "32");
@@ -85,5 +84,4 @@ fn failed_materialx_reexport_preserves_the_last_complete_material() {
     for (name, bytes) in original_files {
         assert_eq!(std::fs::read(material.join(name)).unwrap(), bytes, "{name}");
     }
-    std::fs::remove_dir_all(dir).unwrap();
 }

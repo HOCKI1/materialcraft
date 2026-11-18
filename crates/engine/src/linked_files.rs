@@ -82,6 +82,7 @@ fn resolve(package: &mut Package, mut pending: Vec<String>, read: &dyn Fn(&str) 
     use std::{collections::BTreeSet, sync::Arc};
     let mut visited = BTreeSet::new();
     let mut warnings = Vec::new();
+    let mut reads = 0;
     while let Some(path) = pending.pop() {
         if !visited.insert(path.clone()) {
             continue;
@@ -92,10 +93,13 @@ fn resolve(package: &mut Package, mut pending: Vec<String>, read: &dyn Fn(&str) 
             continue;
         }
 
-        if visited.len() > 4096 {
+        // Cached snapshots need traversal, but must not consume the new-read budget.
+        // Count failed attempts too; visited still prevents repeated reads and cycles.
+        if reads >= 4096 {
             warnings.push("linked material exceeds the package dependency limit".into());
             break;
         }
+        reads += 1;
         match read(&path) {
             Ok(read) => {
                 warnings.extend(read.warnings);
@@ -111,4 +115,47 @@ fn resolve(package: &mut Package, mut pending: Vec<String>, read: &dyn Fn(&str) 
     }
 
     warnings
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::{cell::Cell, sync::Arc};
+
+    #[test]
+    fn cached_paths_do_not_spend_the_new_dependency_read_budget() {
+        for cached_first in [true, false] {
+            let mut package = Package::new("root");
+            let mut pending = vec!["new".to_string()];
+            for i in 0..4096 {
+                let name = format!("cached{i}");
+                package.dependencies.insert(name.clone(), Arc::new(Package::new(&name)));
+                pending.push(name);
+            }
+            if !cached_first {
+                pending.reverse();
+            }
+            let calls = Cell::new(0);
+            let warnings = resolve(&mut package, pending, &|path| {
+                calls.set(calls.get() + 1);
+                assert_eq!(path, "new");
+                Ok(materialcraft_formats::sbs::SbsRead { pkg: Package::new(path), warnings: vec![] })
+            });
+            assert!(warnings.is_empty(), "{warnings:?}");
+            assert_eq!(calls.get(), 1);
+            assert!(package.dependencies.contains_key("new"));
+        }
+    }
+
+    #[test]
+    fn failed_new_reads_still_spend_the_budget_and_duplicates_do_not() {
+        let calls = Cell::new(0);
+        let pending = (0..4097).flat_map(|i| [format!("missing{i}"), format!("missing{i}")]).collect();
+        let warnings = resolve(&mut Package::new("root"), pending, &|_| {
+            calls.set(calls.get() + 1);
+            Err("missing".into())
+        });
+        assert_eq!(calls.get(), 4096);
+        assert!(warnings.last().unwrap().contains("dependency limit"));
+    }
 }
