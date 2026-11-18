@@ -146,7 +146,14 @@ fn compile_nested(graph: &FunctionGraph, seed: u32, depth: usize, remaining: &mu
             None
         };
 
-        let value = node.value.clone().or_else(|| catalog::default_value(&node.op));
+        let mut value = node.value.clone().or_else(|| catalog::default_value(&node.op));
+        // Getters consume one reference marker. Set and Is Defined address the literal name.
+        if definition.id.starts_with("get_")
+            && let Some(materialcraft_core::Value::Text(name)) = &mut value
+            && let Some(identifier) = name.strip_prefix('%')
+        {
+            *name = identifier.to_owned();
+        }
         let input_type = |index: usize| inputs.get(index).and_then(|index| instructions.get(*index)).map_or(256, |instruction| instruction.type_code);
         let inferred = super::inferred_type::inferred_type(&node.op, value.as_ref(), input_type);
         let type_code = call.as_ref().map_or_else(|| if node.type_code == 0 { inferred } else { node.type_code }, |call| call.program.output_type());

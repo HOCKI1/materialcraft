@@ -25,6 +25,27 @@ fn operation(name: &str, arguments: &[Value], setting: Option<Value>) -> Result<
     evaluate(&graph, &BTreeMap::new())
 }
 
+#[test]
+fn variable_reads_consume_one_reference_marker() {
+    let variables = BTreeMap::from([("level".into(), Value::Float(0.1875))]);
+    for (assigned, getter, expected) in
+        [("level", "%level", 0.6875), ("%level", "level", 0.1875), ("%level", "%level", 0.1875), ("%level", "%%level", 0.6875), ("level", "%%level", 0.0)]
+    {
+        let mut graph = FunctionGraph::default();
+        let value = graph.add_constant(Value::Float(0.6875));
+        let set = graph.add("set", &[value], Some(Value::Text(assigned.into())));
+        let get = graph.add("get_float1", &[], Some(Value::Text(getter.into())));
+        graph.output = Some(graph.add("sequence", &[set, get], None));
+        assert_eq!(evaluate(&graph, &variables), Ok(Value::Float(expected)), "{assigned} then {getter}");
+    }
+
+    let mut graph = FunctionGraph::default();
+    graph.output = Some(graph.add("isdefined", &[], Some(Value::Text("%level".into()))));
+    assert_eq!(evaluate(&graph, &variables), Ok(Value::Bool(false)));
+    graph.output = Some(graph.add("get_float2", &[], Some(Value::Text("%$size".into()))));
+    assert_eq!(evaluate(&graph, &variables), Ok(Value::Float2([3.0, 5.0])));
+}
+
 fn pixel_operation(op: &str, operands: &[Value], literal: bool) -> Value {
     scoped_operation(super::FunctionScope::PixelProcessor, op, operands, literal)
 }

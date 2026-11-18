@@ -253,6 +253,35 @@ Literal-only pixel graphs at 16², seed 23, give 512/768 exact pixels for each l
 
 The shared-lookup ridged root still matches 5,160/16,384 at changed roughness in F32, maximum 1.78813934e−7. Its one-octave .7 control still matches 1,847/4,096, maximum 2.38418579e−7. For positive normal x on the signed field, the reference's general power agrees with exp(y×ln(x)) on all 32,614 pixels. On .7 with exponent 1 it returns `3f333334`. Further work on general power and natural exponential is tracked with the [octave controls](#ridged-noise-octave-isolation).
 
+### Marked variable reads in path and mipmap graphs
+
+| Root | Renders | Exact RGBA pixels / compared | Maximum error |
+|---|---:|---:|---:|
+| Facet link template | 18 | 57,600/57,600 | 0 |
+| Facet stitch template | 18 | 57,600/57,600 | 0 |
+| Vertex processor | 18 | 57,600/57,600 | 0 |
+| Simple vertex processor | 18 | 57,600/57,600 | 0 |
+| Color mipmap N from O | 18 | 287,232/287,232 | 0 |
+
+A Get variable operation consumes one leading `%`. For an exposed Float named `angle`, Get `angle` and Get `%angle` both return the exposed value. Set `angle` to .6875 before the second read and it returns .6875. Set `%angle` instead and Get `%angle` still returns the exposed value, while Get `%%angle` returns .6875. Is Defined tests the literal name. A Get of `%$size` has the same result as a Get of `$size`.
+
+Use original Node, Pixel Processor, Value Processor and FX-Map functions. For each function use a 16² default at seed 41 with angle .625, 32² at seed 131 with .1875, and 64² at seed 409 with .875. Test bare, marked, twice-marked and absent names, and the read/write combinations above. For Is Defined choose .875 for true and .1875 for false. For the size probe select X and multiply by 1/128. The Node scope stores the scalar before returning an Int2 size. Before the fix the marked exposed Float matched 0/3 typed values and 0/5,376 Pixel Processor pixels, maximum .875. It now matches all three values and every pixel.
+
+| Direct scope | Cases | Exact pixels or typed values / compared | Maximum error |
+|---|---:|---:|---:|
+| Node | 51 | 91,392/91,392 | 0 |
+| Pixel Processor | 51 | 91,392/91,392 | 0 |
+| Value Processor | 51 | 51/51 | 0 |
+| FX-Map opacity | 51 | 80,640/91,392 | 1 |
+
+At FX-Map opacity, an unresolved direct Get of `%other` or `%%angle` yields opacity 1 in the reference app and 0 in MaterialCraft. All six such renders differ at every pixel. A literal Is Defined check and a read after assigning the marked name match. The table records the unresolved direct-read behavior separately from the five measured root graphs.
+
+The nine additional renders for each root use the [modular input, resolution, precision and seed matrix](#normal-maps-panoramas-and-primitive-shapes). For both facet templates, set radius to .6875, 1.3125 and 2.125 for A/B/C, enable init only in B, set foreach to .375, .75 and 1.125, and use finally (.1875,.34375,.75,1). Each changed facet output is uniform on these inputs.
+
+For each vertex root use the original five-point path for defaults and A and the seven-point path for B and C. For every valid position (x,y) in the path's second row use (.0625+.625x+.1875y, .125+.0625x+.6875y). Bind each remaining image pin in identifier order to its modular field. Set the per-vertex pair to (.1875,.8125), (−.25,.625) and (.78125,.3125), with image input counts 1, 2 and 3. On the full processor set previous/next fetch counts to (1,1), (0,2) and (1,0). Both 64² F32 outputs contain 383 distinct tuples.
+
+For the color mipmap use (N,O)=(2,1),(3,0),(4,1), init .375, .75 and 1.125, blend .8125, finally (.75,.125,.6875,1), and empty (.1875,.3125,.625,.25). The 64² F32 output has 2,558 distinct tuples. The default 16² parent produces 16×32 and the 128² B parent produces 128×256. Counts use the stored output extents and precision for each render.
+
 ### High-pass, anisotropic noise and triangle-grid controls
 
 | Root | Renders | Exact pixels / compared | Maximum error |
