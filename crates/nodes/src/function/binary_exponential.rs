@@ -123,7 +123,7 @@ pub(super) fn power(base: f32, exponent: f32, pixel: bool) -> f32 {
     if exponent.abs() % 2.0 == 1.0 { -result } else { result }
 }
 
-pub(super) fn exp2(value: f32) -> f32 {
+pub(crate) fn exp2(value: f32) -> f32 {
     if value < -126.0 {
         return 0.0;
     }

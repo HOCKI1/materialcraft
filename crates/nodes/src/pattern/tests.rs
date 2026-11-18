@@ -2,6 +2,20 @@ use crate::{CookContext, find, resolve_params};
 use materialcraft_core::{FunctionGraph, PatternGraph, PatternNodeKind, Value};
 use std::collections::BTreeMap;
 
+#[test]
+fn radial_stamps_keep_the_measured_center_and_skirt() {
+    for (x, y, expected) in [
+        (0xbf7c0000, 0x3c7fffbf, [0x3cfc0000, 0x35762800, 0x36cecb1c]),
+        (0xbeb80001, 0xbef80001, [0x3f22e000, 0x3e27c967, 0x3c90589e]),
+        (0x3c7fffbf, 0x3c7fffbf, [0x3f7fe000, 0x3f7f8018, 0x3f7e9cc6]),
+    ] {
+        for (shape, bits) in (4..=6).zip(expected) {
+            let value = super::shape::coverage(shape, f32::from_bits(x), f32::from_bits(y), 0.0).unwrap();
+            assert_eq!(value.to_bits(), bits, "shape {shape} at ({x:08x}, {y:08x})");
+        }
+    }
+}
+
 fn cook(graph: PatternGraph) -> crate::CookResult {
     cook_with_variables(graph, &BTreeMap::new())
 }

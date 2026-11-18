@@ -35,7 +35,7 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **249 Parity**, **27 In progress** and **270 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **249 Parity**, **35 In progress** and **262 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
 
 [Grayscale sampler measurements](parity-fixes.md#grayscale-sampling-of-color-inputs) · [Value sampling across 240 typed comparisons](parity-fixes.md#value-processor-texture-filtering)
 
@@ -68,7 +68,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [3d_viewer.sbs/ibl_specular_contrib_anisotropic/panoramic_lod](../assets/sbs/3d_viewer.sbs) | 1 | Yes | [Parity · 20 cases, 219,392 exact pixels](parity-fixes.md#large-transform-offsets-and-additive-blends) |
 | [3d_volume_mask.sbs/3d_volume_mask](../assets/sbs/3d_volume_mask.sbs) | 1 | No | [In progress · 466,232/467,456 pixels, F32 error](parity-fixes.md#surface-irradiance-and-uniform-power) |
 | [3d_worley_noise.sbs/3D_worley_noise](../assets/sbs/3d_worley_noise.sbs) | 1 | No | [In progress · random draws measured, per-pixel starting state differs](parity-fixes.md#pixel-processor-random-draws) |
-| [alveolus.sbs/alveolus](../assets/sbs/alveolus.sbs) | 0 | Yes | [In progress · 64² format sweep exact, larger fields differ](parity-fixes.md#alveolus-quadrant-placement-and-falloff) |
+| [alveolus.sbs/alveolus](../assets/sbs/alveolus.sbs) | 0 | Yes | [In progress · 300,544/302,336 pixels across 26 renders](parity-fixes.md#radial-stamp-profiles-and-pattern-generators) |
 | [angle_to_vector.sbs/angle_to_vector](../assets/sbs/angle_to_vector.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [anisotropic_blur.sbs/anisotropic_blur](../assets/sbs/anisotropic_blur.sbs) | 1 | No | [In progress · first directional pass differs](parity-fixes.md#anisotropic-blur) |
 | [anisotropic_blur.sbs/anisotropic_blur_grayscale](../assets/sbs/anisotropic_blur.sbs) | 1 | No | [In progress · rotated kernel differs](parity-fixes.md#anisotropic-blur) |
@@ -209,9 +209,9 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [fur_3.sbs/fur_3](../assets/sbs/fur_3.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [fur_4.sbs/fur_4](../assets/sbs/fur_4.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [fxaa.sbs/fxaa_grayscale](../assets/sbs/fxaa.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
-| [gaussian_1.sbs/gaussian_1](../assets/sbs/gaussian_1.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [gaussian_2.sbs/gaussian_2](../assets/sbs/gaussian_2.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [gaussian_spots_1.sbs/gaussian_spots_1](../assets/sbs/gaussian_spots_1.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [gaussian_1.sbs/gaussian_1](../assets/sbs/gaussian_1.sbs) | 0 | Yes | [In progress · 168,522/171,264 pixels across 18 renders](parity-fixes.md#radial-stamp-profiles-and-pattern-generators) |
+| [gaussian_2.sbs/gaussian_2](../assets/sbs/gaussian_2.sbs) | 0 | Yes | [In progress · 169,796/171,264 pixels across 18 renders](parity-fixes.md#radial-stamp-profiles-and-pattern-generators) |
+| [gaussian_spots_1.sbs/gaussian_spots_1](../assets/sbs/gaussian_spots_1.sbs) | 0 | Yes | [In progress · 1,573/132,096 pixels across 9 renders](parity-fixes.md#radial-stamp-profiles-and-pattern-generators) |
 | [gaussian_spots_2.sbs/gaussian_spots_2](../assets/sbs/gaussian_spots_2.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [glow.sbs/clamp](../assets/sbs/glow.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [gradient_axial.sbs/gradient_axial](../assets/sbs/gradient_axial.sbs) | 0 | No | [Parity · 15 cases, 165,120 exact pixels](parity-fixes.md#luminosity-axial-gradients-color-lookup-and-luminance-merge) |
@@ -332,8 +332,8 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [noise_fur_3.sbs/fur_3](../assets/sbs/noise_fur_3.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [noise_gaussian_noise.sbs/gaussian_noise](../assets/sbs/noise_gaussian_noise.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [noise_gaussian_noise_v2.sbs/gaussian_noise](../assets/sbs/noise_gaussian_noise_v2.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [noise_gaussian_spots_1.sbs/gaussian_spots_1](../assets/sbs/noise_gaussian_spots_1.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [noise_gaussian_spots_1_v2.sbs/gaussian_spots_1](../assets/sbs/noise_gaussian_spots_1_v2.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [noise_gaussian_spots_1.sbs/gaussian_spots_1](../assets/sbs/noise_gaussian_spots_1.sbs) | 0 | Yes | [In progress · 493/132,096 pixels across 9 renders](parity-fixes.md#radial-stamp-profiles-and-pattern-generators) |
+| [noise_gaussian_spots_1_v2.sbs/gaussian_spots_1](../assets/sbs/noise_gaussian_spots_1_v2.sbs) | 0 | No | [In progress · 2,984/132,096 pixels across 9 renders](parity-fixes.md#radial-stamp-profiles-and-pattern-generators) |
 | [noise_gaussian_spots_2.sbs/gaussian_spots_2](../assets/sbs/noise_gaussian_spots_2.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [noise_gaussian_spots_2_v2.sbs/gaussian_spots_2](../assets/sbs/noise_gaussian_spots_2_v2.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [noise_liquid.sbs/liquid](../assets/sbs/noise_liquid.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
@@ -402,7 +402,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [paths_tools.sbs/paths_trace](../assets/sbs/paths_tools.sbs) | 2 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [paths_tools.sbs/vertex_processor](../assets/sbs/paths_tools.sbs) | 9 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [paths_tools.sbs/vertex_processor_simple](../assets/sbs/paths_tools.sbs) | 5 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [pattern_alveolus.sbs/alveolus](../assets/sbs/pattern_alveolus.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [pattern_alveolus.sbs/alveolus](../assets/sbs/pattern_alveolus.sbs) | 0 | No | [In progress · 170,440/171,264 pixels across 18 renders](parity-fixes.md#radial-stamp-profiles-and-pattern-generators) |
 | [pattern_arc_pavement.sbs/arc_pavement](../assets/sbs/pattern_arc_pavement.sbs) | 1 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [pattern_brick_1.sbs/brick_1](../assets/sbs/pattern_brick_1.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [pattern_brick_2.sbs/brick_2](../assets/sbs/pattern_brick_2.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
@@ -412,8 +412,8 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [pattern_cube_3d.sbs/cube_3d_gbuffers](../assets/sbs/pattern_cube_3d.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [pattern_fibers_1.sbs/fibers_1](../assets/sbs/pattern_fibers_1.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [pattern_fibers_2.sbs/fibers_2](../assets/sbs/pattern_fibers_2.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [pattern_gaussian_1.sbs/gaussian_1](../assets/sbs/pattern_gaussian_1.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [pattern_gaussian_2.sbs/gaussian_2](../assets/sbs/pattern_gaussian_2.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [pattern_gaussian_1.sbs/gaussian_1](../assets/sbs/pattern_gaussian_1.sbs) | 0 | No | [In progress · 168,522/171,264 pixels across 18 renders](parity-fixes.md#radial-stamp-profiles-and-pattern-generators) |
+| [pattern_gaussian_2.sbs/gaussian_2](../assets/sbs/pattern_gaussian_2.sbs) | 0 | No | [In progress · 169,796/171,264 pixels across 18 renders](parity-fixes.md#radial-stamp-profiles-and-pattern-generators) |
 | [pattern_mesh_1.sbs/mesh_1](../assets/sbs/pattern_mesh_1.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [pattern_mesh_2.sbs/mesh_2](../assets/sbs/pattern_mesh_2.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [pattern_polygon_2.sbs/polygon_2](../assets/sbs/pattern_polygon_2.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |

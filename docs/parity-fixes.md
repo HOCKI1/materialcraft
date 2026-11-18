@@ -253,6 +253,36 @@ Literal-only pixel graphs at 16², seed 23, give 512/768 exact pixels for each l
 
 The shared-lookup ridged root still matches 5,160/16,384 at changed roughness in F32, maximum 1.78813934e−7. Its one-octave .7 control still matches 1,847/4,096, maximum 2.38418579e−7. For positive normal x on the signed field, the reference's general power agrees with exp(y×ln(x)) on all 32,614 pixels. On .7 with exponent 1 it returns `3f333334`. Further work on general power and natural exponential is tracked with the [octave controls](#ridged-noise-octave-isolation).
 
+### Radial stamp profiles and pattern generators
+
+A single stamp in an original grayscale pattern graph isolates the local profile. For each shape, use a centered stamp of size (1,1), then a quarter-turn, then size (1.375,.6875) at .0625 turns with offset (.109375,−.1875). Render at 16² F32/seed 433, 32² F32/127, 64² in U8, U16, F16 and F32/733, and 128² F32/983. The counts compare stored pixels for all 21 renders per shape.
+
+| Shape identifier | Previous exact | Current exact / compared | Maximum U8 / U16 levels | Maximum F16 / F32 error |
+|---|---:|---:|---:|---:|
+| 4 | 66,880 | 66,884/102,144 | 1 / 1 | 0.00048828125 / 1.66893005e-06 |
+| 5 | 25,043 | 61,752/102,144 | 0 / 1 | 0.00048828125 / 1.04308128e-06 |
+| 6 | 52,799 | 61,127/102,144 | 0 / 1 | 0.000244140625 / 1.37090683e-06 |
+
+Shape 4 uses max(0,1−t), where t is the squared radius computed with a rounded x² and a fused y×y addition. Shape 5 uses (1−t)⁴, evaluated as the expanded polynomial in Horner order inside the unit circle. Shape 6 uses the pixel base-two exponential of −t×float32(11.1×log₂(e)), subtracts .0000151, then clamps at zero. The old shape 5 reached errors of 64 U8 levels, 16,384 U16 levels and .250000358 in F32. It now matches all 12,288 U8 pixels.
+
+A coordinate check isolates the remaining placement error. For a unit stamp, estimate each axis as float32((i+.5)×2×(1−2⁻²⁴)/N−1), with one final rounding. At 64² the quartic and Gaussian profiles each match 4,094/4,096 F32 samples with those coordinates. At 128² each matches 16,383/16,384. The regression checks include the 64² texels (0,32), (20,16), and (32,32). The stored output comparisons above include the complete renderer and translated and rotated stamps.
+
+| Root | Renders | Exact / compared | Maximum U16 levels | Maximum F32 error |
+|---|---:|---:|---:|---:|
+| Alveolus | 26 | 300,544/302,336 | 1000 | 0 |
+| Gaussian 1 | 18 | 168,522/171,264 | 2 | 1.52587891e-05 |
+| Gaussian 2 | 18 | 169,796/171,264 | 1 | 1.52587891e-05 |
+| Gaussian spots 1 | 9 | 1,573/132,096 | 65535 | 1.16203201 |
+| Noise Gaussian spots 1 | 9 | 493/132,096 | 65518 | 0.905901405 |
+| Noise Gaussian spots 1 v2 | 9 | 2,984/132,096 | 65153 | 1.05418956 |
+| Pattern Alveolus | 18 | 170,440/171,264 | 2 | 0 |
+| Pattern Gaussian 1 | 18 | 168,522/171,264 | 2 | 1.52587891e-05 |
+| Pattern Gaussian 2 | 18 | 169,796/171,264 | 1 | 1.52587891e-05 |
+
+Each generator includes defaults at 128² and 256²/seed 0, 128²/seed 42, changed settings at 128²/0 and 64²/42 in four output formats, and 32² F32/113. The three spots generators use disorder .3, scale 2 and disorder .37, and the same scale/disorder with speed .6, anisotropy .3, angle .125 and tile offset (.17,.29), respectively. Their spatial patterns still differ across formats. All nine roots generate their own inputs.
+
+For the two Alveolus and four Gaussian generators, add nine controls. Use defaults at 16² F32/23, 64² in four formats/107, 128² F32/347, 32² F32/457 and /521, and 64² F32/587. Alveolus uses tiling 2, filled gradients and interstice width .125, with tiling 3, empty gradients and width .25 at seed 521. Gaussian uses tiling 2, raised to 3 at 128². Disable non-square expansion at seed 457 on the three pattern-package variants. The 26 Alveolus renders include eight fresh repeats of the original four renders and the four-format controls. Its F32, F16 and U8 pixels now all match. The remaining 1,792 pixels are U16. The [earlier placement comparison](#alveolus-quadrant-placement-and-falloff) gives the nonzero quadrant offsets and intermediate output.
+
 ### Three-texel blur kernels
 
 The bevel Gaussian blur subgraph now matches 138,496/154,880 pixels across 17 renders. All 106,496 U8, 8,192 U16 and 8,192 F16 pixels match. Of 32,000 F32 pixels, 15,616 match. The remaining case is the 128² procedural field at intensity 9, with 0/16,384 exact and maximum error .00221335888. The previous run matched 108,965/154,880 and differed by up to 393 U16 levels. The original defaults at 128² and 256², the changed intensity and all four 64² format checks now match.

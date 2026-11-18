@@ -1,5 +1,5 @@
 pub(super) fn coverage(pattern: i32, x: f32, y: f32, variation: f32) -> Result<f32, String> {
-    let radius_squared = x * x + y * y;
+    let radius_squared = y.mul_add(y, x * x);
     let radial = (1.0 - radius_squared).max(0.0);
     let value = match pattern - 1 {
         1 => 1.0,
@@ -11,10 +11,15 @@ pub(super) fn coverage(pattern: i32, x: f32, y: f32, variation: f32) -> Result<f
             }
         }
         3 => radial,
-        4 => radial * radial,
+        4 => {
+            // The expanded quartic preserves the rounding of the low-coverage skirt.
+            let t = radius_squared.min(1.0);
+            let quadratic = (t - 4.0).mul_add(t, 6.0);
+            quadratic.mul_add(t, -4.0).mul_add(t, 1.0).max(0.0)
+        }
         5 => {
-            const FALLOFF: f32 = 11.1;
-            ((-FALLOFF * radius_squared).exp() - (-FALLOFF).exp()).max(0.0)
+            const FALLOFF: f32 = 11.1 * std::f32::consts::LOG2_E;
+            (crate::function::pixel_exp2(-FALLOFF * radius_squared) - 0.000_015_1).max(0.0)
         }
         6 => (1.0 - radius_squared.sqrt()).max(0.0).powi(4),
         7 => (1.0 - x.abs().max(y.abs())).max(0.0),
