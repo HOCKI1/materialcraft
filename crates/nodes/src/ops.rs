@@ -319,11 +319,8 @@ pub fn blend_channel(mode: i32, b: f32, f: f32) -> f32 {
         5 => b.max(f),
         6 => b.min(f),
         8 => {
-            if f.abs() < 1e-6 {
-                if b > 0.0 { 1.0 } else { 0.0 }
-            } else {
-                b / f
-            }
+            // A zero divisor produces this finite HDR value even when the numerator is zero.
+            if f == 0.0 { 16_777_216.0 } else { crate::function::pixel_divide(b, f) }
         }
         9 => {
             if b < 0.5 {
@@ -366,14 +363,24 @@ pub fn blend_channel(mode: i32, b: f32, f: f32) -> f32 {
 /// `blend_alpha`: composite coverage; false preserves background alpha.
 #[inline]
 pub fn blend_px(mode: i32, bg: [f32; 4], fg: [f32; 4], opacity: f32, color_blending: i32, blend_alpha: bool, clamp: bool) -> [f32; 4] {
-    if mode == 0 && color_blending == 0 {
+    if mode == 7 {
+        // Switch interpolates each channel directly, including alpha.
+        let mut out = std::array::from_fn(|k| bg[k].mul_add(1.0 - opacity, fg[k] * opacity));
+        if clamp {
+            for c in &mut out[..3] {
+                *c = c.clamp(0.0, 1.0);
+            }
+        }
+        return out;
+    }
+    if (mode == 0 && color_blending == 0) || (mode == 8 && color_blending != 2) {
         // The color weights use the complement of transparency. Coverage uses the original alpha.
-        let alpha = 1.0 - (1.0 - fg[3]);
+        let alpha = if color_blending == 1 { 1.0 } else { 1.0 - (1.0 - fg[3]) };
         let source_weight = alpha * opacity;
         let background_weight = (-alpha).mul_add(opacity, 1.0);
         let mut out = bg;
         for k in 0..3 {
-            let color = bg[k].mul_add(background_weight, fg[k] * source_weight);
+            let color = bg[k].mul_add(background_weight, blend_channel(mode, bg[k], fg[k]) * source_weight);
             out[k] = if clamp { color.clamp(0.0, 1.0) } else { color };
         }
         if blend_alpha {
@@ -382,8 +389,7 @@ pub fn blend_px(mode: i32, bg: [f32; 4], fg: [f32; 4], opacity: f32, color_blend
         return out;
     }
 
-    // Switch already interpolates RGBA; another alpha weight composites twice
-    let t = opacity * if mode != 7 { fg[3] } else { 1.0 };
+    let t = opacity * fg[3];
     let coverage = bg[3] * (1.0 - t) + t;
     let mut o = [0.0; 4];
     for k in 0..3 {
@@ -391,12 +397,12 @@ pub fn blend_px(mode: i32, bg: [f32; 4], fg: [f32; 4], opacity: f32, color_blend
 
         // Weight before adding to preserve integer-boundary rounding
         o[k] = match color_blending {
-            1 if mode != 7 => bg[k] * (1.0 - opacity) + v * opacity,
-            2 if mode != 7 && coverage > 0.0 => {
+            1 => bg[k] * (1.0 - opacity) + v * opacity,
+            2 if coverage > 0.0 => {
                 let v = if clamp { v.clamp(0.0, 1.0) } else { v };
                 (bg[k] * bg[3] * (1.0 - t) + fg[k] * t * (1.0 - bg[3]) + v * bg[3] * t) / coverage
             }
-            2 if mode != 7 => bg[k],
+            2 => bg[k],
             3 if mode == 0 => bg[k] * (1.0 - t) + fg[k] * opacity,
             _ => bg[k] * (1.0 - t) + v * t,
         };
@@ -405,13 +411,7 @@ pub fn blend_px(mode: i32, bg: [f32; 4], fg: [f32; 4], opacity: f32, color_blend
         }
     }
 
-    o[3] = if mode == 7 {
-        bg[3] * (1.0 - opacity) + fg[3] * opacity
-    } else if blend_alpha || color_blending == 2 || (color_blending == 3 && mode == 0) {
-        coverage
-    } else {
-        bg[3]
-    };
+    o[3] = if blend_alpha || color_blending == 2 || (color_blending == 3 && mode == 0) { coverage } else { bg[3] };
 
     o
 }
@@ -425,6 +425,15 @@ pub fn gray_from(w: u32, h: u32, v: Vec<f32>) -> Result<Image, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn divide_blend_handles_zero_and_small_nonzero_divisors() {
+        for numerator in [-8.0, 0.0, 0.5] {
+            assert_eq!(blend_channel(8, numerator, 0.0), 16_777_216.0);
+            assert_eq!(blend_channel(8, numerator, -0.0), 16_777_216.0);
+        }
+        assert_eq!(blend_channel(8, -8.0, 1e-10), -80_000_000_000.0);
+    }
 
     #[test]
     fn color_dodge_and_burn_keep_black_and_white_backgrounds() {

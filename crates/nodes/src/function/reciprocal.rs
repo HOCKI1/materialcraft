@@ -52,7 +52,7 @@ const fn polynomials() -> [Polynomial; 128] {
 
 const POLYNOMIALS: [Polynomial; 128] = polynomials();
 
-pub(super) fn divide(numerator: f32, denominator: f32) -> f32 {
+pub(crate) fn divide(numerator: f32, denominator: f32) -> f32 {
     let bits = denominator.to_bits();
     let exponent = (bits >> 23) & 255;
     if !(1..=252).contains(&exponent) {

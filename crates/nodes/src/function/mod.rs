@@ -51,6 +51,7 @@ pub use node_types::node_types;
 pub use output::{can_be_output, output_node};
 pub(crate) use processor::pixel_processor;
 pub use program::Program;
+pub(crate) use reciprocal::divide as pixel_divide;
 pub use resolve_instances::resolve_instances;
 pub use system_variable::SystemVariable;
 pub use warnings::warnings;

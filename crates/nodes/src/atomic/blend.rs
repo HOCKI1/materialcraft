@@ -34,8 +34,8 @@ fn blend(context: &CookContext) -> CookResult {
     Ok(vec![Image::generate(context.w, context.h, kind, |x, y| {
         let (x, y) = (x as i64, y as i64);
         let m = mask.as_ref().map_or(1.0, |m| m.get_gray(x, y, false));
-        // Normal copy reads the mask through its transparency before applying the global opacity.
-        let m = if mode == 0 && color_blending == 0 { 1.0 - (1.0 - m) } else { m };
+        // These modes read the mask through its transparency before applying global opacity.
+        let m = if (mode == 0 && color_blending == 0) || matches!(mode, 7 | 8) { 1.0 - (1.0 - m) } else { m };
         ops::blend_px(mode, background.get(x, y, false), foreground.get(x, y, false), opacity * m, color_blending, blend_alpha, clamp)
     })])
 }
@@ -48,15 +48,18 @@ mod tests {
     use std::collections::BTreeMap;
 
     #[test]
-    fn normal_copy_rounds_mask_color_and_coverage_independently() {
+    fn blend_rounds_mask_color_and_coverage_independently() {
         let foreground = [116.0, 38.0, 60.0, 36.0].map(|v| v / 255.0);
         let background = [158.0, 163.0, 10.0, 68.0].map(|v| v / 255.0);
         let mask = 44.0 / 255.0;
-        for (opacity, alpha, hdr, expected) in [
-            (1.0, true, false, [0x3f1d97ad, 0x3f209511, 0x3d343117, 0x3e91adfe]),
-            (0.07, true, false, [0x3f1e8c37, 0x3f236cdd, 0x3d21ff39, 0x3e892c70]),
-            (0.3, false, false, [0x3f1e4fbd, 0x3f22b8df, 0x3d267f2b, 0x3e888889]),
-            (0.3, true, true, [0x3f514e8e, 0x3f4b8353, 0xbf55520b, 0xbdcc9712]),
+        for (mode, interpretation, opacity, alpha, hdr, expected) in [
+            (0, 0, 1.0, true, false, [0x3f1d97ad, 0x3f209511, 0x3d343117, 0x3e91adfe]),
+            (0, 0, 0.07, true, false, [0x3f1e8c37, 0x3f236cdd, 0x3d21ff39, 0x3e892c70]),
+            (0, 0, 0.3, false, false, [0x3f1e4fbd, 0x3f22b8df, 0x3d267f2b, 0x3e888889]),
+            (0, 0, 0.3, true, true, [0x3f514e8e, 0x3f4b8353, 0xbf55520b, 0xbdcc9712]),
+            (7, 0, 0.6137, true, false, [0x3f1a2797, 0x3f1659c4, 0x3d75aca1, 0x3e81bac6]),
+            (8, 0, 0.6137, true, false, [0x3f21760a, 0x3f319bf2, 0x3d286e88, 0x3e8e257d]),
+            (8, 1, 0.6137, false, false, [0x3f32bf2c, 0x3f834be5, 0x3d57e86e, 0x3e888889]),
         ] {
             let level = |v: f32| if hdr { v * 3.0 - 1.0 } else { v };
             let inputs = [
@@ -65,7 +68,15 @@ mod tests {
                 Some(Image::gray(1, 1, |_, _| level(mask))),
             ];
             let vars = BTreeMap::new();
-            let params = resolve_params(&definition(), &BTreeMap::from([("opacity".into(), Value::Float(opacity)), ("alpha".into(), Value::Bool(alpha))]));
+            let params = resolve_params(
+                &definition(),
+                &BTreeMap::from([
+                    ("mode".into(), Value::Enum(mode)),
+                    ("color_blending".into(), Value::Enum(interpretation)),
+                    ("opacity".into(), Value::Float(opacity)),
+                    ("alpha".into(), Value::Bool(alpha)),
+                ]),
+            );
             let context = CookContext {
                 input_formats: &[],
                 format: OutputFormat::F32,
@@ -79,7 +90,7 @@ mod tests {
                 vars: &vars,
             };
             let result = blend(&context).unwrap();
-            assert_eq!(result[0].get(0, 0, false).map(f32::to_bits), expected, "opacity {opacity}, alpha {alpha}, HDR {hdr}");
+            assert_eq!(result[0].get(0, 0, false).map(f32::to_bits), expected, "mode {mode}, interpretation {interpretation}, opacity {opacity}");
         }
     }
 }
