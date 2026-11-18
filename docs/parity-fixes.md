@@ -253,6 +253,49 @@ Literal-only pixel graphs at 16², seed 23, give 512/768 exact pixels for each l
 
 The shared-lookup ridged root still matches 5,160/16,384 at changed roughness in F32, maximum 1.78813934e−7. Its one-octave .7 control still matches 1,847/4,096, maximum 2.38418579e−7. For positive normal x on the signed field, the reference's general power agrees with exp(y×ln(x)) on all 32,614 pixels. On .7 with exponent 1 it returns `3f333334`. Further work on general power and natural exponential is tracked with the [octave controls](#ridged-noise-octave-isolation).
 
+### Segment, mapping and normal graph rechecks
+
+| Root | Renders | Exact pixels / compared | Maximum error |
+|---|---:|---:|---:|
+| `jump_flood_segment_iteration` | 18 | 171,264/171,264 | 0 |
+| `cartesian_to_polar` | 18 | 171,264/171,264 | 0 |
+| `cartesian_to_polar_grayscale` | 18 | 171,264/171,264 | 0 |
+| `blend_content` | 18 | 171,264/171,264 | 0 |
+| `histogram_shift` | 18 | 171,264/171,264 | 0 |
+| `non_uniform_rotation_color` | 26 | 206,336/206,336 | 0 |
+| `non_uniform_rotation_grayscale` | 18 | 171,264/171,264 | 0 |
+| `normal_sobel_2` | 18 | 171,264/171,264 | 0 |
+| `panorama_rotation` | 26 | 206,336/206,336 | 0 |
+| `panorama_sphere_light` | 18 | 171,264/171,264 | 0 |
+
+Each row includes the archived default and parameter renders, four output formats, an independent 32² input and nine further procedural fields. The two rotation rows with 26 renders also include the eight [independent byte, float and rectangular fields](#color-temperature-range-reductions-sky-parameters-and-polygon-paths). All counts require matching dimensions, channel count, storage format and raw components. The historical segment-selection run differed at 101 pixels. All four of its original cases now match, including all 65,536 pixels of the 256² render.
+
+For the jump-flood iteration, make an RGBA32F segment at each texel center (u,v) with endpoints (u,v) and (u+.0625 sin(2πv), v+.125 cos(2πu)). Use the default controls at 16² F32, seed 23. For four 64² outputs at seed 107 use distance mode 1, scale (1.125,.625) and iteration 1. At 128² F32, seed 347 use mode 0 and iteration 3. At 32² F32, seed 457 use mode 0, iteration 1 and endpoints −1 everywhere except (x+3y) mod 11=0. For seed 521 use mode 1, iteration 3 and multiply all four components by 2.5 then subtract .75. Repeat the 64² F32 settings at seed 587.
+
+For the polar transforms and composite blend, define component c of input j as ((43x+29y+11xy+67c+(7+13j)x+13jy) mod 1024)/1023. Number pins from zero, in foreground, background, mask order for the blend. Use component zero for grayscale. Start at 16² F32/seed 97 with defaults. Use four 64² formats/139, 128² F32/307, a 32×16 input at 32² F32/451, signed 32² F32/557 with 3H−1.25, and a repeat of 64² F32/647. On the rectangular source use (x mod 2, y mod 2, x<width/2, (x+3y) mod 7=0). The polar graphs expose the image binding. The blend uses opacity .4375 and mode 3, changing to .8125 and mode 5 at 128² or mode 1 for signed input.
+
+For the histogram, rotation, Sobel and sphere rows, use ((61x+53y+5xy+37c+11jx+17jy) mod 512)/511. The nine cases have the same dimensions and formats as the polar fields. Seeds in the same order are 71, 149, 263, 389, 487 and 661. The signed input is 3H−1.125. For color non-uniform rotation, pin order is rotation map, pivot map, input. For grayscale it is input, rotation map, pivot map. For sphere light it is background, sphere image.
+
+| Graph | Exposed controls after the default render |
+|---|---|
+| Histogram shift | Position .4375, or .1875 for signed input |
+| Non-uniform rotation | Multiplier .6875, offset .09375, pivot (.6875,.3125). Use multiplier −.28125 at 128² |
+| Both Sobel normals | Intensity .8125, format 1. Use intensity 1.75 at 128² and format 0 in the signed case |
+| Panorama rotation | Rotation .34375, direction .21875, pre-rotation −.15625 and post-rotation −.09375. Use post-rotation .46875 at 128² |
+| Panorama sphere light | Up vector 1, world position (.75,1.5,2.25), UV (.375,.625), radius .875, exposure 1.25. Use radius 1.375 at 128² |
+
+| Open root | Renders | Exact pixels / compared | Maximum integer error in levels | Maximum float error |
+|---|---:|---:|---:|---:|
+| Reverse polar transform, color | 18 | 171,242/171,264 | 1 | 0.003311216831 |
+| Reverse polar transform, grayscale | 18 | 171,251/171,264 | 1 | 0.002349853516 |
+| First Sobel normal | 18 | 171,032/171,264 | 1 | 3.337860107e-06 |
+| Bevel debug position | 22 | 280,307/285,952 | 52428 | 31.25 |
+| Dissolve blend | 18 | 112,533/171,264 | 63736 | 1 |
+
+Both reverse polar graphs still differ on six of the 16,384 new 128² F32 pixels. The first Sobel normal differs on 135 pixels of its 128² field and five of its 64² U16 pixels. The second Sobel normal matches those same cases.
+
+For the bevel debug and dissolve rows, use the same sizes, seeds and formats as the jump-flood iteration. The bevel input is (u,v,H₂,1) with H꜀=((19x+47y+5xy+71c+7cx) mod 257)/256. Change the debug pixel to (.3125,.6875), offset (1,1), mode on. At 128² use mode off and offset (.625,1.25). In the sparse case replace all components with zero except where (x+3y) mod 11=0. For dissolve, number the foreground, background and mask pins in graph order. For input j, component c uses H with index (j+c) mod 4, circularly shifted down 2j rows. The mask uses H₃ directly. Set opacity .6875, or .3125 for the large and sparse cases. Disable alpha blending for the signed case. Use defaults at 16² and 2.5H−.75 for the signed inputs of both roots.
+
 ### Rotated transforms and fractional texture coordinates
 
 | Root | Renders | Exact pixels / compared | Maximum error |
