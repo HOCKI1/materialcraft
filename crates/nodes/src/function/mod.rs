@@ -19,6 +19,7 @@ mod function_definition;
 mod function_scope;
 mod inferred_type;
 mod instruction;
+mod integer_sampler;
 mod node_interface;
 mod node_types;
 mod operation;

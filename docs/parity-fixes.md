@@ -96,6 +96,29 @@ Use the same position ramp. For a controlled comparison, bind an original 1024×
 
 The changed float case previously matched 10,399 pixels for basic Perlin and 3,926 for ridged Perlin. Whole-graph rounding remains visible in both. A separate seed-zero comparison used each app's shipped lookup, with MaterialCraft's tracked CC0 image read from Git. Basic Perlin matched 173/16,384 at 128² and 662/65,536 at 256², with maximum errors of 203 levels at both sizes. Ridged Perlin matched 176/16,384 and 768/65,536, with maximum errors of 139 and 154 levels. The shared lookup isolates an asset-dependent difference from the arithmetic.
 
+### Grayscale and color 3D planar projection
+
+Bind the position ramp above and a constant world-space normal of RGBA8 `(128,128,255,255)`. The grayscale texture is `T=(17*x+31*y) mod 256`. The color texture is RGBA8 `(T,R,255-G,(251+3*x+5*y) mod 256)`, where R and G are the position ramp bytes. Keep all input maps linear and the same size as the graph. The rotated case sets `rotation=.125` and `scale=.38`. Each format pair below gives the grayscale and color output formats respectively.
+
+| Case | Size | Seed | Formats | Grayscale exact / total | Gray max | Color exact / total | Color max |
+|---|---:|---:|---|---:|---:|---:|---:|
+| Default | 128² | 0 | LUM16, RGBA8 | 16,384/16,384 | 0 | 16,384/16,384 | 0 |
+| Default | 256² | 0 | LUM16, RGBA8 | 65,536/65,536 | 0 | 65,536/65,536 | 0 |
+| Default | 128² | 42 | LUM16, RGBA8 | 16,384/16,384 | 0 | 16,384/16,384 | 0 |
+| Rotated | 128² | 0 | LUM16, RGBA8 | 16,334/16,384 | 226 | 16,378/16,384 | 1 |
+| Rotated | 64² | 42 | LUM8, RGBA8 | 4,094/4,096 | 1 | 4,094/4,096 | 1 |
+| Rotated | 64² | 42 | LUM16, RGBA16 | 4,093/4,096 | 32 | 4,093/4,096 | 32 |
+| Rotated | 64² | 42 | LUM16F, RGBA16F | 4,093/4,096 | 4.8828125e-4 | 4,093/4,096 | 4.8828125e-4 |
+| Rotated | 64² | 42 | LUM32F, RGBA32F | 4,093/4,096 | 4.882888e-4 | 4,093/4,096 | 4.882888e-4 |
+
+Before the sampler change the default 256² cases matched 65,048 grayscale pixels and 65,492 RGBA pixels. An independent one-processor graph isolates the integer texture read. In a 256² source, use the 2×2 block starting at (12,15). Light one corner at a time, then repeat with corner levels `(.37,.13,.91,.68)` rounded to the input precision, in row-major order. For output pixel (x,y), sample at `((12.5+x/256)/256,(15.5+y/256)/256)`. Run all five patterns with RGBA8 and RGBA16 input and read the red channel into LUM32F. All 655,360 pixels match exactly.
+
+In units of 1/256 texel, the rounded horizontal and vertical fractions are `dx` and `dy`. The bottom-right weight is `q=floor((dx*dy+128)/256)`. The other three weights in row-major order are `256-dx-dy+q`, `dx-q` and `dy-q`. Accumulate the four normalized 16-bit levels with these integer weights, divide by 256 and round half up. A separate 128² high-frequency texture sweep at seven fixed offsets matched all 114,688 pixels, including wrapped edges. The rotated graph cases still differ with this sampler. Floating-source filtering has separate rounding behavior and remains open.
+
+### November 17 validation
+
+All four new regressions failed with the corresponding behavior disabled or absent. The full release node suite passed all 108 tests. Workspace formatting, strict all-target Clippy, dependency layers and WebAssembly checks passed. Raw captures and generated input images were kept outside the repository.
+
 ## Remaining differences
 
 The following entries record the first pass. The dated comparisons above give the newer results for revisited roots.
@@ -1142,7 +1165,7 @@ The following entries record the first pass. The dated comparisons above give th
 
 - **`pbr_render2.sbs/height_adjust` - Parity:** All 98,304 output pixels (LUM8) match across 3 recorded cases: defaults at 128x128/256x256 and seed 42. Connectable value pins retain their defaults; nondefault values require a wired reference fixture and remain unverified.
 
-## Validation
+## First-pass validation
 
 - Final release CLI and native desktop builds pass, including the unassigned-variable, grayscale Pixel Processor, integer-conversion, and output-bridge changes. Formatting, dependency layers, and all ten WebAssembly crate checks pass. An independent inventory rescan agrees with all 546 roots, and all 320 package links resolve.
 - Workspace Clippy is blocked by an existing `chunks_exact_to_as_chunks` lint in the text primitive. Clippy for the four changed library crates passes with that existing lint suppressed.
