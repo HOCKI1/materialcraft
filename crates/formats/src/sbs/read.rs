@@ -34,6 +34,9 @@ pub(super) fn read_document(
     };
 
     let mut reader = SbsReader {
+        // A separate output-work allowance counts failed/discarded inflations too.
+        // One probe byte distinguishes an exact retained limit from an overrun.
+        inflation_work: std::cell::Cell::new(resource_budget.map_or(0, |budget| budget.get().saturating_add(1))),
         resource_budget,
         text,
         warnings: &mut warnings,

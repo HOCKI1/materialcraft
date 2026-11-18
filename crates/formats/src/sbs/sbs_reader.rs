@@ -22,6 +22,7 @@ use roxmltree::Node as XmlNode;
 use std::collections::{HashMap, HashSet};
 
 pub(super) struct SbsReader<'text, 'warnings> {
+    pub(super) inflation_work: std::cell::Cell<u64>,
     pub(super) resource_budget: Option<&'warnings std::cell::Cell<u64>>,
     pub(super) text: &'text str,
     pub(super) warnings: &'warnings mut Warnings,
@@ -111,22 +112,22 @@ impl<'text> SbsReader<'text, '_> {
         if let Some(embedded) = source.and_then(|s| child_element(s, "binembedded")) {
             let encoded = child_value(embedded, "strdata").unwrap_or("");
             let decoded = match self.resource_budget {
-                Some(budget) => decode_embedded_bounded(encoded, budget.get()),
+                Some(budget) => decode_embedded_bounded(encoded, budget.get(), &self.inflation_work),
                 None => decode_embedded(encoded).map_err(EmbeddedError::Damaged),
             };
             match decoded {
                 Ok(data) if !font || !data.is_empty() => {
                     if let Some(budget) = self.resource_budget {
-                        // The decoder checked this length before allocating its output.
+                        // The decoder bounded its output and checked the retained length.
                         budget.set(budget.get().saturating_sub(data.len() as u64));
                     }
                     bytes = Some(data);
                 }
                 Ok(_) => why_missing = "its embedded font data is empty".into(),
-                Err(EmbeddedError::Budget) => {
+                Err(error @ (EmbeddedError::Budget | EmbeddedError::WorkBudget)) => {
                     // A valid inline asset wins over linked data. Never silently change
                     // the material when retaining that asset would exhaust its budget.
-                    self.warnings.add(format!("resource `{path}`: {}", EmbeddedError::Budget));
+                    self.warnings.add(format!("resource `{path}`: {error}"));
                     return unique_name(&mut self.used_resource_names, if identifier.is_empty() { "resource" } else { identifier });
                 }
                 Err(e) => why_missing = format!("its embedded data is damaged ({e})"),

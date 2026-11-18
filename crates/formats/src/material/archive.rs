@@ -125,6 +125,27 @@ mod tests {
     }
 
     #[test]
+    fn proven_inline_length_mismatch_preserves_linked_fallback() {
+        let mut encoder = flate2::write::ZlibEncoder::new(3_u32.to_be_bytes().to_vec(), flate2::Compression::default());
+        encoder.write_all(b"four").unwrap();
+        let encoded = base64::engine::general_purpose::STANDARD.encode(encoder.finish().unwrap());
+        let content = format!(
+            "<resource><identifier v=\"inline\"/><filepath v=\"resources/member.png\"/><source><binembedded><strdata v=\"{encoded}\"/></binembedded></source></resource>"
+        );
+        let read = read_source(&make_material(&content), 3).unwrap();
+        assert!(read.warnings.is_empty(), "{:?}", read.warnings);
+        assert_eq!(read.pkg.resources[0].bytes.as_slice(), b"abc");
+    }
+
+    #[test]
+    fn repeated_oversized_inline_probes_exhaust_document_work() {
+        let content = format!("{}{}{}", inline(b"four"), inline(b"four"), inline(b""));
+        let read = read_source(&make_material(&content), 3).unwrap();
+        assert!(read.pkg.resources.is_empty());
+        assert!(read.warnings.iter().any(|warning| warning.contains("inflation work budget")));
+    }
+
+    #[test]
     fn inline_and_member_assets_share_the_exact_budget_in_either_order() {
         for content in [format!("{}{}", inline(b"four"), linked("member")), format!("{}{}", linked("member"), inline(b"four"))] {
             let material = make_material(&content);
