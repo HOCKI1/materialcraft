@@ -44,7 +44,7 @@ const INTERVALS: [[[i32; 3]; 64]; 2] = [
     ],
 ];
 
-pub(super) fn evaluate(value: f32) -> f32 {
+pub(crate) fn evaluate(value: f32) -> f32 {
     if value < f32::MIN_POSITIVE || value.is_nan() {
         return 0.0;
     }

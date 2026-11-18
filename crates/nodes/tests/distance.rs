@@ -70,11 +70,28 @@ fn distance_handles_empty_full_masks_and_no_source() {
         assert_eq!(cook(full, Some(source), tile, true, 256.0).get(3, 2, false), [3.0 / 7.0, 2.0 / 5.0, 0.4, 0.7]);
         assert!(cook(empty, None, tile, true, 256.0).data().iter().all(|&v| v == 0.0));
 
-        let mask = Image::gray(7, 5, |x, y| if x == 0 && y == 0 { 1.0 } else { 0.0 });
-        let ramp = cook(mask, None, tile, false, 512.0 / 7.0);
+        let mask = Image::gray(32, 32, |x, y| if (x, y) == (16, 16) { 0.5 } else { 0.499 });
+        let ramp = cook(mask, None, tile, false, 16.0);
+        assert_eq!(ramp.get_gray(16, 16, false), 1.0);
+        assert_eq!(ramp.get_gray(17, 16, false).to_bits(), 0x3eff_f080);
+        assert_eq!(ramp.get_gray(19, 16, false), 0.0);
+    }
+}
 
-        assert_eq!(ramp.get_gray(0, 0, false), 1.0);
-        assert_eq!(ramp.get_gray(1, 0, false), 0.5);
-        assert_eq!(ramp.get_gray(3, 0, false), 0.0);
+#[test]
+fn mask_distance_uses_stored_site_centers_and_the_shorter_dimension() {
+    let mask = Image::gray(128, 64, |x, y| if (x, y) == (64, 32) { 1.0 } else { 0.0 });
+    let ramp = cook(mask, None, true, true, 256.0 * std::f32::consts::SQRT_2);
+    for (x, y, bits) in [(65, 32, 0x3f7d_2b39), (64, 33, 0x3f7d_2b93), (65, 33, 0x3f7b_ff42), (63, 32, 0x3f7d_2ca0)] {
+        assert_eq!(ramp.get_gray(x, y, false).to_bits(), bits);
+    }
+}
+
+#[test]
+fn sparse_mask_distance_preserves_the_sites_selected_during_propagation() {
+    let mask = Image::gray(128, 128, |x, y| if (13 * x + 23 * y + 11 * x * y) % 109 == 0 { 1.0 } else { 0.0 });
+    let ramp = cook(mask, None, true, true, 17.375);
+    for (x, y, bits) in [(99, 0, 0x3e86_a510), (64, 30, 0x3e26_0066), (39, 55, 0x3e25_ccdc)] {
+        assert_eq!(ramp.get_gray(x, y, false).to_bits(), bits);
     }
 }

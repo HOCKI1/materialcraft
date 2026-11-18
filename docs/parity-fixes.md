@@ -392,6 +392,24 @@ For each of the three shapes, repeat the linear sweep on each axis using these s
 | 64 | (.8125,1,.625) | .34375 | .375 | (0,0,.25) | 269 |
 | 32 | (1,.3125,.75) | .75 | .21875 | (.0625,−.125,.1875) | 312 |
 
+### Directional distance and mask propagation
+
+Directional distance matches **342,528/342,528 pixels** in 32 renders across the value and UV outputs. The maximum error is zero in all four storage formats. The previous batch matched 342,473 pixels. Its first differing buffer was the distance primitive receiving a mask with its source disconnected.
+
+| Direct mask controls | Renders | Exact pixels / compared | Maximum error |
+|---|---:|---:|---:|
+| Square and rectangular fields, sparse through full coverage | 56 | 516,096/516,096 | 0 |
+| Single-site threshold | 11 | 11,264/11,264 | 0 |
+| Tiled 32² mask, nine layouts and distances | 9 | 9,216/9,216 | 0 |
+
+For the first row use 64², 128×64 and 128² with both axes tiled, and 64×128 with both axes open. In each size use the following eight F32 masks in order, with seed 167+37j from j=0. A single center site uses strength 256√2. A site at (1,2) uses 37.25. Set sites where (13x+23y+11xy) mod 109=0 and use 17.375. Put sites on column floor(W/3) and row floor(H/2) and use 23.75. Alternate .5 with .50000762939453125 on (x+2y) mod 13=0 and use 9.75. Empty and full masks use 59 and 19. Repeat the sparse mask and strength at the last seed. Also store the center and sparse cases in U8, U16 and F16. Before the correction, 289,400/516,096 pixels matched. Maximum errors were 124 U8 levels, 32,019 U16 levels, .4881744384765625 in F16 and 1 in F32.
+
+For the threshold row set a single F32 center texel on an otherwise black 32² mask. Use strength 31 and seeds 431+29j for values −.25, 0, 2⁻¹⁶, .0625, .25, .499, .5−.5/65535, .5, .5+.5/65535, .75 and 1. The first accepted value is .5. For the last row of the table use strengths 31, 32, 41.375, 127, 16, 31, 31, 33 and 41.375 at the same seed progression. The masks are a center site, a site at (1,2), (13x+11y+7xy) mod 67=0, sites at (8,16) and (24,16), a center site, empty, full, .4375 on (x+3y) mod 13=0, and the repeated sparse mask.
+
+The radius in pixels is strength×min(W,H)/256. Seed locations use normalized texel centers rounded to the nearest unsigned 16-bit coordinate. At each power-of-two jump, compare the sites from the eight neighbors and the center. Halve the jump through one pixel. A Euclidean search with an extra refinement disagrees at (99,0), (64,30) and (39,55) on the tiled 128² sparse case. The observed F32 values there have bits 3e86a510, 3e260066 and 3e25ccdc. Attenuation uses the [runtime square root](#runtime-pixel-square-roots) and a fused multiply-add. Connected sources have a separate color and attenuation path and remain under comparison.
+
+For the full graph, repeat the original four renders, the [four-format and independent comparisons](#four-format-inventory-comparison) for both ports, and the [modular field matrix](#normal-maps-panoramas-and-primitive-shapes) on each port. Number the gray fields in the order angle map, distance map, input. For settings A, B and C the output selector is (1,0,1), maximum distance (.1875,.3125,.0625), angle (.125,.25,.375), distance-map multiplier (.6875,.25,1) and angle-map multiplier (.25,.625,0). Set the angle-map offset to .375. Each port matches 39,168/39,168 pixels in its nine modular-field renders.
+
 ### Normal maps, panoramas and primitive shapes
 
 | Root | Renders | Exact pixels / compared | Maximum U8 / U16 levels | Maximum F16 / F32 error |
