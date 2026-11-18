@@ -1,5 +1,5 @@
 use craft_texture::{Image, Kind};
-use materialcraft_core::{OutputFormat, Value};
+use materialcraft_core::{Gradient, GradientKey, OutputFormat, Value};
 use materialcraft_nodes::{CookContext, find, resolve_params};
 use std::collections::BTreeMap;
 
@@ -22,6 +22,26 @@ fn cook(id: &str, inputs: &[Option<Image>], values: &[(&str, Value)], size: [u32
         vars: &vars,
     };
     (definition.cook)(&context).unwrap().remove(0)
+}
+
+#[test]
+fn gradient_filter_preserves_linear_and_biased_smooth_segments() {
+    let input = Image::gray(1, 1, |_, _| f32::from_bits(0x3e414c15));
+    let keys = vec![
+        GradientKey::new(0.0625, [0.1875, 0.25, 0.4375, 0.8125]),
+        GradientKey::new(0.34375, [0.59375, 0.9375, 0.3125, 0.5625]),
+        GradientKey::new(0.890625, [0.8125, 0.125, 0.75, 0.375]),
+    ];
+    let params = [("gradient", Value::Gradient(Gradient { keys }))];
+    let output = cook("gradient_map", &[Some(input)], &params, [1, 1], false);
+    assert_eq!(output.get(0, 0, false).map(f32::to_bits), [0x3ebd61ca, 0x3f0f03fb, 0x3ec34460, 0x3f334460]);
+
+    let mut gradient = Gradient::default();
+    gradient.keys[0].midpoint = 0.625;
+    let step = Image::gray(1, 1, |_, _| 64.0 / 255.0);
+    let params = [("gradient", Value::Gradient(gradient)), ("interpolation", Value::Enum(1))];
+    let output = cook("gradient_map", &[Some(step)], &params, [1, 1], false);
+    assert_eq!(output.get(0, 0, false).map(f32::to_bits), [0x3ddce217, 0x3ddce217, 0x3ddce217, 0x3f800000]);
 }
 
 #[test]

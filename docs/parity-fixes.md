@@ -253,6 +253,27 @@ Literal-only pixel graphs at 16², seed 23, give 512/768 exact pixels for each l
 
 The shared-lookup ridged root still matches 5,160/16,384 at changed roughness in F32, maximum 1.78813934e−7. Its one-octave .7 control still matches 1,847/4,096, maximum 2.38418579e−7. For positive normal x on the signed field, the reference's general power agrees with exp(y×ln(x)) on all 32,614 pixels. On .7 with exponent 1 it returns `3f333334`. Further work on general power and natural exponential is tracked with the [octave controls](#ridged-noise-octave-isolation).
 
+### Gradient interpolation, color blend and chrominance
+
+The **color blend** and **chrominance extract** roots each match **171,264/171,264 pixels in 18 cases**, maximum error zero. The original four cases account for 114,688 pixels per root. The four 64² output formats at seed 42 and the independent 32² F32 case account for 17,408. Repeat the nine [original color input cases](#color-burn-and-color-dodge) for a further 39,168. Color blend uses the same foreground, background and mask with opacity .375 in the 16², 128² and signed cases and .8125 elsewhere. Chrominance takes only the original foreground. Before the fix the independent color blend matched 1,021/1,024 pixels, maximum .00676953793. Seven of its grayscale-to-color gradient pixels differed by up to 23 byte levels. The incoming scalar image matched in full.
+
+Gradient Map now reads and writes the interpolation setting and signed midpoint bias. Linear and smooth gradients sample a 1,024-entry float table in F16 and F32 and a 256-entry integer table in U8 and U16. In a smooth segment the fractional position advances by one rounded add per entry. For fractional position t and signed bias b on the left stop, evaluate u=t×(1−b×(1−t)), then u²×(3−2u). Float texture filtering and final storage use the existing precision paths.
+
+| Gradient table controls | Cases | Exact pixels / compared | Maximum stored-component error |
+|---|---:|---:|---:|
+| U8 | 36 | 1,325,806/1,327,104 | 1 |
+| U16 | 36 | 1,238,928/1,327,104 | 1 |
+| F16 | 36 | 1,327,104/1,327,104 | 0 |
+| F32 | 48 | 1,376,256/1,376,256 | 0 |
+
+For the unit ramp, use positions 0 and 1, black and white RGB, and alpha .25 and .75. For a short ramp use positions 0 and .125, colors (0,0,0,1) and (.875,.75,.5,1). For a three-stop ramp use positions (.0625,.34375,.890625) with RGBA (.1875,.25,.4375,.8125), (.59375,.9375,.3125,.5625), (.8125,.125,.75,.375). All three use zero midpoint bias. The fourth ramp uses black and white with alpha one and signed biases .25 and .75. For omitted, linear and smooth interpolation, feed x/255 across a 256² F32 image at seed 17 in each output format. Also feed ((13x+71y+5xy) mod 4096)/4095 at 64², seed 83, F32 output. With explicit linear and smooth interpolation, use a linear pixel index i and inputs (i mod (d+1))/d. Use d=255 and 1,023 at 32², d=65,535 at 256², seed 103 and all four output formats.
+
+Additional controls still differ. A four-stop signed/HDR field with positions (.093,.41327,.77777,.812) gives 127,009/135,168 exact F32 pixels, maximum 7.15255737e−7 across linear and smooth modes. Use biases (−.4375,.1875,−.375,0) and colors (−.25,.75,1.25,.25), (2,−.875,.375,1), (.875,.25,−.0625,.625), (.375,1.5,.625,.375). Repeating the middle position in a separate (.125,.5,.5,.75) ramp gives 101,217/135,168 exact F32 pixels, maximum .687494829. The reference uses the first stop at the repeated position for the following segment. An isolated grayscale fixture using the `gradientluminance` array produced an identity ramp in the reference app and the authored ramp in MaterialCraft. The accepted grayscale key representation still needs validation.
+
+For **color to mask**, the four 64² changed formats each match 4,074/4,096 pixels. Maxima are 255, 65,535, 1 and 1 in format order. The 32² F32 case matches 1,018/1,024, maximum 1. On the changed F32 case the first differing primitive is the grayscale conversion. The imported graph uses default thirds for its function-valued (.299,.587,.114,0) weights.
+
+The **grayscale HDR range viewer** matches all 114,688 original pixels and all 17,408 four-format and independent pixels. For a signed input use (((31x+83y+7xy) mod 1024)−389)/93. Replace the first column with successive repetitions of (low,high,0,1). At 64²/seed 73 with range (−.75,2.25), each of the four formats matches 2,541/4,096, with maxima 255, 65,535, 1 and 1. Additional F32 cases at 16²/19 with (−1.5,.75), 128²/199 with (−3,6), 32×16 input at 32²/181 with (−.1875,.375), 32²/47 with (1.25,4.25) and 16²/311 with (.125,.1875) bring the signed total to 21,956/35,328. The first differing primitive is an inverted Levels node with intermediate clamping disabled. At 64² its LUM32F result matches 262/4,096, maximum 5.81720495.
+
 ### Color temperature, range reductions, sky parameters and polygon paths
 
 The four roots below match every recorded case. Both the first-pass defaults and the [four-format and independent comparisons](#four-format-inventory-comparison) were replayed with their original procedural inputs. Typed results include a float32 bit comparison for every component.

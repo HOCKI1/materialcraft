@@ -46,7 +46,12 @@ pub(super) const FILTERS: &[FilterMap] = &[
         inputs: &[("input1", "input"), ("input2", "gradient"), ("inputgradient", "gradient")],
         params: &[("coordinate", "position"), ("uvselector", "orientation")],
     },
-    FilterMap { sbs: "gradient", def: "gradient_map", inputs: &[("input1", "input")], params: &[("colorswitch", "color_mode")] },
+    FilterMap {
+        sbs: "gradient",
+        def: "gradient_map",
+        inputs: &[("input1", "input")],
+        params: &[("colorswitch", "color_mode"), ("interpmode", "interpolation")],
+    },
     FilterMap {
         sbs: "grayscaleconversion",
         def: "grayscale_conversion",
