@@ -89,6 +89,7 @@ pub(crate) fn evaluate(instruction: &super::instruction::Instruction, args: &[Va
             "max" => left.max(right),
             "floor" => left.floor(),
             "ceil" => left.ceil(),
+            "sqrt" if pixel_math => super::square_root::evaluate(left),
             "sqrt" => left.sqrt(),
             "exp" if pixel_math => super::binary_exponential::exp(left),
             "exp" => left.exp(),

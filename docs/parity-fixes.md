@@ -278,6 +278,16 @@ Independent atomic switch and divide probes each match **1,122,304/1,122,304 pix
 
 The separate straight-alpha divide probe still differs, including 443/4,096 exact RGBA32F pixels on its varying field, maximum .5. On equal-channel float colors bound to grayscale inputs, some outputs differ in the sign of zero. Divide matches 63,488/65,536 pixels at F16 and F32 for both opacities. Switch at full opacity matches 63,744/65,536 at F16 and 63,232/65,536 at F32. At .6137 opacity it matches 65,280/65,536 in both formats. All four signed endpoint fields have zero maximum absolute error.
 
+### Runtime pixel square roots
+
+For each pixel with linear index i in eight 1024² RGBA32F fields numbered j=0..7, set t=(j×2^20+i)/2^23. Read a nearest float input at the pixel center, then output `sqrt(1+t)`, `sqrt(2×(1+t))`, `exp(t)` and `exp(−t)`. The two square-root components improved from 13,947,413/16,777,216 exact (maximum 1.19209290e−7) to **16,777,216/16,777,216 exact**. Every one of the 8,388,608 four-component pixels matches bit for bit, maximum error zero.
+
+The two input intervals cover all 23 mantissa bits for even and odd binary exponents. Within each of 64 equal subdivisions of each interval, fit a quadratic to the measured float outputs. Use the upper 15 partial-product columns of the 16-bit fractional square and round the slope to 23 fraction bits for the first interval or 22 for the second. Round curvature to 24 bits. With these terms fixed, take the midpoint of the minimum and maximum residual and round it to 25 fraction bits for the constant. Evaluate the sum in fixed point, round halfway down and restore the power of two. The implementation uses independently fitted coefficients from procedural fields.
+
+Seven independent 256² fields spanning signed values, bin boundaries, broad exponents, fractions, powers of two, irregular values and tiny magnitudes match **458,752/458,752 pixels**. Two additional 256² RGBA32F probes return the root, equality to zero, equality to itself and its reciprocal. They match **131,072/131,072 pixels**. Negative inputs, signed zeros, subnormals and NaNs produce positive zero in the runtime pixel expression. Positive infinity propagates. Literal square roots keep their separately tested path.
+
+The [surface irradiance](#3d-surface-and-volume-render-passes) matrix still matches 2,304/2,816 pixels. Its two changed 16² RGBA32F outputs differ by at most 2.98023224e−8.
+
 ### Natural exponential and ridged noise
 
 Ridged noise with the [original shared lookup](#basic-and-ridged-3d-perlin) matches **253,184/253,184 pixels across 29 cases**, maximum error zero. The seven original cases contribute 163,840 pixels, the [thirteen octave controls](#ridged-noise-octave-isolation) contribute 53,248, and the nine cases below contribute 36,096. The octave with roughness .7 and levels 1–4 now matches all 4,096 LUM32F pixels. The runtime power of .7 to the fourth has bits `3e75dccb` in both apps.

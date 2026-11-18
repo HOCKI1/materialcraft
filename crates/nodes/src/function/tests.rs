@@ -49,6 +49,26 @@ fn scoped_operation(scope: super::FunctionScope, op: &str, operands: &[Value], l
 }
 
 #[test]
+fn runtime_pixel_square_root_normalizes_exponents_and_rounds_halfway_down() {
+    for (input, expected) in [
+        (0x3f801000, 0x3f8007ff),
+        (0x40300000, 0x3fd44394),
+        (0x3fe20000, 0x3faa1513),
+        (0x00800000, 0x20000000),
+        (0x007fffff, 0),
+        (0x80000000, 0),
+        (0xbf800000, 0),
+        (0x7fc00000, 0),
+        (0x7f800000, 0x7f800000),
+    ] {
+        let Value::Float(value) = pixel_operation("sqrt", &[Value::Float(f32::from_bits(input))], false) else { panic!("expected a scalar") };
+        assert_eq!(value.to_bits(), expected, "sqrt({input:08x})");
+    }
+    let x = f32::from_bits(0x3f801000);
+    assert_eq!(pixel_operation("sqrt", &[Value::Float(x)], true), Value::Float(x.sqrt()));
+}
+
+#[test]
 fn runtime_pixel_natural_exponential_reduces_to_a_positive_interval() {
     for (input, expected) in [
         (2.0, 0x40ec7325),
