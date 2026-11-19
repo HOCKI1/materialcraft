@@ -168,6 +168,33 @@ fn later_sbs_saves_keep_the_original_format_version_and_refresh_the_updater() {
 }
 
 #[test]
+fn graph_inputs_write_one_lane_integer_defaults() {
+    let source = br#"<package><content><graph><identifier v="settings"/><paraminputs>
+        <paraminput><identifier v="count"/><uid v="17"/><type v="16"/><defaultValue><constantValueInt32 v="-3"/></defaultValue></paraminput>
+        <paraminput><identifier v="mode"/><uid v="18"/><type v="16"/><defaultValue><constantValueInt1 v="37"/></defaultValue></paraminput>
+        </paraminputs></graph></content></package>"#;
+    let mut pkg = read_sbs(source, "settings.sbs", &no_linked_files).unwrap().pkg;
+    let graph = &mut pkg.graphs[0];
+    let mode = graph.exposed.iter_mut().find(|parameter| parameter.id == "mode").unwrap();
+    mode.default = Value::Enum(37);
+    let input = graph.add_node("input_value", [0.0, 0.0]);
+    let node = graph.node_mut(input).unwrap();
+    node.params.insert("identifier".into(), Value::Text("wire".into()));
+    node.params.insert("default".into(), Value::Int(16_777_217));
+    let bytes = write_sbs(&pkg).unwrap();
+    let doc = roxmltree::Document::parse(std::str::from_utf8(&bytes).unwrap()).unwrap();
+    let defaults: Vec<_> = doc
+        .descendants()
+        .filter(|node| node.has_tag_name("paraminput"))
+        .map(|input| {
+            let default = super::xml::child_element(input, "defaultValue").unwrap().children().find(roxmltree::Node::is_element).unwrap();
+            (super::xml::child_value(input, "identifier").unwrap(), default.tag_name().name(), default.attribute("v").unwrap())
+        })
+        .collect();
+    assert_eq!(defaults, [("wire", "constantValueInt1", "16777217"), ("count", "constantValueInt1", "-3"), ("mode", "constantValueInt1", "37")]);
+}
+
+#[test]
 fn structural_round_trip() {
     let pkg = sample_package();
     let plain = String::from_utf8(write_sbs(&pkg).unwrap()).unwrap();

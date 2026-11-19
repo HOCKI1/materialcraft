@@ -7,7 +7,7 @@ use super::function_graph;
 use super::node_identifiers::NodeIdentifiers;
 use super::node_parameter::{param_xml, special_filter_params_xml, text_param};
 use super::output::output_type;
-use super::sbs_value::{constant_xml, exposed_type_code};
+use super::sbs_value::{exposed_type_code, input_default_xml};
 use super::type_code;
 use super::xml::{format_float, is_parameters_element, xml_escape};
 use crate::{FormatError, Result};
@@ -193,7 +193,7 @@ impl SbsWriter {
             } else {
                 value
             };
-            let default = constant_xml(value).unwrap_or_default();
+            let default = input_default_xml(value).unwrap_or_default();
             let code = match node.def.as_str() {
                 "input_value" => exposed_type_code(value),
                 "input_grayscale" => type_code::GRAY_IMAGE,
@@ -210,7 +210,8 @@ impl SbsWriter {
         }
 
         for exposed in &graph.exposed {
-            let default = constant_xml(graph.inputs.get(&exposed.id).unwrap_or(&exposed.default)).unwrap_or_else(|| "<constantValueFloat1 v=\"0\"/>".into());
+            let default =
+                input_default_xml(graph.inputs.get(&exposed.id).unwrap_or(&exposed.default)).unwrap_or_else(|| "<constantValueFloat1 v=\"0\"/>".into());
             let group = if exposed.group.is_empty() { String::new() } else { format!("<group v=\"{}\"/>", xml_escape(&exposed.group)) };
 
             let _ = write!(

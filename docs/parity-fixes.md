@@ -1758,6 +1758,21 @@ The table below rechecks one control for each of the 149 roots marked Too hard b
 
 Of the 149 controls, three match exactly and 125 have measured pixel differences. Twenty pattern traversals reached the execution budget. One text graph requires an external font. The 20 incomplete traversals produced no comparable pixels. The font case exported 1,024 matching pixels with a cook error on its text branch and stays open.
 
+### Integer defaults in saved graph interfaces
+
+Two packages with a `0.1.3` format header failed to reopen in the reference app after MaterialCraft Save As. Changing only that field to `1.1.0.202502` in a temporary copy let the reference app open both packages. Spot Emboss then reproduced all six original renders. Arc Pavement reproduced its default render, but six scalar integer settings had no readable default on the saved graph. The [earlier round trips](#vector-equality-lab-to-rgb-and-sbs-round-trips) cover a separate function library and a package that failed to load.
+
+A minimal graph declared three signed integer defaults of −3, 37 and 16,777,217. With `constantValueInt32` in each input declaration the reference app reported three unset defaults and a new instance reported 0, 0 and 0. With `constantValueInt1` it reported all three original integers both on the declaration and on the instance. A separate value processor reading the largest control returned 16,777,216 with either spelling. MaterialCraft now writes the one-lane spelling for scalar integer and enumeration defaults on graph interfaces. On Arc Pavement the public interface then reported `scale=1`, `pattern_amount=12`, `pattern_min_amount=1`, `arcs_amount=14`, `pattern=2` and `input_image_filtering=0`.
+
+For the end-to-end check, set the input package header to `1.1.0.202502`, use MaterialCraft's ordinary `file.saveAs`, then open the resulting file directly in the reference app. Compare each saved file against the original graph cooked in that same app. Use the default controls at 128² U16, the [changed controls and original input fields](#quarter-turn-stamps-and-render-bounds) at 64² in U8, U16, F16 and F32 with seed 42, and the independent fields at 32² F32 with seed 113.
+
+| Saved graph | Renders | Exact pixels / compared | Maximum channel error |
+|---|---:|---:|---:|
+| Spot Emboss | 6 | 33,792/33,792 | 0 |
+| Arc Pavement | 6 | 33,792/33,792 | 0 |
+
+Ordinary saves preserve the source format version. The two observed load failures with the original header remain open. The figures in this table measure saved-file fidelity within the reference app. MaterialCraft's own render comparisons are recorded under [quarter-turn stamps and render bounds](#quarter-turn-stamps-and-render-bounds).
+
 ### Empty size-dependent pattern branches
 
 The two black-and-white Spots 1 graphs repeatedly visit a switch whose condition depends only on the output dimensions. At 32² its selected child is disconnected. The CPU cook now remembers that decision within the current cook and skips later copies of the empty branch. It includes the branch depth when normalizing roughness. Function assignments, random draws, image sampling and per-visit inputs stay on the evaluated path. The maximum number of evaluated visits, repeated children, stamp copies and pixel samples retain their existing limits.
