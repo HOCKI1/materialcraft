@@ -128,7 +128,16 @@ pub(crate) fn cook_node(
     if !node.functions.is_empty()
         || matches!(
             node.def.as_str(),
-            "pixel_processor" | "value_processor" | "fx_map" | "transformation" | "blur" | "directional_blur" | "sharpen" | "distance" | "emboss"
+            "pixel_processor"
+                | "value_processor"
+                | "fx_map"
+                | "transformation"
+                | "blur"
+                | "directional_blur"
+                | "directional_warp"
+                | "sharpen"
+                | "distance"
+                | "emboss"
         )
     {
         base.variables(variables.to_mut());

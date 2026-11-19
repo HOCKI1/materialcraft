@@ -342,19 +342,23 @@ fn directional_warp_repeats_a_far_offset_with_its_phase() {
     }
 }
 
-#[test]
-fn directional_warp_samples_stored_texels_along_positive_image_angles() {
-    use materialcraft_core::OutputFormat;
-
+fn warp_byte_inputs(source: [u32; 2], map: [u32; 2]) -> [Option<Image>; 2] {
     let level = |n: i32, denominator: f32| (n as f32 * 255.0 / denominator).round_ties_even() / 255.0;
-    let field = Image::gray(64, 64, |x, y| level(((41 * x + 53 * y + 7 * x * y + 29) % 1021) as i32, 1020.0)).with_integer_sampling(true);
-    let mask = Image::gray(64, 64, |x, y| {
+    let field = Image::gray(source[0], source[1], |x, y| level(((41 * x + 53 * y + 7 * x * y + 29) % 1021) as i32, 1020.0)).with_integer_sampling(true);
+    let mask = Image::gray(map[0], map[1], |x, y| {
         let (x, y) = (x as i32, y as i32);
         level((11 * x - 17 * y + 3 * x * y + 401).rem_euclid(509), 508.0)
     })
     .with_integer_sampling(true);
+    [Some(field), Some(mask)]
+}
+
+#[test]
+fn directional_warp_samples_stored_texels_along_positive_image_angles() {
+    use materialcraft_core::OutputFormat;
+
+    let inputs = warp_byte_inputs([64; 2], [64; 2]);
     let definition = find("directional_warp").unwrap();
-    let inputs = [Some(field), Some(mask)];
     for (angle, intensity, tiling, interior, corner) in [
         (0.0, 7.0, 3, 0x3f1e109e, 0x3e741cf4),
         (0.25, 11.0, 3, 0x3f1eaa9f, 0x3ee6a8e7),
@@ -379,6 +383,41 @@ fn directional_warp_samples_stored_texels_along_positive_image_angles() {
         let image = (definition.cook)(&context).unwrap().remove(0);
         assert_eq!(image.get_gray(7, 13, false).to_bits(), interior, "angle {angle}");
         assert_eq!(image.get_gray(63, 63, false).to_bits(), corner, "tiling {tiling}");
+    }
+}
+
+#[test]
+fn directional_warp_filters_unequal_image_and_mask_sizes() {
+    use materialcraft_core::OutputFormat;
+
+    let definition = find("directional_warp").unwrap();
+    let params = resolve_params(definition, &BTreeMap::from([("intensity".into(), Value::Float(17.0)), ("angle".into(), Value::Float(0.125))]));
+    for (source, map, side, center, edge) in [
+        ([64; 2], Some([16, 32]), 64, 0x3deaa0eb, 0x3e5bb8dc),
+        ([64; 2], Some([16, 32]), 32, 0x3ed030d0, 0x3e91a092),
+        ([16; 2], Some([128; 2]), 32, 0x3f2f3cd9, 0x3d754e55),
+        ([8, 32], None, 128, 0x3e92e2d9, 0x3e18104b),
+        ([128, 16], None, 16, 0x3ef47d4d, 0x3efe4e5f),
+    ] {
+        let mut inputs = warp_byte_inputs(source, map.unwrap_or([1, 1]));
+        if map.is_none() {
+            inputs[1] = Some(Image::filled(side, side, Kind::Gray, [1.0; 4]).with_integer_sampling(true));
+        }
+        let context = CookContext {
+            w: side,
+            h: side,
+            seed: 863,
+            tile: true,
+            format: OutputFormat::F32,
+            input_formats: &[OutputFormat::U8; 2],
+            inputs: &inputs,
+            params: &params,
+            vars: &BTreeMap::new(),
+            resource: &|_| None,
+        };
+        let image = (definition.cook)(&context).unwrap().remove(0);
+        assert_eq!(image.get_gray(7, 13, false).to_bits(), center, "source {source:?}, map {map:?}, output {side}");
+        assert_eq!(image.get_gray(0, 0, false).to_bits(), edge);
     }
 }
 

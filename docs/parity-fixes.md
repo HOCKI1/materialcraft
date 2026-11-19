@@ -59,6 +59,25 @@ The first pass classifies all 546 roots: 166 Parity and 380 Too hard. These meas
 
 ## 2026-11-19 root comparisons
 
+### Directional warp tiling and unequal input sizes
+
+A graph with horizontal-only tiling previously clamped both axes when the warp angle and intensity were constants. At (0,0) in the 64² byte-field probe the F32 value was .02745098. Passing both graph tiling flags through the evaluator gives the measured .532509327. All 28 horizontal-only renders now match. The full [single-warp matrix](#directional-warp-orientation-and-input-precision) matches 1,089,472/1,089,536 pixels across 224 renders. The maxima are 1 U8, 288 U16, .00439453125 F16 and .0048828125 F32.
+
+The warp applies the displacement to the output pixel center with one fused multiply-add per axis. A source whose dimensions each lie between the output dimension and twice that dimension supplies the taps directly. Other sources pass through stored factor-two levels. An axis within one step of its target waits until both axes can take their final step together. For example, an 8×32 source at 128² goes through 16×64, 32×64, 64×64 and 128×128. The mask follows the same size rule and is sampled at output pixel centers.
+
+| Measurement | Renders | Exact pixels / compared | Maximum U8 / U16 / F16 / F32 |
+|---|---:|---:|---|
+| Unequal original source and map, warp size inherited from source | 70 | 392,072/412,160 | 13 / 723 / .012451171875 / 0 |
+| Same inputs with the warp size relative to the graph | 70 | 319,070/340,480 | 43 / 10,985 / .012451171875 / 0 |
+| X and Y position ramps, square and rectangular | 30 | 79,872/79,872 | F32 0 |
+| Unequal dimensions with a unit mask and F32 output | 60 | 873,600/873,600 | F32 0 |
+
+For the 60 unit-mask renders, use the original grayscale byte field from the [orientation probes](#directional-warp-orientation-and-input-precision). Bind a white mask at the source dimensions, set angle to .125 turns and intensity to 17. Set both axes to repeat. In order, test source dimensions 8×16, 8×32, 4×32, 128×16, 128×32, 128×8, 32×256, 256×128, 8² and 256² at output sides 8, 16, 32, 64, 128 and 256. Use seeds 947 through 956 in source order. For the two 70-render matrices, use the five source/map pairs and seeds 863+17j+n, with pair index j from zero and requested side n. Both U8 and F32 sources match in F32 output. Cases combining higher-precision sources with narrower outputs still differ.
+
+All ten additional root inputs now match for both multi-directional warps. Across the full 19 cases, color matches **175,339/175,360** with a one-level U8 maximum and zero elsewhere. Grayscale matches **175,344/175,360**, with four changed-case pixels differing in each format. Maxima are 1 U8, 257 U16, .00390625 F16 and .00392156839 F32. Both non-uniform blur roots retain **175,360/175,360** exact pixels each.
+
+To amplify small direction differences, bind separate 64² F32 fields returning x and y with an F32 unit mask and both axes tiled. For angles 0, .25, .5, .75, .125, .375, .625, .9375, .073125, −.3125, 1.1875 and 2.073125 turns, use intensities 4,096, 262,144 and 2,097,152. The 72 renders match 24,576/294,912 pixels, maximum 61.34765625. The resolved MaterialCraft intensity is 1,088 for all three authored values. At .625 turns and intensity 2,097,152 the reference center (32,32) reads x=56.53125 and y=56.34375. The two coordinates distinguish the direction components independently.
+
 ### Directional warp orientation and input precision
 
 Both non-uniform blur sample roots now match **175,360/175,360 pixels each**, maximum error zero. Previously their nine baseline cases matched 96,971/132,096 grayscale and 50,664/132,096 color pixels. Directional warp now samples positive angles toward increasing image Y, scales distances in pixels by the shorter image side divided by 256, and bilinearly filters the image at its stored precision.

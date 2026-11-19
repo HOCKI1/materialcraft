@@ -280,8 +280,8 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [moisture_noise.sbs/moisture_noise](../assets/sbs/moisture_noise.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [mosaic.sbs/mosaic](../assets/sbs/mosaic.sbs) | 2 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [mosaic.sbs/mosaic_grayscale](../assets/sbs/mosaic.sbs) | 2 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [multi_directional_warp.sbs/multi_directional_warp_color](../assets/sbs/multi_directional_warp.sbs) | 2 | No | [In progress · 175,329/175,360 exact pixels in 19 renders](parity-fixes.md#directional-warp-orientation-and-input-precision) |
-| [multi_directional_warp.sbs/multi_directional_warp_grayscale](../assets/sbs/multi_directional_warp.sbs) | 2 | No | [In progress · 175,339/175,360 exact pixels in 19 renders](parity-fixes.md#directional-warp-orientation-and-input-precision) |
+| [multi_directional_warp.sbs/multi_directional_warp_color](../assets/sbs/multi_directional_warp.sbs) | 2 | No | [In progress · 175,339/175,360 exact pixels in 19 renders](parity-fixes.md#directional-warp-tiling-and-unequal-input-sizes) |
+| [multi_directional_warp.sbs/multi_directional_warp_grayscale](../assets/sbs/multi_directional_warp.sbs) | 2 | No | [In progress · 175,344/175,360 exact pixels in 19 renders](parity-fixes.md#directional-warp-tiling-and-unequal-input-sizes) |
 | [multiangle_to_albedo.sbs/multiangle_to_albedo](../assets/sbs/multiangle_to_albedo.sbs) | 8 | No | [Parity · 14 cases, including eight distinct input images](parity-fixes.md#linear-gradient-2-and-multiangle-albedo) |
 | [multiangle_to_normal.sbs/angle_to_normal](../assets/sbs/multiangle_to_normal.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [multiangle_to_normal.sbs/angle_weight](../assets/sbs/multiangle_to_normal.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
