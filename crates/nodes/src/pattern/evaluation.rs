@@ -103,8 +103,15 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
             PatternNodeKind::Quadrant => {
                 let offset = vector("branchoffset");
                 visit.center = [visit.center[0] + offset[0], visit.center[1] + offset[1]];
-                let pattern = integer("patterntype");
-                let pattern = if pattern == 1 { integer("imageindex").max(1).saturating_add(255) } else { pattern };
+                let mut pattern = integer("patterntype");
+                if pattern == 1 || (256..256 + crate::MAX_IMAGE_INPUTS as i32).contains(&pattern) {
+                    // Zero uses the slot encoded in the pattern. The generic image pattern starts at slot zero.
+                    pattern = match integer("imageindex") {
+                        0 => pattern.max(256),
+                        index if index > 0 => index.saturating_add(256),
+                        _ => 0,
+                    };
+                }
                 if pattern != 0 {
                     let offset = vector("frameoffset");
                     let color = match parameters.get("opacity") {

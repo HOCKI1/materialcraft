@@ -446,6 +446,47 @@ fn patterns_reject_cycles_and_bound_exponential_traversal() {
 }
 
 #[test]
+fn image_selectors_use_zero_based_slots_and_override_packed_patterns() {
+    use craft_texture::{Image, Kind};
+
+    let inputs = [None, Some(Image::filled(4, 4, Kind::Gray, [0.25; 4])), Some(Image::filled(4, 4, Kind::Gray, [0.75; 4]))];
+    let definition = find("fx_map").unwrap();
+    for (pattern, slot, expected) in [
+        (1, None, 0.25),
+        (1, Some(0), 0.25),
+        (1, Some(1), 0.75),
+        (1, Some(2), 0.0),
+        (256, Some(1), 0.75),
+        (257, None, 0.75),
+        (258, Some(1), 0.75),
+        (257, Some(-1), 0.0),
+    ] {
+        let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
+        let node = &mut graph.nodes[0];
+        node.parameters.insert("patterntype".into(), Value::Int(pattern));
+        if let Some(slot) = slot {
+            node.parameters.insert("imageindex".into(), Value::Int(slot));
+        }
+        let parameters =
+            resolve_params(definition, &BTreeMap::from([("pattern".into(), Value::PatternGraph(Box::new(graph))), ("color_mode".into(), Value::Bool(false))]));
+        let context = CookContext {
+            input_formats: &[],
+            format: materialcraft_core::OutputFormat::F32,
+            w: 4,
+            h: 4,
+            seed: 0,
+            tile: false,
+            inputs: &inputs,
+            params: &parameters,
+            resource: &|_| None,
+            vars: &BTreeMap::new(),
+        };
+        let image = (definition.cook)(&context).unwrap().remove(0);
+        assert_eq!(image.get(2, 2, false)[0], expected, "pattern {pattern}, slot {slot:?}");
+    }
+}
+
+#[test]
 fn image_indices_outside_the_supported_range_return_an_error() {
     let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
     graph.nodes[0].parameters.insert("patterntype".into(), Value::Int(1));

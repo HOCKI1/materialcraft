@@ -1806,6 +1806,23 @@ These measurements follow the [uniform arc-tangent correction](#uniform-arc-tang
 
 The remaining hard edge on Pattern Stripes is (23,59) at 128². MaterialCraft returns zero and the reference returns one at that pixel in each of the four output formats. Standalone Stripes matches every hard-edge control and retains 28 differences in the archived U16 renders. Both Dirt 4 versions reach the pattern traversal budget before producing an image in all nine cases. The additional [wired irradiance controls](#environment-rotation-and-wired-irradiance-samples) include nonfinite stamp parameters and remain open.
 
+### Image selection in saved pattern graphs
+
+When opening Arc Pavement, the first image socket is `pattern0`. An omitted `imageindex` selects that socket. MaterialCraft previously wrote an explicit 1 when saving such a graph. The reference app then sampled an empty second socket. MaterialCraft now defaults the index to zero, and its numeric image selector and SBS writer use the same slot numbers. For automation that sets `imageindex` explicitly, use 5 for the sixth connected image. A nonzero positive selector also overrides the slot embedded in pattern codes 256 through 511. A negative selector draws nothing in the measured controls.
+
+Use one full-frame grayscale image stamp. With one 64² pin, bind a constant byte 173 or a checker alternating bytes 0 and 255. Test a white square, generic image type 1 with selectors 0, 1, 2 and omitted, packed types 256 and 257, and a graph-controlled image type with selectors 0 or 1. All 73,728/73,728 F32 pixels match over 18 renders. With two inputs, bind the same constant to the first slot and the checker to the second. Test omitted, negative, zero, one and two, three packed forms, then a variable selector reading 0, 1 and 2. For each configuration compare 16² and 32² F32 and 64² U8, U16, F16 and F32, seed 859+13j+i.
+
+| How the slot was specified | Renders | Exact pixels / compared | Maximum error |
+|---|---:|---:|---|
+| Two pins, fixed selections and runtime slots zero or one | 60 | 176,640/176,640 | 0 |
+| Two pins, runtime slot two | 6 | 8,832/17,664 | 255 U8, 65,535 U16, 1 F16/F32 |
+| Two pins, additional packed selections at 16² F32 | 12 | 3,072/3,072 | 0 |
+| Four distinct constant pins at 16² F32 | 30 | 5,632/7,680 | 2.98023224e−8 |
+
+For the four-pin case use byte levels 31, 79, 151 and 229. At seed 885, cross pattern types 1, 256, 257, 258 and 259 with indices 0, 1, 2, 3, 4 and −1. Rounding both float outputs back to bytes gives 7,680/7,680 identical socket selections. The remaining raw float differences are in the sampled value. With two pins a runtime request for slot two samples the last pin in the reference app, while MaterialCraft produces black. This explains all differences in the 66 two-pin renders.
+
+For saved-file fidelity, start at format version `1.1.0.202502`, save and reopen through MaterialCraft's ordinary `file.saveAs`, then open the resulting file directly in the reference app and compare it with the original in that same app. Arc Pavement matches all 112,896/112,896 pixels across the six [original handoff cases](#integer-defaults-in-saved-graph-interfaces) and all 18 [expanded root cases](#uniform-arc-tangents-and-pavement-rotations), maximum error zero. This includes the three 64² F32 image inputs that previously returned black and the independent 32² U16 input. Spot Emboss again matches all 33,792/33,792 pixels across six cases. The two files saved with their original `0.1.3` header still have the documented load failure. The separate MaterialCraft cook comparison for Arc Pavement remains at 202,429/211,200 matching pixels.
+
 ### Integer defaults in saved graph interfaces
 
 Two packages with a `0.1.3` format header failed to reopen in the reference app after MaterialCraft Save As. Changing only that field to `1.1.0.202502` in a temporary copy let the reference app open both packages. Spot Emboss then reproduced all six original renders. Arc Pavement reproduced its default render, but six scalar integer settings had no readable default on the saved graph. The [earlier round trips](#vector-equality-lab-to-rgb-and-sbs-round-trips) cover a separate function library and a package that failed to load.
