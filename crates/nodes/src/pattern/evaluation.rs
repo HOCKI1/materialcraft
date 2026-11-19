@@ -1,5 +1,5 @@
 use materialcraft_core::{PatternNodeKind, Value};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use super::{catalog, pattern_stamp::PatternStamp, pattern_visit::PatternVisit, raster};
 use crate::function::{EvaluationContext, EvaluationState, compile};
@@ -18,11 +18,18 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
     graph.validate()?;
     let nodes: BTreeMap<_, _> = graph.nodes.iter().map(|node| (node.id, node)).collect();
     let mut functions = BTreeMap::new();
+    let mut fixed_switches = BTreeSet::new();
     for node in &graph.nodes {
+        let mut fixed = node.kind == PatternNodeKind::Switch && node.children.contains(&None);
         for (name, value) in &node.parameters {
             if let Value::Function(function) = value {
-                functions.insert((node.id, name.as_str()), compile(function, context.seed)?);
+                let program = compile(function, context.seed)?;
+                fixed = fixed && name == "switch" && program.depends_only_on_image_size();
+                functions.insert((node.id, name.as_str()), program);
             }
+        }
+        if fixed {
+            fixed_switches.insert(node.id);
         }
     }
 
@@ -39,10 +46,14 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
     let mut max_depth = 0;
     let mut state = EvaluationState::default();
     let mut remaining = MAX_VISITS;
+    let mut empty_switches = BTreeSet::new();
     while let Some(mut visit) = pending.pop() {
+        max_depth = max_depth.max(visit.depth);
+        if empty_switches.contains(&visit.node) {
+            continue;
+        }
         remaining = remaining.checked_sub(1).ok_or("pattern graph exceeded its execution budget")?;
         let node = nodes.get(&visit.node).ok_or("missing pattern node")?;
-        max_depth = max_depth.max(visit.depth);
         if node.kind == PatternNodeKind::Dot {
             if let Some(Some(child)) = node.children.first() {
                 visit.node = *child;
@@ -139,6 +150,8 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
                 if let Some(Some(child)) = node.children.get(slot) {
                     visit.node = *child;
                     children.push(visit);
+                } else if fixed_switches.contains(&node.id) {
+                    empty_switches.insert(node.id);
                 }
             }
             PatternNodeKind::Iterate => {
@@ -153,7 +166,9 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
                     first.number = 0;
                     children.push(first);
                 }
-                if let Some(Some(child)) = node.children.get(1) {
+                if let Some(Some(child)) = node.children.get(1)
+                    && !empty_switches.contains(child)
+                {
                     let mut seed = visit.seed;
                     for number in 0..count {
                         let mut repeated = visit.clone();
@@ -167,6 +182,17 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
             }
         }
 
+        if !empty_switches.is_empty() {
+            children.retain(|child| {
+                if empty_switches.contains(&child.node) {
+                    // Empty branches still contribute their visited depth to the roughness weights.
+                    max_depth = max_depth.max(child.depth);
+                    false
+                } else {
+                    true
+                }
+            });
+        }
         if children.len().saturating_add(pending.len()) > remaining {
             return Err("pattern graph exceeded its execution budget".into());
         }

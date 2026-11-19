@@ -1758,6 +1758,29 @@ The table below rechecks one control for each of the 149 roots marked Too hard b
 
 Of the 149 controls, three match exactly and 125 have measured pixel differences. Twenty pattern traversals reached the execution budget. One text graph requires an external font. The 20 incomplete traversals produced no comparable pixels. The font case exported 1,024 matching pixels with a cook error on its text branch and stays open.
 
+### Empty size-dependent pattern branches
+
+The two black-and-white Spots 1 graphs repeatedly visit a switch whose condition depends only on the output dimensions. At 32² its selected child is disconnected. The CPU cook now remembers that decision within the current cook and skips later copies of the empty branch. It includes the branch depth when normalizing roughness. Function assignments, random draws, image sampling and per-visit inputs stay on the evaluated path. The maximum number of evaluated visits, repeated children, stamp copies and pixel samples retain their existing limits.
+
+| Original controls | Renders | Exact / compared | Maximum error |
+|---|---:|---:|---:|
+| Small repeated switch | 8 | 43,520/43,520 | 0 |
+| Shared switch at two depths | 8 | 43,520/43,520 | 0 |
+| 1,024 × 1,024 repeated switch | 1 | 256/256 | 0 |
+
+In a grayscale pattern graph, use a switch with only its right output connected to a unit square. Its predicate is the X component of the log₂ output size ≥ 6. For the first row, use an Iterate with an initial unit square and two repeats of an inner Iterate that visits the switch three times. Use additive drawing, white stamps and roughness zero. For the second row, use roughness one. Draw a unit square on the root quadrant, connect slot 0 to the switch, and connect slot 3 to an empty quadrant whose slot 3 reaches the same switch. Use sides 16, 32, 64 and 128, seed 373 + side, and U16 and F32 output. For the final row use the first graph at 16² F32 and seed 389, with both repeat counts set to 1,024. Previously the first sixteen renders matched and the final render stopped at the execution limit. An additional CPU regression exercises a seed expression that increments a user variable at a disconnected switch.
+
+| Root | Exact / compared | U8 exact / total · max levels | U16 exact / total · max levels | F16 exact / total · max absolute | F32 exact / total · max absolute |
+|---|---:|---:|---:|---:|---:|
+| `noise_bnw_spots_1.sbs/bnw_spots_1` | 3,216/132,096 | 3,040/4,096 · 1 | 176/118,784 · 5958 | 0/4,096 · 0.0029296875 | 0/5,120 · 0.00304281712 |
+| `noise_bnw_spots_1_v2.sbs/bnw_spots_1` | 35,010/132,096 | 32,285/118,784 · 16 | 851/4,096 · 146 | 1,847/4,096 · 0.00231933594 | 27/5,120 · 0.0022289902 |
+
+Each root now produces comparable output in all nine renders. Use defaults at 128² and 256² with seed zero and at 128² with seed 42. The changed cases use scale 2, disorder .37 and roughness .6. On the second version also set disorder speed .6, anisotropy .3, anisotropy angle .125 and tile offset (.17,.29). Run the changed settings at 128²/seed zero, at 64²/seed 42 in the four formats and at 32²/seed 113 in F32. These graphs have no image inputs. At 32² the first version matches 0/1,024, maximum .00304281712, and the second matches 8/1,024, maximum .000147402287.
+
+Of the [twenty previously incomplete pattern controls](#parquet-1-and-outstanding-inventory-controls), eighteen still reach the traversal limit at 32² on this revision. No comparison pixels are available for those eighteen.
+
+The seventeen repeated inventory matrices returned the same per-format counts and maxima as before. The matched-resolution Position Debug preview and sixteen additional Spot Emboss renders matched all 86,528 pixels.
+
 ### Quarter-turn stamps and render bounds
 
 For an axis-aligned rectangle whose edges pass through pixel centers, the sample on the right or bottom edge belongs to the rectangle. Rotation by whole quarter turns and a negative stamp dimension preserve this ownership in image space. At 64², a .625 × .25 rectangle centered at (.5078125,.5078125) and rotated .25 turns covers columns 25 through 40 and rows 13 through 52, inclusive. The CPU cook now uses exact quarter-turn axes and measures these boundaries in image space. A reversed render-region interval selects [0,1] on that axis. Increasing intervals retain their supplied endpoints.

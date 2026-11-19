@@ -235,6 +235,84 @@ fn iterate_sets_number_and_switch_selects_one_child() {
 }
 
 #[test]
+fn repeated_empty_size_switches_leave_the_visit_budget_for_drawing() {
+    let mut graph = PatternGraph::with_root(PatternNodeKind::Iterate);
+    let mark = graph.add(PatternNodeKind::Quadrant).unwrap();
+    let repeat = graph.add(PatternNodeKind::Iterate).unwrap();
+    let gate = graph.add(PatternNodeKind::Switch).unwrap();
+    let bright = graph.add(PatternNodeKind::Quadrant).unwrap();
+    graph.nodes[0].children = vec![Some(mark), Some(repeat)];
+    graph.nodes[0].parameters.insert("numberadded".into(), Value::Int(1024));
+    graph.nodes[1].parameters.insert("patterntype".into(), Value::Int(2));
+    graph.nodes[1].parameters.insert("opacity".into(), Value::Float(0.5));
+    graph.nodes[2].children[1] = Some(gate);
+    graph.nodes[2].parameters.insert("numberadded".into(), Value::Int(1024));
+    graph.nodes[3].children[1] = Some(bright);
+    let mut condition = FunctionGraph::default();
+    let log_size = condition.add("get_float2", &[], Some(Value::Text("$sizelog2".into())));
+    let width = condition.add("swizzle1", &[log_size], Some(Value::Int(0)));
+    let threshold = condition.add_constant(Value::Float(6.0));
+    condition.output = Some(condition.add("gteq", &[width, threshold], None));
+    graph.nodes[3].parameters.insert("switch".into(), Value::Function(Box::new(condition)));
+    graph.nodes[4].parameters.insert("patterntype".into(), Value::Int(2));
+    assert_eq!(cook(graph).unwrap()[0].get_gray(4, 4, false), 0.5);
+}
+
+#[test]
+fn empty_switches_at_later_depths_still_affect_roughness() {
+    let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
+    let empty = graph.add(PatternNodeKind::Switch).unwrap();
+    let deeper = graph.add(PatternNodeKind::Quadrant).unwrap();
+    graph.nodes[0].parameters.insert("patterntype".into(), Value::Int(2));
+    graph.nodes[0].children = vec![Some(empty), None, None, Some(deeper)];
+    graph.nodes[2].children[3] = Some(empty);
+    let definition = find("fx_map").unwrap();
+    let parameters = resolve_params(
+        definition,
+        &BTreeMap::from([
+            ("pattern".into(), Value::PatternGraph(Box::new(graph))),
+            ("roughness".into(), Value::Float(1.0)),
+            ("color_mode".into(), Value::Bool(false)),
+        ]),
+    );
+    let context = CookContext {
+        input_formats: &[],
+        format: materialcraft_core::OutputFormat::F32,
+        w: 16,
+        h: 16,
+        seed: 0,
+        tile: true,
+        inputs: &[],
+        params: &parameters,
+        resource: &|_| None,
+        vars: &BTreeMap::new(),
+    };
+    assert_eq!((definition.cook)(&context).unwrap()[0].get_gray(8, 8, false), 1.0 / 3.0);
+}
+
+#[test]
+fn an_empty_switch_still_runs_its_seed_assignment() {
+    let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
+    let repeat = graph.add(PatternNodeKind::Iterate).unwrap();
+    let empty = graph.add(PatternNodeKind::Switch).unwrap();
+    let mark = graph.add(PatternNodeKind::Quadrant).unwrap();
+    graph.nodes[0].children = vec![Some(repeat), Some(repeat), Some(mark), None];
+    graph.nodes[1].parameters.insert("numberadded".into(), Value::Int(2));
+    graph.nodes[1].children[1] = Some(empty);
+    let mut advance = FunctionGraph::default();
+    let count = advance.add("get_float1", &[], Some(Value::Text("count".into())));
+    let quarter = advance.add_constant(Value::Float(0.25));
+    let next = advance.add("add", &[count, quarter], None);
+    let set = advance.add("set", &[next], Some(Value::Text("count".into())));
+    let zero = advance.add_constant(Value::Int(0));
+    advance.output = Some(advance.add("sequence", &[set, zero], None));
+    graph.nodes[2].parameters.insert("randomseed".into(), Value::Function(Box::new(advance)));
+    graph.nodes[3].parameters.insert("patterntype".into(), Value::Int(2));
+    graph.nodes[3].parameters.insert("opacity".into(), Value::Function(Box::new(FunctionGraph::input("count", materialcraft_core::ValueType::Float))));
+    assert_eq!(cook(graph).unwrap()[0].get_gray(3, 11, false), 1.0);
+}
+
+#[test]
 fn iterate_preserves_assignments_from_previous_iterations() {
     let mut graph = PatternGraph::with_root(PatternNodeKind::Iterate);
     let child = graph.add(PatternNodeKind::Quadrant).unwrap();

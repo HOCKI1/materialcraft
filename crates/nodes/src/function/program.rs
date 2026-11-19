@@ -30,6 +30,15 @@ impl Program {
         self.instructions.get(self.output).is_some_and(|instruction| instruction.literal)
     }
 
+    /// A pattern can reuse a size predicate across positions, random streams and variable assignments.
+    pub(crate) fn depends_only_on_image_size(&self) -> bool {
+        self.instructions.iter().all(|op| {
+            op.definition.id.starts_with("const_")
+                || op.depends_only_on_operands()
+                || (op.definition.id == "get_float2" && matches!(&op.value, Some(Value::Text(name)) if matches!(name.as_str(), "$size" | "$sizelog2")))
+        })
+    }
+
     pub fn node_type(&self, id: u32) -> Option<u32> {
         self.instructions.iter().find(|instruction| instruction.id == id).map(|instruction| instruction.type_code)
     }

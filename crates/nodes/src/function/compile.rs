@@ -232,7 +232,7 @@ fn mark_literals(program: &mut Program, mut arguments: BTreeSet<&str>) -> super:
         } else {
             op.literal = id.starts_with("const_")
                 || (id.starts_with("get_") && matches!(&op.value, Some(materialcraft_core::Value::Text(name)) if arguments.contains(name.as_str())))
-                || (!op.inputs.is_empty() && !matches!(id, "rand" | "samplelum" | "samplecol" | "set" | "while") && op.inputs.iter().all(literal));
+                || (op.depends_only_on_operands() && op.inputs.iter().all(literal));
         }
         literals.push(op.literal);
     }

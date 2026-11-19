@@ -20,6 +20,10 @@ pub(crate) struct Instruction {
 }
 
 impl Instruction {
+    pub(super) fn depends_only_on_operands(&self) -> bool {
+        self.call.is_none() && !self.inputs.is_empty() && !matches!(self.definition.id, "rand" | "samplelum" | "samplecol" | "set" | "while")
+    }
+
     pub(super) fn product_operation(&self) -> Option<&'static str> {
         let [_, _] = self.inputs.as_slice() else { return None };
         match self.definition.id {
