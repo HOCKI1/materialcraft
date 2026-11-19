@@ -1042,6 +1042,35 @@ Every row includes the four original defaults, seed and parameter renders, the 6
 
 The trapezoid pair each has two remaining differences across the archived and new comparisons. The [four-format inventory](#four-format-inventory-comparison) lists the original changed settings and port names.
 
+### Scaled random draws and offsets
+
+At (2,0) on a 16² graph with seed 17, evaluate `r=rand(.999)` and return `r+.001`. The raw F32 result has bits `3f3563cb`. Return the sum and r together and their bits are `3f3563ca` and `3f352241`. At (4,0) with the same settings, returning `.001−r` alone gives `beb19951`. A scalar pixel draw consumed by a single addition or subtraction multiplies its unit sample by the range and adds the offset in one rounding. A reader of the scaled draw receives its rounded value. The graph's evaluation order determines which sample each draw receives.
+
+| Original direct control, eight renders each | Exact pixels before | Exact pixels after / compared | Maximum U16 levels | Maximum F32 error |
+|---|---:|---:|---:|---:|
+| Two sums, draw on left | 6,081 | 10,496/10,496 | 0 | 0 |
+| Two sums, draw on right | 6,081 | 10,496/10,496 | 0 | 0 |
+| Range minus offset | 7,433 | 10,496/10,496 | 0 | 0 |
+| Offset minus range | 7,433 | 10,496/10,496 | 0 | 0 |
+| Return each sum and its scaled draw | 10,496 | 10,496/10,496 | 0 | 0 |
+| Vector-typed random instruction | 0 | 0/10,496 | 65430 | 1.73066464 |
+| Horizontal coordinate as range, vertical as offset | 9,648 | 10,496/10,496 | 0 | 0 |
+| Sum and difference with both scaled draws returned | 10,496 | 10,496/10,496 | 0 | 0 |
+
+For each control, use 16² F32/seed 17, 32² F32/0, 32² in all four formats/137, 64² F32/413 and 32² F32/673. Use ranges .999 and −1.731053, offsets .001 and .352111. In the two-sum and subtraction controls, repeat the first two results as the other two RGBA channels. In the coordinate control, return `rand(u)+v` in grayscale, using the normalized texel center. In the sum-and-difference control, return the second scaled draw minus the first, their sum, then both individual draws. All **73,472/73,472 pixels in the seven scalar graphs** match. The eighth control explicitly declares a two-component random instruction with range (.999,−1.731053). Its reference output returns zeros for the draw, while the two scalar draws packed into a vector have distinct values. MaterialCraft's vector-typed result still differs. The [337 initialization and draw-order controls](#per-pixel-random-initialization) also retain zero error.
+
+| Root | Renders | Exact pixels before | Exact pixels after / compared | Maximum U16 levels | Maximum F32 error |
+|---|---:|---:|---:|---:|---:|
+| Volume environment light | 39 | 31,387 | 31,488/31,488 | 0 | 0 |
+| Flood Fill random color | 19 | 143,501 | 143,872/143,872 | 0 | 0 |
+| Flood Fill random grayscale | 19 | 143,795 | 143,872/143,872 | 0 | 0 |
+| Flood Fill 2 color | 19 | 143,858 | 143,858/143,872 | 1 | 1.42455101e-05 |
+| Flood Fill 2 grayscale | 19 | 143,871 | 143,872/143,872 | 0 | 0 |
+| Flood Fill 2 random color | 19 | 143,487 | 143,487/143,872 | 1 | 1.52587891e-05 |
+| Flood Fill 2 random grayscale | 19 | 143,800 | 143,872/143,872 | 0 | 0 |
+
+Use the same [root fields, parameters, seeds and output storage](#per-pixel-random-initialization). The density ramp now matches 1,024/1,024 F32 pixels, and the 39 environment-light renders include 11,264 F32 pixels. The grayscale pass and the first flood-fill package now match their complete recorded matrices. The two open color roots pack scalar random draws into a vector before applying their offset. Their residuals are bounded by one U16 level and .0000152587891 in F32. All U8 and F16 pixels in this root table match. The Worley, Dissolve, diffusion, splatter and fast white-noise reruns retain their previous counts. The later white-noise generator retains the differences measured for its Gaussian distribution.
+
 ### Per-pixel random initialization
 
 The first four calls to `rand(1)` at pixel (0,0) of a 32² graph give (6046590,4572138,703596,3572932) / 2²³ at seed zero. At seed one they give (3086392,1966280,4339094,3323762) / 2²³. At (16,1) of a 32×16 graph, seed 42 gives (3941566,2846122,6888364,1390724) / 2²³. These observations distinguish the graph seed, position, resolution and draw order.

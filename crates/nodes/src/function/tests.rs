@@ -794,6 +794,35 @@ fn measured_pixel_reciprocals_preserve_runtime_rounding() {
 }
 
 #[test]
+fn a_single_use_pixel_random_range_contracts_with_its_offset() {
+    let mut graph = FunctionGraph::default();
+    let range = graph.add_constant(Value::Float(0.999));
+    let offset = graph.add_constant(Value::Float(0.001));
+    let draw = graph.add("rand", &[range], None);
+    let sum = graph.add("add", &[draw, offset], None);
+    let reverse = graph.add("sub", &[offset, draw], None);
+    let shared = graph.add("vector2", &[sum, draw], None);
+    for (output, x, expected) in [
+        (sum, 2, Value::Float(f32::from_bits(0x3f35_63cb))),
+        (reverse, 4, Value::Float(f32::from_bits(0xbeb1_9951))),
+        (shared, 2, Value::Float2([0x3f35_63ca, 0x3f35_2241].map(f32::from_bits))),
+    ] {
+        graph.output = Some(output);
+        let context = EvaluationContext {
+            scope: super::FunctionScope::PixelProcessor,
+            position: [(x as f32 + 0.5) / 16.0, 0.5 / 16.0],
+            size: [16.0; 2],
+            images: &[],
+            image_formats: &[],
+            tile: true,
+            variables: &BTreeMap::new(),
+        };
+        let value = compile(&graph, 17).unwrap().evaluate_pixel(&context, &mut EvaluationState::default()).unwrap();
+        assert_eq!(value, expected);
+    }
+}
+
+#[test]
 fn pixel_random_starts_at_the_normalized_texel_center_and_graph_seed() {
     let mut graph = FunctionGraph::default();
     let one = graph.add_constant(Value::Float(1.0));

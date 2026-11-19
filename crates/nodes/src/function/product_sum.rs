@@ -14,9 +14,15 @@ enum Retained {
     Lanes(super::returned_product::Sum),
 }
 
+#[derive(Clone, Copy)]
+enum Operand {
+    Register(usize),
+    UnitDraw,
+}
+
 pub(super) struct ProductSum {
     // Visit operands in their original order, including reads with side effects.
-    pub(super) inputs: Vec<usize>,
+    inputs: Vec<Operand>,
     product_on_right: bool,
     negated: bool,
     operation: &'static str,
@@ -25,10 +31,18 @@ pub(super) struct ProductSum {
 }
 
 impl ProductSum {
+    pub(super) fn schedule(&self, steps: &mut Vec<super::evaluation_step::EvaluationStep>) {
+        use super::evaluation_step::EvaluationStep;
+        steps.extend(self.inputs.iter().rev().map(|input| match *input {
+            Operand::Register(index) => EvaluationStep::Enter(index),
+            Operand::UnitDraw => EvaluationStep::DrawUnit,
+        }));
+    }
+
     /// Evaluate the original call and vector arguments before reading the factors they used.
     pub(super) fn returned(inputs: &[usize], terms: super::returned_product::Sum) -> Self {
         Self {
-            inputs: inputs.to_vec(),
+            inputs: inputs.iter().copied().map(Operand::Register).collect(),
             product_on_right: false,
             negated: false,
             operation: "mul",
@@ -129,7 +143,7 @@ fn called_sum(op: &Instruction, instructions: &[Instruction], usage: &[ProductUs
         let &[a, b] = product.inputs.as_slice() else { return None };
         let retained = Retained::Argument { source: Source::local([a, b]), addend: addend.clone(), subtract: sum.definition.id == "sub" };
         Some(ProductSum {
-            inputs: op.inputs.clone(),
+            inputs: op.inputs.iter().copied().map(Operand::Register).collect(),
             product_on_right,
             negated: false,
             operation: product.definition.id,
@@ -172,7 +186,7 @@ fn pass_into_sums(call: &mut super::function_call::FunctionCall, inputs: &[usize
     for (index, product_on_right) in sums {
         if let Some(sum) = body.get_mut(index) {
             sum.pixel_product_sum = Some(ProductSum {
-                inputs: sum.inputs.clone(),
+                inputs: sum.inputs.iter().copied().map(Operand::Register).collect(),
                 product_on_right,
                 negated: false,
                 operation: product.definition.id,
@@ -190,6 +204,9 @@ pub(super) fn identify(instructions: &mut [Instruction]) {
     for (index, op) in instructions.iter().enumerate() {
         let product = match (op.definition.id, op.inputs.as_slice()) {
             ("mul" | "mulscalar" | "div", [_, _]) if !op.literal && matches!(op.type_code, 256 | 512 | 1024 | 2048) => {
+                Some(ProductOperand { index, negated: false })
+            }
+            ("rand", [range]) if op.type_code == 256 && instructions.get(*range).is_some_and(|r| r.type_code == 256) => {
                 Some(ProductOperand { index, negated: false })
             }
             ("neg", [input]) => operands.get(*input).copied().flatten().map(|p| ProductOperand { negated: !p.negated, ..p }),
@@ -283,9 +300,16 @@ pub(super) fn identify(instructions: &mut [Instruction]) {
                 if has_loop && used.count > 1 {
                     return None;
                 }
-                let &[a, b] = product.inputs.as_slice() else { return None };
+                let (a, b) = match product.inputs.as_slice() {
+                    [a, b] => (Operand::Register(*a), Operand::Register(*b)),
+                    // Consume the draw just after evaluating its range. Other readers of the draw
+                    // require the cached, rounded product and must advance the stream only once.
+                    [range] if product.definition.id == "rand" && used.count == 1 && blend.is_none() => (Operand::Register(*range), Operand::UnitDraw),
+                    _ => return None,
+                };
+                let other = Operand::Register(other);
                 let mut inputs = if product_on_right { vec![other, a, b] } else { vec![a, b, other] };
-                inputs.extend(blend);
+                inputs.extend(blend.map(Operand::Register));
                 Some((
                     used.count,
                     ProductSum {
