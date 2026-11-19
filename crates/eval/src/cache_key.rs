@@ -93,7 +93,7 @@ pub(crate) fn graph_tree_hash_with_registry(registry: &Package, package: &Packag
     hasher.finish()
 }
 
-pub(crate) fn variable_key(node: &Node, parameters: &BTreeMap<String, Value>, variables: &BTreeMap<String, Value>) -> u64 {
+pub(crate) fn variable_key(node: &Node, parameters: &BTreeMap<String, Value>, variables: &dyn materialcraft_nodes::GraphVariables) -> u64 {
     let mut hasher = DefaultHasher::new();
     let mut names = std::collections::BTreeSet::new();
     let mut pending: Vec<&Value> = parameters.values().collect();
@@ -114,10 +114,12 @@ pub(crate) fn variable_key(node: &Node, parameters: &BTreeMap<String, Value>, va
                             Some(Err(error)) => error.hash(&mut hasher),
                             None => {}
                         }
-                        if (function_node.op.starts_with("get_") || function_node.op == "isdefined")
-                            && let Some(Value::Text(name)) = &function_node.value
-                        {
-                            names.insert(name.as_str());
+                        if let Some(Value::Text(name)) = &function_node.value {
+                            if function_node.op.starts_with("get_") {
+                                names.insert(name.strip_prefix('%').unwrap_or(name));
+                            } else if function_node.op == "isdefined" {
+                                names.insert(name.as_str());
+                            }
                         }
                     }
                 }
@@ -137,6 +139,7 @@ pub(crate) fn variable_key(node: &Node, parameters: &BTreeMap<String, Value>, va
     for name in names {
         name.hash(&mut hasher);
         variables.get(name).map(|value| serde_json::to_string(value).unwrap_or_default()).hash(&mut hasher);
+        variables.literal_inputs().iter().any(|input| input == name).hash(&mut hasher);
     }
 
     hasher.finish()

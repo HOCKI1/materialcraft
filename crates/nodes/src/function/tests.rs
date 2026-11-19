@@ -26,6 +26,26 @@ fn operation(name: &str, arguments: &[Value], setting: Option<Value>) -> Result<
 }
 
 #[test]
+fn folded_integers_use_word_order_and_convert_unsigned_magnitudes() {
+    let variables = BTreeMap::from([("lhs".into(), Value::Int(-5)), ("rhs".into(), Value::Int(2))]);
+    for (left_literal, right_literal) in [(true, true), (true, false), (false, true), (false, false)] {
+        let mut graph = FunctionGraph::default();
+        let mut operand = |name: &str, value, literal| {
+            if literal { graph.add_constant(Value::Int(value)) } else { graph.add("get_integer1", &[], Some(Value::Text(name.into()))) }
+        };
+        let left = operand("lhs", -5, left_literal);
+        let right = operand("rhs", 2, right_literal);
+        let unsigned = left_literal && right_literal;
+        for (op, expected) in [("lr", !unsigned), ("lreq", !unsigned), ("gt", unsigned), ("gteq", unsigned)] {
+            graph.output = Some(graph.add(op, &[left, right], None));
+            assert_eq!(evaluate(&graph, &variables).unwrap(), Value::Bool(expected), "{op} with literal operands {left_literal}/{right_literal}");
+        }
+        graph.output = Some(graph.add("tofloat", &[left], None));
+        assert_eq!(evaluate(&graph, &variables).unwrap(), Value::Float(if left_literal { 4_294_967_296.0 } else { -5.0 }));
+    }
+}
+
+#[test]
 fn variable_reads_consume_one_reference_marker() {
     let variables = BTreeMap::from([("level".into(), Value::Float(0.1875))]);
     for (assigned, getter, expected) in

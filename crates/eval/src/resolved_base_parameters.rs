@@ -82,6 +82,7 @@ pub(crate) fn evaluate(
     input: Option<ResolvedBaseParameters>,
     parent: ResolvedBaseParameters,
     variables: &mut std::borrow::Cow<'_, BTreeMap<String, Value>>,
+    literal_inputs: &[String],
 ) -> Result<(ResolvedBaseParameters, BTreeMap<BaseParameter, Value>), String> {
     if base.functions.is_empty() {
         return Ok((ResolvedBaseParameters::resolve(base, input, parent), BTreeMap::new()));
@@ -134,6 +135,7 @@ pub(crate) fn evaluate(
                 size,
                 crate::parameter_function::ChannelMode::Opaque,
                 None,
+                literal_inputs,
             )
             .map_err(|error| format!("function of `{}`: {error}", parameter.identifier()))?;
             if parameter == BaseParameter::OutputSize {

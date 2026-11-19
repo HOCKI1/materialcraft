@@ -44,6 +44,7 @@ pub(crate) fn cook_instance(
     output_ports: &[Port],
     inputs: &[Option<(&NodeOutput, OutputFormat)>],
     params: &BTreeMap<String, Value>,
+    fixed: &[String],
     base: crate::resolved_base_parameters::ResolvedBaseParameters,
     options: &Options,
     cache: &Mutex<Cache>,
@@ -85,6 +86,12 @@ pub(crate) fn cook_instance(
     source_options.graph_stack.push(identity);
     source_options.only = Some(source_graph.nodes.iter().filter(|node| node.def == "output").map(|node| node.id).collect());
     source_options.overrides = params.iter().filter(|(k, _)| source_graph.exposed.iter().any(|e| &e.id == *k)).map(|(k, v)| (k.clone(), v.clone())).collect();
+    for exposed in &source_graph.exposed {
+        let name = &exposed.id;
+        if fixed.contains(name) || (!params.contains_key(name) && matches!(source_graph.input_value(name), Some(Value::Int(_)))) {
+            source_options.literal_inputs.push(name.clone());
+        }
+    }
     for (port, input) in input_ports.iter().zip(inputs) {
         let Some((output, format)) = input else { continue };
         if let Some((image, texture_format)) = output.texture(*format) {
@@ -92,6 +99,7 @@ pub(crate) fn cook_instance(
             source_options.input_formats.insert(port.id.clone(), texture_format);
         } else if let Some(value) = output.as_value() {
             source_options.overrides.insert(port.id.clone(), value.clone());
+            source_options.literal_inputs.retain(|name| name != &port.id);
         }
     }
     let cooked = cook(source, source_graph_index, &source_options, cache);

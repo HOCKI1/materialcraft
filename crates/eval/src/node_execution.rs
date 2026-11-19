@@ -8,11 +8,26 @@ use crate::{
 };
 use craft_texture::{Image, Kind};
 use materialcraft_core::{Node, OutputFormat, Package, Value};
-use materialcraft_nodes::{CookContext, find};
+use materialcraft_nodes::{CookContext, GraphVariables, find};
 use std::{
     collections::BTreeMap,
     sync::{Arc, Mutex},
 };
+
+struct BoundVariables<'a> {
+    values: &'a BTreeMap<String, Value>,
+    fixed: &'a [String],
+}
+
+impl GraphVariables for BoundVariables<'_> {
+    fn graph_values(&self) -> &BTreeMap<String, Value> {
+        self.values
+    }
+
+    fn literal_inputs(&self) -> &[String] {
+        self.fixed
+    }
+}
 
 /// The magenta image a failed node shows
 pub fn error_image(w: u32, h: u32) -> Image {
@@ -43,6 +58,7 @@ pub(crate) fn cook_node(
     let mut incoming = Vec::new();
     let mut input_keys = Vec::new();
     let mut variables = std::borrow::Cow::Borrowed(graph_variables);
+    let mut fixed = std::borrow::Cow::Borrowed(options.literal_inputs.as_slice());
     let mut input_error = None;
     for port in input_ports {
         let connection = prepared.index.input_of(node.id, &port.id);
@@ -73,6 +89,9 @@ pub(crate) fn cook_node(
             };
 
             variables.to_mut().insert(port.id.clone(), value);
+            if fixed.contains(&port.id) {
+                fixed.to_mut().retain(|name| name != &port.id);
+            }
         } else {
             if output.as_ref().is_some_and(|output| output.as_value().is_some()) && !matches!(node.def.as_str(), "output" | "dot") {
                 input_error = Some(format!("input `{}` requires an image", port.id));
@@ -93,10 +112,11 @@ pub(crate) fn cook_node(
     }
 
     let input_base = prepared.input_base(node.id, cooked);
-    let (mut base, base_values, base_error) = match crate::resolved_base_parameters::evaluate(&node.base, input_base, prepared.parent_base, &mut variables) {
-        Ok((base, values)) => (base, values, None),
-        Err(error) => (crate::ResolvedBaseParameters::resolve(&node.base, input_base, prepared.parent_base), BTreeMap::new(), Some(error)),
-    };
+    let (mut base, base_values, base_error) =
+        match crate::resolved_base_parameters::evaluate(&node.base, input_base, prepared.parent_base, &mut variables, &fixed) {
+            Ok((base, values)) => (base, values, None),
+            Err(error) => (crate::ResolvedBaseParameters::resolve(&node.base, input_base, prepared.parent_base), BTreeMap::new(), Some(error)),
+        };
 
     if node.disabled
         && let Some(input) = input_base
@@ -144,7 +164,7 @@ pub(crate) fn cook_node(
     }
 
     let seed = base.seed;
-    let mut parameters = match resolve_parameters(package, node, definition, &mut variables, base) {
+    let (mut parameters, instance_literals) = match resolve_parameters(package, node, definition, &mut variables, base, &fixed) {
         Ok(parameters) => parameters,
         Err(error) => return fail(error, 0),
     };
@@ -152,6 +172,7 @@ pub(crate) fn cook_node(
         variables.to_mut().insert("$pixelsize".into(), Value::Float2(base.pixel_size));
     }
     let variables = &variables;
+    let bindings = BoundVariables { values: variables, fixed: &fixed };
 
     let tile = base.tiling[0] && base.tiling[1];
 
@@ -204,7 +225,7 @@ pub(crate) fn cook_node(
         // A cached graph instance includes results evaluated with its host environment
         (node.def == "graph_instance").then(|| serde_json::to_string(&options.environment).unwrap_or_default()),
         input_image.as_ref().map(|(image, upstream, bitmap)| (image_key(image, cache), upstream, bitmap, wired)),
-        variable_key(node, &parameters, variables),
+        (variable_key(node, &parameters, &bindings), &instance_literals),
     ));
     if let Some(outputs) = lock(cache).get(key) {
         parameters.retain(|_, value| materialcraft_core::ValueType::of(value).is_some());
@@ -226,7 +247,7 @@ pub(crate) fn cook_node(
         let value = variables.get(&identifier(node)).or_else(|| parameters.get("default")).cloned().unwrap_or(Value::Float(0.0));
         Ok(vec![NodeOutput::Value(value)])
     } else if node.def == "value_processor" {
-        evaluate_value(&parameters, variables, seed, [w, h], &inputs, &input_formats, tile).map(|value| vec![NodeOutput::Value(value)])
+        evaluate_value(&parameters, &bindings, seed, [w, h], &inputs, &input_formats, tile).map(|value| vec![NodeOutput::Value(value)])
     } else if matches!(node.def.as_str(), "output" | "dot")
         && let Some(Some((output, _))) = incoming.first()
         && (output.as_value().is_some() || matches!(output, NodeOutput::BoundBitmap { stored, .. } if (stored.width(), stored.height()) == (w, h)))
@@ -244,7 +265,7 @@ pub(crate) fn cook_node(
 
         Err(format!("unsupported node `{name}`"))
     } else if node.def == "graph_instance" {
-        cook_instance(package, graph_index, node, input_ports, output_ports, &incoming, &parameters, base, options, cache).map(|ports| {
+        cook_instance(package, graph_index, node, input_ports, output_ports, &incoming, &parameters, &instance_literals, base, options, cache).map(|ports| {
             let (values, bases): (Vec<_>, Vec<_>) = ports.into_iter().unzip();
             output_bases = Some(bases.into());
             values
@@ -272,7 +293,7 @@ pub(crate) fn cook_node(
             inputs: &inputs,
             params: &parameters,
             resource: options.resource,
-            vars: variables,
+            vars: &bindings,
         };
         (definition.cook)(&context).map(|images| {
             images

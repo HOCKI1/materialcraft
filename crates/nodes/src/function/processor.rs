@@ -1,4 +1,4 @@
-use super::{EvaluationContext, EvaluationState, compile};
+use super::{EvaluationContext, EvaluationState, compile_with_literal_inputs};
 use crate::{CookContext, CookResult};
 use craft_texture::{Image, Kind, Limits};
 use materialcraft_core::Value;
@@ -31,7 +31,8 @@ fn pixel(value: Value, gray: bool) -> Result<[f32; 4], String> {
 
 pub(crate) fn pixel_processor(context: &CookContext) -> CookResult {
     let graph = context.function("function").ok_or("missing pixel function")?;
-    let program = compile(graph, context.seed)?;
+    let program = compile_with_literal_inputs(graph, context.seed, context.vars.literal_inputs())?;
+    let variables = context.vars.graph_values();
     let gray = !context.b("color_mode");
     let kind = if gray { Kind::Gray } else { Kind::Color };
 
@@ -47,7 +48,7 @@ pub(crate) fn pixel_processor(context: &CookContext) -> CookResult {
                 size: [width as f32, height as f32],
                 images: context.inputs,
                 tile: context.tile,
-                variables: context.vars,
+                variables,
             };
 
             let result = pixel(program.evaluate_pixel(&evaluation, state)?, gray)?;

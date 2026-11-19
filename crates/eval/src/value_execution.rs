@@ -4,20 +4,20 @@ use std::collections::BTreeMap;
 
 pub(crate) fn evaluate_value(
     parameters: &BTreeMap<String, Value>,
-    variables: &BTreeMap<String, Value>,
+    variables: &dyn materialcraft_nodes::GraphVariables,
     seed: u32,
     size: [u32; 2],
     images: &[Option<Image>],
     image_formats: &[OutputFormat],
     tile: bool,
 ) -> Result<Value, String> {
-    use materialcraft_nodes::function::{EvaluationContext, EvaluationState, FunctionScope, compile};
+    use materialcraft_nodes::function::{EvaluationContext, EvaluationState, FunctionScope, compile_with_literal_inputs};
 
     let Some(Value::Function(graph)) = parameters.get("function") else {
         return Err("missing value function".into());
     };
 
-    let program = compile(graph, seed)?;
+    let program = compile_with_literal_inputs(graph, seed, variables.literal_inputs())?;
     let context = EvaluationContext {
         image_formats,
         scope: FunctionScope::ValueProcessor,
@@ -25,7 +25,7 @@ pub(crate) fn evaluate_value(
         size: size.map(|side| side as f32),
         images,
         tile,
-        variables,
+        variables: variables.graph_values(),
     };
 
     let value = program.evaluate(&context, &mut EvaluationState::default())?;

@@ -21,6 +21,8 @@ pub struct Options<'a> {
     pub bitmap_formats: BTreeMap<String, OutputFormat>,
     /// Values for the graph's exposed parameters (graph instances), over the graph's own
     pub overrides: BTreeMap<String, Value>,
+    /// Scalar integer inputs fixed by the enclosing graph instance.
+    pub literal_inputs: Vec<String>,
     /// Decodes a package resource (bitmap) by name
     pub resource: &'a crate::ResourceDecoder<'a>,
     /// Set from another thread to stop between nodes
@@ -46,6 +48,7 @@ impl<'a> Options<'a> {
             input_formats: BTreeMap::new(),
             bitmap_formats: BTreeMap::new(),
             overrides: BTreeMap::new(),
+            literal_inputs: Vec::new(),
             resource,
             cancel: None,
             depth: 0,

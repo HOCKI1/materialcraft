@@ -3,9 +3,14 @@ use materialcraft_core::FunctionGraph;
 use std::collections::{BTreeMap, BTreeSet};
 
 pub fn compile(graph: &FunctionGraph, seed: u32) -> Result<Program, String> {
+    compile_with_literal_inputs(graph, seed, &[])
+}
+
+/// Compile with the named inputs fixed by an enclosing graph instance.
+pub fn compile_with_literal_inputs(graph: &FunctionGraph, seed: u32, literal_inputs: &[String]) -> Result<Program, String> {
     let mut remaining = super::MAX_EXPANDED_NODES;
     let mut program = compile_nested(graph, seed, 0, &mut remaining)?;
-    mark_literals(&mut program, BTreeSet::new());
+    mark_literals(&mut program, literal_inputs.iter().map(String::as_str).collect());
     Ok(program)
 }
 

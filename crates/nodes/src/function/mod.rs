@@ -45,7 +45,7 @@ mod warnings;
 
 pub(crate) use binary_exponential::{exp2 as pixel_exp2, signed_pixel_power};
 pub use catalog::{FUNCTIONS, default_value, definition};
-pub use compile::compile;
+pub use compile::{compile, compile_with_literal_inputs};
 pub use evaluation_context::EvaluationContext;
 pub use evaluation_state::EvaluationState;
 pub(crate) use fixed_point::truncate_float;

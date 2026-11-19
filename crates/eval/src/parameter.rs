@@ -9,7 +9,8 @@ pub(crate) fn resolve_parameters(
     definition: Option<&NodeDefinition>,
     variables: &mut std::borrow::Cow<'_, BTreeMap<String, Value>>,
     base: ResolvedBaseParameters,
-) -> Result<BTreeMap<String, Value>, String> {
+    literal_inputs: &[String],
+) -> Result<(BTreeMap<String, Value>, Vec<String>), String> {
     let mut parameters = match definition {
         Some(definition) if node.def != "graph_instance" => resolve_params(definition, &node.params),
         _ => {
@@ -27,7 +28,11 @@ pub(crate) fn resolve_parameters(
         }
     }
 
+    let mut dynamic = std::collections::BTreeSet::new();
     for (parameter, exposed) in &node.bindings {
+        if node.def == "graph_instance" && !literal_inputs.contains(exposed) {
+            dynamic.insert(parameter);
+        }
         if let (Some(value), Some(current)) = (variables.get(exposed), parameters.get(parameter))
             && let Some(coerced) = current.coerce_json(&serde_json::to_value(value).unwrap_or_default())
         {
@@ -43,8 +48,16 @@ pub(crate) fn resolve_parameters(
             ("fx_map", "background", _) if matches!(current, Value::Float4(_)) => ChannelMode::Broadcast,
             _ => ChannelMode::Opaque,
         };
-        let (value, _) = crate::parameter_function::evaluate(function, expected, variables.to_mut(), base.seed, base.size, channels, Some(current))
-            .map_err(|error| format!("function of `{parameter}`: {error}"))?;
+        let (value, literal) =
+            crate::parameter_function::evaluate(function, expected, variables.to_mut(), base.seed, base.size, channels, Some(current), literal_inputs)
+                .map_err(|error| format!("function of `{parameter}`: {error}"))?;
+        if node.def == "graph_instance" {
+            if literal {
+                dynamic.remove(parameter);
+            } else {
+                dynamic.insert(parameter);
+            }
+        }
         let value = current.coerce_json(&serde_json::to_value(value).unwrap_or_default()).ok_or_else(|| format!("invalid function value for `{parameter}`"))?;
         parameters.insert(parameter.clone(), value);
     }
@@ -56,7 +69,12 @@ pub(crate) fn resolve_parameters(
         clamp_params(definition, &mut parameters);
     }
 
-    Ok(parameters)
+    let fixed = if node.def == "graph_instance" {
+        parameters.iter().filter(|(name, value)| matches!(value, Value::Int(_)) && !dynamic.contains(*name)).map(|(name, _)| name.clone()).collect()
+    } else {
+        Vec::new()
+    };
+    Ok((parameters, fixed))
 }
 
 #[cfg(test)]

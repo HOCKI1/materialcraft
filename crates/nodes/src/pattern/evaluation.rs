@@ -2,7 +2,7 @@ use materialcraft_core::{PatternNodeKind, Value};
 use std::collections::{BTreeMap, BTreeSet};
 
 use super::{catalog, pattern_stamp::PatternStamp, pattern_visit::PatternVisit, raster};
-use crate::function::{EvaluationContext, EvaluationState, compile};
+use crate::function::{EvaluationContext, EvaluationState, compile_with_literal_inputs};
 use crate::random::FunctionRandom;
 use crate::{CookContext, CookResult};
 
@@ -23,7 +23,7 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
         let mut fixed = node.kind == PatternNodeKind::Switch && node.children.contains(&None);
         for (name, value) in &node.parameters {
             if let Value::Function(function) = value {
-                let program = compile(function, context.seed)?;
+                let program = compile_with_literal_inputs(function, context.seed, context.vars.literal_inputs())?;
                 fixed = fixed && name == "switch" && program.depends_only_on_image_size();
                 functions.insert((node.id, name.as_str()), program);
             }
@@ -43,7 +43,7 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
     let mut stamps = Vec::new();
 
     // Keep Set assignments across iterations within this FX-Map cook
-    let mut variables = context.vars.clone();
+    let mut variables = context.vars.graph_values().clone();
     variables.remove("$randomseed");
     let mut max_depth = 0;
     let mut state = EvaluationState::default();

@@ -202,6 +202,50 @@ fn preview_cap_and_unknown_nodes() {
 }
 
 #[test]
+fn cached_instances_distinguish_fixed_and_bound_integer_arguments() {
+    use materialcraft_core::{ExposedParameter, FunctionGraph, ValueType};
+    let (parent, instance) = instancing("Parent", "Selector");
+    let mut child = Graph::new("Selector");
+    child.exposed.push(ExposedParameter {
+        id: "index".into(),
+        label: "Index".into(),
+        default: Value::Int(0),
+        description: String::new(),
+        group: String::new(),
+        editor: None,
+        clamp: false,
+        step: None,
+        min: -8.0,
+        max: 8.0,
+        options: Vec::new(),
+    });
+    let mut function = FunctionGraph::input("%index", ValueType::Integer);
+    let input = function.output.unwrap();
+    function.output = Some(function.add("tofloat", &[input], None));
+    let processor = child.add_node("value_processor", [0.0; 2]);
+    child.node_mut(processor).unwrap().params.insert("function".into(), Value::Function(Box::new(function)));
+    let output = child.add_node("output", [0.0; 2]);
+    child.connect(processor, "output", output, "input").unwrap();
+    let mut package = Package::new("Integer arguments");
+    package.graphs.extend([parent, child]);
+    let mut options = Options::new(&no_res);
+    options.overrides.insert("driver".into(), Value::Int(-5));
+    let cache = Mutex::new(Cache::default());
+    for bound in [false, true, false] {
+        let node = package.graphs[0].node_mut(instance).unwrap();
+        node.params.insert("index".into(), Value::Int(-5));
+        if bound {
+            node.bindings.insert("index".into(), "driver".into());
+        } else {
+            node.bindings.remove("index");
+        }
+        let result = cook(&package, 0, &options, &cache);
+        assert_eq!(result.nodes[&instance].error, None);
+        assert_eq!(result.nodes[&instance].outputs[0].as_value(), Some(&Value::Float(if bound { -5.0 } else { 4_294_967_296.0 })));
+    }
+}
+
+#[test]
 fn graph_instances_cook_their_subgraph() {
     let (mut p, ..) = sample();
 

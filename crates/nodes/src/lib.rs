@@ -24,7 +24,7 @@ mod random;
 mod texture_sampler;
 
 pub use catalog::{catalog, categories, find};
-pub use cook_context::CookContext;
+pub use cook_context::{CookContext, GraphVariables};
 pub use image_input::{MAX_IMAGE_INPUTS, image_input_prefix};
 pub use node_definition::NodeDefinition;
 pub(crate) use node_definition_builder::node;

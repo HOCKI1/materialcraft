@@ -64,6 +64,13 @@ pub(crate) fn evaluate(
         return value_type::canonical(value);
     }
 
+    // A folded scalar cast interprets the 32-bit word as unsigned. Vector casts use signed lanes.
+    if op == "tofloat"
+        && instruction.literal
+        && let Value::Int(value) = first()?
+    {
+        return Ok(Value::Float(*value as u32 as f32));
+    }
     if op.starts_with("to") || op.contains("vector") || op.contains("swizzle") {
         return super::vector::evaluate(op, arguments, instruction.value.as_ref());
     }
@@ -102,6 +109,7 @@ pub(crate) fn evaluate(
             }
 
             let ordering = match (left, right) {
+                (Value::Int(a), Value::Int(b)) if instruction.literal => Some((*a as u32).cmp(&(*b as u32))),
                 (Value::Int(a), Value::Int(b)) => a.partial_cmp(b),
                 (Value::Float(a), Value::Float(b)) => a.partial_cmp(b),
                 (Value::Bool(a), Value::Bool(b)) => a.partial_cmp(b),

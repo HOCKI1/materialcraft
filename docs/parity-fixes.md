@@ -114,6 +114,40 @@ The standalone Add Sub filter matches **59,904/59,904 pixels across 36 renders**
 
 To reproduce the filter controls use one graph per input layout, with foreground, background and optionally mask. In binding order use slot v=0,1,2 for foreground, background and mask. For each channel c use L=(53x+17y+7xy+35v+61c+3cy+3) mod 251. Use L/255 normally. For signed cases use (L−83.125)/53.5 for the images and (L−83.125)/101 for the mask. Masks and grayscale images take channel zero. Set image bridges to F32 for the color graphs and U8 for the grayscale graph. For each graph use 16² F32 at opacity 1, then 32² at opacity .5 in all four formats. At 64² F32 with signed inputs use .6875 with alpha blending disabled, then .3125 with it enabled. At 32² F32 and opacity .6137 run ignored, straight, premultiplied and source alpha. Finish with signed inputs at 16² F32 and opacity zero, followed by 64² F32 with unsigned inputs and opacity 1. Each series starts at seed 5113 and advances by 17.
 
+### Fixed integer arguments and the UV debug marker
+
+The UV debug graph now matches all 217,088 pixels in its original 32 renders. The [square-root measurements](#uniform-square-roots-and-the-uv-debug-marker) previously had 194,522 exact. Sixteen additional renders with signed channel offsets match all 10,240 pixels. Six independently wired parents add 56,828/56,832 exact pixels. Compute Irradiance and Compute Ray Direction each retain all 217,088 exact pixels across 32 renders.
+
+| Debug hit UV storage | Renders | Exact RGBA pixels / compared | Maximum component error |
+|---|---:|---:|---:|
+| U8 | 13 | 120,832/120,832 | 0 |
+| U16 | 9 | 18,429/18,432 | 1 level |
+| F16 | 9 | 18,432/18,432 | 0 |
+| F32 | 59 | 126,463/126,464 | .750555232 |
+
+For the 16 direct renders, use field channel c=((37x+41y+7xy+53×19+61c+5xc) mod 509)/508 as F32, with c from 0 through 3. Set the debug position to (.1875,.8125), sample index to 0 and count to 1. Sweep integer offsets −2 through 5 at 16² and 32² F32. Use seed 6481+17j+7t for offset index j and size index t, starting at zero.
+
+For the wired parents, drive the index and count through value processors. Use the following settings in row order. Within each row render the same field at 16² F32, 32² in U8/U16/F16/F32, 64² F32 with a 64×32 field, and 32² F32 with field values scaled by 2.5 and shifted by −.75. Use seed 4591+17j+13t for row j and render t.
+
+| Index | Count | Offset | Debug position |
+|---:|---:|---:|---|
+| 0 | 1 | −1 | (.1875,.8125) |
+| 0 | 4 | −1 | (.671875,.328125) |
+| 2 | 8 | −1 | (.25,.625) |
+| 1 | 8 | 0 | (.421875,.765625) |
+| 3 | 4 | 1 | (.71875,.15625) |
+| 0 | 1 | 0 | (.375,.6875) |
+
+At (13,24) in the fourth row's 32² F32 output, the reference stores gray .1476394385. MaterialCraft also covers that pixel with the marker color (.43350938,.89819467,0,1). An isolated rectangle centered at (.42769217,.83190984), size (.13307922,.01), rotated .23604888 turns reproduces the extra pixel. In the final row at 32² U16 the reference stores red 15,899 at (9,19), (10,20) and (11,21). MaterialCraft stores 15,898. Both apps store 15,898 when an independent rectangle receives the literal red value .24259558. Integer storage also agrees on all 14,336 output pixels from 56 solid rectangle and uniform-color controls around half-level thresholds.
+
+A folded scalar integer is ordered and converted to F32 using its unsigned 32-bit value. A runtime scalar integer has signed ordering and conversion. For example a folded −5 becomes 4,294,967,296 in F32. With a runtime input of −5 it becomes −5. Compare −32,768 with 2, −5 with −2 in both orders, −1 with 0 in both orders, equal operands, opposite signs and −2³¹ with 1,024. Test less, less-or-equal, greater and greater-or-equal with two literals, two runtime inputs, either operand fixed, and an equivalent literal subtraction. Two serialized scalar integer types and the converted values are covered. All 84/84 returned F32 tuples match. Integer vectors of two, three and four lanes preserve signed conversion in all 12/12 additional typed controls.
+
+For the scope controls pack the four comparison flags into bits 0 through 3 and use bit 4 for float(left)>1,000,000. Divide by 32. With (−5,2), both fixed yield .875, a fixed left operand and runtime right operand yield .59375, and a runtime left operand with fixed right yields .09375. Use a property function, pixel processor, pattern function and value processor at 16² F32 and 32² in four formats with a positive and a negative argument. All 39,168 image pixels and 15 typed values match.
+
+An enclosing instance passes the fixed status of its scalar integer arguments through nested graphs and reusable functions. A value wire or exposed runtime control keeps its runtime status. Four original current-format packages with fixed, directly bound, computed and nested fixed inputs were saved by MaterialCraft and reopened in the reference app. All 20/20 typed F32 tuples match before and after saving and across applications, with error zero.
+
+Self-assignment remains open. Two separate programs assign an integer to the same identifier they read in the assignment, then read it again. With distinct graph identifiers and instruction IDs, 40/60 typed tuples match across those programs and four controls. The maximum F32 error in that capture was 2.65040882e25. Repeating the five identical seeds and inputs in the runtime self-assignment reproduced only one reference tuple. Assigning from a different input and assigning a constant to a local variable reproduced all 20/20 tuples, with error zero.
+
 ### Uniform square roots and the UV debug marker
 
 The UV debug marker now cooks all **32** previously measured cases. The 27 cases that already cooked still match every pixel. Across all 32 renders **194,522/217,088 RGBA pixels** match. Maximum errors are 253 U8 levels, 0 U16 levels, 0 F16 and 1 F32. The five formerly rejected renders contribute 218/22,784 exact pixels. At 16² with index 0, count 1 and offset −1, the first output pixel has gray level .360237986 in the reference app and zero in MaterialCraft. At index 1, count 4 and offset 0, both store zero there. The input's first RGB and alpha components differ at this position. Both sibling roots, Compute Irradiance and Compute Ray Direction, retain 217,088/217,088 pixels each across 32 renders each, with error zero. [Wired sample inputs and seeds](#environment-rotation-and-wired-irradiance-samples)

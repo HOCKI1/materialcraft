@@ -2,6 +2,28 @@ use craft_texture::{Image, Kind};
 use materialcraft_core::{Curve, FunctionGraph, Gradient, Value};
 use std::collections::BTreeMap;
 
+/// Graph inputs available to a cook, including any fixed by its enclosing instance.
+pub trait GraphVariables: Sync {
+    fn graph_values(&self) -> &BTreeMap<String, Value>;
+    fn literal_inputs(&self) -> &[String] {
+        &[]
+    }
+}
+
+impl GraphVariables for BTreeMap<String, Value> {
+    fn graph_values(&self) -> &BTreeMap<String, Value> {
+        self
+    }
+}
+
+impl std::ops::Deref for dyn GraphVariables + '_ {
+    type Target = BTreeMap<String, Value>;
+
+    fn deref(&self) -> &Self::Target {
+        self.graph_values()
+    }
+}
+
 /// Where a cook runs: output size, seed, tiling, inputs and resolved parameters
 pub struct CookContext<'a> {
     pub w: u32,
@@ -17,7 +39,7 @@ pub struct CookContext<'a> {
     /// The package's bitmap resources, decoded on demand
     pub resource: &'a (dyn Fn(&str) -> Option<Image> + Sync),
     /// Exposed graph inputs (for `get_*` nodes in function graphs)
-    pub vars: &'a BTreeMap<String, Value>,
+    pub vars: &'a dyn GraphVariables,
 }
 
 impl CookContext<'_> {
