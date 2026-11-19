@@ -162,7 +162,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [constant_values.sbs/integer/constant_integer](../assets/sbs/constant_values.sbs) | 0 | No | [Parity: 3 typed values](parity-fixes.md#verified-cases) |
 | [constant_values.sbs/integer/constant_integer2](../assets/sbs/constant_values.sbs) | 0 | No | [Parity: 3 typed values](parity-fixes.md#verified-cases) |
 | [constant_values.sbs/integer/constant_integer3](../assets/sbs/constant_values.sbs) | 0 | No | [Parity: 3 typed values](parity-fixes.md#verified-cases) |
-| [constant_values.sbs/integer/constant_integer4](../assets/sbs/constant_values.sbs) | 0 | No | [Parity · 41 typed vectors, all components exact](parity-fixes.md#stored-integer-value-outputs) |
+| [constant_values.sbs/integer/constant_integer4](../assets/sbs/constant_values.sbs) | 0 | No | [Parity · 41 exact typed vectors, authored constants checked on reload](parity-fixes.md#stored-integer-value-outputs) |
 | [contrast_luminosity.sbs/contrast_luminosity](../assets/sbs/contrast_luminosity.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [contrast_luminosity.sbs/contrast_luminosity_grayscale](../assets/sbs/contrast_luminosity.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [creased.sbs/creased](../assets/sbs/creased.sbs) | 0 | Yes | [In progress · 19 renders, 243/172,288 exact pixels](parity-fixes.md#filtering-unequal-inputs-to-a-blend) |
