@@ -57,10 +57,7 @@ pub(super) fn ln(value: f32) -> f32 {
 }
 
 pub(super) fn uniform_ln(value: f32) -> f32 {
-    if !value.is_finite() {
-        return value.ln();
-    }
-    if value < f32::MIN_POSITIVE {
+    if value.is_nan() || value < f32::MIN_POSITIVE {
         return 0.0;
     }
     let bits = value.to_bits();
@@ -121,6 +118,20 @@ pub(super) fn power(base: f32, exponent: f32, pixel: bool) -> f32 {
     }
     let result = magnitude(base.abs());
     if exponent.abs() % 2.0 == 1.0 { -result } else { result }
+}
+
+pub(super) fn uniform_exp2(value: f32) -> f32 {
+    if value.is_nan() || value <= -126.0 {
+        return f32::MIN_POSITIVE;
+    }
+    let value = super::arithmetic::flush_subnormal(value.min(126.0));
+    let exponent = value.floor();
+    let remainder = (value - exponent) * std::f32::consts::LN_2;
+    // The seventh-degree Taylor series for exp(remainder) rounds each product before the addition.
+    let coefficients = [1.0 / 720.0, 1.0 / 120.0, 1.0 / 24.0, 1.0 / 6.0, 0.5, 1.0, 1.0];
+    let significand = coefficients.into_iter().fold(1.0 / 5040.0, |p, c| p * remainder + c);
+    let scale = f32::from_bits(((exponent as i32 + 127) as u32) << 23);
+    significand * scale
 }
 
 pub(crate) fn exp2(value: f32) -> f32 {

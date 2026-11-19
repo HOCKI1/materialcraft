@@ -35,7 +35,7 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **301 Parity**, **44 In progress** and **201 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **303 Parity**, **44 In progress** and **199 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
 
 [Grayscale sampler measurements](parity-fixes.md#grayscale-sampling-of-color-inputs) · [Value sampling across 240 typed comparisons](parity-fixes.md#value-processor-texture-filtering)
 
@@ -62,8 +62,8 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [3d_texture_position.sbs/3d_texture_position](../assets/sbs/3d_texture_position.sbs) | 0 | No | [Parity: native 4K atlas](parity-fixes.md#verified-cases) |
 | [3d_texture_render.sbs/3d_texture_surface_render_irradiance](../assets/sbs/3d_texture_render.sbs) | 6 | Yes | [Parity · 47,360 exact pixels in 71 renders](parity-fixes.md#surface-irradiance-and-uniform-power) |
 | [3d_texture_render.sbs/3d_texture_surface_render_position](../assets/sbs/3d_texture_render.sbs) | 1 | Yes | [Parity · 92,928 exact pixels in 39 renders](parity-fixes.md#surface-position-and-signed-pixel-products) |
-| [3d_texture_render.sbs/3d_texture_volume_render_ibl_pass](../assets/sbs/3d_texture_render.sbs) | 6 | Yes | [In progress · 7,898/31,488 pixels across 39 renders](parity-fixes.md#volume-density-dithering-and-color-temperature-controls) |
-| [3d_texture_render.sbs/3d_texture_volume_render_light_pass](../assets/sbs/3d_texture_render.sbs) | 4 | Yes | [In progress · 25,144/30,208 pixels across 34 renders](parity-fixes.md#volume-density-dithering-and-color-temperature-controls) |
+| [3d_texture_render.sbs/3d_texture_volume_render_ibl_pass](../assets/sbs/3d_texture_render.sbs) | 6 | Yes | [In progress · 7,898/31,488 pixels, first dithered step differs](parity-fixes.md#uniform-powers-of-two-and-volume-lighting) |
+| [3d_texture_render.sbs/3d_texture_volume_render_light_pass](../assets/sbs/3d_texture_render.sbs) | 4 | Yes | [In progress · 43,038/43,264 pixels, U8 and U16 exact](parity-fixes.md#uniform-powers-of-two-and-volume-lighting) |
 | [3d_texture_render.sbs/position_debug](../assets/sbs/3d_texture_render.sbs) | 2 | Yes | [Parity · 14 sphere and plane cases](parity-fixes.md#position-debug) |
 | [3d_texture_transform.sbs/3d_texture_offset_color](../assets/sbs/3d_texture_transform.sbs) | 1 | No | [Parity: 5 cases](parity-fixes.md#verified-cases) |
 | [3d_texture_transform.sbs/3d_texture_offset_grayscale](../assets/sbs/3d_texture_transform.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
@@ -444,7 +444,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [pbr_render.sbs/environment_map_rescale](../assets/sbs/pbr_render.sbs) | 1 | Yes | [Parity · 171,264 exact pixels in 18 renders](parity-fixes.md#centered-transform-resizing-and-untiled-edges) |
 | [pbr_render.sbs/get_max_coords/get_max_coord](../assets/sbs/pbr_render.sbs) | 1 | Yes | [Parity · 12 typed coordinate comparisons](parity-fixes.md#value-processor-coordinates) |
 | [pbr_render.sbs/ibl_specular_contrib_anisotropic/panoramic_lod](../assets/sbs/pbr_render.sbs) | 1 | Yes | [Parity · 18 cases, 186,624 exact pixels](parity-fixes.md#stored-precision-in-transform-mip-levels) |
-| [pbr_render.sbs/position_to_normal](../assets/sbs/pbr_render.sbs) | 2 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [pbr_render.sbs/position_to_normal](../assets/sbs/pbr_render.sbs) | 2 | Yes | [Parity · 30 renders, all 515,328 RGBA pixels exact](parity-fixes.md#position-to-normal-outputs-in-both-renderers) |
 | [pbr_render.sbs/raytrace_position](../assets/sbs/pbr_render.sbs) | 4 | Yes | [Too hard: cook timeout](parity-fixes.md#remaining-differences) |
 | [pbr_render.sbs/raytraced_irradiance_pass_8](../assets/sbs/pbr_render.sbs) | 10 | Yes | [Too hard: cook timeout](parity-fixes.md#remaining-differences) |
 | [pbr_render.sbs/raytraced_specular_pass_8](../assets/sbs/pbr_render.sbs) | 9 | Yes | [Too hard: cook timeout](parity-fixes.md#remaining-differences) |
@@ -456,7 +456,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [pbr_render2.sbs/height_adjust](../assets/sbs/pbr_render2.sbs) | 3 | Yes | [Parity: 3 cases](parity-fixes.md#verified-cases) |
 | [pbr_render2.sbs/ibl_specular_contrib_anisotropic/panoramic_lod](../assets/sbs/pbr_render2.sbs) | 1 | Yes | [Parity · 18 cases, 186,624 exact pixels](parity-fixes.md#large-transform-offsets-and-additive-blends) |
 | [pbr_render2.sbs/lod](../assets/sbs/pbr_render2.sbs) | 1 | Yes | [Parity · 18 cases, 171,264 exact pixels](parity-fixes.md#stored-precision-in-transform-mip-levels) |
-| [pbr_render2.sbs/position_to_normal](../assets/sbs/pbr_render2.sbs) | 2 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [pbr_render2.sbs/position_to_normal](../assets/sbs/pbr_render2.sbs) | 2 | Yes | [Parity · 30 renders, all 515,328 RGBA pixels exact](parity-fixes.md#position-to-normal-outputs-in-both-renderers) |
 | [pbr_render2.sbs/raytrace_position](../assets/sbs/pbr_render2.sbs) | 4 | Yes | [Too hard: cook timeout](parity-fixes.md#remaining-differences) |
 | [pbr_render2.sbs/raytraced_irradiance_is_pass_8](../assets/sbs/pbr_render2.sbs) | 9 | Yes | [Parity · 18 renders, 136,704 exact RGBA pixels](parity-fixes.md#material-bundles-and-the-eighth-irradiance-pass) |
 | [pbr_render2.sbs/raytraced_specular_pass_8](../assets/sbs/pbr_render2.sbs) | 9 | Yes | [Too hard: cook timeout](parity-fixes.md#remaining-differences) |

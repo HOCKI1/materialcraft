@@ -247,7 +247,7 @@ At seed 193, the full-range field combines exponent bits i mod 255 and mantissa 
 
 Both pixel operations evaluate a quadratic over one of 64 intervals. The coefficients come from the mathematical functions and the sampled rounding thresholds. The runtime logarithm of .5 has bits `bf7ffffe`, the literal result has bits `bf800000`. The pixel natural logarithm multiplies the base-two result by float32(ln(2)). Replaying the 30 existing sine and cosine comparisons after sharing the polynomial fitting routine gives 1,443,840/1,443,840 pixels, maximum zero.
 
-For the exposed scalar controls use .5, .625, .7, 1, 1.125, 1.25, 2, 4 and 1.375 for either logarithm. For the exponential use −2, −1, −.625, −.5, −.125, 0, .5, 1, 1.375 and 2. Cycle seeds 71, 137 and 313 at 16². In a separate Value Processor, the same arguments match 5/9 typed base-two logarithms, 5/9 natural logarithms and 9/10 powers of two. Maximum errors are 5.96046448e−8, 2.98023224e−8 and 2.38418579e−7 respectively. These uniform operations remain open.
+For the exposed scalar controls use .5, .625, .7, 1, 1.125, 1.25, 2, 4 and 1.375 for either logarithm. For the exponential use −2, −1, −.625, −.5, −.125, 0, .5, 1, 1.375 and 2. Cycle seeds 71, 137 and 313 at 16². In a separate Value Processor, the same arguments match 5/9 typed base-two logarithms, 5/9 natural logarithms and 9/10 powers of two. Maximum errors are 5.96046448e−8, 2.98023224e−8 and 2.38418579e−7 respectively. See the [uniform power and logarithm measurements](#uniform-powers-of-two-and-volume-lighting) for the subsequent fix and the remaining logarithm error.
 
 Literal-only pixel graphs at 16², seed 23, give 512/768 exact pixels for each logarithm on .5, .7 and 1. At .7 their maximum errors are 5.96046448e−8 for log2 and 2.98023224e−8 for ln. Literal powers of two match 768/768 at −.5, 1.375 and 2, maximum zero.
 
@@ -704,6 +704,26 @@ The bevel blur now matches all 154,880 pixels of the original 17 renders, includ
 
 At radius 3.125, shifting a single vertical impulse by one column exchanges the two measured edge weights .09953125 and .099999994. Those larger footprints still differ. The maximum F32 difference on the extended bevel matrix occurs at 256².
 
+### Uniform powers of two and volume lighting
+
+| Graph or operation | Cases | Exact RGBA or grayscale pixels / compared | Maximum error |
+|---|---:|---:|---:|
+| Uniform power of two, 128 independently evaluated columns per image | 80 | 1,310,720/1,310,720 | 0 |
+| Uniform base-two logarithm, 128 columns per image | 9 | 145,536/147,456 | 2.38418579e−7 |
+| Direct tests of the two uniform operations in four storage formats | 32 | 51,200/51,200 | 0 |
+| Volume environment light | 39 | 7,898/31,488 | U8 4, U16 829, F16 .0126953125, F32 .0560382009 |
+| Volume direct light | 46 | 43,038/43,264 | U8 0, U16 0, F16 .0000152587890625, F32 .00000370293856 |
+
+Use a node function to compute x=o+i×d for each column i=0..127, store each result in a scalar variable, then read the variable for the current column into a 128² F32 output. At seed 257 use (o,d) for the power of two of (0,1/128), (−1,1/128), (−8,1/8), (−.5,1/32768), (.625,1/16384), (−4,1/37), (−3,1/19), (32,1/64) and (−31,1/64). For the logarithm use (1,1/128), (.5,1/256), (1,1/32768), (.125,1/32), (2,1/64), (8,1/16), (1.75,1/16384), (2⁻¹²⁶,2⁻¹²⁹) and (.7,1/4096). The subnormal step flushes to zero. The logarithm differs in 15 of the 1,152 sampled columns. In a second power-of-two series, use (j/64,1/8192) for j=0..63, followed by (0,−1/4096), (−.5,1/4096), (.5,1/4096), (16,1/256), (−16,1/256), (32,1/128) and (−32,1/128). Set the seed to 311+29j. For the four-format controls, run exponents −.984375, −.015625, .9375 and −2 or logarithm arguments .625, 1.375, 1.75 and 2 at sides 16, 32, 64 and 32, seeds 277, 318, 359 and 400.
+
+The uniform exponential clamps the argument to [−126,126]. For its fractional part f, evaluate the degree-seven Taylor polynomial of exp(f×float32(ln 2)) in Horner order, rounding each operation to float32. Scale by the integer power of two. An exposed −.125 gives bits 3f6ac0c3. Both a literal and a uniform .9375 give 3ff52576, while a runtime pixel argument gives 3ff5257e. The negative smallest normal gives 3f7ffff4, the negative smallest subnormal gives 3f800000, and a NaN intermediate gives 00800000. Uniform log2 computes the uniform natural logarithm divided by float32(ln 2). Direct readbacks of intermediate +∞, −∞ and NaN give natural-log bits 42b17218, 00000000 and 00000000. The [per-pixel comparisons](#runtime-pixel-logarithms-and-powers-of-two) cover the separate pixel evaluations.
+
+For temperature-to-RGB use 1200, 1733, 2718.5, 3000, 3975, 5555, 6500, 7111.25, 9900.5 and 18000. For the scalar fit use .1875, .3125, .5625, .875, 1, 1.375, 2.25, 4.125, 7.5 and 13.125 with coefficients (.1875,1.25,−.375,2.75) and (2.75,−.25,1.375,−.625). For each series use seed 151+29j, a 32² canvas when j is a multiple of three and 16² otherwise. Each of the three operations gives 5,632/5,632 exact pixels in the node scope, 5,632/5,632 in the pixel scope and 10/10 exact typed values in the Value Processor. All maxima are zero.
+
+All 7,680 direct-light density pixels in the [density controls](#volume-density-dithering-and-color-temperature-controls) now match. Twelve further direct-light renders match 13,056/13,056. Use the same thin, thick and varying-density inputs. Run (a) thin defaults, (b) thick at 2700 K, (c) thick at 9900.5 K and 64², (d) thin with explicit light RGB (.1875,.5,.8125), (e) thin with ambient intensity 1.75 and RGB (.3125,.75,.1875), and (f) varying density with ambient intensity 1, RGB (.375,.7,.2), explicit light RGB (.4375,.1875,.75), UV (.375,.6875) and light intensity 2.25. Use seeds 47, 118, 189, 260, 331 and 402 respectively. Use four formats for (b) and (f), F32 elsewhere. The complete direct-light matrix is exact at U8 (7,424/7,424) and U16 (7,424/7,424). F16 has 10,751/10,752 exact pixels and F32 has 17,439/17,664.
+
+Read out named values immediately after initialization and after the first volume step on the 16² thin, 16² dithered, 32² thick and 32² varying-density F32 cases. For environment light the initial ray position, ray direction, noise input, dithering, step size and accumulated depth are each exact at 2,560/2,560. After one step the position and depth each match 1,280/2,560, maximum 1.96305132. Scattered light and transmission match 1,280/2,560, maximum .0574402809. For direct light the initial light color improved from 0/2,560 to 2,560/2,560 exact. Direction, ambient color, noise, step size, first position and first depth are also exact. First-step scattering and transmission match 2,560/2,560, maximum 0. The two light roots remain in progress.
+
 ### Volume density, dithering and color-temperature controls
 
 | Root | Renders | Exact RGBA pixels / compared | Maximum U8 / U16 levels | Maximum F16 / F32 error |
@@ -806,6 +826,19 @@ When .5 < radius ≤ 1.5, the center weight is .5/radius and each edge weight is
 For a square side N, fill R with an impulse at (N/2,N/2), G with the column x=N/2 and B with the row y=N/2. Let H=((97x+43y+7xy) mod 1024)/1023. The alpha input is H rounded to the closest stored level for U8 and U16, or 3H−1.25 stored at F16 or F32 precision. Use seed 347. Radius is intensity×N/256. At 32² use intensity 9.5. At 64² use 2.25, 3.25 and 5. At 128² use 1.125, 1.5, 2, 2.5 and 3. At 256² use 1. Use F32 output plus all four formats at 64²/intensity 5. Run the separable blur with both axes tiled and both untiled. The directional comparison uses the tiled 64² intensities 2.25 and 5, and the five 128² intensities. The [wider transform and mapping comparisons](#segment-mapping-and-normal-graph-rechecks) define the sizes and seeds for the nine bevel subgraph cases. Its single-channel input is ((19x+47y+5xy) mod 257)/256, with 2.5H−.75 for signed input and a single impulse at (7,13) for sparse input. Use default intensity at 16², 5 at 64², 9 at 128², 3.25 for sparse input and .25 for signed input.
 
 Wider kernels still differ. For an F32 impulse blurred at 128² and intensity 4, the five horizontal stripe samples centered on the impulse are .12451171875, .25048828125, .25, .25048828125 and .12451171875. Both outer texels differ from a uniformly weighted window with fractional ends.
+
+### Position-to-normal outputs in both renderers
+
+| Root | Renders | Exact RGBA pixels / compared | Maximum error |
+|---|---:|---:|---:|
+| First PBR renderer, position to normal | 30 | 515,328/515,328 | 0 |
+| Second PBR renderer, position to normal | 30 | 515,328/515,328 | 0 |
+
+The first 18 cases per root include four archived renders, four output formats at 64², the independent 32² input and nine modular-field renders. They now match 171,264/171,264 pixels each. The earlier comparisons differed at 20 and five F16 pixels respectively. Twelve fresh renders per root repeat the four archived settings in the native precision, explicit F16 and explicit F32. They contribute 344,064 exact pixels per root. The fresh default F32 output includes the previously differing 256² coordinates.
+
+Use the original byte position ramp with the varying-alpha background on the first renderer and the curved normal map on the second. Run defaults at 128² and 256², seed zero, and at 128² with seed 42. For the changed 128² case use seed zero, shape 1, scale .7, plane size (.7,1.3), UV tiling 2, sphere UV scale (2,3), plane and cylinder UV scales (2,1), cylinder length 1.5, UV offset (.125,.25), rotation .125, rotation direction .2 and rotation around that direction .3. Use normal format 1 and enable normal recomputation. The [byte input formulas and independent input](#four-format-inventory-comparison) specify all channels.
+
+For the nine additional cases, use the [modular fields, sizes and seeds](#normal-maps-panoramas-and-primitive-shapes). The position pin uses the position field. The other pin uses the ordinary RGBA field or the normal field according to its identifier. Set shape to 1, 2 and 0 for A, B and C. Enable recomputation in A and B, use alternate normal format in B, UV tiling 1.25, sphere UV scale (.875,1.125), shape scale .8125 and plane size (.75,1.25). Use rotations .0625, .125 and .1875. Use UV offset (.1875,−.3125) for A and B, and (−.5,.0625) for C.
 
 ### Sobel normals and nadir projection
 

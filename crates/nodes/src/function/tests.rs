@@ -97,6 +97,10 @@ fn uniform_logarithms_and_powers_use_their_measured_domains() {
         ("log", f32::from_bits(1), None, 0),
         ("log", 0.5625, None, 0xbf134b11),
         ("log", 0.75, None, 0xbe934b11),
+        ("log2", -2.0, None, 0),
+        ("log2", f32::from_bits(1), None, 0),
+        ("log2", f32::MIN_POSITIVE, None, 0xc2fbffff),
+        ("log2", 0.625, None, 0xbf2d961e),
         ("pow", 0.0, Some(-2.0), 0),
         ("pow", -2.0, Some(0.5), 0),
         ("pow", -2.0, Some(-3.0), 0xbe000000),
@@ -162,6 +166,38 @@ fn uniform_exponential_rounds_each_product_before_adding() {
     assert_eq!(pixel_operation("exp", std::slice::from_ref(&input), false), Value::Float(f32::from_bits(0x3f845115)));
     for scope in [Node, ValueProcessor, FxMap, super::FunctionScope::PixelProcessor] {
         assert_eq!(scoped_operation(scope, "exp", std::slice::from_ref(&input), true), Value::Float(f32::from_bits(0x3f845114)));
+    }
+}
+
+#[test]
+fn uniform_powers_of_two_round_the_fraction_and_limit_the_exponent() {
+    use super::FunctionScope::{FxMap, Node, PixelProcessor, ValueProcessor};
+    for (input, expected) in [
+        (-127.5, 0x00800000),
+        (-126.0, 0x00800000),
+        (-12.015625, 0x397d3e02),
+        (-0.125, 0x3f6ac0c3),
+        (-f32::MIN_POSITIVE, 0x3f7ffff4),
+        (-f32::from_bits(1), 0x3f800000),
+        (0.9375, 0x3ff52576),
+        (16.984375, 0x47fd3e02),
+        (127.5, 0x7e800000),
+    ] {
+        for (scope, literal) in [(Node, false), (ValueProcessor, false), (FxMap, false), (PixelProcessor, true)] {
+            let result = scoped_operation(scope, "pow2", &[Value::Float(input)], literal);
+            assert_eq!(result, Value::Float(f32::from_bits(expected)), "{scope:?} pow2({input}), literal={literal}");
+        }
+    }
+    assert_eq!(pixel_operation("pow2", &[Value::Float(0.9375)], false), Value::Float(f32::from_bits(0x3ff5257e)));
+    for (input, expected) in [(f32::NAN, 0x00800000), (f32::NEG_INFINITY, 0x00800000), (f32::INFINITY, 0x7e800000)] {
+        assert_eq!(super::binary_exponential::uniform_exp2(input).to_bits(), expected);
+    }
+}
+
+#[test]
+fn uniform_logarithms_accept_exceptional_intermediate_values() {
+    for (input, expected) in [(f32::NAN, 0), (f32::NEG_INFINITY, 0), (f32::INFINITY, 0x42b17218)] {
+        assert_eq!(super::binary_exponential::uniform_ln(input).to_bits(), expected);
     }
 }
 
