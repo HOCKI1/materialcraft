@@ -620,6 +620,25 @@ A runtime numerator divided by a literal denominator uses the float32 reciprocal
 
 For direct controls, sample R,G,B,A from a linear RGBA32F field. For each of ten denominators (255,100,200,500,.3999999761581421,−3.625,10,1,7,3), put that value in G. Emit R divided by the literal, R/G, the literal quotient plus B, or (200R+127.5) divided by the literal. For 255 add a folded denominator and a graph returning both a quotient and a sum using it. Use 16²/61 and 32²/367 F32 plus 64²/211 in four formats. Start with the upper-left crop of the original signed 128² [four-channel hash field](#3d-linear-gradient), multiply R by 64, and at 32² replace R with ((37x+53y+5xy) mod 2047)/16−19.875. Set the first two pixels to (127.5,G,0,1) and (.375,G,.5,1). All 225,792 F32 pixels in 126 renders match bit for bit, as do the 172,032 pixels in each of U8, U16 and F16.
 
+### Vector equality, Lab to RGB and SBS round trips
+
+| Comparison | Renders | Exact stored pixels / compared | Maximum error |
+|---|---:|---:|---:|
+| MaterialCraft Lab-to-RGB root | 25 | 180,736/180,736 | 0 |
+| Six independent comparisons using the edited functions | 36 per application | 50,688/50,688 per application | 0 |
+| Same comparisons using the reference app’s saved and reopened copy | 36 per application | 50,688/50,688 per application | 0 |
+| Reference app conversion with the edited file, then with its saved copy | 25 per file | 180,736/180,736 per file | 0 |
+
+The RGB and RGBA equality functions compared red twice when reading the first two lanes from each operand. Four selectors in the existing function library now read red and green. The Lab-to-RGB root bypasses conversion only for fully transparent black. A green-only texel with zero alpha previously took that bypass. The old root matched 180,157/180,736 pixels. The largest errors were 255 in U8, 65,535 in U16 and 1 in F16 and F32. The corrected root matches all 123,904 U8, 9,216 U16, 10,240 F16 and 37,376 F32 pixels.
+
+Use the archive, four-format inputs and independent field under [color conversion and related controls](#color-conversion-gradient-height-and-histogram-controls). For ten new renders, use the modular fields, sizes, formats and seeds in [RGB to Lab](#literal-pixel-divisors-and-rgb-to-lab). At 128² set L to (0,.04,.08,.08000001,.07999999,.5,1) indexed by x mod 7, adding 1/8192 where y mod 4 equals 1. Set the two chroma channels to .5+((x mod 16)−8)/128 and .5+((y mod 16)−8)/128.
+
+For six green-channel and transparency cases set mask=(x+3y) mod 16 and z=1+((37x+11y+7xy) mod 255). Byte channel j is 1+((z+43j−1) mod 255) when bit j is set, zero otherwise. Run 16²/seed 73 F32, 32²/193 in four formats and 64²/379 F32. For direct function tests compare the first two, three or four lanes against (0,0,0,0) or (.25,−.375,1,2). Add the same byte field divided by 256 to the chosen offset and output one for equal, zero otherwise. The regression enumerates all eight three-lane masks and all sixteen four-lane masks. With the previous file, the three-lane comparisons matched 7,392/8,448 pixels for each offset and the four-lane comparisons matched 7,920/8,448.
+
+For the file check, open a byte-identical copy of the edited functions package in reference app 16.0.7, save a copy there, then load the saved file. Both RGB first-pair selectors read (0,1) before and after saving. The RGBA function retained both (0,1) selectors and both (2,3) selectors. Run the direct comparisons above using a relative dependency on each file. For the native conversion check, nearest-sample the byte RGBA bridge, compare all four lanes to zero with the selected file, and otherwise combine the public Lab conversion of RGB with the original alpha. Run the same 25 render cases. Substituting the pre-fix file in that graph reproduces the original 180,157/180,736 count.
+
+The separate complete color-quantization package did not open in the reference app with either function library, including when supplied with an original procedural lookup image. It also did not open after saving from MaterialCraft with its existing 0.1.3 format header. A separate original constant graph opens with a current header and fails to open with 0.1.3. Changing only the complete package’s header still left its import unresolved. The round-trip results in the table cover the edited function file and the measured consumers.
+
 ### Color conversion, gradient, height and histogram controls
 
 | Root or output group | Recorded renders | Exact pixels / compared | Maximum stored error |
