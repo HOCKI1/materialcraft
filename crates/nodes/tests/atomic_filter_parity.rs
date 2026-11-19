@@ -310,6 +310,21 @@ fn signed_modular_field(width: u32, height: u32) -> Image {
 }
 
 #[test]
+fn wide_diagonal_blur_filters_between_two_sheared_grids() {
+    let input = [Some(impulse_and_stripes())];
+    for (strength, angle, x, y, expected) in [
+        (4.0, 0.125, 64, 64, [0x3e24087d, 0x3ea4087d, 0x3ea4087d, 0x3e891e8a]),
+        (4.0, 0.125, 64, 65, [0x3da4087d, 0x3ea4087d, 0x3ea4087d, 0x3e532d50]),
+        (10.0, 0.125, 63, 65, [0x00000000, 0x3e0b0e3c, 0x3e0b0e3c, 0x3e2adf33]),
+        (4.75, -0.125, 64, 64, [0x3e0c35e8, 0x3e8c35e8, 0x3e8c35e8, 0x3e66fbdc]),
+    ] {
+        let params = [("intensity", Value::Float(strength)), ("angle", Value::Float(angle))];
+        let image = cook("directional_blur", &input, &params, [128; 2], true);
+        assert_eq!(image.get(x, y, false).map(f32::to_bits), expected, "strength {strength}, angle {angle}, ({x},{y})");
+    }
+}
+
+#[test]
 fn short_oblique_blur_filters_fractional_taps_and_preserves_the_image_aspect() {
     let input = [Some(impulse_and_stripes())];
     for (angle, strength, x, y, expected) in

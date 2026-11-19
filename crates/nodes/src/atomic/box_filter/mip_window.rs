@@ -12,13 +12,19 @@ struct Tap {
     weight: f32,
 }
 
+#[derive(Clone, Copy)]
+pub(super) enum Edges {
+    Paired,
+    Separate,
+}
+
 impl Tap {
     fn texel(position: i64, width: u32, weight: f32) -> Self {
         Self { read: Read::Texel { level: width.ilog2() as usize, position: position.div_euclid(i64::from(width)) }, weight }
     }
 }
 
-fn window(position: u32, length: u32, reach: f32, tile: bool) -> Vec<Tap> {
+fn window(position: u32, length: u32, reach: f32, tile: bool, edges: Edges) -> Vec<Tap> {
     let extent = reach.ceil() as i64;
     let fraction = reach - (extent - 1) as f32;
     let pair_weight = 1.0 + fraction;
@@ -31,7 +37,7 @@ fn window(position: u32, length: u32, reach: f32, tile: bool) -> Vec<Tap> {
         // Clamped coverage contributes one weighted read of the original border texel.
         taps.push(Tap::texel(0, 1, fraction + (-left - 1) as f32));
         left = 0;
-    } else if left % 2 == 0 {
+    } else if matches!(edges, Edges::Paired) && left % 2 == 0 {
         taps.push(filtered(-extent as f32 + 1.0 / pair_weight));
         left += 2;
     } else {
@@ -42,7 +48,7 @@ fn window(position: u32, length: u32, reach: f32, tile: bool) -> Vec<Tap> {
         let weight = fraction + (right - i64::from(length)) as f32;
         right = i64::from(length) - 1;
         Tap::texel(right, 1, weight)
-    } else if right % 2 != 0 {
+    } else if matches!(edges, Edges::Paired) && right % 2 != 0 {
         right -= 2;
         filtered((extent - 1) as f32 + fraction / pair_weight)
     } else {
@@ -60,7 +66,7 @@ fn window(position: u32, length: u32, reach: f32, tile: bool) -> Vec<Tap> {
     taps
 }
 
-pub(super) fn filter(input: &Image, reach: f32, horizontal: bool, tile: bool, source: OutputFormat, destination: OutputFormat) -> Image {
+pub(super) fn filter(input: &Image, reach: f32, horizontal: bool, tile: bool, source: OutputFormat, destination: OutputFormat, edges: Edges) -> Image {
     let radius = 0.5 + reach;
     let length = if horizontal { input.width() } else { input.height() };
     let mut levels = vec![input.clone()];
@@ -77,7 +83,7 @@ pub(super) fn filter(input: &Image, reach: f32, horizontal: bool, tile: bool, so
     }
     let windows: Vec<_> = (0..length)
         .map(|position| {
-            let mut taps = window(position, length, reach, tile);
+            let mut taps = window(position, length, reach, tile, edges);
             if horizontal {
                 taps.reverse();
             }

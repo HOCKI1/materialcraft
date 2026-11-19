@@ -531,6 +531,32 @@ The four 64² F32 cube buffers contain 3,187 distinct position tuples, four norm
 
 The line-light differences begin in its pixel processor. On the signed field, pixel (6,2) stores 1.98653376 in the three color channels in the reference and 1.98652911 in MaterialCraft. For the horizon, the input matches. Its pixel processor differs at two texels in the 64² A case. Pixel (39,49) has reference red .756740689 and MaterialCraft red .753627837. Both discrepancies were resolved in the [panorama seam comparisons](#panoramic-line-light-and-horizon-across-the-seam).
 
+### Tiled diagonal directional blur
+
+A centered shear moves a periodic square image onto an axis-aligned sample grid. The blur reduces full interior texel runs at the mip level for their width, with separate fractional endpoint reads. An inverse shear samples the stored result back on the output grid. Both shears filter at the precision of their input. The integer comparisons use U16 intermediates.
+
+Across 96 original diagonal renders, exact RGBA pixels improved from 35,337 to 1,046,248 out of 1,351,680.
+
+| Output | Renders | Previous exact | Current exact / compared | Previous maximum | Current maximum |
+|---|---:|---:|---:|---:|---:|
+| RGBA8 | 16 | 4,953 | 117,809/163,840 | 200 | 1 |
+| RGBA16 | 16 | 239 | 97,055/163,840 | 51479 | 1 |
+| RGBA16F | 16 | 12,188 | 163,827/163,840 | 0.811889648 | 0.00048828125 |
+| RGBA32F | 48 | 17,957 | 667,557/860,160 | 0.867096573 | 3.57627869e-07 |
+
+Use a center impulse in R, a vertical stripe through the center in G and a horizontal stripe in B. For U8 and U16 set alpha to H=((97x+43y+7xy) mod 1024)/1023 and round the four channels to the nearest stored integer. Floating inputs use 3H−1.25 for alpha. In order, use turns .125, −.125, .375, .625 and .875 on F32, then .125 on U8, U16 and F16. For each, take (radius, square side) pairs (2,32), (2.375,128), (3.125,64), (5.375,128), (11.25,64), (7.5,256). Set intensity to 256×radius/side and seed to 479+37j+19k for zero-based angle/input index j and radius index k. Use all four output formats at radii 3.125 and 5.375, and F32 elsewhere.
+
+At .125 and −.125 turns with F32 input and F16 output, all 40,960 pixels match. Differences in the other diagonal renders include fractional channel rounding and the projection of angles beyond the first quadrant. The untiled .125, tiled .0625, and tiled .21875 controls retain larger differences. Across these 36 renders the maxima are 192 U8 levels, 49,199 U16 levels, 1.095703125 in F16 and 1.09612465 in F32.
+
+| Inventory root | Renders | Exact / compared | Maximum U8 / U16 | Maximum F16 / F32 |
+|---|---:|---:|---:|---:|
+| `anisotropic_blur.sbs/anisotropic_blur` | 8 | 112,190/115,712 | 1 / 0 | 0 / 0 |
+| `anisotropic_blur.sbs/anisotropic_blur_grayscale` | 8 | 112,563/115,712 | 1 / 0 | 0 / 0 |
+| `blur_hq.sbs/blur_hq` | 9 | 40,496/132,096 | 8 / 0 | 0 / 0 |
+| `blur_hq.sbs/blur_hq_grayscale` | 9 | 96,534/132,096 | 4 / 0 | 0 / 0 |
+
+The [four-format inventory](#four-format-inventory-comparison) gives the changed inputs and settings. Each of the four roots matches on its independent F32 input and its changed 64² four-format matrix. The differences above are in archived U8 cases. Six previously exact roots with reachable directional filters also matched all 790,528 pixels in 52 renders, maximum zero.
+
 ### Short oblique directional blur
 
 | Direct footprint | Renders | Exact pixels before | Exact pixels after / compared | Maximum error after |

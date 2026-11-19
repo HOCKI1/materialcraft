@@ -72,8 +72,8 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [3d_worley_noise.sbs/3D_worley_noise](../assets/sbs/3d_worley_noise.sbs) | 1 | No | [Parity · 34 renders, 312,832 exact pixels](parity-fixes.md#per-pixel-random-initialization) |
 | [alveolus.sbs/alveolus](../assets/sbs/alveolus.sbs) | 0 | Yes | [In progress · 300,544/302,336 pixels across 26 renders](parity-fixes.md#radial-stamp-profiles-and-pattern-generators) |
 | [angle_to_vector.sbs/angle_to_vector](../assets/sbs/angle_to_vector.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
-| [anisotropic_blur.sbs/anisotropic_blur](../assets/sbs/anisotropic_blur.sbs) | 1 | No | [In progress · 226,638/269,568 exact pixels, wide blur differs](parity-fixes.md#short-oblique-directional-blur) |
-| [anisotropic_blur.sbs/anisotropic_blur_grayscale](../assets/sbs/anisotropic_blur.sbs) | 1 | No | [In progress · 232,976/269,568 exact pixels, wide blur differs](parity-fixes.md#short-oblique-directional-blur) |
+| [anisotropic_blur.sbs/anisotropic_blur](../assets/sbs/anisotropic_blur.sbs) | 1 | No | [In progress · 112,190/115,712 pixels in 8 renders](parity-fixes.md#tiled-diagonal-directional-blur) |
+| [anisotropic_blur.sbs/anisotropic_blur_grayscale](../assets/sbs/anisotropic_blur.sbs) | 1 | No | [In progress · 112,563/115,712 pixels in 8 renders](parity-fixes.md#tiled-diagonal-directional-blur) |
 | [atlas_spliter.sbs/crop_and_transform_sub](../assets/sbs/atlas_spliter.sbs) | 7 | Yes | [Parity · 37 wired cases, 378,880 exact pixels](parity-fixes.md#runtime-pixel-sine-cosine-and-atlas-rotation) |
 | [atlas_spliter.sbs/max_ba](../assets/sbs/atlas_spliter.sbs) | 1 | Yes | [Parity: 3 cases](parity-fixes.md#verified-cases) |
 | [auto_crop.sbs/min_max](../assets/sbs/auto_crop.sbs) | 1 | Yes | [Parity: 3 cases](parity-fixes.md#verified-cases) |
@@ -106,8 +106,8 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [blend_switch.sbs/multi_switch_grayscale](../assets/sbs/blend_switch.sbs) | 20 | No | [Parity: 5 cases](parity-fixes.md#verified-cases) |
 | [blend_switch.sbs/switch](../assets/sbs/blend_switch.sbs) | 2 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [blend_switch.sbs/switch_grayscale](../assets/sbs/blend_switch.sbs) | 2 | No | [Parity: 6 cases](parity-fixes.md#verified-cases) |
-| [blur_hq.sbs/blur_hq](../assets/sbs/blur_hq.sbs) | 1 | No | [In progress · 63,731/171,264 exact pixels, wide blur differs](parity-fixes.md#short-oblique-directional-blur) |
-| [blur_hq.sbs/blur_hq_grayscale](../assets/sbs/blur_hq.sbs) | 1 | No | [In progress · 125,647/171,264 exact pixels, wide blur differs](parity-fixes.md#short-oblique-directional-blur) |
+| [blur_hq.sbs/blur_hq](../assets/sbs/blur_hq.sbs) | 1 | No | [In progress · 40,496/132,096 pixels in 9 renders](parity-fixes.md#tiled-diagonal-directional-blur) |
+| [blur_hq.sbs/blur_hq_grayscale](../assets/sbs/blur_hq.sbs) | 1 | No | [In progress · 96,534/132,096 pixels in 9 renders](parity-fixes.md#tiled-diagonal-directional-blur) |
 | [bnw_spots_1.sbs/bnw_spots_1](../assets/sbs/bnw_spots_1.sbs) | 0 | Yes | [In progress · 19 renders, 131,316/172,288 exact pixels](parity-fixes.md#filtering-unequal-inputs-to-a-blend) |
 | [bnw_spots_3.sbs/bnw_spots_3](../assets/sbs/bnw_spots_3.sbs) | 0 | Yes | [In progress · 19 renders, 124,148/172,288 exact pixels](parity-fixes.md#filtering-unequal-inputs-to-a-blend) |
 | [brick_1.sbs/brick_1](../assets/sbs/brick_1.sbs) | 0 | Yes | [In progress · 170,632/172,288 pixels, edge coordinates before U16 storage](parity-fixes.md#brick-edge-distances-and-storage-precision) |

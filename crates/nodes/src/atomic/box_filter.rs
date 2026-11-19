@@ -4,6 +4,34 @@ use rayon::prelude::*;
 
 mod mip_window;
 
+/// A unit-slope shear on a square, periodic image has the same period as the source.
+pub(super) fn diagonal(input: &Image, reach: f32, horizontal: bool, slope: f32, source: OutputFormat, destination: OutputFormat) -> Option<Image> {
+    let length = input.width();
+    let radius = reach + 0.5;
+    if length != input.height() || !length.is_power_of_two() || !radius.is_finite() || radius > length as f32 {
+        return None;
+    }
+    // Shearing and reduction accumulate before normalization. Use the bounded fallback for HDR overflow.
+    let limit = f32::MAX / (2.0 * radius + 2.0);
+    if !input.data().iter().all(|v| v.abs() <= limit) {
+        return None;
+    }
+    let intermediate = match destination {
+        OutputFormat::U8 | OutputFormat::U16 | OutputFormat::Inherit => OutputFormat::U16,
+        _ => destination,
+    };
+    let shear = |image: &Image, slope: f32, format| {
+        Image::generate_uv(length, length, image.kind(), |u, v| {
+            let uv = if horizontal { [u, v + slope * (u - 0.5)] } else { [u + slope * (v - 0.5), v] };
+            crate::texture_sampler::sample(image, uv, [true; 2], format, None)
+        })
+    };
+    let displaced = crate::output_precision::apply(shear(input, slope, source), intermediate);
+    let filtered = mip_window::filter(&displaced, reach, horizontal, true, intermediate, intermediate, mip_window::Edges::Separate);
+    let filtered = crate::output_precision::apply(filtered, intermediate);
+    Some(shear(&filtered, -slope, intermediate))
+}
+
 pub(super) fn short_line(input: &Image, reach: f32, step: [f32; 2], tile: [bool; 2], source_format: OutputFormat) -> Image {
     let center_weight = 0.5 / (0.5 + reach);
     let edge_weight = reach * center_weight;
@@ -48,7 +76,7 @@ pub(super) fn axis(input: &Image, reach: f32, horizontal: bool, tile: bool, sour
     // behavior of the extended-precision path when those intermediate sums can overflow.
     let limit = f32::MAX / (2.0 * radius + 2.0);
     if length.is_power_of_two() && radius <= length as f32 && input.data().iter().all(|v| v.abs() <= limit) {
-        return mip_window::filter(input, reach, horizontal, tile, source, destination);
+        return mip_window::filter(input, reach, horizontal, tile, source, destination, mip_window::Edges::Paired);
     }
     let extent = (radius + 0.5).floor() as i64;
     let weight = 1.0 / (2.0 * f64::from(radius));

@@ -61,6 +61,15 @@ pub(super) fn blur(context: &CookContext, angle: f32) -> CookResult {
         let span = -u.abs().max(v.abs()).copysign(dominant);
         return Ok(vec![box_filter::short_line(&input, reach, [u / span, v / span], tile, source_format)]);
     }
+    if tile == [true; 2] && context.w == input.width() && context.h == input.height() && (angle * 8.0).fract() == 0.0 {
+        // Compare the components before rounding the direction to the sample grid.
+        let (sine, cosine) = f64::from(angle * std::f32::consts::TAU).sin_cos();
+        let horizontal = cosine.abs() > sine.abs();
+        let slope = if sine.is_sign_negative() == cosine.is_sign_negative() { 1.0 } else { -1.0 };
+        if let Some(image) = box_filter::diagonal(&input, reach, horizontal, slope, source_format, context.format) {
+            return Ok(vec![image]);
+        }
+    }
     let projected_radius = 0.5 + reach;
     let half_samples = (projected_radius + 0.5).floor().clamp(1.0, MAX_HALF_SAMPLES as f32) as i32;
 
