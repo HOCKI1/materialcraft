@@ -1,6 +1,5 @@
 use crate::{Cache, Cooked, Options, now_ms};
 use crate::{node_execution::cook_node, prepared_graph::PreparedGraph};
-use craft_texture::Image;
 use materialcraft_core::{Package, Value};
 use std::{
     collections::BTreeMap,
@@ -11,30 +10,6 @@ pub fn cook(package: &Package, graph_index: usize, options: &Options, cache: &Mu
     let started_ms = now_ms();
     let mut cooked = Cooked::default();
     let Some(graph) = package.graphs.get(graph_index) else { return cooked };
-
-    // Input nodes show their bound preview images; the caller's images win
-    let bound;
-    let options = if !graph.input_images.is_empty() {
-        let mut inputs: BTreeMap<String, Image> = graph
-            .input_images
-            .iter()
-            .filter_map(|(id, resource)| {
-                Some((id.clone(), (options.resource)(&craft_texture::resource_key(resource, graph.input_images_linear.contains(id)))?))
-            })
-            .collect();
-        inputs.extend(options.inputs.iter().map(|(name, value)| (name.clone(), value.clone())));
-        bound = Options {
-            only: options.only.clone(),
-            inputs,
-            input_formats: options.input_formats.clone(),
-            overrides: options.overrides.clone(),
-            graph_stack: options.graph_stack.clone(),
-            ..*options
-        };
-        &bound
-    } else {
-        options
-    };
 
     let prepared = PreparedGraph::new(package, graph, options);
 

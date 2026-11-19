@@ -1,4 +1,4 @@
-use crate::ResourceBytes;
+use crate::{OutputFormat, ResourceBytes};
 use serde::{Deserialize, Serialize};
 
 /// An asset retained in memory until the package is saved: a bitmap or an SVG.
@@ -31,4 +31,15 @@ impl Resource {
 
 fn default_folder() -> String {
     "Resources".into()
+}
+
+/// Original normalized channel precision of a grayscale or truecolor PNG resource.
+/// The decoded float values alone cannot distinguish a byte from the equivalent repeated-byte word.
+pub fn png_sample_format(bytes: &[u8]) -> Option<OutputFormat> {
+    let header = bytes.strip_prefix(b"\x89PNG\r\n\x1a\n\0\0\0\rIHDR")?;
+    match header.get(8..10)? {
+        [8, 0 | 2 | 4 | 6] => Some(OutputFormat::U8),
+        [16, 0 | 2 | 4 | 6] => Some(OutputFormat::U16),
+        _ => None,
+    }
 }

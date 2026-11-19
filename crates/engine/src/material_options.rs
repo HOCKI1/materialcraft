@@ -1,5 +1,5 @@
 use craft_texture::Image;
-use materialcraft_core::Value;
+use materialcraft_core::{OutputFormat, Value};
 use std::collections::BTreeMap;
 
 /// What to cook a portable material with, over the graph's own values
@@ -11,4 +11,6 @@ pub struct MaterialOptions {
     pub values: BTreeMap<String, Value>,
     /// Images for the graph's input nodes, by identifier (mesh maps)
     pub inputs: BTreeMap<String, Image>,
+    /// Known sample depth of each bound file before decoding to linear floats.
+    pub input_formats: BTreeMap<String, OutputFormat>,
 }

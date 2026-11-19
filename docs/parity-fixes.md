@@ -1042,6 +1042,29 @@ Every row includes the four original defaults, seed and parameter renders, the 6
 
 The trapezoid pair each has two remaining differences across the archived and new comparisons. The [four-format inventory](#four-format-inventory-comparison) lists the original changed settings and port names.
 
+### Source image depth and the three noise upscalers
+
+| Root | Renders | Exact grayscale pixels before | Exact grayscale pixels after / compared | Maximum error after |
+|---|---:|---:|---:|---:|
+| Noise Upscale 1 | 21 | 695,768 | 697,344/697,344 | 0 |
+| Noise Upscale 2 | 21 | 695,877 | 697,344/697,344 | 0 |
+| Noise Upscale 3 | 21 | 693,752 | 697,344/697,344 | 0 |
+
+Use the [upscaler inputs, offsets and seeds](#tile-random-cell-fields-and-noise-upscaling) and the [Min blend comparison](#min-and-max-blend-weights). Each matrix includes 491,520 U8, 32,768 U16, 32,768 F16 and 140,288 F32 pixels. On the 32×17 word source at seed 977, the source and mask bridges now agree on 1,024/1,024 U8 texels apiece and each of the three 64² F32 final outputs agrees on 4,096/4,096 pixels.
+
+A PNG's original channel depth matters even when its decoded numbers are identical. Bind a 32×17 grayscale PNG containing 9 at eight bits or 2,313 at sixteen bits, and cook a 32² U8 input. The byte file gives six 9s at the start of the first row. The word file gives 8, 8, 9, 9, 9, 8. Binding the byte file again restores all six 9s. The graph's image declaration, exposed ports and authored resources retain their original representation.
+
+When the source has fewer levels than the destination, filter each axis at source depth. When reducing word samples to bytes, use the original word, add the received error in byte units multiplied by 257, then add the centered random fraction multiplied by 256. Take the high byte after saturation. For diffusion, measure the error between the normalized original and stored sample. The order of random draws, error weights and separable filter are specified in [Non-power-of-two float image inputs and curvature](#non-power-of-two-float-image-inputs-and-curvature).
+
+| Bridge storage, read through F32 | Renders | Exact output pixels before | Exact output pixels after / compared | Largest absolute output error after |
+|---|---:|---:|---:|---:|
+| U8 | 36 | 16,716 | 36,854/36,864 | 0.00392156839 |
+| U16 | 36 | 19,962 | 36,846/36,864 | 0.00392156839 |
+| F16 | 36 | 6,605 | 6,605/36,864 | 0.359375 |
+| F32 | 36 | 19,962 | 36,846/36,864 | 0.00392156839 |
+
+For all 144 controls, use 32×17, 17×23 and 47×33 inputs on a 32² graph at seed 157, in grayscale and RGBA. Define W=((97x+71y+13xy+157+79c+5xc)×197 +11y²+53x) mod 65536. Use (W mod 256) at eight bits, the identical decoded field (W mod 256)×257 at sixteen bits, and W at sixteen bits. Three further sixteen-bit fields are constant (15427,32079,39114,49197), constant (9,89,142,199)×257 and an endpoint field alternating W mod 512 for even W with 65535−(W mod 512) for odd W. Grayscale uses channel zero. Counts compare every output channel. A small number of reduction-boundary differences remain at byte and word working precision. The wider independent controls also retain discrepancies in half-float conversion.
+
 ### Non-power-of-two float image inputs and curvature
 
 The final F32 output on the 32×17 stepped normal field now matches all 1,024 pixels for both roots. The previous RGBA16 input matched 201/1,024 within one level. The corrected input matches 1,024/1,024 with zero error. Each root now matches all archived, four-format, independent and held-out cases. The normal fields, seeds and parameter settings are specified in [Curvature from original normal fields](#curvature-from-original-normal-fields).

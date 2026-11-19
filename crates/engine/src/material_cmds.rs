@@ -68,6 +68,7 @@ pub fn material_bytes(session: &Session, graph_index: usize, options: &MaterialO
     let mut cook_options = materialcraft_eval::Options::new(&decode);
     cook_options.environment = session.environment;
     cook_options.inputs = options.inputs.clone();
+    cook_options.bitmap_formats = options.input_formats.clone();
     let cooked = materialcraft_eval::cook(&package, graph_index, &cook_options, &session.cache);
     let mut maps: Vec<(String, Vec<u8>)> = Vec::new();
     let mut entries = Vec::new();
@@ -165,7 +166,13 @@ fn export_material(s: &mut Session, p: &J) -> Result<J> {
     for (id, file) in p.get("inputs").and_then(J::as_object).into_iter().flatten() {
         let file = file.as_str().ok_or_else(|| bad(CMD, format!("inputs.{id} must be an image path")))?;
         let bytes = std::fs::read(file).map_err(|e| bad(CMD, format!("{file}: {e}")))?;
-        o.inputs.insert(id.clone(), materialcraft_formats::decode(&bytes, !srgb_usage(id))?);
+        let image = materialcraft_formats::decode(&bytes, !srgb_usage(id))?;
+        if image.integer_sampling()
+            && let Some(format) = materialcraft_core::png_sample_format(&bytes)
+        {
+            o.input_formats.insert(id.clone(), format);
+        }
+        o.inputs.insert(id.clone(), image);
     }
     let bytes = material_bytes(s, gi, &o)?;
     materialcraft_formats::write_atomic(std::path::Path::new(&path), &bytes)?;
@@ -263,6 +270,30 @@ fn unbind(s: &mut Session, p: &J) -> Result<J> {
 mod tests {
     use super::*;
     use materialcraft_formats::material::read_material;
+
+    #[test]
+    fn odd_sized_preview_uses_the_original_png_depth_even_for_equal_decoded_pixels() {
+        use materialcraft_core::{OutputFormat, Package, Resource, ResourceBytes};
+
+        let mut graph = Graph::new("Preview");
+        graph.size = [5, 5];
+        graph.format = OutputFormat::U8;
+        let input = graph.add_node("input_grayscale", [0.0; 2]);
+        let mut package = Package::new("Input depths");
+        package.graphs.push(graph);
+        let image = Image::gray(32, 17, |_, _| 9.0 / 255.0);
+        for (name, depth) in [("byte", Depth::U8), ("word", Depth::U16)] {
+            let bytes = encode(&image, "png", depth, false).unwrap();
+            package.resources.push(Resource::new(name, format!("{name}.png"), ResourceBytes::new(bytes)));
+        }
+        let mut session = Session::new(package);
+        for (name, expected) in [("byte", [9, 9, 9, 9, 9, 9]), ("word", [8, 8, 9, 9, 9, 8]), ("byte", [9, 9, 9, 9, 9, 9])] {
+            crate::execute(&mut session, "graph.input.bind", &json!({"identifier": "input", "resource": name, "linear": true})).unwrap();
+            let result = session.cook().image(input, 0).unwrap();
+            let levels = std::array::from_fn(|x| (result.get_gray(x as i64, 0, false) * 255.0).round() as u8);
+            assert_eq!(levels, expected, "{name}");
+        }
+    }
 
     #[test]
     fn exports_maps_inputs_and_values() {

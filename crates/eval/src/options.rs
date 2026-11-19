@@ -17,6 +17,8 @@ pub struct Options<'a> {
     pub inputs: BTreeMap<String, Image>,
     /// Upstream storage precision for caller-supplied images. Unspecified floating inputs use full precision.
     pub input_formats: BTreeMap<String, OutputFormat>,
+    /// Original storage of decoded external files. Wired graph inputs use their upstream format.
+    pub bitmap_formats: BTreeMap<String, OutputFormat>,
     /// Values for the graph's exposed parameters (graph instances), over the graph's own
     pub overrides: BTreeMap<String, Value>,
     /// Decodes a package resource (bitmap) by name
@@ -42,6 +44,7 @@ impl<'a> Options<'a> {
             only: None,
             inputs: BTreeMap::new(),
             input_formats: BTreeMap::new(),
+            bitmap_formats: BTreeMap::new(),
             overrides: BTreeMap::new(),
             resource,
             cancel: None,

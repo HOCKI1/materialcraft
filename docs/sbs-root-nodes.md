@@ -35,7 +35,7 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **322 Parity**, **63 In progress** and **161 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **325 Parity**, **60 In progress** and **161 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
 
 [Grayscale sampler measurements](parity-fixes.md#grayscale-sampling-of-color-inputs) · [Value sampling across 240 typed comparisons](parity-fixes.md#value-processor-texture-filtering)
 
@@ -352,9 +352,9 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [noise_perlin_noise.sbs/perlin_noise](../assets/sbs/noise_perlin_noise.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [noise_perlin_noise_v2.sbs/perlin_noise](../assets/sbs/noise_perlin_noise_v2.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [noise_plasma.sbs/plasma](../assets/sbs/noise_plasma.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [noise_upscale_1.sbs/noise_upscale_1](../assets/sbs/noise_upscale_1.sbs) | 1 | No | [In progress · 21 renders, 695,768/697,344 exact pixels](parity-fixes.md#tile-random-cell-fields-and-noise-upscaling) |
-| [noise_upscale_2.sbs/noise_upscale_2](../assets/sbs/noise_upscale_2.sbs) | 1 | No | [In progress · 695,877/697,344 pixels, odd-sized source differs](parity-fixes.md#min-and-max-blend-weights) |
-| [noise_upscale_3.sbs/noise_upscale_3](../assets/sbs/noise_upscale_3.sbs) | 2 | No | [In progress · 21 renders, 693,752/697,344 exact pixels](parity-fixes.md#tile-random-cell-fields-and-noise-upscaling) |
+| [noise_upscale_1.sbs/noise_upscale_1](../assets/sbs/noise_upscale_1.sbs) | 1 | No | [Parity · 21 renders, 697,344 exact grayscale pixels](parity-fixes.md#source-image-depth-and-the-three-noise-upscalers) |
+| [noise_upscale_2.sbs/noise_upscale_2](../assets/sbs/noise_upscale_2.sbs) | 1 | No | [Parity · 21 renders, 697,344 exact grayscale pixels](parity-fixes.md#source-image-depth-and-the-three-noise-upscalers) |
+| [noise_upscale_3.sbs/noise_upscale_3](../assets/sbs/noise_upscale_3.sbs) | 2 | No | [Parity · 21 renders, 697,344 exact grayscale pixels](parity-fixes.md#source-image-depth-and-the-three-noise-upscalers) |
 | [noise_voronoi.sbs/3d_voronoi](../assets/sbs/noise_voronoi.sbs) | 1 | No | [In progress · 37 renders, 152,320/155,392 exact pixels with stock and shared tables](parity-fixes.md#voronoi-distortion-and-shared-noise-inputs) |
 | [noise_voronoi.sbs/3d_voronoi_fractal](../assets/sbs/noise_voronoi.sbs) | 1 | No | [In progress · 37 renders, 152,163/155,392 exact pixels with stock and shared tables](parity-fixes.md#voronoi-distortion-and-shared-noise-inputs) |
 | [noise_voronoi.sbs/voronoi](../assets/sbs/noise_voronoi.sbs) | 0 | No | [In progress · 37 renders, 152,320/155,392 exact pixels with stock and shared tables](parity-fixes.md#voronoi-distortion-and-shared-noise-inputs) |

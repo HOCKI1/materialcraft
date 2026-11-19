@@ -5,28 +5,38 @@ use materialcraft_core::OutputFormat;
 pub(super) fn resize(image: &Image, size: (u32, u32), kind: Kind, source: OutputFormat, output: OutputFormat) -> Option<Image> {
     let size = craft_texture::clamp_size(size.0, size.1);
     let (width, height) = (image.width(), image.height());
-    if (width.is_power_of_two() && height.is_power_of_two())
-        || (width, height) == size
-        || width.max(height) > MAX_SIDE
-        || image.kind() != kind
-        || image.integer_sampling()
-        || source != OutputFormat::F32
-    {
+    if (width.is_power_of_two() && height.is_power_of_two()) || (width, height) == size || width.max(height) > MAX_SIDE || image.kind() != kind {
         return None;
     }
-    let maximum = match output {
+    let input_levels: Option<f32> = match (image.integer_sampling(), source) {
+        (true, OutputFormat::U8) => Some(255.0),
+        (true, OutputFormat::U16) => Some(65535.0),
+        (false, OutputFormat::F32) => None,
+        _ => return None,
+    };
+    let output_levels = match output {
         OutputFormat::U8 => Some(255.0),
         OutputFormat::Inherit | OutputFormat::U16 => Some(65535.0),
         OutputFormat::F32 => None,
         OutputFormat::F16 => return None,
     };
-    let mut filtered = if let Some(maximum) = maximum { dither(image, maximum)? } else { image.clone() };
+    // Keep the lower channel depth through both filter passes. A byte raster sent to
+    // a word or float output still filters at byte precision.
+    let maximum = match (input_levels, output_levels) {
+        (Some(source), Some(output)) => Some(source.min(output)),
+        (source, output) => source.or(output),
+    };
+    let mut filtered = match (input_levels, maximum) {
+        (Some(source), Some(working)) if source == working => image.map(kind, |pixel| pixel.map(|v| (v * source).round())),
+        (_, Some(working)) => dither(image, working, input_levels.is_some())?,
+        _ => image.clone(),
+    };
     let (w, h) = size;
     let passes = if w <= width { [(true, w), (false, h)] } else { [(false, h), (true, w)] };
     for (horizontal, end) in passes {
         filtered = filter_axis(filtered, horizontal, end, maximum.is_some());
     }
-    Some(if let Some(maximum) = maximum { filtered.map(kind, |p| p.map(|v| v / maximum)).with_integer_sampling(true) } else { filtered })
+    Some(if let Some(maximum) = maximum { filtered.map(kind, |p| p.map(|v| v / maximum)).with_integer_sampling(output_levels.is_some()) } else { filtered })
 }
 
 fn filter_axis(image: Image, horizontal: bool, end: u32, integer: bool) -> Image {
@@ -68,7 +78,7 @@ fn filter_axis(image: Image, horizontal: bool, end: u32, integer: bool) -> Image
     })
 }
 
-fn dither(image: &Image, maximum: f32) -> Option<Image> {
+fn dither(image: &Image, maximum: f32, word_to_byte: bool) -> Option<Image> {
     let width = usize::try_from(image.width()).ok()?;
     let channels = image.channels();
     let mut samples = Vec::new();
@@ -85,10 +95,17 @@ fn dither(image: &Image, maximum: f32) -> Option<Image> {
             for (c, value) in pixel.iter_mut().enumerate() {
                 state = (48_271 * state) % 2_147_483_647;
                 let random = (state as f64 / 2_147_483_647.0) as f32;
-                let random = if maximum == 255.0 { (random * maximum).round() / maximum } else { random };
                 let original = if value.is_finite() { value.clamp(-limit, limit) } else { f32::from(*value > 0.0) };
-                let offset = errors[current][x + 2][c] + (random - 0.5);
-                let stored = ((original + offset * unit) * maximum).round().clamp(0.0, maximum);
+                let received = errors[current][x + 2][c];
+                let stored = if word_to_byte {
+                    // One full byte level expands to 257 word levels. The noise spans one high-byte step.
+                    let word = (original * 65535.0).round();
+                    ((word + received * 257.0 + (random - 0.5) * 256.0) / 256.0).floor()
+                } else {
+                    let noise = if maximum == 255.0 { (random * maximum).round() / maximum } else { random };
+                    ((original + (received + (noise - 0.5)) * unit) * maximum).round()
+                }
+                .clamp(0.0, maximum);
                 error[c] = original * maximum - stored;
                 *value = stored;
             }

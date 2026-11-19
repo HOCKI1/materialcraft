@@ -148,11 +148,18 @@ pub(crate) fn cook_node(
 
     // Input nodes read the caller's image for their identifier
     let input_image = node.def.starts_with("input_").then(|| identifier(node)).and_then(|name| {
-        let format = options.input_formats.get(&name).copied();
-        let wired = options.depth != 0 && format.is_some();
-        let tiling = if wired { base.tiling } else { [false; 2] };
-        Some((options.inputs.get(&name)?, format.unwrap_or(OutputFormat::F32), tiling, wired))
+        if let Some(image) = options.inputs.get(&name) {
+            let format = options.input_formats.get(&name).copied();
+            return Some((image.clone(), format, options.bitmap_formats.get(&name).copied()));
+        }
+        let graph = package.graphs.get(graph_index)?;
+        let binding = graph.input_images.get(&name)?;
+        let image = (options.resource)(&craft_texture::resource_key(binding, graph.input_images_linear.contains(&name)))?;
+        let bitmap =
+            if image.integer_sampling() { package.resource(binding).and_then(|r| materialcraft_core::png_sample_format(r.bytes.as_slice())) } else { None };
+        Some((image, None, bitmap))
     });
+    let wired = options.depth != 0 && input_image.as_ref().is_some_and(|(_, upstream, _)| upstream.is_some());
     let resource_hash = match parameters.get("resource") {
         Some(Value::Text(name)) => package.resource(name).map_or(0, |r| r.bytes.content_hash()),
         _ => 0,
@@ -187,7 +194,7 @@ pub(crate) fn cook_node(
         subgraph_hash,
         // A cached graph instance includes results evaluated with its host environment
         (node.def == "graph_instance").then(|| serde_json::to_string(&options.environment).unwrap_or_default()),
-        input_image.map(|(image, format, tiling, wired)| (image_key(image, cache), format, tiling, wired)),
+        input_image.as_ref().map(|(image, upstream, bitmap)| (image_key(image, cache), upstream, bitmap, wired)),
         variable_key(node, &parameters, variables),
     ));
     if let Some(outputs) = lock(cache).get(key) {
@@ -215,10 +222,12 @@ pub(crate) fn cook_node(
         && let Some(Some((NodeOutput::Value(value), _))) = incoming.first()
     {
         Ok(vec![NodeOutput::Value(value.clone())])
-    } else if let Some((image, format, tiling, wired)) = input_image {
+    } else if let Some((image, upstream, bitmap)) = input_image {
         let kind = if node.def == "input_grayscale" { Kind::Gray } else { Kind::Color };
-        let external = if wired { None } else { crate::external_image::resize(image, (w, h), kind, format, base.format) };
-        let image = external.unwrap_or_else(|| cook_bound_image(image.clone(), (w, h), kind, format, base.format, tiling));
+        let format = upstream.unwrap_or(OutputFormat::F32);
+        let external = if wired { None } else { crate::external_image::resize(&image, (w, h), kind, bitmap.unwrap_or(format), base.format) };
+        let tiling = if wired { base.tiling } else { [false; 2] };
+        let image = external.unwrap_or_else(|| cook_bound_image(image, (w, h), kind, format, base.format, tiling));
         Ok(vec![NodeOutput::Image(image)])
     } else if node.def == materialcraft_core::MISSING_NODE {
         let name = if node.label.is_empty() { "this node" } else { node.label.as_str() };
