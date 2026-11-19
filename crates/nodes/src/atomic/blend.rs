@@ -23,7 +23,8 @@ pub(super) fn definition() -> NodeDefinition {
 
 fn blend(context: &CookContext) -> CookResult {
     let (mode, opacity) = (context.i("mode"), context.f("opacity"));
-    let opacity = if matches!(mode, 1 | 2) { opacity.clamp(0.0, 1.0) } else { opacity };
+    // Stored graphs can compute an opacity outside the slider range. Bound it before applying the mask.
+    let opacity = if (0..=8).contains(&mode) { opacity.clamp(0.0, 1.0) } else { opacity };
     let copies_foreground = opacity == 1.0 && context.input(2).is_none() && (mode == 7 || (mode == 0 && context.input(0).is_some_and(Image::is_gray)));
     let foreground = resized_input(context, 0, if copies_foreground { InputResize::Copy } else { InputResize::Filter });
     let background = resized_input(context, 1, if opacity == 0.0 { InputResize::Copy } else { InputResize::Filter });
@@ -54,6 +55,34 @@ mod tests {
     use crate::resolve_params;
     use materialcraft_core::{OutputFormat, Value};
     use std::collections::BTreeMap;
+
+    #[test]
+    fn add_sub_limits_global_opacity_before_blending() {
+        let mut inputs = [
+            Some(Image::gray(2, 1, |x, _| if x == 0 { 35_122.0 / 65_535.0 } else { 32_767.0 / 65_535.0 })),
+            Some(Image::gray(2, 1, |_, _| 32_767.0 / 65_535.0)),
+            None,
+        ];
+        let vars = BTreeMap::new();
+        for (opacity, masked, expected) in [(6.000_000_5, false, [37_476, 32_766]), (-0.5, false, [32_767, 32_767]), (6.000_000_5, true, [34_115, 32_767])] {
+            inputs[2] = masked.then(|| Image::gray(2, 1, |x, _| if x == 0 { 73.0 / 255.0 } else { 126.0 / 255.0 }));
+            let params = resolve_params(&definition(), &BTreeMap::from([("mode".into(), Value::Enum(4)), ("opacity".into(), Value::Float(opacity))]));
+            let context = CookContext {
+                w: 2,
+                h: 1,
+                seed: 0,
+                tile: true,
+                input_formats: &[OutputFormat::U16, OutputFormat::U16, OutputFormat::F32],
+                format: OutputFormat::U16,
+                inputs: &inputs,
+                params: &params,
+                resource: &|_| None,
+                vars: &vars,
+            };
+            let image = crate::output_precision::apply(blend(&context).unwrap().remove(0), OutputFormat::U16);
+            assert_eq!([0, 1].map(|x| (image.get_gray(x, 0, false) * 65_535.0).round() as u16), expected);
+        }
+    }
 
     #[test]
     fn blend_resizes_connected_images_through_stored_levels() {

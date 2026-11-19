@@ -96,6 +96,31 @@ The four controls below are pre-lighting, occlusion, edge sharpness and specular
 
 The same change also reaches other unresolved roots. On the independent 32² F32 input, BW Spots 3 matches 629/1,024 pixels (maximum 3.91006470e−5), Normal to Height 270/1,024 (.305256728), Polygon 2 1,012/1,024 (.0000152587891), Slope Blur 0/1,024 (.768627450), and each grayscale Slope Blur 12/1,024 (.329411790). The other BW Spots 3 graph exceeds the pattern execution budget. Symmetry Slice matches its independent 1,024 pixels but only 11,445/16,384 on the changed four-format input. [Independent inputs and controls](#four-format-inventory-comparison)
 
+### Global blend opacity in Normal to Height
+
+Normal to Height matches **145,664/145,664 stored pixels across 18 renders**. U8 contributes 5,120 pixels in two renders, U16 121,856 in seven, F16 5,120 in two and F32 13,568 in seven. Each format has zero maximum error. The 11 renders instrumented before and after the fix previously matched 3,201/18,688 final pixels. At each of 92 reachable stages whose inputs and output fit within 128², the previous result was 2,181,843/2,796,800. The corrected result is 2,796,800/2,796,800, maximum zero across all 1,012 intermediate images.
+
+The two earliest differences were 16² U16 Add Sub blends fed by transforms. Both inputs matched at both stages in all 11 renders. At a computed global opacity of 6.000000476837158, foreground 35,122 and background 32,767 give 37,476. A second foreground of 32,767 gives 32,766. Applying the authored opacity directly gave 61,021 and 32,761. The blend caps global opacity to [0,1] before applying the mask. With the same two inputs and F32 mask values 73/255 and 126/255 the expected levels are 34,115 and 32,767. The measured bound applies to the nine native blend modes, Copy through Divide. It is applied during rendering. Ordinary saves retain the authored opacity expression.
+
+Use the four inventory renders at 128² and 256², seeds 0 and 42. The changed controls are normal format 1, relief balance (.2,.6,.8) and global opacity .6. The four 64² formats and the independent 32² field supply five further renders. For the nine additional inputs, start with tangent components R=((17x+23y+3xy) mod 31−15)/32 and G=((11x−7y+5xy) mod 29−14)/32. Store (.5+.5R,.5+.5G,.5+.5sqrt(1−R²−G²),1). Round U8 sources to the nearest byte with even ties. A flat field uses R=G=0. The impulse field is flat except for R=.625 at (16,16) and G=−.375 at (10,8). The following rows give every added run. [Four-format inventory comparison](#four-format-inventory-comparison)
+
+| Size and seed | Input | Normal format, relief balance, global opacity | Output |
+|---|---|---|---|
+| 16² / 61253 | Flat U8 | Defaults | F32 |
+| 32² / 61300 | Impulse F32 | 0, (.875,.125,.5), .5 | F32 |
+| 32² / 61347 | U8 field | 1, (.1875,.6875,.8125), .5625 | U8, U16, F16, F32 |
+| 64×32 / 61535 | F32 field | 0, (.25,.875,.375), .8125 | F32 |
+| 32×64 / 61582 | U8 field | 0, (.25,.875,.375), .8125 | U16 |
+| 64² / 61629 | F32 field | 1, (.1875,.6875,.8125), .5625 | F32 |
+
+For an independent constant-opacity check use a single native blend with the original foreground, background and mask fields described under [source-alpha rounding](#source-alpha-rounding-in-highpass). Use unsigned 16² and signed 32² F32 inputs with source alpha enabled. For each native mode m from 0 to 8 set the primitive opacity to −.5, 0, .375, 1, 1.25 and the next F32 above 6. Use seed 71711+19m, plus one for the signed input. All 69,120 RGBA32F pixels in 108 renders match, up from 42,258. Comparing the native results for −.5 against 0 and both high settings against 1 gives 34,560/34,560 exact pixels.
+
+The separate computed-opacity controls use grayscale or color inputs with and without a mask. Set opacity to −.5, 0, .375, 1, 1+2⁻²⁰, 1.25 and the next F32 above 6. For Add Sub test unsigned 16² F32, unsigned 32² U8, U16 and F16, and signed 32² F32. For color also test the three other alpha interpretations on signed 16² F32 inputs. For unmasked grayscale and masked color repeat the unsigned 16² F32 settings for the eight other modes. In all 42 groups the out-of-range native renders agree byte-for-byte with their respective endpoint. MaterialCraft matches 158,392/161,280 pixels across these 294 renders, up from 88,416. All 157,696 pixels in the 280 renders outside straight interpretation match. The signed straight-alpha controls remain open at 696/3,584 exact RGBA32F pixels, maximum component error 772.524188.
+
+For these controls use L=(53x+17y+7xy+35v+61c+3cy+3) mod 251, with v=0,1,2 for foreground, background and mask, respectively, and c for the channel. Use L/255 for unsigned inputs and (L−83.125)/53.5 for signed images or (L−83.125)/101 for a signed mask. Grayscale image bridges store U16. For their source texels use (round(131071H)+97x+3y²+257v) mod 65536, where H is the unsigned or signed input value above. The first two row-zero foreground levels are 35,122 and 32,767, and both background levels are 32,767. Color and mask bridges store F32. Use seed 64109+37b+k, where b indexes the groups in the order given and k=0,1,2,3 for unmasked gray, masked gray, unmasked color and masked color.
+
+The release also matches all 2,577,920 pixels across 164 renders of 18 previously measured blend roots. For file fidelity, save the current-header Normal to Height graph with the ordinary save command. Reopen it in the reference app using the nine inputs above, the changed 64² F32 input and the independent 32² input. The saved and original graphs match all 18,688 pixels with zero maximum error.
+
 ### Source-alpha rounding in Highpass
 
 | Root | Renders | Exact pixels / compared | Maximum error |
