@@ -1042,6 +1042,28 @@ Every row includes the four original defaults, seed and parameter renders, the 6
 
 The trapezoid pair each has two remaining differences across the archived and new comparisons. The [four-format inventory](#four-format-inventory-comparison) lists the original changed settings and port names.
 
+### Packed random draws in flood-fill color
+
+| Root | Renders | Exact pixels before | Exact RGBA pixels after / compared | Maximum error after |
+|---|---:|---:|---:|---:|
+| Flood Fill 2 color | 19 | 143,858 | 143,872/143,872 | 0 |
+| Flood Fill 2 random color | 19 | 143,487 | 143,872/143,872 | 0 |
+
+Use the [flood-fill cell maps, color fields and HSL settings](#per-pixel-random-initialization). Both roots now match 119,808 U16, 5,120 U8, 5,120 F16 and 13,824 F32 pixels apiece. Before the correction, the random-color root differed at 375 U16 and ten F32 pixels. The color root differed at five U16 and nine F32 pixels. At an absolute 32², seeds 137 and 733, and at 16², seed 839, each input bridge matches 2,304/2,304 pixels on both revisions. Each U16 random map improved from 2,299/2,304 (one level) to 2,304/2,304 (zero). All 2,304 processor and output pixels now match for each root.
+
+Store a scalar unit draw once per evaluation of its range. Independent lanes can then contract each scaled sample with its own offset. When a lane supplies another output that reads the rounded product, the sum uses that rounded value. At (1,0) of a 16² graph at seed zero, pack consecutive draws of ranges .999 and −1.731053, then add (.001,.352111). The two F32 result words are `3ea12485` and `bf63be1d`. Return the sum together with its input pair and the four words are `3ea12485 bf63be1e 3ea0a173 bf9ef108`.
+
+| Original RGBA control, seven renders each | Exact pixels before | Exact pixels after / compared | Maximum error after |
+|---|---:|---:|---:|
+| Packed pair plus offsets | 5,637 | 9,472/9,472 | 0 |
+| Packed sum and both rounded draws | 9,472 | 9,472/9,472 | 0 |
+| Sum of two single-use draws | 9,472 | 9,472/9,472 | 0 |
+| One draw with two offsets | 5,846 | 9,472/9,472 | 0 |
+| Shared draw with another single-use draw | 9,472 | 9,472/9,472 | 0 |
+| First draw supplies the next range | 9,472 | 9,472/9,472 | 0 |
+
+Let A=rand(.999), B=rand(−1.731053) and C=rand(1). For the packed control, repeat the two-channel sum as RGBA. For the shared version, return the sum followed by (A,B). The four other graphs return (A+B,C,A+B,C), (A+.001,.352111−A,A+.001,.352111−A), (A+.001,B−A,A+.001,B−A) and (rand(A)+B,C,rand(A)+B,C), respectively. Repeated expressions reuse the same graph node. Use 16² F32/seed zero, 32² F32/1, 32² in four formats/137 and 64² F32/557. All 56,832 complete pixels match. The [earlier scalar controls](#scaled-random-draws-and-offsets) and the 337 initialization controls retain their results. The separately declared vector-typed random instruction remains open.
+
 ### Scaled random draws and offsets
 
 At (2,0) on a 16² graph with seed 17, evaluate `r=rand(.999)` and return `r+.001`. The raw F32 result has bits `3f3563cb`. Return the sum and r together and their bits are `3f3563ca` and `3f352241`. At (4,0) with the same settings, returning `.001−r` alone gives `beb19951`. A scalar pixel draw consumed by a single addition or subtraction multiplies its unit sample by the range and adds the offset in one rounding. A reader of the scaled draw receives its rounded value. The graph's evaluation order determines which sample each draw receives.

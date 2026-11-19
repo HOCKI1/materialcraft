@@ -13,6 +13,9 @@ pub(crate) fn evaluate(
     scope: super::FunctionScope,
 ) -> Result<Value, String> {
     let op = instruction.definition.id;
+    if op == "rand" && args.is_empty() {
+        return Ok(Value::Float(random.draw()));
+    }
     let pixel_math = scope == super::FunctionScope::PixelProcessor && !instruction.literal;
     let angle_component = |angle, cosine| super::trigonometry::component(angle, cosine, scope, instruction.literal);
     let first = args.first().ok_or("missing arithmetic operand")?;
@@ -123,6 +126,7 @@ pub(crate) fn evaluate(
             }
             "lerp" if pixel_math => (right - left).mul_add(factor, left),
             "lerp" => left + (right - left) * factor,
+            "rand" if args.len() == 2 => right * left,
             "rand" => random.draw() * left,
             _ => return Err(format!("unknown arithmetic operation `{op}`")),
         };

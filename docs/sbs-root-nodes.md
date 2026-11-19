@@ -35,7 +35,7 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **339 Parity**, **58 In progress** and **149 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **341 Parity**, **56 In progress** and **149 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
 
 [Grayscale sampler measurements](parity-fixes.md#grayscale-sampling-of-color-inputs) · [Value sampling across 240 typed comparisons](parity-fixes.md#value-processor-texture-filtering)
 
@@ -198,10 +198,10 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [flood_fill_2.sbs/flood_fill_impl/flood_fill_step_A_switch](../assets/sbs/flood_fill_2.sbs) | 4 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [flood_fill_2.sbs/flood_fill_impl/flood_fill_step_B](../assets/sbs/flood_fill_2.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [flood_fill_2.sbs/flood_fill_to_bbox_size](../assets/sbs/flood_fill_2.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
-| [flood_fill_2.sbs/flood_fill_to_color](../assets/sbs/flood_fill_2.sbs) | 2 | No | [In progress · 19 renders, 143,858/143,872 exact pixels](parity-fixes.md#scaled-random-draws-and-offsets) |
+| [flood_fill_2.sbs/flood_fill_to_color](../assets/sbs/flood_fill_2.sbs) | 2 | No | [Parity · 19 renders, 143,872 exact RGBA pixels](parity-fixes.md#packed-random-draws-in-flood-fill-color) |
 | [flood_fill_2.sbs/flood_fill_to_grayscale](../assets/sbs/flood_fill_2.sbs) | 2 | No | [Parity · 19 renders, 143,872 exact pixels](parity-fixes.md#scaled-random-draws-and-offsets) |
 | [flood_fill_2.sbs/flood_fill_to_position](../assets/sbs/flood_fill_2.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
-| [flood_fill_2.sbs/flood_fill_to_random_color](../assets/sbs/flood_fill_2.sbs) | 1 | No | [In progress · 19 renders, 143,487/143,872 exact pixels](parity-fixes.md#scaled-random-draws-and-offsets) |
+| [flood_fill_2.sbs/flood_fill_to_random_color](../assets/sbs/flood_fill_2.sbs) | 1 | No | [Parity · 19 renders, 143,872 exact RGBA pixels](parity-fixes.md#packed-random-draws-in-flood-fill-color) |
 | [flood_fill_2.sbs/flood_fill_to_random_grayscale](../assets/sbs/flood_fill_2.sbs) | 1 | No | [Parity · 19 renders, 143,872 exact pixels](parity-fixes.md#scaled-random-draws-and-offsets) |
 | [floodfill_to_index.sbs/pass](../assets/sbs/floodfill_to_index.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [fluid.sbs/fluid](../assets/sbs/fluid.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |

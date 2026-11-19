@@ -19,6 +19,17 @@ pub(crate) struct Instruction {
     pub call: Option<super::function_call::FunctionCall>,
 }
 
+impl Instruction {
+    pub(super) fn product_operation(&self) -> Option<&'static str> {
+        let [_, _] = self.inputs.as_slice() else { return None };
+        match self.definition.id {
+            "rand" => Some("mul"),
+            op @ ("mul" | "mulscalar" | "div") => Some(op),
+            _ => None,
+        }
+    }
+}
+
 pub(super) struct PixelInterval {
     pub input: usize,
     pub lower: usize,

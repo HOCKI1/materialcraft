@@ -159,8 +159,7 @@ fn compile_nested(graph: &FunctionGraph, seed: u32, depth: usize, remaining: &mu
         let input_type = |index: usize| inputs.get(index).and_then(|index| instructions.get(*index)).map_or(256, |instruction| instruction.type_code);
         let inferred = super::inferred_type::inferred_type(&node.op, value.as_ref(), input_type);
         let type_code = call.as_ref().map_or_else(|| if node.type_code == 0 { inferred } else { node.type_code }, |call| call.program.output_type());
-        indices.insert(id, instructions.len());
-        instructions.push(Instruction {
+        let operation = |inputs, value, call| Instruction {
             id,
             definition,
             inputs,
@@ -172,7 +171,20 @@ fn compile_nested(graph: &FunctionGraph, seed: u32, depth: usize, remaining: &mu
             pixel_interval: None,
             repeated: Vec::new(),
             call,
-        });
+        };
+        let mut inputs = inputs;
+        if definition.id == "rand"
+            && type_code == 256
+            && let [range] = inputs.as_slice()
+            && instructions.get(*range).is_some_and(|r| r.type_code == 256 && r.value != Some(materialcraft_core::Value::Float(1.0)))
+        {
+            // Keep the unit sample in a register. A packed or shared range can then reuse its
+            // unrounded factors without drawing again, including on each loop iteration.
+            inputs.push(instructions.len());
+            instructions.push(operation(Vec::new(), None, None));
+        }
+        indices.insert(id, instructions.len());
+        instructions.push(operation(inputs, value, call));
     }
 
     // Instructions come after their inputs, so walking back from a loop reaches its whole condition and body

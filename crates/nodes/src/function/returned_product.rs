@@ -99,7 +99,10 @@ pub(super) fn identify(program: &mut Program, mut returned: BTreeMap<usize, Lane
     // Loop iterations invalidate individual registers. Only retain factors for straight-line lifetimes.
     if program.instructions.iter().any(|op| op.definition.id == "while")
         || (returned.is_empty()
-            && !program.instructions.iter().any(|op| matches!(op.definition.id, "mul" | "mulscalar") && float_width(op.type_code) > 0 && !op.literal))
+            && !program
+                .instructions
+                .iter()
+                .any(|op| matches!(op.product_operation(), Some("mul" | "mulscalar")) && float_width(op.type_code) > 0 && !op.literal))
     {
         return empty();
     }
@@ -131,7 +134,7 @@ pub(super) fn identify(program: &mut Program, mut returned: BTreeMap<usize, Lane
         }
 
         let mut lanes = [None; 4];
-        if matches!(op.definition.id, "mul" | "mulscalar")
+        if matches!(op.product_operation(), Some("mul" | "mulscalar"))
             && !op.literal
             && let &[a, b] = op.inputs.as_slice()
         {

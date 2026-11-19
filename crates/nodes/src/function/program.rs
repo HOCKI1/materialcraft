@@ -139,17 +139,14 @@ impl Program {
                         }
                         _ => {
                             state.steps.push(Apply { instruction: index, base: state.values.len() });
-                            if context.scope == super::FunctionScope::PixelProcessor
-                                && let Some(product) = &instruction.pixel_product_sum
-                            {
-                                product.schedule(&mut state.steps);
-                            } else {
-                                state.steps.extend(instruction.inputs.iter().rev().map(|&index| Enter(index)));
-                            }
+                            let inputs = match &instruction.pixel_product_sum {
+                                Some(product) if context.scope == super::FunctionScope::PixelProcessor => product.inputs.as_slice(),
+                                _ => instruction.inputs.as_slice(),
+                            };
+                            state.steps.extend(inputs.iter().rev().map(|&index| Enter(index)));
                         }
                     }
                 }
-                DrawUnit => state.values.push(Value::Float(state.random.draw())),
                 Apply { instruction: index, base } => {
                     let instruction = self.instruction(index)?;
                     let arguments = state.values.get(base..).ok_or("invalid function operands")?;

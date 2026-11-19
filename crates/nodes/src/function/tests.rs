@@ -794,6 +794,38 @@ fn measured_pixel_reciprocals_preserve_runtime_rounding() {
 }
 
 #[test]
+fn packed_random_ranges_preserve_the_unrounded_draw_in_each_lane() {
+    let mut graph = FunctionGraph::default();
+    let [a, b, c, d] = [0.999, -1.731053, 0.001, 0.352111].map(|x| graph.add_constant(Value::Float(x)));
+    let left = graph.add("rand", &[a], None);
+    let right = graph.add("rand", &[b], None);
+    let pair = graph.add("vector2", &[left, right], None);
+    let offsets = graph.add("vector2", &[c, d], None);
+    let sum = graph.add("add", &[pair, offsets], None);
+    let shared = graph.add("vector4", &[sum, pair], None);
+    let plus = graph.add("add", &[left, c], None);
+    let minus = graph.add("sub", &[d, left], None);
+    let twice = graph.add("vector2", &[plus, minus], None);
+    let context = EvaluationContext {
+        scope: super::FunctionScope::PixelProcessor,
+        position: [1.5 / 16.0, 0.5 / 16.0],
+        size: [16.0; 2],
+        images: &[],
+        image_formats: &[],
+        tile: true,
+        variables: &BTreeMap::new(),
+    };
+    for (output, expected) in [
+        (sum, Value::Float2([0x3ea1_2485, 0xbf63_be1d].map(f32::from_bits))),
+        (shared, Value::Float4([0x3ea1_2485, 0xbf63_be1e, 0x3ea0_a173, 0xbf9e_f108].map(f32::from_bits))),
+        (twice, Value::Float2([0x3ea1_2485, 0x3d1d_3394].map(f32::from_bits))),
+    ] {
+        graph.output = Some(output);
+        assert_eq!(compile(&graph, 0).unwrap().evaluate_pixel(&context, &mut EvaluationState::default()).unwrap(), expected);
+    }
+}
+
+#[test]
 fn a_single_use_pixel_random_range_contracts_with_its_offset() {
     let mut graph = FunctionGraph::default();
     let range = graph.add_constant(Value::Float(0.999));
