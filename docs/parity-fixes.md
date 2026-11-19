@@ -79,6 +79,23 @@ For the 16 additional Bevel renders set position offset (1,1) and supply the con
 
 Standalone signed rectangles and discs still render at both signs of either size component. The 60 color/gray rectangle and gray disc renders match 310,272/310,272 pixels. At 64² a rectangle centered at (.4766544,.6173407), size (.37573713,−.01), rotated −.37499994 turns covers 17 pixels in both applications. A separate directional gradation on the same five geometries and four sign combinations matches 103,316/103,424 pixels. Its maxima are 0 U8, 1 U16, .00006103515625 F16 and .00000011920929 F32.
 
+### Diffuse and specular outputs of the mesh material graph
+
+Both material outputs match across **42 renders and 46 output images**, totaling **358,912/358,912 RGBA pixels**. The four archived renders each supply both outputs. The two four-format sweeps, two independent 32² cases and 28 additional renders each select one output. The same inputs before the [Add Sub rounding fix](#source-alpha-rounding-in-highpass) gave 340,909/358,912 exact pixels. Maximum component errors were zero U8 levels, one U16 level, zero F16 and 1.19209290e−7 F32.
+
+| Output storage | Exact pixels / compared | Maximum error |
+|---|---:|---:|
+| RGBA8 | 245,760/245,760 | 0 |
+| RGBA16 | 16,384/16,384 | 0 |
+| RGBA16F | 16,384/16,384 | 0 |
+| RGBA32F | 80,384/80,384 | 0 |
+
+Each new render reads the selected output, all 15 filters and all five input bridges. All 1,576,200 pixels across those 588 images match. To reproduce the inputs set H=((31x+53y+7xy+23v+67c+3cy+19) mod 509)/508 for channel c. In order, assign v=0–4 to diffuse, specular, world-space normal, occlusion and curvature. The last two use channel zero. For the normal set X=.625(H₀−.5), Y=.75(H₁−.5), Z=sqrt(1−X²−Y²), then encode (.5+.5X,.5+.5Y,.5+.5Z,1). Supply original F32 images on all five ports.
+
+The four controls below are pre-lighting, occlusion, edge sharpness and specular occlusion in that order. For each output start at 16² F32 with defaults. Render 64² in U8, U16, F16 and F32 with (.3125,.6875,.4375,.5625). At 32² F32 set just one control to .625 in each of four renders. At 128² F32 use (.8125,.1875,.75,.375) and opaque diffuse and specular. Next use (.1875,.8125,.25,.875) for a 32×16 source at 32², then a 32² source with diffuse and specular RGB equal to 2.5H−.625. Finish with two 64² F32 renders using the original four controls, first with a flat normal (.5,.5,1,1), then with the original normal. Each series starts at seed 6761 and advances by 17.
+
+The same change also reaches other unresolved roots. On the independent 32² F32 input, BW Spots 3 matches 629/1,024 pixels (maximum 3.91006470e−5), Normal to Height 270/1,024 (.305256728), Polygon 2 1,012/1,024 (.0000152587891), Slope Blur 0/1,024 (.768627450), and each grayscale Slope Blur 12/1,024 (.329411790). The other BW Spots 3 graph exceeds the pattern execution budget. Symmetry Slice matches its independent 1,024 pixels but only 11,445/16,384 on the changed four-format input. [Independent inputs and controls](#four-format-inventory-comparison)
+
 ### Source-alpha rounding in Highpass
 
 | Root | Renders | Exact pixels / compared | Maximum error |
