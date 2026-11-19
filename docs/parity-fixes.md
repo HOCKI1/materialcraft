@@ -1008,6 +1008,31 @@ Every row includes the four original defaults, seed and parameter renders, the 6
 
 The trapezoid pair each has two remaining differences across the archived and new comparisons. The [four-format inventory](#four-format-inventory-comparison) lists the original changed settings and port names.
 
+### Spot and brick pattern generators
+
+Each root generates its own grayscale input. The 19 renders per root combine four archive cases, the five [inventory renders](#four-format-inventory-comparison) and ten further settings. Across the 19, each root produced 8,192 U8, 122,880 U16, 8,192 F16 and 33,024 F32 pixels.
+
+| Root | Exact pixels / compared | Maximum U8 / U16 error (levels) | Maximum F16 / F32 error |
+|---|---:|---:|---:|
+| Black and white spots 1 | 108/172,288 | 166 / 48,142 | 0.650512695 / 0.782735884 |
+| Black and white spots 3 | 122/172,288 | 144 / 54,770 | 0.564941406 / 0.67150037 |
+| Brick 1 | 170,632/172,288 | 0 / 1 | 1.52587891e-05 / 1.52587891e-05 |
+| Brick 2 | 171,992/172,288 | 0 / 1 | 6.10351562e-05 / 1.52662396e-05 |
+| Brick 3 | 51,048/172,288 | 145 / 38,763 | 0.569335938 / 0.730708778 |
+
+| Size / seed | Spots, disorder | Bricks 1 and 2, tiling / smoothness / gap | Brick 3, tiling / roundness / luminance variation / luminance seed / random position / disorder |
+|---|---:|---|---|
+| 16² / 83 | Default | Defaults | Defaults |
+| 32² / 139 | .15625 | 1 / .125 / .0625 | 1 / .1875 / .25 / 7 / 1 / .0625 |
+| 64² / 223 and 743 | .4375 | 2 / .375 / .15625 | 2 / .375 / .625 / 17 / 2 / .3125 |
+| 128² / 293 | .8125 | 3 / .6875 / .25 | 3 / .625 / .8125 / 67 / 4 / .6875 |
+| 32² / 419 | 1 | 2 / 0 / .3125 | 2 / 0 / 0 / 31 / 2 / 0 |
+| 32² / 139, flat control | 0 | 1 / 0 / 0 | 1 / 0 / 0 / 1 / 1 / 0 |
+
+Render F32 for every row and seed. Also render U8, U16 and F16 at 64²/223. Read each pattern map before its first downstream image operation. At this setting the three spot-1 maps match 0/256, 0/4,096 and 93/1,024 U16 pixels respectively. The three spot-3 maps match 0/1,024, 2/65,536 and 21/256. All three maps already differ with their default settings at 16².
+
+At 64²/223 the 32² U16 pattern maps before the final transform of bricks 1 and 2 match 952/1,024 and 1,016/1,024 pixels respectively, with a maximum error of one level in each. Both maps match all 256 default pixels at 16², and both match all 1,024 pixels in the flat control. The third brick graph has two pattern maps. At 64²/223 they match 64/1,024 and 840/1,024 U16 pixels, with maximum errors of 32,260 and 8,778. Both match all 1,024 pixels in the flat control. These readbacks separate the first two bricks' small edge differences from the third brick's variable placement and luminance.
+
 ### Beveled square, gradient and wave stamps
 
 The pattern Tile Generator matches **217,222/226,048** pixels in 43 renders. Before the profile changes it matched 182,039/226,048. U8 matches 16,381/16,384 and U16 matches 162,929/164,608, each with maximum error one level. F16 matches 15,234/16,384 with maximum .0009765625. F32 matches 22,678/28,672 with maximum 3.33786011e−6. The root remains in progress.

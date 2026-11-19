@@ -35,7 +35,7 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **316 Parity**, **49 In progress** and **181 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **316 Parity**, **54 In progress** and **176 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
 
 [Grayscale sampler measurements](parity-fixes.md#grayscale-sampling-of-color-inputs) · [Value sampling across 240 typed comparisons](parity-fixes.md#value-processor-texture-filtering)
 
@@ -108,11 +108,11 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [blend_switch.sbs/switch_grayscale](../assets/sbs/blend_switch.sbs) | 2 | No | [Parity: 6 cases](parity-fixes.md#verified-cases) |
 | [blur_hq.sbs/blur_hq](../assets/sbs/blur_hq.sbs) | 1 | No | [In progress · 63,731/171,264 exact pixels, wide blur differs](parity-fixes.md#short-oblique-directional-blur) |
 | [blur_hq.sbs/blur_hq_grayscale](../assets/sbs/blur_hq.sbs) | 1 | No | [In progress · 125,647/171,264 exact pixels, wide blur differs](parity-fixes.md#short-oblique-directional-blur) |
-| [bnw_spots_1.sbs/bnw_spots_1](../assets/sbs/bnw_spots_1.sbs) | 0 | Yes | [Too hard: noise field](parity-fixes.md#remaining-differences) |
-| [bnw_spots_3.sbs/bnw_spots_3](../assets/sbs/bnw_spots_3.sbs) | 0 | Yes | [Too hard: noise field](parity-fixes.md#remaining-differences) |
-| [brick_1.sbs/brick_1](../assets/sbs/brick_1.sbs) | 0 | Yes | [Too hard: pattern placement](parity-fixes.md#remaining-differences) |
-| [brick_2.sbs/brick_2](../assets/sbs/brick_2.sbs) | 0 | Yes | [Too hard: pattern placement](parity-fixes.md#remaining-differences) |
-| [brick_3.sbs/brick_3](../assets/sbs/brick_3.sbs) | 0 | Yes | [Too hard: pattern placement](parity-fixes.md#remaining-differences) |
+| [bnw_spots_1.sbs/bnw_spots_1](../assets/sbs/bnw_spots_1.sbs) | 0 | Yes | [In progress · 19 renders, 108/172,288 pixels exact](parity-fixes.md#spot-and-brick-pattern-generators) |
+| [bnw_spots_3.sbs/bnw_spots_3](../assets/sbs/bnw_spots_3.sbs) | 0 | Yes | [In progress · 19 renders, 122/172,288 pixels exact](parity-fixes.md#spot-and-brick-pattern-generators) |
+| [brick_1.sbs/brick_1](../assets/sbs/brick_1.sbs) | 0 | Yes | [In progress · 19 renders, 170,632/172,288 pixels exact](parity-fixes.md#spot-and-brick-pattern-generators) |
+| [brick_2.sbs/brick_2](../assets/sbs/brick_2.sbs) | 0 | Yes | [In progress · 19 renders, 171,992/172,288 pixels exact](parity-fixes.md#spot-and-brick-pattern-generators) |
+| [brick_3.sbs/brick_3](../assets/sbs/brick_3.sbs) | 0 | Yes | [In progress · 19 renders, 51,048/172,288 pixels exact](parity-fixes.md#spot-and-brick-pattern-generators) |
 | [brick_generator.sbs/resources/Tile](../assets/sbs/brick_generator.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [cartesian_polar_transformation.sbs/cartesian_to_polar](../assets/sbs/cartesian_polar_transformation.sbs) | 1 | No | [Parity · 171,264 exact pixels in 18 renders](parity-fixes.md#segment-mapping-and-normal-graph-rechecks) |
 | [cartesian_polar_transformation.sbs/cartesian_to_polar_grayscale](../assets/sbs/cartesian_polar_transformation.sbs) | 1 | No | [Parity · 171,264 exact pixels in 18 renders](parity-fixes.md#segment-mapping-and-normal-graph-rechecks) |
