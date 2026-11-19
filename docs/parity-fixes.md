@@ -1010,6 +1010,22 @@ For the standalone dimension check emit (u,v,width,height) using the pixel cente
 
 The core, formats, engine and UI release suites, engine panic hunt, formatting, layers, strict workspace Clippy and ten WebAssembly checks passed. The offscreen toolbar regression selected 1×8, and the saved frame displayed both dimensions in Properties. The full offscreen suite passed 45/47 tests. The material assignment frame and parameter preview cook timed out on isolated reruns of both the changed and cached pre-change UI executables.
 
+### First renderer eighth irradiance pass
+
+| Stored output | Observations | Exact / compared | Maximum error |
+|---|---:|---:|---:|
+| RGBA8 | 2 | 4,352/4,352 pixels | 0 |
+| RGBA16 | 2 | 4,351/4,352 pixels | 1 level |
+| RGBA16F | 5 | 102,563/102,656 pixels | .015625 |
+| RGBA32F | 8 | 8,957/8,960 pixels | .00390625 |
+| Next pass index, float | 17 | 17/17 values | 0 |
+
+The previously timed-out default 128², seed-42 128² and default 256² renders completed. They matched 16,368/16,384, 16,368/16,384 and 65,478/65,536 RGBA16F pixels. Their maximum errors were .015625, .015625 and .0078125. The other measurements use the four 64² storage formats at seed 42, the independent 32²/113 field and nine new fields. The two outputs are compared separately. All 17 index values were 1 with the pass-index input unwired.
+
+For the nine new fields use the seven relevant [procedural irradiance inputs](#material-bundles-and-the-eighth-irradiance-pass), connecting H to the blue-noise port. Use default controls at 16²/37. Set shape scale .8125, UV tiling 1.5 and displacement .125 for the other eight cases. Use shape 0 at 32²/173, repeat at seed 439, then use the alternate previous image at seed 173. Use shape 1 at 16²/359 with black environment and emissive. Use shape 2 at 16²/251 in all four storage formats. These inputs matched all 4,608 pixels and all nine pass-index values.
+
+In the changed 64² F32 render all seven input images matched at their stored precision. The first half-float pixel processor matched 4,093/4,096 pixels. Its red at (28,20) is 7.48046875 in MaterialCraft and 7.4765625 in the reference. The two other processors matched all 4,096 pixels each. The two blends carried the first processor’s three discrepancies to the output. The arithmetic behind those three pixels and the earlier default-case differences remains open.
+
 ### Eighth raytraced specular passes
 
 | Renderer | Renders | Exact RGBA pixels / compared | Maximum U8 / U16 levels | Maximum F16 / F32 error |
