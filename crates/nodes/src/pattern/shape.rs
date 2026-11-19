@@ -11,17 +11,12 @@ pub(super) fn coverage(pattern: i32, x: f32, y: f32, variation: f32) -> Result<f
             }
         }
         3 => radial,
-        4 => {
-            // The expanded quartic preserves the rounding of the low-coverage skirt.
-            let t = radius_squared.min(1.0);
-            let quadratic = (t - 4.0).mul_add(t, 6.0);
-            quadratic.mul_add(t, -4.0).mul_add(t, 1.0).max(0.0)
-        }
+        4 => quartic_bell(radius_squared).max(0.0),
         5 => {
             const FALLOFF: f32 = 11.1 * std::f32::consts::LOG2_E;
             (crate::function::pixel_exp2(-FALLOFF * radius_squared) - 0.000_015_1).max(0.0)
         }
-        6 => (1.0 - radius_squared.sqrt()).max(0.0).powi(4),
+        6 => (1.0 - crate::function::pixel_sqrt(radius_squared)).max(0.0).powi(4),
         7 => (1.0 - x.abs().max(y.abs())).max(0.0),
         8 if variation <= 0.0 => 1.0,
         8 => {
@@ -45,27 +40,37 @@ pub(super) fn coverage(pattern: i32, x: f32, y: f32, variation: f32) -> Result<f
             let wave = parabola * CORRECTION.mul_add(parabola.abs(), 1.0 - CORRECTION);
             radial * (0.5 * wave + 0.5)
         }
-        11 => radial * radial * if x >= 0.0 { 1.0 } else { 0.0 },
-        12 => (1.0 - x.abs()).max(0.0).powi(2),
+        11 => quartic_bell(radius_squared) * descending_fade(x, variation),
+        12 => quartic_bell(radius_squared) * (1.0 - x.abs()).powi(2),
         13 => {
-            if radius_squared <= 1.0 && (x - variation.max(0.05)).powi(2) + y * y > 1.0 {
-                1.0
-            } else {
-                0.0
-            }
+            let t = radius_squared.min(1.0);
+            // Normalize t(1-t)² to one at t=1/3.
+            let ring = 6.75_f32.mul_add(t, -13.5).mul_add(t, 6.75) * t;
+            ring * descending_fade((x + 1.0) * 0.5, variation)
         }
         14 => {
-            if (x.abs() - 0.5).max(0.0).powi(2) + y * y <= 0.25 {
-                1.0
-            } else {
-                0.0
-            }
+            let tip = (x.abs() - 0.77 * variation.max(0.0)).max(0.0);
+            let distance_squared = y.mul_add(y, tip * tip);
+            (-20.0_f32).mul_add(distance_squared, 1.0).max(0.0)
         }
-        15 => (1.0 - radius_squared.sqrt()).max(0.0),
-        16 => radial.sqrt(),
-        17 => ((x + 1.0) * 0.5 + variation).fract(),
+        15 => (1.0 - crate::function::pixel_sqrt(radius_squared)).max(0.0),
+        16 => (x + 1.0) * 0.5 + variation,
+        17 if radius_squared <= 1.0 => crate::function::pixel_sqrt(radial) + variation,
+        17 => 0.0,
         _ => return Err(format!("unknown built-in pattern {pattern}")),
     };
 
     Ok(value)
+}
+
+fn quartic_bell(radius_squared: f32) -> f32 {
+    // The expanded quartic retains the signed rounding of the low-coverage skirt.
+    let t = radius_squared.min(1.0);
+    (t - 4.0).mul_add(t, 6.0).mul_add(t, -4.0).mul_add(t, 1.0)
+}
+
+fn descending_fade(position: f32, variation: f32) -> f32 {
+    let width = 1.0 - variation.max(0.0);
+    let t = if width == 0.0 { f32::from(position > 0.0) } else { (position * width.recip()).clamp(0.0, 1.0) };
+    (t * t).mul_add(2.0_f32.mul_add(t, -3.0), 1.0)
 }

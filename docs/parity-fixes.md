@@ -1544,6 +1544,45 @@ For shape 11 the radial term is max(0,1−x²−y²). In eight 128² F32 unit-st
 
 The [radial profile comparisons](#radial-stamp-profiles-and-pattern-generators) give the previous placement controls. At 64² and 128², float32(2(i+.5)(1−2⁻²⁴)/N−1) predicts the unit gradient coordinates. Four of the 32 axis values at 32² still disagree. Rotated and translated coordinates remain open.
 
+### Directional and additive stamp profiles
+
+Eight built-in shapes were measured in original single-stamp graphs. Across 260 renders, the complete renderer improved from 297,007 to 727,162 exact pixels out of 892,928. Color requires all four stored channels to match. Integer maxima are channel levels.
+
+| Shape | Renders | Previous exact | Current exact / compared | Maximum U8 / U16 | Maximum F16 / F32 |
+|---|---:|---:|---:|---:|---:|
+| 7 | 22 | 64,360 | 65,705/77,824 | 0 / 1 | 3.05175781e-05 / 4.76837158e-07 |
+| 12 | 36 | 33,547 | 98,446/122,880 | 0 / 1 | 0.00048828125 / 1.4603138e-06 |
+| 13 | 36 | 4,828 | 91,739/122,880 | 0 / 1 | 1.90734863e-06 / 8.94069672e-07 |
+| 14 | 36 | 49,550 | 102,396/122,880 | 1 / 1 | 0.000122070312 / 1.08778477e-06 |
+| 15 | 36 | 68,714 | 117,354/122,880 | 1 / 1 | 0.00048828125 / 4.24683094e-06 |
+| 16 | 22 | 64,624 | 65,947/77,824 | 0 / 1 | 7.62939453e-06 / 1.78813934e-07 |
+| 17 | 36 | 5,559 | 90,439/122,880 | 1 / 12544 | 0.00048828125 / 0.191406265 |
+| 18 | 36 | 5,825 | 95,136/122,880 | 0 / 12544 | 0.00048828125 / 0.191407166 |
+
+Start from a single centered unit stamp with no background, unit opacity, roughness zero and blend mode 1. Declare the graph output and stamp consistently grayscale or RGBA. For variation 0, .25, .5 and 1 (index j), compare grayscale 32² F32, then 64² U8, U16, F16 and F32. Use seed 177+size+j. At .25 also compare 64² RGBA16 and RGBA32F with tint (.75,.375,1,.625). For shapes 12–15, 17 and 18, add four controls at 32² F32 and 64² U16/F32, seed 491+73j+size. Use a unit stamp at variation −.25, a (1.375,.6875) stamp at .0625 turns with offset (.109375,−.1875) and variation .3125, a (.75,1.125) stamp at .25 turns with offset (−.0625,.125) and variation .71875, then a unit stamp at offset (.0078125,.0078125) and variation 1.25. Repeat the first additional control with the same 64² color tint.
+
+Shapes 12 and 13 multiply a signed quartic bell by a horizontal mask. For 12 the mask is 1−3u²+2u³ with u=clamp(x/(1−max(variation,0)),0,1). At variation 1 the positive half is cut off. For 13 the mask is (1−|x|)². Shape 14 multiplies the same smooth mask, using (x+1)/2 horizontally, by the normalized ring 6.75t(1−t)², where t=min(x²+y²,1). Shape 15 uses max(0,1−20(y²+max(0,|x|−.77×max(variation,0))²)). Shapes 7 and 16 use the measured pixel square root for their conical falloff.
+
+In the scalar profile controls, shape 17 adds variation to (x+1)/2. Shape 18 adds it to the hemisphere height inside the disk and returns zero outside. Their floating outputs exceed one in the positive-variation controls. At the 64² unit-stamp coordinates from the [radial controls](#radial-stamp-profiles-and-pattern-generators), both scalar profiles predict all 4,096 samples at each of four variations. Absolute stamp placement, signed blending and the order of variation and color tint affect the full-render results. For shape 17 at (0,0), variation .25, the tinted reference red/green channels are .253662109375/.2518310546875 and the current channels are .120849609375/.0604248046875.
+
+| Inventory root | Renders | Exact / compared | Maximum U8 / U16 | Maximum F16 / F32 |
+|---|---:|---:|---:|---:|
+| creased.sbs/creased | 9 | 41,224/132,096 | 1 / 632 | 0.00048828125 / 0.000534534454 |
+| crystal_2.sbs/crystal_2 | 9 | 102,021/132,096 | 13 / 4663 | 0.0494384766 / 0.0494220853 |
+| fluid.sbs/fluid | 9 | 295/132,096 | 52 / 33520 | 0.20111084 / 0.201334268 |
+| make_it_tile_patch.sbs/make_it_tile_patch | 9 | 12,322/132,096 | 196 / 47176 | 0.719848633 / 0.719859615 |
+| make_it_tile_patch_grayscale.sbs/make_it_tile_patch_grayscale | 9 | 19,086/132,096 | 144 / 26181 | 0.399658203 / 0.459052384 |
+| mesh_1.sbs/mesh_1 | 9 | 38,454/132,096 | 0 / 544 | 0 / 1.52587891e-05 |
+| mesh_2.sbs/mesh_2 | 9 | 34,148/132,096 | 0 / 1102 | 0 / 1.52606517e-05 |
+| messy_fibers_3.sbs/messy_fibers_3 | 9 | 126,928/132,096 | 1 / 3 | 0.0009765625 / 5.23328781e-05 |
+| noise_creased.sbs/creased | 9 | 37,716/132,096 | 1 / 775 | 0.00048828125 / 0.000442534685 |
+| noise_crystal_2.sbs/crystal_2 | 9 | 41,321/132,096 | 1 / 620 | 0.005859375 / 0.00588941574 |
+| noise_directional_scratches.sbs/directional_scratches | 9 | 111,002/132,096 | 1 / 1 | 0.00048828125 / 5.30481339e-06 |
+| noise_directional_scratches_v2.sbs/directional_scratches | 9 | 129,384/132,096 | 1 / 1 | 0.000122070312 / 6.22868538e-06 |
+| noise_dirt_3.sbs/dirt_3 | 9 | 106,101/132,096 | 1 / 3 | 0.00048828125 / 3.20076942e-05 |
+
+These nine-render comparisons include the original archived defaults, seed and changed setting, the 64² four-format sweep and the independent 32² case from the [inventory measurements](#four-format-inventory-comparison). In the 32² comparison Mesh 1 improved from 0 to 1,020 exact, Mesh 2 from 48 to 992, Messy Fibers 3 from 1 to 48 and Noise Creased from 0 to 136, each out of 1,024. All thirteen roots retain measured differences.
+
 ### Radial stamp profiles and pattern generators
 
 A single stamp in an original grayscale pattern graph isolates the local profile. For each shape, use a centered stamp of size (1,1), then a quarter-turn, then size (1.375,.6875) at .0625 turns with offset (.109375,−.1875). Render at 16² F32/seed 433, 32² F32/127, 64² in U8, U16, F16 and F32/733, and 128² F32/983. The counts compare stored pixels for all 21 renders per shape.

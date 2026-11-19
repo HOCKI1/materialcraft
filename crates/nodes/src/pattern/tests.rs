@@ -45,6 +45,30 @@ fn wave_frequency_and_radial_falloff_follow_stamp_coordinates() {
     assert_eq!(super::shape::coverage(11, 0.0, 0.5, 0.25).unwrap(), 0.75);
 }
 
+#[test]
+fn stamp_profiles_follow_the_radial_and_horizontal_falloffs() {
+    // Two samples on the low-coverage skirt distinguish the signed quartic from a clamped falloff.
+    for (shape, x, y, variation, bits) in [
+        (7, 0xbf0c0000, 0xbd40000f, 0.0, 0x3d29a3c2),
+        (12, 0xbeb80001, 0xbef80001, 0.25, 0x3e27c967),
+        (12, 0x3ec7fffd, 0xbec80001, 0.25, 0x3ddfc34c),
+        (12, 0x3f3bfffe, 0x3f2bfffe, 0.25, 0xadf38c4f),
+        (13, 0xbf3c0000, 0x3f2bfffe, 0.25, 0xb1cb84a4),
+        (13, 0x3ec7fffd, 0xbec80001, 0.25, 0x3db1415d),
+        (14, 0xbeb80001, 0xbef80001, 0.0, 0x3f40da6b),
+        (14, 0x3ec7fffd, 0xbec80001, 0.25, 0x3c774318),
+        (15, 0x3e4ffffb, 0x3c7fffbf, 0.0, 0x3e2e002d),
+        (15, 0x3e4ffffb, 0x3c7fffbf, 0.25, 0x3f7e2c09),
+        (16, 0xbe880001, 0xbf740000, 0.0, 0x3c2ce9c0),
+        (17, 0x3ec7fffd, 0xbec80001, 0.5, 0x3f990000),
+        (18, 0x3ec7fffd, 0xbec80001, 0.25, 0x3f8ab222),
+        (18, 0xbf7c0000, 0xbf7c0000, 0.25, 0x00000000),
+    ] {
+        let value = super::shape::coverage(shape, f32::from_bits(x), f32::from_bits(y), variation).unwrap();
+        assert_eq!(value.to_bits(), bits, "shape {shape} at ({x:08x}, {y:08x})");
+    }
+}
+
 fn cook(graph: PatternGraph) -> crate::CookResult {
     cook_with_variables(graph, &BTreeMap::new(), 7)
 }

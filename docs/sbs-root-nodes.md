@@ -35,7 +35,7 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **342 Parity**, **55 In progress** and **149 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **342 Parity**, **59 In progress** and **145 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
 
 [Grayscale sampler measurements](parity-fixes.md#grayscale-sampling-of-color-inputs) · [Value sampling across 240 typed comparisons](parity-fixes.md#value-processor-texture-filtering)
 
@@ -262,8 +262,8 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [mean_of_least_variance.sbs/mlv_grayscale_iteration](../assets/sbs/mean_of_least_variance.sbs) | 1 | Yes | [Parity · 171,264 exact pixels across 18 renders](parity-fixes.md#color-conversion-gradient-height-and-histogram-controls) |
 | [median_filter.sbs/median_filter_color](../assets/sbs/median_filter.sbs) | 1 | No | [Parity · 171,264 exact pixels across 18 renders](parity-fixes.md#color-conversion-gradient-height-and-histogram-controls) |
 | [median_filter.sbs/median_filter_grayscale](../assets/sbs/median_filter.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
-| [mesh_1.sbs/mesh_1](../assets/sbs/mesh_1.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [mesh_2.sbs/mesh_2](../assets/sbs/mesh_2.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [mesh_1.sbs/mesh_1](../assets/sbs/mesh_1.sbs) | 0 | Yes | [In progress · 38,454/132,096 pixels across 9 renders](parity-fixes.md#directional-and-additive-stamp-profiles) |
+| [mesh_2.sbs/mesh_2](../assets/sbs/mesh_2.sbs) | 0 | Yes | [In progress · 34,148/132,096 pixels across 9 renders](parity-fixes.md#directional-and-additive-stamp-profiles) |
 | [mesh_adaptive_base_color.sbs/base_color_2_inputs](../assets/sbs/mesh_adaptive_base_color.sbs) | 2 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [mesh_adaptive_base_color.sbs/base_color_4_inputs](../assets/sbs/mesh_adaptive_base_color.sbs) | 2 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [mesh_adaptive_base_color.sbs/base_color_8_inputs](../assets/sbs/mesh_adaptive_base_color.sbs) | 2 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
@@ -273,7 +273,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [mesh_data_combiner.sbs/mesh_data_combiner](../assets/sbs/mesh_data_combiner.sbs) | 11 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [messy_fibers_1.sbs/messy_fibers_1](../assets/sbs/messy_fibers_1.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [messy_fibers_2.sbs/messy_fibers_2](../assets/sbs/messy_fibers_2.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [messy_fibers_3.sbs/messy_fibers_3](../assets/sbs/messy_fibers_3.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [messy_fibers_3.sbs/messy_fibers_3](../assets/sbs/messy_fibers_3.sbs) | 0 | Yes | [In progress · 126,928/132,096 pixels across 9 renders](parity-fixes.md#directional-and-additive-stamp-profiles) |
 | [messy_fibers_4.sbs/messy_fibers_4](../assets/sbs/messy_fibers_4.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [microscope_view.sbs/microscope_view](../assets/sbs/microscope_view.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [min_max.sbs/min_max](../assets/sbs/min_max.sbs) | 1 | No | [Parity · both scalar outputs exact in 25 cases](parity-fixes.md#color-temperature-range-reductions-sky-parameters-and-polygon-paths) |
@@ -299,7 +299,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [noise_clouds_1_v2.sbs/clouds_1](../assets/sbs/noise_clouds_1_v2.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [noise_clouds_2.sbs/clouds_2](../assets/sbs/noise_clouds_2.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [noise_clouds_2_v2.sbs/clouds_2](../assets/sbs/noise_clouds_2_v2.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [noise_creased.sbs/creased](../assets/sbs/noise_creased.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [noise_creased.sbs/creased](../assets/sbs/noise_creased.sbs) | 0 | No | [In progress · 37,716/132,096 pixels across 9 renders](parity-fixes.md#directional-and-additive-stamp-profiles) |
 | [noise_crystal_1.sbs/crystal_1](../assets/sbs/noise_crystal_1.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [noise_crystal_2.sbs/crystal_2](../assets/sbs/noise_crystal_2.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [noise_directional_noise_1.sbs/directional_noise_1](../assets/sbs/noise_directional_noise_1.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
