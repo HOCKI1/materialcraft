@@ -32,7 +32,7 @@ pub(super) const FILTERS: &[FilterMap] = &[
         sbs: "distance",
         def: "distance",
         inputs: &[("mask", "mask"), ("source", "source")],
-        params: &[("distance", "distance"), ("combinedistance", "combine"), ("distancemode", "metric")],
+        params: &[("distance", "distance"), ("combinedistance", "combine"), ("distancemode", "metric"), ("colorswitch", "color_mode")],
     },
     FilterMap {
         sbs: "emboss",

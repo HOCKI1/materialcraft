@@ -9,10 +9,20 @@ fn cook(mask: Image, source: Option<Image>, tile: bool, combine: bool, distance:
 }
 
 fn cook_metric(mask: Image, source: Option<Image>, tile: bool, combine: bool, distance: f32, metric: u32) -> Image {
+    let color = source.as_ref().is_some_and(|image| !image.is_gray());
+    cook_mode(mask, source, tile, combine, distance, metric, color)
+}
+
+fn cook_mode(mask: Image, source: Option<Image>, tile: bool, combine: bool, distance: f32, metric: u32, color: bool) -> Image {
     let def = find("distance").unwrap();
     let params = resolve_params(
         def,
-        &BTreeMap::from([("distance".into(), Value::Float(distance)), ("combine".into(), Value::Bool(combine)), ("metric".into(), Value::Enum(metric))]),
+        &BTreeMap::from([
+            ("distance".into(), Value::Float(distance)),
+            ("combine".into(), Value::Bool(combine)),
+            ("metric".into(), Value::Enum(metric)),
+            ("color_mode".into(), Value::Bool(color)),
+        ]),
     );
     let (w, h) = (mask.width(), mask.height());
     let inputs = [Some(mask), source];
@@ -31,6 +41,23 @@ fn cook_metric(mask: Image, source: Option<Image>, tile: bool, combine: bool, di
         vars: &vars,
     };
     (def.cook)(&ctx).unwrap().remove(0)
+}
+
+#[test]
+fn distance_color_selection_controls_empty_sources_and_channel_mismatches() {
+    let mask = Image::gray(32, 32, |x, y| if (x, y) == (16, 16) { 1.0 } else { 0.0 });
+    let gray = cook(mask.clone(), None, true, true, 31.0);
+    for combine in [true, false] {
+        let color = cook_mode(mask.clone(), None, true, combine, 31.0, 0, true);
+        assert_eq!(color.kind(), Kind::Color);
+        assert_eq!(color.data(), gray.to_color().data());
+    }
+    for (source_kind, color) in [(Kind::Color, false), (Kind::Gray, true)] {
+        let source = Image::filled(32, 32, source_kind, [0.75; 4]);
+        let output = cook_mode(mask.clone(), Some(source), true, true, 31.0, 0, color);
+        assert_eq!(output.kind(), if color { Kind::Color } else { Kind::Gray });
+        assert!(output.data().iter().all(|v| v.to_bits() == 0));
+    }
 }
 
 #[test]
@@ -69,6 +96,19 @@ fn alternative_distance_metrics_use_the_quantized_site_center() {
     for (metric, bits) in [(1, 0x3f29_5041u32), (2, 0x3f54_a816)] {
         let image = cook_metric(mask.clone(), None, false, true, 47.25, metric);
         assert_eq!(image.get_gray(3, 4, false).to_bits(), bits);
+    }
+}
+
+#[test]
+fn distance_keeps_the_current_source_texel_at_the_radius() {
+    let mask = Image::gray(32, 32, |x, y| if (x, y) == (16, 16) { 1.0 } else { 0.0 });
+    let source = Image::gray(32, 32, |x, y| if (x, y) == (16, 16) { 0.8125 } else { -0.109375 });
+    for tile in [false, true] {
+        for (combine, expected) in [(false, -0.109375f32), (true, -0.0f32)] {
+            let image = cook_metric(mask.clone(), Some(source.clone()), tile, combine, 16.0, 1);
+            assert_eq!(image.get_gray(14, 16, false).to_bits(), expected.to_bits());
+            assert_eq!(image.get_gray(16, 16, false), 0.8125);
+        }
     }
 }
 

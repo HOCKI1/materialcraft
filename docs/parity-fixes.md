@@ -392,6 +392,23 @@ For each of the three shapes, repeat the linear sweep on each axis using these s
 | 64 | (.8125,1,.625) | .34375 | .375 | (0,0,.25) | 269 |
 | 32 | (1,.3125,.75) | .75 | .21875 | (.0625,−.125,.1875) | 312 |
 
+### Distance output channels, axis wrapping and cutoffs
+
+| Original controls | Renders | Exact pixels / compared | Maximum U8 / U16 levels | Maximum F16 / F32 error |
+|---|---:|---:|---:|---:|
+| Unconnected source, both output kinds and both Combine settings | 64 | 294,912/294,912 | 0 / 0 | 0 / 0 |
+| Connected source with the opposite output kind | 14 | 21,504/21,504 | 0 / 0 | 0 / 0 |
+| Connected source with static axis wrapping | 56 | 86,012/86,016 | 28 / 7,248 | .110534668 / .110588416 |
+| Single-center cutoff, both settings of Combine | 168 | 258,048/258,048 | — | — / 0 |
+
+Without a source, grayscale returns the distance ramp and color returns the same ramp in RGB with alpha one. Connecting a grayscale source to color output, or RGBA to grayscale output, returns zeros in every requested channel. These 46 color or conflicting-source renders previously returned the wrong channel count. For the first row use 32² tiled and 64×128 open masks. Test empty, full and single-corner masks at strength zero, a sparse mask at 79.5, and a center site at 31. Use seed 179+37j, j from zero. Run F32 for each, and also U8, U16 and F16 for the sparse field. Use the [mask and source formulas](#connected-distance-sources-and-cellular-patterns).
+
+For the next two rows, use 32² gray and 64×32 RGBA sources. Combine is on. Use empty, full, corner and sparse F32 masks, then repeat the sparse mask as F16, U16 and U8. For the conflicting kinds retain the connected controls' strengths 31, 31, 32 and 41.375 for those four mask layouts. For static controls use a matching source, constant strength 47.25 and the four wrapping settings. Use seeds 307+19j in each group. Static tiling previously matched 77,637/86,016 pixels. The four remaining differences are the same sparse gray texel (31,18) with Y wrapping alone. Its F32 values are .113228783 in MaterialCraft and .223817199 in the reference.
+
+For the cutoff row place a site at the center of each source size and choose radii .25, 1, 2, 3, 4, 8 and 16 pixels at seeds 509+23j. Set strength to radius×256/min(W,H). Test Euclidean, Manhattan and Chebyshev distances with both axes open or both tiled. Exactly at the radius, the source comes from the current texel. For example, at (14,16) in the 32² Manhattan case with radius 2, the gray output with Combine off is −.109375 before gray-input conversion. With Combine on the stored F32 result is negative zero. Including the boundary in the spread previously matched 257,890/258,048 pixels with maximum error 1.1875.
+
+The [connected-source and cellular measurements](#connected-distance-sources-and-cellular-patterns) retain 184,320/184,320 exact pixels on the matching-source format matrix. The mixed metric matrix now matches 630,768/630,784, maximum F32 error .096614778. The 16 residuals are on sparse wrapped masks. The radius sweep retains 950,270/950,272, maximum .765625. Directional distance still matches 342,528/342,528 across both outputs. The two Cells 4 roots still match 19,151 and 15,949 of 173,312 pixels respectively, with their first difference at the scatter map.
+
 ### Connected distance sources and cellular patterns
 
 A connected distance source supplies the nearest qualifying site's texel inside the radius and the current texel beyond it. With Combine enabled the gray channel or the alpha channel is attenuated. RGB remains the sampled site's color inside the radius and the current texel's color outside. The 120 gray and RGBA controls below previously matched 64,706/184,320 pixels. Maximum errors were 255 U8 levels, 65,535 U16 levels and 1.859375 in F16 and F32.

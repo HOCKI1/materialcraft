@@ -382,6 +382,23 @@ fn distance_metric_survives_a_package_round_trip() {
 }
 
 #[test]
+fn distance_preserves_declared_grayscale_and_color_outputs_when_the_switch_is_omitted() {
+    let xml = br#"<package><content><graph><identifier v="Distance outputs"/><compNodes>
+        <compNode><uid v="10"/><compOutputs><compOutput><uid v="11"/><comptype v="1"/></compOutput></compOutputs>
+        <compImplementation><compFilter><filter v="distance"/></compFilter></compImplementation></compNode>
+        <compNode><uid v="20"/><compOutputs><compOutput><uid v="21"/><comptype v="2"/></compOutput></compOutputs>
+        <compImplementation><compFilter><filter v="distance"/></compFilter></compImplementation></compNode>
+        </compNodes></graph></content></package>"#;
+    let loaded = read_sbs(xml, "distances.sbs", &no_linked_files).unwrap().pkg;
+    let saved = write_sbs(&loaded).unwrap();
+    let again = read_sbs(&saved, "distances.sbs", &no_linked_files).unwrap().pkg;
+    for package in [&loaded, &again] {
+        let colors: Vec<_> = package.graphs[0].nodes.iter().filter_map(|node| node.params.get("color_mode").and_then(Value::as_bool)).collect();
+        assert_eq!(colors, [true, false]);
+    }
+}
+
+#[test]
 fn image_output_types_follow_color_mode_and_blended_inputs() {
     let mut package = Package::new("Channels");
     let mut graph = Graph::new("Channels");

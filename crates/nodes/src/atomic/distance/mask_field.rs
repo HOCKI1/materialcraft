@@ -151,7 +151,7 @@ pub(super) fn render(mask: &Image, source: Option<&Image>, radius: f32, tile: [b
     };
     Ok(Image::generate(width, height, source.kind(), |x, y| {
         let (site, distance) = site_distance(x, y);
-        let pixel = if distance <= radius { source.get(site[0].into(), site[1].into(), false) } else { source.get(x.into(), y.into(), false) };
+        let pixel = if distance < radius { source.get(site[0].into(), site[1].into(), false) } else { source.get(x.into(), y.into(), false) };
         if !combine {
             return pixel;
         }
