@@ -39,6 +39,8 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 
 [Pattern tiling axes and copy bounds across 215 renders](parity-fixes.md#tiling-axes-and-pattern-copy-bounds) · [Grayscale sampler measurements](parity-fixes.md#grayscale-sampling-of-color-inputs) · [Value sampling across 240 typed comparisons](parity-fixes.md#value-processor-texture-filtering) · [Five saved graphs reopened in the reference](parity-fixes.md#saved-filter-graphs-and-scalar-levels-controls)
 
+Pattern center culling matched all 356,352 pixels across 204 renders. Background-only resizing matched all 150,528 pixels across 84 renders. Two RGBA32F pixels still differ underneath a drawn square. [Pattern backgrounds, saved graphs and affected roots](parity-fixes.md#pattern-backgrounds-and-center-culling)
+
 [Unconnected function arguments](parity-fixes.md#unconnected-function-arguments) records the measured difference between open ports and authored defaults.
 
 [Runtime square-root measurements](parity-fixes.md#runtime-pixel-square-roots) cover both exponent parities and the signed domain.
@@ -288,7 +290,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [noise_anisotropic_noise.sbs/anisotropic_noise](../assets/sbs/noise_anisotropic_noise.sbs) | 0 | Yes | [Parity · 18 renders, all 171,264 pixels exact](parity-fixes.md#quarter-turn-directional-blur) |
 | [noise_anisotropic_noise_v2.sbs/anisotropic_noise_v2](../assets/sbs/noise_anisotropic_noise_v2.sbs) | 0 | No | [Parity · 18 renders, all 171,264 pixels exact](parity-fixes.md#high-pass-anisotropic-noise-and-triangle-grid-controls) |
 | [noise_bnw_spots_1.sbs/bnw_spots_1](../assets/sbs/noise_bnw_spots_1.sbs) | 0 | Yes | [In progress · all nine renders cook, 3,216/132,096 exact pixels](parity-fixes.md#empty-size-dependent-pattern-branches) |
-| [noise_bnw_spots_1_v2.sbs/bnw_spots_1](../assets/sbs/noise_bnw_spots_1_v2.sbs) | 0 | No | [In progress · all nine renders cook, 35,010/132,096 exact pixels](parity-fixes.md#empty-size-dependent-pattern-branches) |
+| [noise_bnw_spots_1_v2.sbs/bnw_spots_1](../assets/sbs/noise_bnw_spots_1_v2.sbs) | 0 | No | [In progress · nine renders, 41,745/132,096 exact pixels](parity-fixes.md#pattern-backgrounds-and-center-culling) |
 | [noise_bnw_spots_3.sbs/bnw_spots_3](../assets/sbs/noise_bnw_spots_3.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [noise_bnw_spots_3_v2.sbs/bnw_spots_3](../assets/sbs/noise_bnw_spots_3_v2.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [noise_cells_1.sbs/cells_1](../assets/sbs/noise_cells_1.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |

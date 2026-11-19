@@ -129,6 +129,7 @@ pub(super) const FILTERS: &[FilterMap] = &[
             ("opacitymult", "opacity"),
             ("renderroi", "render_region"),
             ("tilingroi", "tiling_region"),
+            ("culling", "cull_outside"),
         ],
     },
 ];

@@ -4,6 +4,7 @@ use std::sync::Arc;
 
 use super::{bitmap, pattern_stamp::PatternStamp, region::Region, shape};
 use crate::CookContext;
+use crate::atomic::input_resize::{InputResize, resized_input};
 
 const MAX_SAMPLES: u64 = 256_000_000;
 const MAX_STAMP_COPIES: u64 = 1_048_576;
@@ -12,14 +13,17 @@ const MIN_STAMP_SIZE: f32 = 1e-8;
 pub(super) fn render(context: &CookContext, stamps: &[PatternStamp], max_depth: u32) -> Result<Image, String> {
     let (width, height) = craft_texture::clamp_size(context.w, context.h);
     let kind = if context.b("color_mode") { Kind::Color } else { Kind::Gray };
-    let mut background = context.input(0).map(|image| image.resize(width, height, context.tile)).unwrap_or_else(|| {
-        let mut color = context.v4("background");
-        if kind == Kind::Gray {
-            color[0] = (color[0] + color[1] + color[2]) / 3.0;
-        }
-        Image::filled(width, height, kind, color)
-    });
-    background = if kind == Kind::Gray { background.to_gray() } else { background.to_color() };
+    let background = if context.input(0).is_some_and(|image| image.kind() != kind) {
+        Image::filled(width, height, kind, [0.0; 4])
+    } else {
+        resized_input(context, 0, InputResize::Filter).unwrap_or_else(|| {
+            let mut color = context.v4("background");
+            if kind == Kind::Gray {
+                color[0] = (color[0] + color[1] + color[2]) / 3.0;
+            }
+            Image::filled(width, height, kind, color)
+        })
+    };
     if stamps.is_empty() {
         return Ok(background);
     }
@@ -38,9 +42,10 @@ pub(super) fn render(context: &CookContext, stamps: &[PatternStamp], max_depth: 
     let span = render_region.period();
     let pixel_size = [span[0] / width as f32, span[1] / height as f32];
     let axes = context.tiling_axes();
+    let cull_outside = context.b("cull_outside");
     let mut tiling = context.v4("tiling_region");
     for (interval, enabled) in tiling.as_chunks_mut::<2>().0.iter_mut().zip(axes) {
-        if !enabled {
+        if !enabled && !cull_outside {
             *interval = [0.0, 1.0];
         }
     }
@@ -53,7 +58,8 @@ pub(super) fn render(context: &CookContext, stamps: &[PatternStamp], max_depth: 
             return Err("pattern parameters must be finite".into());
         }
 
-        if stamp.size.iter().any(|size| size.abs() < MIN_STAMP_SIZE) {
+        // Check the original center before wrapping can move it back inside the tiling region.
+        if (cull_outside && !tile_region.contains(stamp.center)) || stamp.size.iter().any(|size| size.abs() < MIN_STAMP_SIZE) {
             continue;
         }
 

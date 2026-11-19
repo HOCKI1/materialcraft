@@ -7,6 +7,10 @@ fn render(region: [f32; 4], tiling: [f32; 4], tile: bool) -> materialcraft_nodes
 }
 
 fn render_stamp(region: [f32; 4], tiling: [f32; 4], axes: i32, offset: [f32; 2], size: [f32; 2]) -> materialcraft_nodes::CookResult {
+    render_culled_stamp(region, tiling, axes, offset, size, false)
+}
+
+fn render_culled_stamp(region: [f32; 4], tiling: [f32; 4], axes: i32, offset: [f32; 2], size: [f32; 2], cull: bool) -> materialcraft_nodes::CookResult {
     let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
     graph.nodes[0].parameters.insert("patterntype".into(), Value::Int(2));
     graph.nodes[0].parameters.insert("patternsize".into(), Value::Float2(size));
@@ -16,6 +20,7 @@ fn render_stamp(region: [f32; 4], tiling: [f32; 4], axes: i32, offset: [f32; 2],
         definition,
         &BTreeMap::from([
             ("pattern".into(), Value::PatternGraph(Box::new(graph))),
+            ("cull_outside".into(), Value::Bool(cull)),
             ("render_region".into(), Value::Float4(region)),
             ("tiling_region".into(), Value::Float4(tiling)),
         ]),
@@ -87,4 +92,59 @@ fn degenerate_regions_and_excessive_repetition_return_errors() {
     assert!(render([0.0; 4], identity, true).is_err());
     assert!(render(identity, [0.0; 4], true).is_err());
     assert!(render(identity, [0.0, 1e-9, 0.0, 1e-9], true).is_err());
+}
+
+#[test]
+fn center_culling_uses_both_original_coordinates_before_repetition() {
+    let unit = [0.0, 1.0, 0.0, 1.0];
+    let region = [0.25, 0.75, 0.125, 0.875];
+    for mask in 0..=3 {
+        for (center, visible) in [
+            ([0.25, 0.625], true),
+            ([0.24902344, 0.625], false),
+            ([0.75, 0.625], false),
+            ([0.625, 0.125], true),
+            ([0.625, 0.875], false),
+            ([1.0625, 0.4375], false),
+        ] {
+            let image = render_culled_stamp(unit, region, mask, center.map(|v| v - 0.5), [0.484375, 0.40625], true).unwrap().remove(0);
+            assert_eq!(image.mean()[0] > 0.0, visible, "mask {mask}, center {center:?}");
+        }
+    }
+}
+
+#[test]
+fn a_pattern_background_filters_stored_levels_and_requires_matching_channels() {
+    use craft_texture::{Image, Kind};
+    use materialcraft_core::OutputFormat;
+    use materialcraft_nodes::output_precision;
+
+    let definition = find("fx_map").unwrap();
+    let field = Image::gray(32, 32, |x, y| (((17 * x + 113 * y + 59 * x * y + 19) * 7919) % 65536) as f32 / 65535.0);
+    let images = [Some(output_precision::apply(field, OutputFormat::U16))];
+    for color in [false, true] {
+        let params = resolve_params(
+            definition,
+            &BTreeMap::from([("color_mode".into(), Value::Bool(color)), ("background".into(), Value::Float4([0.125, 0.375, 0.8125, 0.25]))]),
+        );
+        let ctx = CookContext {
+            w: 8,
+            h: 8,
+            seed: 15709,
+            format: OutputFormat::U8,
+            tile: true,
+            vars: &BTreeMap::new(),
+            resource: &|_| None,
+            input_formats: &[OutputFormat::U16],
+            inputs: &images,
+            params: &params,
+        };
+        let image = output_precision::apply((definition.cook)(&ctx).unwrap().remove(0), OutputFormat::U8);
+        if color {
+            assert_eq!(image.kind(), Kind::Color);
+            assert!(image.data().iter().all(|&v| v == 0.0));
+        } else {
+            assert_eq!([2, 5].map(|x| (255.0 * image.get_gray(x, 0, false)).round() as u8), [146, 140]);
+        }
+    }
 }

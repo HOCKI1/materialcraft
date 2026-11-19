@@ -3,13 +3,13 @@ use craft_texture::{Image, Kind};
 use materialcraft_core::OutputFormat;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
-pub(super) enum InputResize {
+pub(crate) enum InputResize {
     Copy,
     Filter,
     Levels,
 }
 
-pub(super) fn resized_input(context: &CookContext, port: usize, mode: InputResize) -> Option<Image> {
+pub(crate) fn resized_input(context: &CookContext, port: usize, mode: InputResize) -> Option<Image> {
     resized_texture(context, port, mode).map(|(image, _)| image)
 }
 

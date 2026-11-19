@@ -46,6 +46,7 @@ fn fx_map_render_and_tiling_regions_keep_native_names_and_functions() {
         <paramNode><uid v="2"/><function v="const_float4"/><funcDatas><funcData><name v="const_float4"/>
         <constantValueFloat4 v="0 0.5 0 1"/></funcData></funcDatas></paramNode></paramNodes></dynamicValue></paramValue></parameter>
         <parameter><name v="tilingroi"/><paramValue><constantValueFloat4 v="0 2 0 1"/></paramValue></parameter>
+        <parameter><name v="culling"/><paramValue><constantValueBool v="1"/></paramValue></parameter>
         </parameters></compFilter></compImplementation></compNode></compNodes></graph></content></package>"#;
     let mut read = read_sbs(xml, "regions.sbs", &|_| None).unwrap();
     for _ in 0..2 {
@@ -53,12 +54,14 @@ fn fx_map_render_and_tiling_regions_keep_native_names_and_functions() {
 
         let node = &read.pkg.graphs[0].nodes[0];
 
+        assert_eq!(node.params["cull_outside"], Value::Bool(true));
         assert_eq!(node.params["tiling_region"], Value::Float4([0.0, 2.0, 0.0, 1.0]));
         assert_eq!(node.functions["render_region"].nodes[0].value, Some(Value::Float4([0.0, 0.5, 0.0, 1.0])));
 
         let bytes = write_sbs(&read.pkg).unwrap();
         let saved = std::str::from_utf8(&bytes).unwrap();
 
+        assert!(saved.contains("<name v=\"culling\"/>"));
         assert!(saved.contains("<name v=\"renderroi\"/>") && saved.contains("<name v=\"tilingroi\"/>"));
 
         read = read_sbs(&bytes, "saved.sbs", &|_| None).unwrap();

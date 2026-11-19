@@ -1,26 +1,32 @@
 /// FX-Map regions use left, right, top, bottom coordinates in pattern space.
 pub(super) struct Region {
     start: [f32; 2],
+    end: [f32; 2],
     span: [f32; 2],
 }
 
 impl Region {
     pub fn new(value: [f32; 4]) -> Result<Self, String> {
-        let start = [value[0], value[2]];
-        let span = [value[1] - value[0], value[3] - value[2]];
+        let mut start = [value[0], value[2]];
+        let mut end = [value[1], value[3]];
+        let mut span = [end[0] - start[0], end[1] - start[1]];
         if value.iter().any(|value| !value.is_finite()) || span.iter().any(|value| !value.is_finite() || value.abs() < f32::EPSILON) {
             return Err("pattern regions must be finite with nonzero width and height".into());
         }
 
-        let mut region = Self { start, span };
-        for (start, span) in region.start.iter_mut().zip(&mut region.span) {
-            if *span < 0.0 {
+        for axis in 0..2 {
+            if span[axis] < 0.0 {
                 // A reversed interval selects the full axis in pattern space.
-                *start = 0.0;
-                *span = 1.0;
+                start[axis] = 0.0;
+                end[axis] = 1.0;
+                span[axis] = 1.0;
             }
         }
-        Ok(region)
+        Ok(Self { start, end, span })
+    }
+
+    pub fn contains(&self, point: [f32; 2]) -> bool {
+        point.into_iter().enumerate().all(|(axis, value)| (self.start[axis]..self.end[axis]).contains(&value))
     }
 
     pub fn point(&self, pixel: [u32; 2], size: [u32; 2]) -> [f32; 2] {
@@ -55,7 +61,7 @@ impl Region {
             let radius = f64::from(radius[axis]);
             // A copy must overlap both windows. Touching an edge alone does not draw it.
             let first = ((start.max(visible) - center - radius) / period).floor() + 1.0;
-            let last = (((start + period).min(visible + f64::from(render.span[axis])) - center + radius) / period).ceil() - 1.0;
+            let last = ((f64::from(self.end[axis].min(render.end[axis])) - center + radius) / period).ceil() - 1.0;
 
             // A tiny period or huge pattern cannot create unbounded work, even outside the image
             let coordinates = f64::from(i32::MIN)..=f64::from(i32::MAX);
