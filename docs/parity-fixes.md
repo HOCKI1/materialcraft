@@ -824,6 +824,34 @@ All 7,680 direct-light density pixels in the [density controls](#volume-density-
 
 Read out named values immediately after initialization and after the first volume step on the 16² thin, 16² dithered, 32² thick and 32² varying-density F32 cases. For environment light the initial ray position, ray direction, noise input, dithering, step size and accumulated depth are each exact at 2,560/2,560. After one step the position and depth each match 1,280/2,560, maximum 1.96305132. Scattered light and transmission match 1,280/2,560, maximum .0574402809. For direct light the initial light color improved from 0/2,560 to 2,560/2,560 exact. Direction, ambient color, noise, step size, first position and first depth are also exact. First-step scattering and transmission match 2,560/2,560, maximum 0. The two light roots remain in progress.
 
+### Undefined quotients in a unit interval and panorama spot lighting
+
+| Output | Renders | Exact stored pixels / compared | Maximum error |
+|---|---:|---:|---:|
+| Panorama spot | 36 | 189,696/189,696 | 0 |
+| Eight intermediate spot outputs, F32 | 24 | 24,576/24,576 | 0 |
+| Inlined and called scalar intervals | 120 | 168,960/168,960 | 0 |
+| Operand order, shared reads, signed zero and computed bounds | 66 | 92,928/92,928 | 0 |
+| Single minimum or maximum, called and inline | 24 | 33,792/33,792 | 0 |
+
+The panorama spot matches 165,120 F32 pixels and 8,192 pixels in each of U8, U16 and F16. The preceding build matched 188,736/189,696, maximum 3.91726637 in F32. With a zero-size hotspot, its numerator matches at every pixel. Dividing it by zero and then evaluating max(0,min(x,1)) produced a weight of one in MaterialCraft and zero in the reference. Those 1,024 intermediate weights now match. For example, at (5,3) in the 32² border case the red output changed from 6.26762629 to 2.35035992. At hotspot size 2⁻¹² and .4375 the same intermediate was already exact.
+
+In a pixel function, a scalar clamp with literal bounds zero and one saturates NaN to positive zero. Returning the inner min(NaN,1) separately still gives one. Inline operands and explicitly bound function arguments both exhibit this behavior. The .25 to .75 interval returns .75 for NaN in the same operation order. Runtime bounds supplied through the texture also keep their individual minimum and maximum behavior.
+
+For the 36 spot renders, start with the four archive and five inventory comparisons. Define channel c of the original F32 texture as H=((37x+41y+7xy+61c+5xc) mod 509)/508. Use the defaults at 16²/43. At 64²/157 set the position to (.21875,.3125), scale .8125, color (.84375,.375,.59375), temperature 4,750, intensity 1.875 and border softness .34375. Set hotspot intensity 3.125, size .4375, falloff .65625 and position (.65625,.1875). Enable the input and the background, with color (.0625,.15625,.3125,.875). Render all four formats and repeat F32 at seed 751. The additional F32 settings are as follows.
+
+| Size / seed | Changes from the 64² case |
+|---|---|
+| 128² / 293 | Position (.984375,.4375), scale 2.625, hotspot (.03125,.84375) |
+| 32² / 347 | Position (.5,0), hotspot (.5,1), softness .9375, background disabled |
+| 32² / 431 | 32×16 source, softness, hotspot size and falloff zero, texture disabled |
+| 32² / 577 | Background and texture disabled |
+| 32² / 661 | Scale .125, hotspot size and falloff 1, temperature 8,800, texture 2.5H−.75 |
+
+For the final sixteen renders use the 32²/431 case. With a 32×16 source run all eight combinations of softness 0/.34375, size 0/.4375 and falloff 0/.65625. Repeat the all-zero and all-positive combinations with a 32² source. From the all-zero combination, change just one control per render. Set softness, size or falloff to 2⁻¹², disable the background, set hotspot intensity to zero, or set shape intensity to zero.
+
+For the independent clamp controls, choose a numerator and denominator by (x+3y+seed) mod 12 from (0,0), (1,0), (−1,0), (7,2), (−7,2), (.375,1), (.75,1), (−.25,1), (−0,−0), (1,−0), (−1,−0), (.5,2). Use 16²/83 and 64²/311 F32, and 32²/157 in all four formats. Try max(lower,min(q,upper)) and min(upper,max(q,lower)), unit and .25/.75 literal limits, and swapped operand orders. For varying limits choose (0,1), (.25,.75), (−.25,1.5), (−1,0), (0,1), (0,1), (.25,.5), (−.25,.25) by (5x+7y+seed) mod 8. Include zero and one formed by subtracting a texture component from itself and adding one. Separately expose the minimum or quotient in a second comparison, swap each bound, use negative zero, compute bounds from literals and form 0/0 with literals. For the single-extremum controls replace zero denominators with one wherever the numerator is nonzero. This retains NaNs and gives finite stored results after the selected minimum or maximum.
+
 ### Reverse polar sampling in color and grayscale
 
 The color and grayscale roots each match **306,688/306,688 pixels in 28 renders**, maximum error zero. Each matrix includes 126,976 U8, 12,288 U16, 12,288 F16 and 155,136 F32 pixels. Both use the same coordinate function and a bilinear image read. The coordinate function packs the radius-times-cosine and radius-times-sine products into two lanes before adding (.5,.5). In 19 color-field controls the build with scalar product forwarding matched 174,522/174,592 pixels, maximum .00390630960. The build with [independent vector product rounding](#vector-products-in-the-direct-light-pass) and the current build each match all 174,592.

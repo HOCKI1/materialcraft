@@ -16,6 +16,13 @@ pub struct EvaluationState {
 }
 
 impl EvaluationState {
+    pub(super) fn scalar_register(&self, index: usize) -> Option<f32> {
+        match self.registers.get(index)? {
+            Some(Value::Float(value)) => Some(*value),
+            _ => None,
+        }
+    }
+
     pub fn variables(&self) -> &BTreeMap<String, Value> {
         &self.variables
     }

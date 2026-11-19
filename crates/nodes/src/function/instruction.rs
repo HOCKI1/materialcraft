@@ -12,7 +12,35 @@ pub(crate) struct Instruction {
     /// A constant denominator folds to its rounded reciprocal even with a varying numerator.
     pub(super) literal_divisor: bool,
     pub(super) pixel_product_sum: Option<super::product_sum::ProductSum>,
+    /// Registers for max(lower, min(value, upper)) with literal scalar bounds.
+    pub(super) pixel_interval: Option<Box<PixelInterval>>,
     /// For a loop: the instructions of its condition and body, evaluated again on every iteration
     pub repeated: Vec<usize>,
     pub call: Option<super::function_call::FunctionCall>,
+}
+
+pub(super) struct PixelInterval {
+    pub input: usize,
+    pub lower: usize,
+    pub upper: usize,
+    pub input_is_literal: bool,
+}
+
+impl PixelInterval {
+    pub fn saturate(&self, state: &super::EvaluationState) -> Option<Value> {
+        if state.scalar_register(self.lower)? != 0.0 {
+            return None;
+        }
+        let input = state.scalar_register(self.input)?;
+        let upper = state.scalar_register(self.upper)?;
+        let value = if upper == 1.0 {
+            input
+        } else if self.input_is_literal && input == 1.0 {
+            upper
+        } else {
+            return None;
+        };
+        // Saturation maps NaN and both signed zeros to positive zero.
+        Some(Value::Float(if value > 0.0 { value.min(1.0) } else { 0.0 }))
+    }
 }

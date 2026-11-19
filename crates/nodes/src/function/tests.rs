@@ -704,6 +704,46 @@ fn pixel_atan2_reconstructs_the_quadrant_from_the_runtime_ratio() {
 }
 
 #[test]
+fn a_literal_unit_interval_saturates_an_undefined_pixel_quotient() {
+    let mut graph = FunctionGraph::default();
+    let variable = graph.add("get_float1", &[], Some(Value::Text("zero".into())));
+    let undefined = graph.add("div", &[variable, variable], None);
+    let zero = graph.add_constant(Value::Float(0.0));
+    let one = graph.add_constant(Value::Float(1.0));
+    let upper = graph.add("min", &[undefined, one], None);
+    let clamp = graph.add("max", &[zero, upper], None);
+    graph.output = Some(clamp);
+    let variables = BTreeMap::from([("zero".into(), Value::Float(0.0))]);
+    let context = EvaluationContext {
+        scope: super::FunctionScope::PixelProcessor,
+        position: [0.5; 2],
+        size: [1.0; 2],
+        images: &[],
+        image_formats: &[],
+        tile: true,
+        variables: &variables,
+    };
+    let pixel = |g: &FunctionGraph| compile(g, 0).unwrap().evaluate_pixel(&context, &mut EvaluationState::default()).unwrap();
+    assert_eq!(pixel(&graph), Value::Float(0.0));
+    graph.output = Some(graph.add("vector2", &[clamp, upper], None));
+    assert_eq!(pixel(&graph), Value::Float2([0.0, 1.0]));
+
+    let literal_undefined = graph.add("div", &[zero, zero], None);
+    let upper = graph.add("min", &[one, literal_undefined], None);
+    let negative_zero = graph.add_constant(Value::Float(-0.0));
+    graph.output = Some(graph.add("max", &[upper, negative_zero], None));
+    assert!(matches!(pixel(&graph), Value::Float(value) if value.to_bits() == 0));
+
+    let fractional = graph.add_constant(Value::Float(0.75));
+    let upper = graph.add("min", &[undefined, fractional], None);
+    graph.output = Some(graph.add("max", &[zero, upper], None));
+    assert_eq!(pixel(&graph), Value::Float(0.75));
+    let upper = graph.add("min", &[undefined, one], None);
+    graph.output = Some(graph.add("max", &[variable, upper], None));
+    assert_eq!(pixel(&graph), Value::Float(1.0));
+}
+
+#[test]
 fn pixel_division_multiplies_by_the_reciprocal() {
     let operands = [Value::Float(-2.7353475), Value::Float(1.7320508)];
     assert_eq!(pixel_operation("div", &operands, false), Value::Float(f32::from_bits(0xbfca24fb)));

@@ -112,6 +112,7 @@ fn compile_nested(graph: &FunctionGraph, seed: u32, depth: usize, remaining: &mu
                             literal: true,
                             literal_divisor: false,
                             pixel_product_sum: None,
+                            pixel_interval: None,
                             repeated: Vec::new(),
                             call: None,
                         });
@@ -168,6 +169,7 @@ fn compile_nested(graph: &FunctionGraph, seed: u32, depth: usize, remaining: &mu
             literal: false,
             literal_divisor: false,
             pixel_product_sum: None,
+            pixel_interval: None,
             repeated: Vec::new(),
             call,
         });
@@ -222,8 +224,34 @@ fn mark_literals(program: &mut Program, mut arguments: BTreeSet<&str>) -> super:
         }
         literals.push(op.literal);
     }
+    for index in 0..program.instructions.len() {
+        let (previous, current) = program.instructions.split_at_mut(index);
+        if let Some(op) = current.first_mut() {
+            op.pixel_interval = pixel_interval(op, previous).map(Box::new);
+        }
+    }
     super::product_sum::identify(&mut program.instructions);
     super::returned_product::identify(program, returned)
+}
+
+fn pixel_interval(op: &Instruction, previous: &[Instruction]) -> Option<super::instruction::PixelInterval> {
+    if op.definition.id != "max" || op.type_code != 256 {
+        return None;
+    }
+    let &[a, b] = op.inputs.as_slice() else { return None };
+    for (lower, inner) in [(a, b), (b, a)] {
+        let minimum = previous.get(inner)?;
+        if !previous.get(lower)?.literal || minimum.definition.id != "min" {
+            continue;
+        }
+        let &[x, y] = minimum.inputs.as_slice() else { continue };
+        for (input, upper) in [(x, y), (y, x)] {
+            if previous.get(upper)?.literal {
+                return Some(super::instruction::PixelInterval { input, lower, upper, input_is_literal: previous.get(input)?.literal });
+            }
+        }
+    }
+    None
 }
 
 /// The instructions the condition and the body of loop `index` evaluate again on every iteration

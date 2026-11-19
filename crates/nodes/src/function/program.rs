@@ -145,22 +145,23 @@ impl Program {
                 Apply { instruction: index, base } => {
                     let instruction = self.instruction(index)?;
                     let arguments = state.values.get(base..).ok_or("invalid function operands")?;
-                    let result = if let Some(product) = &instruction.pixel_product_sum
+                    let result = if context.scope == super::FunctionScope::PixelProcessor
+                        && let Some(value) = instruction.pixel_interval.as_deref().and_then(|interval| interval.saturate(state))
+                    {
+                        Ok(value)
+                    } else if let Some(product) = &instruction.pixel_product_sum
                         && context.scope == super::FunctionScope::PixelProcessor
                     {
                         product.evaluate(arguments, instruction.definition.id == "sub", state)
                     } else if let Some(call) = &instruction.call {
-                        let storage = state.calls.entry(index).or_default();
-                        storage.argument_factors = if let Some([a, b]) = call.argument_factors.filter(|_| context.scope == super::FunctionScope::PixelProcessor)
-                        {
-                            let factor = |i| match state.registers.get(i) {
-                                Some(Some(Value::Float(value))) => Ok(*value),
-                                _ => Err("missing scalar argument factor"),
-                            };
+                        let factors = if let Some([a, b]) = call.argument_factors.filter(|_| context.scope == super::FunctionScope::PixelProcessor) {
+                            let factor = |i| state.scalar_register(i).ok_or("missing scalar argument factor");
                             Some([factor(a)?, factor(b)?])
                         } else {
                             None
                         };
+                        let storage = state.calls.entry(index).or_default();
+                        storage.argument_factors = factors;
                         storage.variables.clone_from(&state.variables);
                         storage.variables.extend(call.defaults.clone());
                         for (name, value) in call.inputs.iter().zip(arguments) {

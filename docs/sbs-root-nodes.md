@@ -35,7 +35,7 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **318 Parity**, **52 In progress** and **176 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **319 Parity**, **52 In progress** and **175 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
 
 [Grayscale sampler measurements](parity-fixes.md#grayscale-sampling-of-color-inputs) · [Value sampling across 240 typed comparisons](parity-fixes.md#value-processor-texture-filtering)
 
@@ -389,7 +389,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [panorama_shape.sbs/panorama_shape](../assets/sbs/panorama_shape.sbs) | 1 | No | [Parity · 18 renders, all 171,264 pixels exact](parity-fixes.md#normal-maps-panoramas-and-primitive-shapes) |
 | [panorama_shape.sbs/panorama_shape_2](../assets/sbs/panorama_shape.sbs) | 2 | No | [Parity · 18 renders, all 171,264 pixels exact](parity-fixes.md#normal-maps-panoramas-and-primitive-shapes) |
 | [panorama_shape.sbs/panorama_sphere_light](../assets/sbs/panorama_shape.sbs) | 2 | No | [Parity · 171,264 exact pixels in 18 renders](parity-fixes.md#segment-mapping-and-normal-graph-rechecks) |
-| [panorama_shape.sbs/panorama_spot](../assets/sbs/panorama_shape.sbs) | 1 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [panorama_shape.sbs/panorama_spot](../assets/sbs/panorama_shape.sbs) | 1 | Yes | [Parity · 36 renders, all 189,696 RGBA pixels exact](parity-fixes.md#undefined-quotients-in-a-unit-interval-and-panorama-spot-lighting) |
 | [panorama_straighten_horizon.sbs/panorama_straighten_horizon](../assets/sbs/panorama_straighten_horizon.sbs) | 1 | No | [Parity · 26 renders, all 212,480 pixels exact](parity-fixes.md#panoramic-line-light-and-horizon-across-the-seam) |
 | [paper_path.sbs/paper_path](../assets/sbs/paper_path.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [parquet_1.sbs/parquet_1](../assets/sbs/parquet_1.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
