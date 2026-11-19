@@ -35,7 +35,7 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **352 Parity**, **64 In progress** and **130 Too hard**. The November 17–19 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons) · [November 19 measurements](parity-fixes.md#2026-11-19-root-comparisons)
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **352 Parity**, **66 In progress** and **128 Too hard**. The November 17–19 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons) · [November 19 measurements](parity-fixes.md#2026-11-19-root-comparisons)
 
 [Grayscale sampler measurements](parity-fixes.md#grayscale-sampling-of-color-inputs) · [Value sampling across 240 typed comparisons](parity-fixes.md#value-processor-texture-filtering)
 
@@ -293,8 +293,8 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [noise_bnw_spots_3_v2.sbs/bnw_spots_3](../assets/sbs/noise_bnw_spots_3_v2.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [noise_cells_1.sbs/cells_1](../assets/sbs/noise_cells_1.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [noise_cells_1_v2.sbs/cells_1](../assets/sbs/noise_cells_1_v2.sbs) | 0 | No | [In progress · 20 renders, 158,598/173,312 exact pixels](parity-fixes.md#tile-random-cell-fields-and-noise-upscaling) |
-| [noise_cells_4.sbs/cells_4](../assets/sbs/noise_cells_4.sbs) | 1 | Yes | [In progress · 21 renders, 174,284/174,336 exact pixels](parity-fixes.md#tile-random-cell-fields-and-noise-upscaling) |
-| [noise_cells_4_v2.sbs/cells_4](../assets/sbs/noise_cells_4_v2.sbs) | 1 | No | [In progress · 21 renders, 174,310/174,336 exact pixels](parity-fixes.md#tile-random-cell-fields-and-noise-upscaling) |
+| [noise_cells_4.sbs/cells_4](../assets/sbs/noise_cells_4.sbs) | 1 | Yes | [In progress · 215,500/215,552 pixels in 29 renders](parity-fixes.md#paths-caustics-and-cell-fields-after-pattern-sampling) |
+| [noise_cells_4_v2.sbs/cells_4](../assets/sbs/noise_cells_4_v2.sbs) | 1 | No | [In progress · 215,516/215,552 pixels in 29 renders](parity-fixes.md#paths-caustics-and-cell-fields-after-pattern-sampling) |
 | [noise_clouds_1.sbs/clouds_1](../assets/sbs/noise_clouds_1.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [noise_clouds_1_v2.sbs/clouds_1](../assets/sbs/noise_clouds_1_v2.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [noise_clouds_2.sbs/clouds_2](../assets/sbs/noise_clouds_2.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
@@ -401,7 +401,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [paths_tools.sbs/Impl/sort_by_blue](../assets/sbs/paths_tools.sbs) | 1 | Yes | [Parity · 14 cases, 25,856 exact pixels](parity-fixes.md#skipped-loops-and-path-buffers) |
 | [paths_tools.sbs/Utils/RelativeToInputPP](../assets/sbs/paths_tools.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [paths_tools.sbs/paths_polygon](../assets/sbs/paths_tools.sbs) | 0 | No | [Parity · 19 polygon buffers, 5,120 exact pixels](parity-fixes.md#color-temperature-range-reductions-sky-parameters-and-polygon-paths) |
-| [paths_tools.sbs/paths_trace](../assets/sbs/paths_tools.sbs) | 2 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [paths_tools.sbs/paths_trace](../assets/sbs/paths_tools.sbs) | 2 | No | [In progress · 58,213/58,624 pixels in 19 renders](parity-fixes.md#paths-caustics-and-cell-fields-after-pattern-sampling) |
 | [paths_tools.sbs/vertex_processor](../assets/sbs/paths_tools.sbs) | 9 | No | [Parity · 18 renders, all 57,600 pixels exact](parity-fixes.md#marked-variable-reads-in-path-and-mipmap-graphs) |
 | [paths_tools.sbs/vertex_processor_simple](../assets/sbs/paths_tools.sbs) | 5 | No | [Parity · 18 renders, all 57,600 pixels exact](parity-fixes.md#marked-variable-reads-in-path-and-mipmap-graphs) |
 | [pattern_alveolus.sbs/alveolus](../assets/sbs/pattern_alveolus.sbs) | 0 | No | [In progress · 170,440/171,264 pixels across 18 renders](parity-fixes.md#radial-stamp-profiles-and-pattern-generators) |
@@ -502,10 +502,10 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [rt_ao_v2.sbs/mip_max_step](../assets/sbs/rt_ao_v2.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [rt_bent_normal.sbs/pp_template/pp_template_64c](../assets/sbs/rt_bent_normal.sbs) | 3 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [rt_bent_normal_v2.sbs/mip_max_step](../assets/sbs/rt_bent_normal_v2.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
-| [rt_caustics.sbs/rt_caustics_base](../assets/sbs/rt_caustics.sbs) | 3 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [rt_caustics.sbs/rt_caustics_base](../assets/sbs/rt_caustics.sbs) | 3 | Yes | [In progress · 152,777/172,288 pixels in 19 renders](parity-fixes.md#paths-caustics-and-cell-fields-after-pattern-sampling) |
 | [rt_irradiance.sbs/compute_irradiance](../assets/sbs/rt_irradiance.sbs) | 5 | Yes | [Parity · 32 renders, all 217,088 RGBA pixels exact](parity-fixes.md#environment-rotation-and-wired-irradiance-samples) |
 | [rt_irradiance.sbs/compute_ray_direction](../assets/sbs/rt_irradiance.sbs) | 4 | Yes | [Parity · 32 renders, all 217,088 RGBA pixels exact](parity-fixes.md#environment-rotation-and-wired-irradiance-samples) |
-| [rt_irradiance.sbs/debug_hit_uv](../assets/sbs/rt_irradiance.sbs) | 3 | Yes | [In progress · 193,960/194,304 pixels in successful renders, five more hit a nonfinite stamp parameter](parity-fixes.md#environment-rotation-and-wired-irradiance-samples) |
+| [rt_irradiance.sbs/debug_hit_uv](../assets/sbs/rt_irradiance.sbs) | 3 | Yes | [In progress · 194,304 exact pixels in 27 renders, five nonfinite cases open](parity-fixes.md#paths-caustics-and-cell-fields-after-pattern-sampling) |
 | [rt_irradiance.sbs/mip_max](../assets/sbs/rt_irradiance.sbs) | 1 | Yes | [Parity · 167,168 exact pixels in 17 cases](parity-fixes.md#pixel-processor-canvas-and-mip-maxima) |
 | [rt_irradiance.sbs/panoramic_lod](../assets/sbs/rt_irradiance.sbs) | 1 | Yes | [Parity · 18 cases, 186,624 exact pixels](parity-fixes.md#large-transform-offsets-and-additive-blends) |
 | [rt_irradiance.sbs/template/pp_template](../assets/sbs/rt_irradiance.sbs) | 3 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |

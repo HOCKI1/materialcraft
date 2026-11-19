@@ -79,6 +79,27 @@ For the 16 additional Bevel renders set position offset (1,1) and supply the con
 
 Standalone signed rectangles and discs still render at both signs of either size component. The 60 color/gray rectangle and gray disc renders match 310,272/310,272 pixels. At 64² a rectangle centered at (.4766544,.6173407), size (.37573713,−.01), rotated −.37499994 turns covers 17 pixels in both applications. A separate directional gradation on the same five geometries and four sign combinations matches 103,316/103,424 pixels. Its maxima are 0 U8, 1 U16, .00006103515625 F16 and .00000011920929 F32.
 
+### Paths, caustics and cell fields after pattern sampling
+
+| Root | Renders | Exact pixels / compared | Maximum U8 / U16 levels | Maximum F16 / F32 error |
+|---|---:|---:|---:|---:|
+| Cells 4 | 29 | 215,500/215,552 | 0 / 53,506 | 0 / 0.491874591 |
+| Cells 4, second package | 29 | 215,516/215,552 | 223 / 20,688 | 0.315917969 / 0.667963699 |
+| Paths Trace | 19 | 58,213/58,624 | 120 / 30,822 | 0.756835938 / 1.22619528 |
+| RT Caustics Base | 19 | 152,777/172,288 | 0 / 1 | 0.000122070312 / 6.67572021e-06 |
+
+The ten new path and caustic renders use the following (output side, input height, seed, format, setting). Use (16,16,4069,F32,default), (32,32,4093,F32,A), four at (64,64,4127,B) in U8/U16/F16/F32 order, (128,128,4159,F32,C), (32,16,4177,F32,A), (32,32,4201,F32,D) and (64,64,4229,F32,B). The four archived controls and five inventory cases are also included. An independent input repeated for stage inspection counts once. [Four-format inventory comparison](#four-format-inventory-comparison)
+
+For Paths Trace use the transformed five-point path for default, A and D and the seven-point path for B and C. The background stores ((37x+41y+7xy+583+61c+5xc) mod 509)/508 in channel c, starting at zero. In settings A/B/C/D enable corner tracing for A and B, vertex tracing for B and C, and set thickness to .75/1.625/2.75/.25. All four instrumented stages match on default, both A renders and D. The six remaining renders first differ in the FX-Map that draws the path. At 64² in U8 the output differs at 18 pixels, including (0,0), (1,0) and (63,0). [Path buffer coordinates](#marked-variable-reads-in-path-and-mipmap-graphs)
+
+For RT Caustics Base supply height and noise H=((37x+41y+7xy+53j) mod 509)/508 at j=11 and 13. Store the normal field at j=12, using the normal and alpha construction below. For A/B/C/D use photon grid size 1/1/2/0, height scale .0625/.3125/.625/0, height position .125/.75/.375/.5, index of refraction 1.125/1.375/1.625/1, photon size 2/5.5/7.25/3 and jitter 0/.3125/.75/0. Place the light at (.3125,.6875) for A and B and (.75,.25) for C and D. The first differing stage is the photon FX-Map. At 64² in U16 it differs at (1,7) by one level and the final image matches. Across both matrices all 122,880 U8 output pixels match. U16 matches 8,185/8,192, F16 matches 8,181/8,192 and F32 matches 13,531/33,024. [Procedural normal fields](#normal-maps-panoramas-and-primitive-shapes)
+
+For the eight extra Cells 4 renders use the gray band value ((floor(x/3)+2floor(y/5)) mod 5)/4. Run defaults at 16²/71, four output formats at 64²/193, 128² F32/317, a 64×32 input at 64² F32/449 and a 64² F32 repeat at seed 503. The three changed settings use (scale, disorder, color source, pseudo-random seed) of (9,.21875,1,17), (17,.75,2,255) and (6,.4375,1,41) for the 64², 128² and rectangular inputs. Set disorder speed to .75/1.625/.3125 where exposed and disable non-square expansion for the rectangular input. The first package matches 41,216/41,216 band pixels. The second matches 41,206/41,216. Their earlier default and modular images still have differences. [Cell-field inputs and differing scatter stages](#tile-random-cell-fields-and-noise-upscaling)
+
+The debug hit UV root matches **194,304/194,304 RGBA pixels in 27 successful renders**, maximum error zero in each format. Five further renders with index 0, count 1 and index offset −1 produce a local nonfinite function error. The reference renders all five. Their 22,784 pixels are excluded from the successful-render total. [Wired sample inputs and seeds](#environment-rotation-and-wired-irradiance-samples)
+
+The position debug root's seven archived equal-resolution cases match all 136,192 pixels and the matched 128² preview adds 256/256 pixels at its 16² output. The spline preprocess root retains six exact integer counts and four 2048×16 renders with 131,072/131,072 exact RGBA pixels, maximum error zero. The zero-count reference timeout still has no comparable image. [Position debug preview](#tinted-stamp-offsets-and-alpha) · [Spline preprocessing with wired counts](#spline-preprocessing-with-wired-counts)
+
 ### Integer and oblique directional blur
 
 | Root | Renders | Previous exact pixels | Exact / compared | Maximum error |
