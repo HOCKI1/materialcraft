@@ -1008,6 +1008,28 @@ Every row includes the four original defaults, seed and parameter renders, the 6
 
 The trapezoid pair each has two remaining differences across the archived and new comparisons. The [four-format inventory](#four-format-inventory-comparison) lists the original changed settings and port names.
 
+### Brick edge distances and storage precision
+
+To isolate the one-level differences in the [brick renders](#spot-and-brick-pattern-generators), read the pattern map at F32 before the final transform. Compare the same node at U16 with its normal output wiring. Use the 32²/139, 64²/223 and 128²/293 smooth settings in the linked matrix.
+
+| F32 pattern map | 32² output, 32² map | 64² output, 32² map | 128² output, 64² map | Largest F32 error |
+|---|---:|---:|---:|---:|
+| Brick 1 | 940/1,024 | 584/1,024 | 2,180/4,096 | 5.72204590e−6 |
+| Brick 2 | 992/1,024 | 620/1,024 | 2,072/4,096 | 9.53674316e−7 |
+
+For both implementations separately, the standard U16 storage conversion of these F32 maps predicts 12,288/12,288 stored pixels, maximum zero. Clamp to [0,1], discard bits below 2⁻²⁰, multiply by 65,535 and round to the nearest integer with ties down. At (7,1) in the 32² map of the 64² first brick, the two F32 edge values are 3cdff221 in the reference and 3cdff1c5 in MaterialCraft. Those values store as levels 1,792 and 1,791.
+
+An original single-stamp graph separates coverage from placement. Use an unrotated grayscale maximum-blended stamp with smoothness .375. Render the following (width, height, center offset) tuples at 16²/seed 83, 32²/139, 64²/223 and 128²/293. Offsets are from (.5,.5).
+
+| Width | Height | Center offset |
+|---:|---:|---|
+| .921875 | .421875 | (0,−.25), (.5,.25) or (0,0) |
+| .9609375 | .2109375 | (0,−.375) |
+| .4609375 | .2109375 | (−.075,.125) |
+| 1 | 1 | (0,0) |
+
+Keep each footprint and replace the beveled stamp (shape 9) with a pyramid (shape 8). Read horizontal edge distance as the maximum of each pyramid column and vertical distance as the maximum of each row. For each axis let t=clamp(distance×float32(1/.375),0,1), s=float32(t²), c=float32(s×t) and evaluate 3s−2c with a rounded 3s. Multiplying the two axis fades reconstructs **130,560/130,560 F32 bevel pixels**, maximum zero. Computing s×(3−2t) instead gives 112,795/130,560. MaterialCraft already uses the measured edge polynomial. Its local stamp coordinates are the remaining difference in these single-stamp renders.
+
 ### Spot and brick pattern generators
 
 Each root generates its own grayscale input. The 19 renders per root combine four archive cases, the five [inventory renders](#four-format-inventory-comparison) and ten further settings. Across the 19, each root produced 8,192 U8, 122,880 U16, 8,192 F16 and 33,024 F32 pixels.

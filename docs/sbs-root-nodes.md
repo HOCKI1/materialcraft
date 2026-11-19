@@ -110,8 +110,8 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [blur_hq.sbs/blur_hq_grayscale](../assets/sbs/blur_hq.sbs) | 1 | No | [In progress · 125,647/171,264 exact pixels, wide blur differs](parity-fixes.md#short-oblique-directional-blur) |
 | [bnw_spots_1.sbs/bnw_spots_1](../assets/sbs/bnw_spots_1.sbs) | 0 | Yes | [In progress · 19 renders, 108/172,288 pixels exact](parity-fixes.md#spot-and-brick-pattern-generators) |
 | [bnw_spots_3.sbs/bnw_spots_3](../assets/sbs/bnw_spots_3.sbs) | 0 | Yes | [In progress · 19 renders, 122/172,288 pixels exact](parity-fixes.md#spot-and-brick-pattern-generators) |
-| [brick_1.sbs/brick_1](../assets/sbs/brick_1.sbs) | 0 | Yes | [In progress · 19 renders, 170,632/172,288 pixels exact](parity-fixes.md#spot-and-brick-pattern-generators) |
-| [brick_2.sbs/brick_2](../assets/sbs/brick_2.sbs) | 0 | Yes | [In progress · 19 renders, 171,992/172,288 pixels exact](parity-fixes.md#spot-and-brick-pattern-generators) |
+| [brick_1.sbs/brick_1](../assets/sbs/brick_1.sbs) | 0 | Yes | [In progress · 170,632/172,288 pixels, edge coordinates before U16 storage](parity-fixes.md#brick-edge-distances-and-storage-precision) |
+| [brick_2.sbs/brick_2](../assets/sbs/brick_2.sbs) | 0 | Yes | [In progress · 171,992/172,288 pixels, edge coordinates before U16 storage](parity-fixes.md#brick-edge-distances-and-storage-precision) |
 | [brick_3.sbs/brick_3](../assets/sbs/brick_3.sbs) | 0 | Yes | [In progress · 19 renders, 51,048/172,288 pixels exact](parity-fixes.md#spot-and-brick-pattern-generators) |
 | [brick_generator.sbs/resources/Tile](../assets/sbs/brick_generator.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [cartesian_polar_transformation.sbs/cartesian_to_polar](../assets/sbs/cartesian_polar_transformation.sbs) | 1 | No | [Parity · 171,264 exact pixels in 18 renders](parity-fixes.md#segment-mapping-and-normal-graph-rechecks) |
