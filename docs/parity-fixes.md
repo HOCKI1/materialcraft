@@ -156,6 +156,39 @@ For the threshold series, take the 128² U16 field from j=0 at the 32² setting.
 
 For the two signed series, generate a 32² U16 image with level ((17x+113y+59xy+19)×7919) mod 65536. Reduce to 8² U8, F16 and F32. At seed 15709 test box intensities 0, 2⁻¹⁰, 3.2, 16, −2⁻¹⁰ and −3.2. At U8 the row-zero pixels at columns 2 and 5 are 145 and 139 at zero and 146 and 140 at ±3.2. At seed 15709, repeat both filter types at 0, 2⁻¹⁰, 3.2, −3.2, 64 and −64, with an eighth turn for directional blur. The +64 directional F32 result matches 62/64 pixels, maximum 2.98023224e−8. The independent directional angles retain the F32 differences shown above.
 
+### Tone curve sampling and saved handles
+
+The `noise_upscale` root matched **142,592/142,592 output pixels across 17 renders**, maximum error zero. The eight instrumented renders also matched all 62,976 pixels across 48 images. Before the change the same root matched 2,687 output pixels, with maximum errors of 15 U8 levels, 3,791 U16 levels, .228057861 F16 and .228064887 F32. The curve is the first differing filter on the independent input.
+
+Use the [nine inventory renders](#four-format-inventory-comparison), then the [eight additional input profiles for the noise blend](#box-blur-and-signed-pixel-sizes) with a single grayscale input, graph defaults and seed 14604 in place of 14578. The 17 renders account for 119,808 U8, 5,120 U16, 5,120 F16 and 12,544 F32 output pixels. On the changed 32² floating case the U8 codes 32 and 128 entering the curve yield .250977516 and −.228034332. The latter measures the narrow descending segment between adjacent anchors.
+
+A broken outgoing or incoming handle retains its authored position in the file. Its effective control point is the anchor. For two broken handles the sampled segment follows its secant. The table has 1,024 float entries. For index i, evaluate x=i×(1/1023), with the reciprocal rounded to F32. The anchor covers table centers within half a step. Each segment still supplies at least one interior sample, including when several anchors occupy a single texel. Sample the stored table with eight-bit linear weights before converting to the output format. For example, use anchors (0,.75), (.41031,.25), (.41036,1.125), (.4104,−.0625), (1,.875) with both handles broken. Indices 420, 421 and 422 give .25, 21.6786346 and −62.7770119.
+
+Ordinary saves preserved the active and dormant handles and lock flags. All **78,080/78,080 pixels in 56 reopened renders** matched the original files in the reference. These cover eight original standalone packages and a current-header copy of the complete noise upscale graph. Before the fix, five of those standalone files changed appearance on save. Only 110/42,240 pixels matched across their 30 renders.
+
+| Standalone curve measurements | Renders | Exact pixels / compared | Max U8 / U16 levels | Max F16 / F32 error |
+|---|---:|---:|---:|---:|
+| Closely spaced anchors, broken handles | 24 | 393,216/393,216 | 0 / 0 | 0 / 0 |
+| Ten curves on scalar ramps through an RGBA bridge | 60 | 74,253/84,480 | 1 / 3 | 0.00048828125 / 5.05000353e-05 |
+| Independent incoming and outgoing handle flags | 36 | 30,877/50,688 | 1 / 28 | 0.00048828125 / 0.000418391079 |
+| Seven curves at table boundaries and off-grid inputs | 21 | 171,363/344,064 | 0 / 0 | 0 / 0.000418391079 |
+| Color fields with varying alpha | 84 | 34,099/101,376 | 1 / 3 | 0.25 / 0.25 |
+
+For the first series, use these eight ordered sets of (x,y) anchors. Give each a left/right handle at x−.03125 and x+.046875, both at the same y and both broken.
+
+| Set | Anchors |
+|---:|---|
+| 0 | (0,.125), (.4122,.875), (.4139,.0625), (1,.6875) |
+| 1 | (0,−.125), (.5,.875), (.5012,.0625), (1,.8125) |
+| 2 | (.0733,.375), (.3261,.875), (.3262,−.0625), (.8123,.625) |
+| 3 | The five anchors in the example above |
+| 4 | (0,.1875), (.25,.5625), (.75231,.40625), (1,.875) |
+| 5–7 | Repeat set 4 with intermediate x positions (.2501,.7501), (.2504,.7506), (.2508,.7508) respectively |
+
+Use three 128² F32 input images with seeds 21143+13j+h for set j and image h. For row-major pixel index p, set i=p mod 1024 and use offset a from row group floor(p/1024). The offsets are 0, 1/2, 1/8, 1/4, 3/8, 5/8, 3/4, 7/8, 1/256, 31/256, 63/256, 127/256, 129/256, 191/256, 223/256 and 255/256. The first two inputs are (i+a)/1024 and (i+a−.5)/1023. The third uses PCG64 seed 20219 and uniform samples on [−.0625,1.0625) rounded to F32. Replace its first twelve values with −.1, 0, 1, 1.1, 2⁻²⁰, 1−2⁻²⁰, .25, .25+2⁻²⁰, .5, .5+2⁻²⁰, .75 and .75+2⁻²⁰.
+
+For the handle comparison, use endpoints (0,.0625) and (1,.8125), outgoing control (.1875,−.25) and incoming control (.578125,.9375). Test both flags true, both false, outgoing only, incoming only and both omitted in grayscale. Repeat both true in RGBA. Use the F32 ramp p/(W×H−1) at 16² F32, 32² in all four formats and 64² F32. The two independent controls, the omitted flags and their saved copies distinguish the file behavior from the remaining rendering differences. With active handles the continuous cubic and the reference's sampled curve can still differ. The RGBA fields also expose independent differences on alpha, including signed input. For a direct alpha control, an input of .996078432 gives .996078491 at F32 with the default alpha mapping.
+
 ### Box blur and signed pixel sizes
 
 The `noise_blend` root matched **142,592/142,592 pixels across 17 renders**, maximum error zero. With the same inputs it previously matched 2,550 pixels. The eight additional renders include every reachable filter and input bridge. All 73,472 pixels in those 56 intermediate and final images matched. The root totals are 119,808 U8, 5,120 U16, 5,120 F16 and 12,544 F32 pixels.

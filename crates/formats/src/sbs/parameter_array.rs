@@ -22,7 +22,16 @@ pub(super) fn read(node: &mut Node, implementation: XmlNode<'_, '_>) {
             match child_value(array, "name") {
                 Some("curveluminance") => {
                     let position = vector("position").unwrap_or([0.0; 2]);
-                    curve.points.push(CurvePoint { x: position[0], y: position[1], left: vector("left"), right: vector("right") });
+                    let flag = |name| parameters.get(name).and_then(Value::as_bool).unwrap_or(false);
+                    curve.points.push(CurvePoint {
+                        x: position[0],
+                        y: position[1],
+                        left: vector("left"),
+                        right: vector("right"),
+                        left_broken: flag("isLeftBroken"),
+                        right_broken: flag("isRightBroken"),
+                        locked: flag("isLocked"),
+                    });
                 }
                 Some("gradientrgba" | "gradientluminance") => {
                     let position = parameters.get("position").and_then(Value::as_f32).unwrap_or(0.0);
@@ -71,15 +80,15 @@ pub(super) fn write(value: &Value, writer: &mut SbsWriter) -> String {
         Value::Curve(curve) => {
             for (index, point) in curve.points.iter().enumerate() {
                 let position = [point.x, point.y];
-                let left = index.checked_sub(1).and_then(|index| curve.segment(index)).map_or(position, |segment| segment[2]);
-                let right = curve.segment(index).map_or(position, |segment| segment[1]);
+                let left = point.left.or_else(|| index.checked_sub(1).and_then(|index| curve.segment(index)).map(|s| s[2])).unwrap_or(position);
+                let right = point.right.or_else(|| curve.segment(index).map(|s| s[1])).unwrap_or(position);
                 cell(vec![
                     ("position", Value::Float2(position)),
                     ("left", Value::Float2(left)),
                     ("right", Value::Float2(right)),
-                    ("isLeftBroken", Value::Bool(true)),
-                    ("isRightBroken", Value::Bool(true)),
-                    ("isLocked", Value::Bool(false)),
+                    ("isLeftBroken", Value::Bool(point.left_broken)),
+                    ("isRightBroken", Value::Bool(point.right_broken)),
+                    ("isLocked", Value::Bool(point.locked)),
                 ]);
             }
         }
