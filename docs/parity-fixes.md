@@ -1758,6 +1758,35 @@ The table below rechecks one control for each of the 149 roots marked Too hard b
 
 Of the 149 controls, three match exactly and 125 have measured pixel differences. Twenty pattern traversals reached the execution budget. One text graph requires an external font. The 20 incomplete traversals produced no comparable pixels. The font case exported 1,024 matching pixels with a cook error on its text branch and stays open.
 
+### Uniform arc tangents and pavement rotations
+
+Arc Pavement now matches all 132,096 pixels in the nine [previous render comparisons](#quarter-turn-stamps-and-render-bounds). The four missing pixels at y=104 in the default 256² image now match. An additional 18 renders expose differences on continuous stamp profiles and image inputs. Across all 27 renders, 202,429/211,200 pixels match. The maximum errors by format are 0 U8 levels, 12,009 U16 levels, 0 in F16, and .197752327 in F32.
+
+The full default graph draws 322 stamps. To compare its individual parameters, initialize a counter to zero before the first Iterate, increment it once per drawn stamp, and draw the selected parameter as a one-pixel square in a 32-column grid at 256² F32, seed 0. Record the index, both offset components, both size components and the rotation. Add two to signed offsets and rotations for these reads. Before the fix the two apps agreed on every index, offset and size, but only 14/322 rotations. The maximum difference was .00001859665 turns. All six fields now match, including all 322 rotations and all 393,216 stored pixels. Replaying the twenty [isolated edge controls](#quarter-turn-stamps-and-render-bounds) matches all 1,310,720 F32 pixels.
+
+The rotation uses the arc tangent of a two-component vector. The first-octant approximation that already matched the pixel processor also fits node parameters, value processors and pattern parameters. These three scopes divide the smaller absolute component by the larger and round each polynomial product and sum separately. Pixel processing uses its reciprocal and fused dot-product arithmetic. At (1,.1316152) the uniform result has F32 bits `3e061f75` and the pixel result has bits `3e061f76`. At (1,1) both runtime results have bits `3f490fe1`. A literal (1,1) gives `3f490fdb` in all four scopes.
+
+| Original angle controls | Cases | Exact image pixels | Exact typed scalars | Maximum error |
+|---|---:|---:|---:|---:|
+| Quadrants, axes and two literal vectors in four scopes | 100 | 44,544/44,544 | 25/25 | 0 |
+| Signed zeros, exponent boundaries and an ordinary off-axis vector in four scopes | 60 | 11,520/11,520 | 15/15 | 0 |
+| One angle per pixel on four pattern grids | 4 | 10,240/10,240 | — | 0 |
+
+For the first row, test the eight signed permutations of (1,.1316152), the four diagonals, the four unit axes, zero, (.379,−.811), (−.812,.323), (.015625,.0068359375), (−.875,−.296875), (2⁻²⁴,−2⁻²²) and (128,4.875). Alternate sides 16 and 32, using seed 897 + 31i. Use literal (1,1) and (.379,−.811) at 16². For the second row use 16² and seed 967+i, with (0,−0), (−0,1), (−0,−1), (−1,−0), (−t,−t), (t,m), (m,t), (1,t), (m,1), (1,m), (m,m), (2m,m), (2¹²⁶,2¹²⁵), (2¹²⁷,2¹²⁶) and (1.25,.23243791), where t=2⁻¹²⁷ and m=2⁻¹²⁶. The large final power-of-two pair distinguishes scalar division from the rounded pixel reciprocal.
+
+For the grids use sides 64, 32, 64 and 32 and seed 719+37j. The first grid evaluates (1,(i+.5)/4096). For the other three set b=1+((7i mod 29)/16) and a=b(i+f)/N². Use (b,a), (−a,b) and (−b,−a) with f=.25,.75,.25 respectively. Draw in row order with a single Iterate and square stamps of size .875/N.
+
+| Additional Arc Pavement controls | Exact pixels / compared | Maximum error |
+|---|---:|---:|
+| Defaults, square controls and varied discs | 55,552/55,552 | 0 |
+| Paraboloid, bell, pyramid and capsule | 7,819/10,240 | .00000987947 F32 |
+| First image, filter controls 0, 1 and 2 | 6,210/12,288 | .197752327 F32 |
+| Independent image | 752/1,024 | 12,009 U16 levels |
+
+For defaults use 16², 32² and 128² F32 at seeds 101, 271 and 401. Set scale 1, five patterns, six arcs, square width .625 and height .8125 for 64² in all four formats at seed 829. For the discs set scale 2, nine patterns, minimum three, amount randomness .375, five arcs, width .78125, height .6875, pattern scale .875, width and height randomness .125 and .25, global width randomness .1875, height decrease .375 and color randomness .625. Use 64²/43, 128²/191 and 32²/503. Change this configuration to shape 4, 5, 8 or 15 with variation .375 at seed 547, alternating 64² and 32². For the first three image controls use the square configuration with image input, variation .25 and color randomness .3125 at 64² F32/607. Bind the independent grayscale field from the [four-format comparison](#four-format-inventory-comparison). For the last image use the varied configuration with filter 0 and the original 128² grayscale ramp at 32² U16/787.
+
+These image tests also expose a separate file-handoff difference. Reopening the [saved Arc Pavement file](#integer-defaults-in-saved-graph-interfaces) and rendering the three image-filter cases produced black. The original file has 2,026 nonzero pixels in each. Its six previously reported saved-file comparisons exercised the default and disc controls.
+
 ### Integer defaults in saved graph interfaces
 
 Two packages with a `0.1.3` format header failed to reopen in the reference app after MaterialCraft Save As. Changing only that field to `1.1.0.202502` in a temporary copy let the reference app open both packages. Spot Emboss then reproduced all six original renders. Arc Pavement reproduced its default render, but six scalar integer settings had no readable default on the saved graph. The [earlier round trips](#vector-equality-lab-to-rgb-and-sbs-round-trips) cover a separate function library and a package that failed to load.

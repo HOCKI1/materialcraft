@@ -76,7 +76,7 @@ pub(crate) fn evaluate(
             return Err("arc tangent requires a float2".into());
         }
 
-        return float_value(&[if pixel_math { pixel_atan2(left[0], left[1]) } else { left[1].atan2(left[0]) }]);
+        return float_value(&[if instruction.literal { left[1].atan2(left[0]) } else { runtime_atan2(left[0], left[1], pixel_math) }]);
     }
 
     if op == "cartesian" {
@@ -136,8 +136,12 @@ pub(crate) fn evaluate(
     float_value(result.get(..count).ok_or("invalid float dimensions")?)
 }
 
-fn pixel_atan2(x: f32, y: f32) -> f32 {
+fn runtime_atan2(x: f32, y: f32, pixel_math: bool) -> f32 {
     use std::f32::consts::{FRAC_PI_2, PI};
+    const LINEAR: f32 = 1.00249;
+    const QUADRATIC: f32 = -0.0123825;
+    const CUBIC: f32 = -0.347313;
+    const QUARTIC: f32 = 0.142604;
     let flush = |v: f32| if v.is_subnormal() { 0.0 } else { v };
     let (x, y) = (flush(x), flush(y));
     if x == 0.0 {
@@ -152,12 +156,17 @@ fn pixel_atan2(x: f32, y: f32) -> f32 {
     let (ax, ay) = (x.abs(), y.abs());
     let horizontal = ax >= ay;
     let (small, large) = if horizontal { (ay, ax) } else { (ax, ay) };
-    let ratio = flush(small * flush(super::reciprocal::divide(1.0, large)));
-    // A quartic fitted to the measured first octant. Its four terms follow the pixel dot-product order.
+    let ratio = flush(if pixel_math { small * flush(super::reciprocal::divide(1.0, large)) } else { small / large });
     let square = ratio * ratio;
-    let linear = ratio.mul_add(1.00249, square * -0.0123825);
-    let cubic = (ratio * square).mul_add(-0.347313, linear);
-    let octant = (square * square).mul_add(0.142604, cubic);
+    let cube = ratio * square;
+    let fourth = square * square;
+    // Both scopes fit the same measured octant. Only the pixel dot product fuses the additions.
+    let octant = if pixel_math {
+        let linear = ratio.mul_add(LINEAR, square * QUADRATIC);
+        fourth.mul_add(QUARTIC, cube.mul_add(CUBIC, linear))
+    } else {
+        ratio * LINEAR + square * QUADRATIC + cube * CUBIC + fourth * QUARTIC
+    };
     let angle = match (horizontal, x < 0.0) {
         (true, false) => octant,
         (true, true) => PI - octant,

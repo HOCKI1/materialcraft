@@ -687,6 +687,27 @@ fn pixel_dot_rounds_in_channel_order() {
 }
 
 #[test]
+fn uniform_atan2_rounds_each_term_and_preserves_literal_angles() {
+    for scope in [super::FunctionScope::Node, super::FunctionScope::ValueProcessor, super::FunctionScope::FxMap] {
+        for (coordinate, bits) in [
+            ([1.0, 0.1316152], 0x3e061f75),
+            ([1.0, -0.1316152], 0xbe061f75),
+            ([1.875, 0.057_220_46], 0x3cfa72bc),
+            ([-0.1316152, 1.0], 0x3fd9d3ca),
+            ([1.0, 1.0], 0x3f490fe1),
+            ([-1.0, -0.0], 0x40490fdb),
+            ([f32::from_bits(0x00400000), f32::MIN_POSITIVE], 0x3fc90fdb),
+            ([f32::from_bits(0x7f000000), f32::from_bits(0x7e800000)], 0x3eed6346),
+        ] {
+            let Value::Float(angle) = scoped_operation(scope, "atan2", &[Value::Float2(coordinate)], false) else { panic!("expected an angle") };
+            assert_eq!(angle.to_bits(), bits, "{scope:?} {coordinate:?}");
+        }
+        assert_eq!(scoped_operation(scope, "atan2", &[Value::Float2([1.0, 1.0])], true), Value::Float(std::f32::consts::FRAC_PI_4));
+    }
+    assert_eq!(pixel_operation("atan2", &[Value::Float2([1.0, 0.1316152])], false), Value::Float(f32::from_bits(0x3e061f76)));
+}
+
+#[test]
 fn pixel_atan2_reconstructs_the_quadrant_from_the_runtime_ratio() {
     for (coordinate, bits) in [
         ([1.0, 1.0], 0x3f490fe1),
