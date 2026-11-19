@@ -35,7 +35,7 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **354 Parity**, **71 In progress** and **121 Too hard**. The November 17–19 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons) · [November 19 measurements](parity-fixes.md#2026-11-19-root-comparisons)
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **359 Parity**, **71 In progress** and **116 Too hard**. The November 17–19 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons) · [November 19 measurements](parity-fixes.md#2026-11-19-root-comparisons)
 
 [Pattern tiling axes and copy bounds across 215 renders](parity-fixes.md#tiling-axes-and-pattern-copy-bounds) · [Grayscale sampler measurements](parity-fixes.md#grayscale-sampling-of-color-inputs) · [Value sampling across 240 typed comparisons](parity-fixes.md#value-processor-texture-filtering) · [Five saved graphs reopened in the reference](parity-fixes.md#saved-filter-graphs-and-scalar-levels-controls)
 
@@ -170,8 +170,8 @@ Pattern center culling matched all 356,352 pixels across 204 renders. Background
 | [creased.sbs/creased](../assets/sbs/creased.sbs) | 0 | Yes | [In progress · 143,706/145,664 pixels across 17 renders](parity-fixes.md#square-and-rectangular-pattern-generators) |
 | [crop.sbs/crop](../assets/sbs/crop.sbs) | 1 | No | [Parity · 48 renders, all 377,344 pixels across both outputs exact](parity-fixes.md#half-precision-crop-area-and-input-sizes) |
 | [crop.sbs/crop_grayscale](../assets/sbs/crop.sbs) | 1 | No | [Parity · 48 renders, all 377,344 pixels across both outputs exact](parity-fixes.md#half-precision-crop-area-and-input-sizes) |
-| [crystal_1.sbs/crystal_1](../assets/sbs/crystal_1.sbs) | 0 | Yes | [In progress · 99,250/145,664 pixels across 17 renders](parity-fixes.md#square-and-rectangular-pattern-generators) |
-| [crystal_2.sbs/crystal_2](../assets/sbs/crystal_2.sbs) | 0 | Yes | [In progress · 104,128/145,664 pixels across 17 renders](parity-fixes.md#stored-input-resizing-and-grayscale-levels-controls) |
+| [crystal_1.sbs/crystal_1](../assets/sbs/crystal_1.sbs) | 0 | Yes | [In progress · 144,060/145,664 exact pixels in 17 renders](parity-fixes.md#gradient-warp-displacement-and-sampling) |
+| [crystal_2.sbs/crystal_2](../assets/sbs/crystal_2.sbs) | 0 | Yes | [In progress · 144,468/145,664 exact pixels in 17 renders](parity-fixes.md#gradient-warp-displacement-and-sampling) |
 | [curvature.sbs/curvature](../assets/sbs/curvature.sbs) | 1 | No | [Parity · 20 renders, 176,384 exact pixels](parity-fixes.md#sampling-integer-bitmap-inputs-through-wider-bridges) |
 | [curvature_smooth.sbs/curvature_smooth](../assets/sbs/curvature_smooth.sbs) | 1 | Yes | [Parity · 20 renders, 176,384 exact pixels](parity-fixes.md#sampling-integer-bitmap-inputs-through-wider-bridges) |
 | [curvature_smooth_v2.sbs/compute_curvature_v2](../assets/sbs/curvature_smooth_v2.sbs) | 2 | Yes | [Parity: 6 cases](parity-fixes.md#verified-cases) |
@@ -206,7 +206,7 @@ Pattern center culling matched all 356,352 pixels across 204 renders. Background
 | [flood_fill_2.sbs/flood_fill_to_random_color](../assets/sbs/flood_fill_2.sbs) | 1 | No | [Parity · 19 renders, 143,872 exact RGBA pixels](parity-fixes.md#packed-random-draws-in-flood-fill-color) |
 | [flood_fill_2.sbs/flood_fill_to_random_grayscale](../assets/sbs/flood_fill_2.sbs) | 1 | No | [Parity · 19 renders, 143,872 exact pixels](parity-fixes.md#scaled-random-draws-and-offsets) |
 | [floodfill_to_index.sbs/pass](../assets/sbs/floodfill_to_index.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
-| [fluid.sbs/fluid](../assets/sbs/fluid.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [fluid.sbs/fluid](../assets/sbs/fluid.sbs) | 0 | Yes | [Too hard · 131,984/132,096 exact pixels in 9 renders](parity-fixes.md#gradient-warp-displacement-and-sampling) |
 | [fractal_sum_base.sbs/fractal_sum_base](../assets/sbs/fractal_sum_base.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [fur_1.sbs/fur_1](../assets/sbs/fur_1.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [fur_2.sbs/fur_2](../assets/sbs/fur_2.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
@@ -255,8 +255,8 @@ Pattern center culling matched all 356,352 pixels across 204 renders. Background
 | [linear_srgb_conversion.sbs/convert_to_linear_grayscale](../assets/sbs/linear_srgb_conversion.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [linear_srgb_conversion.sbs/convert_to_srgb](../assets/sbs/linear_srgb_conversion.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [linear_srgb_conversion.sbs/convert_to_srgb_grayscale](../assets/sbs/linear_srgb_conversion.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
-| [make_it_tile_patch.sbs/make_it_tile_patch](../assets/sbs/make_it_tile_patch.sbs) | 1 | No | [In progress · 98,161/132,096 exact pixels across nine renders](parity-fixes.md#bitmap-stamp-filtering-and-compositing) |
-| [make_it_tile_patch_grayscale.sbs/make_it_tile_patch_grayscale](../assets/sbs/make_it_tile_patch_grayscale.sbs) | 1 | No | [In progress · 117,553/132,096 exact pixels across nine renders](parity-fixes.md#bitmap-stamp-filtering-and-compositing) |
+| [make_it_tile_patch.sbs/make_it_tile_patch](../assets/sbs/make_it_tile_patch.sbs) | 1 | No | [In progress · 132,090/132,096 exact pixels in 9 renders](parity-fixes.md#gradient-warp-displacement-and-sampling) |
+| [make_it_tile_patch_grayscale.sbs/make_it_tile_patch_grayscale](../assets/sbs/make_it_tile_patch_grayscale.sbs) | 1 | No | [In progress · 132,092/132,096 exact pixels in 9 renders](parity-fixes.md#gradient-warp-displacement-and-sampling) |
 | [material_switch.sbs/material_switch](../assets/sbs/material_switch.sbs) | 24 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [material_transforms.sbs/material_transforms](../assets/sbs/material_transforms.sbs) | 5 | Yes | [Parity · 856,320 exact pixels across every output](parity-fixes.md#material-bundles-and-the-eighth-irradiance-pass) |
 | [me_water_level.sbs/scratches_2](../assets/sbs/me_water_level.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
@@ -277,11 +277,11 @@ Pattern center culling matched all 356,352 pixels across 204 renders. Background
 | [messy_fibers_2.sbs/messy_fibers_2](../assets/sbs/messy_fibers_2.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [messy_fibers_3.sbs/messy_fibers_3](../assets/sbs/messy_fibers_3.sbs) | 0 | Yes | [In progress · 126,928/132,096 pixels across 9 renders](parity-fixes.md#directional-and-additive-stamp-profiles) |
 | [messy_fibers_4.sbs/messy_fibers_4](../assets/sbs/messy_fibers_4.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [microscope_view.sbs/microscope_view](../assets/sbs/microscope_view.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [microscope_view.sbs/microscope_view](../assets/sbs/microscope_view.sbs) | 0 | Yes | [Too hard · 131,217/132,096 exact pixels in 9 renders](parity-fixes.md#gradient-warp-displacement-and-sampling) |
 | [min_max.sbs/min_max](../assets/sbs/min_max.sbs) | 1 | No | [Parity · both scalar outputs exact in 25 cases](parity-fixes.md#color-temperature-range-reductions-sky-parameters-and-polygon-paths) |
 | [moisture_noise.sbs/moisture_noise](../assets/sbs/moisture_noise.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [mosaic.sbs/mosaic](../assets/sbs/mosaic.sbs) | 2 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [mosaic.sbs/mosaic_grayscale](../assets/sbs/mosaic.sbs) | 2 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [mosaic.sbs/mosaic](../assets/sbs/mosaic.sbs) | 2 | No | [Parity · 17 renders, 142,592 exact pixels](parity-fixes.md#gradient-warp-displacement-and-sampling) |
+| [mosaic.sbs/mosaic_grayscale](../assets/sbs/mosaic.sbs) | 2 | No | [Parity · 17 renders, 142,592 exact pixels](parity-fixes.md#gradient-warp-displacement-and-sampling) |
 | [multi_directional_warp.sbs/multi_directional_warp_color](../assets/sbs/multi_directional_warp.sbs) | 2 | No | [Parity · 19 cases, 175,360 exact pixels and intermediate stages confirmed](parity-fixes.md#multi-directional-warp-and-intermediate-storage) |
 | [multi_directional_warp.sbs/multi_directional_warp_grayscale](../assets/sbs/multi_directional_warp.sbs) | 2 | No | [Parity · 19 cases, 175,360 exact pixels and intermediate stages confirmed](parity-fixes.md#multi-directional-warp-and-intermediate-storage) |
 | [multiangle_to_albedo.sbs/multiangle_to_albedo](../assets/sbs/multiangle_to_albedo.sbs) | 8 | No | [Parity · 14 cases, including eight distinct input images](parity-fixes.md#linear-gradient-2-and-multiangle-albedo) |
@@ -303,7 +303,7 @@ Pattern center culling matched all 356,352 pixels across 204 renders. Background
 | [noise_clouds_2_v2.sbs/clouds_2](../assets/sbs/noise_clouds_2_v2.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [noise_creased.sbs/creased](../assets/sbs/noise_creased.sbs) | 0 | No | [In progress · 37,716/132,096 pixels across 9 renders](parity-fixes.md#directional-and-additive-stamp-profiles) |
 | [noise_crystal_1.sbs/crystal_1](../assets/sbs/noise_crystal_1.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [noise_crystal_2.sbs/crystal_2](../assets/sbs/noise_crystal_2.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [noise_crystal_2.sbs/crystal_2](../assets/sbs/noise_crystal_2.sbs) | 0 | No | [Too hard · 131,037/132,096 exact pixels in 9 renders](parity-fixes.md#gradient-warp-displacement-and-sampling) |
 | [noise_directional_noise_1.sbs/directional_noise_1](../assets/sbs/noise_directional_noise_1.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [noise_directional_noise_1_v2.sbs/directional_noise_1](../assets/sbs/noise_directional_noise_1_v2.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [noise_directional_noise_2.sbs/directional_noise_2](../assets/sbs/noise_directional_noise_2.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
@@ -325,7 +325,7 @@ Pattern center culling matched all 356,352 pixels across 204 renders. Background
 | [noise_dirt_5_v2.sbs/dirt_5](../assets/sbs/noise_dirt_5_v2.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [noise_dirt_gradient.sbs/dirt_gradient](../assets/sbs/noise_dirt_gradient.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [noise_dirt_gradient_v2.sbs/dirt_gradient](../assets/sbs/noise_dirt_gradient_v2.sbs) | 0 | No | [Too hard: cook timeout](parity-fixes.md#remaining-differences) |
-| [noise_fluid.sbs/fluid](../assets/sbs/noise_fluid.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [noise_fluid.sbs/fluid](../assets/sbs/noise_fluid.sbs) | 0 | No | [Too hard · 129,723/132,096 exact pixels in 9 renders](parity-fixes.md#gradient-warp-displacement-and-sampling) |
 | [noise_fractal_sum_base.sbs/fractal_sum_base](../assets/sbs/noise_fractal_sum_base.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [noise_fractal_sum_base.sbs/fractal_sum_base_2](../assets/sbs/noise_fractal_sum_base.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [noise_fractal_sum_base_v2.sbs/noise_blend](../assets/sbs/noise_fractal_sum_base_v2.sbs) | 2 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
@@ -340,14 +340,14 @@ Pattern center culling matched all 356,352 pixels across 204 renders. Background
 | [noise_gaussian_spots_1_v2.sbs/gaussian_spots_1](../assets/sbs/noise_gaussian_spots_1_v2.sbs) | 0 | No | [In progress · 2,984/132,096 pixels across 9 renders](parity-fixes.md#radial-stamp-profiles-and-pattern-generators) |
 | [noise_gaussian_spots_2.sbs/gaussian_spots_2](../assets/sbs/noise_gaussian_spots_2.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [noise_gaussian_spots_2_v2.sbs/gaussian_spots_2](../assets/sbs/noise_gaussian_spots_2_v2.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [noise_liquid.sbs/liquid](../assets/sbs/noise_liquid.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [noise_liquid.sbs/liquid](../assets/sbs/noise_liquid.sbs) | 0 | No | [Too hard · 127,452/132,096 exact pixels in 9 renders](parity-fixes.md#gradient-warp-displacement-and-sampling) |
 | [noise_messy_fibers_1.sbs/messy_fibers_1](../assets/sbs/noise_messy_fibers_1.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [noise_messy_fibers_1_v2.sbs/messy_fibers_1](../assets/sbs/noise_messy_fibers_1_v2.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [noise_messy_fibers_2.sbs/messy_fibers_2](../assets/sbs/noise_messy_fibers_2.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [noise_messy_fibers_2_v2.sbs/messy_fibers_2](../assets/sbs/noise_messy_fibers_2_v2.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [noise_messy_fibers_3.sbs/messy_fibers_3](../assets/sbs/noise_messy_fibers_3.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [noise_messy_fibers_3_v2.sbs/messy_fibers_3](../assets/sbs/noise_messy_fibers_3_v2.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [noise_microscope_view.sbs/microscope_view](../assets/sbs/noise_microscope_view.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [noise_microscope_view.sbs/microscope_view](../assets/sbs/noise_microscope_view.sbs) | 0 | No | [Too hard · 130,081/132,096 exact pixels in 9 renders](parity-fixes.md#gradient-warp-displacement-and-sampling) |
 | [noise_moisture_noise.sbs/moisture_noise](../assets/sbs/noise_moisture_noise.sbs) | 0 | Yes | [Too hard: measurement timeout](parity-fixes.md#remaining-differences) |
 | [noise_moisture_noise_1_v2.sbs/moisture_noise_1](../assets/sbs/noise_moisture_noise_1_v2.sbs) | 0 | No | [Too hard: measurement timeout](parity-fixes.md#remaining-differences) |
 | [noise_moisture_noise_2.sbs/moisture_noise_2](../assets/sbs/noise_moisture_noise_2.sbs) | 0 | No | [Too hard: measurement timeout](parity-fixes.md#remaining-differences) |
@@ -537,9 +537,9 @@ Pattern center culling matched all 356,352 pixels across 204 renders. Background
 | [shape_splatter_v2_companion.sbs/shape_splatter_to_mask](../assets/sbs/shape_splatter_v2_companion.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [skew.sbs/skew](../assets/sbs/skew.sbs) | 1 | No | [Parity · 13 cases, 163,840 exact pixels](parity-fixes.md#height-distance-texture-mapping-skew-and-weave) |
 | [skew.sbs/skew_grayscale](../assets/sbs/skew.sbs) | 1 | No | [Parity · 13 cases, 163,840 exact pixels](parity-fixes.md#height-distance-texture-mapping-skew-and-weave) |
-| [slope_blur.sbs/slope_blur](../assets/sbs/slope_blur.sbs) | 2 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [slope_blur.sbs/slope_blur_grayscale](../assets/sbs/slope_blur.sbs) | 2 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [slope_blur.sbs/slope_blur_grayscale_2](../assets/sbs/slope_blur.sbs) | 2 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [slope_blur.sbs/slope_blur](../assets/sbs/slope_blur.sbs) | 2 | No | [Parity · 18 renders, 145,664 exact pixels](parity-fixes.md#gradient-warp-displacement-and-sampling) |
+| [slope_blur.sbs/slope_blur_grayscale](../assets/sbs/slope_blur.sbs) | 2 | Yes | [Parity · 18 renders, 145,664 exact pixels](parity-fixes.md#gradient-warp-displacement-and-sampling) |
+| [slope_blur.sbs/slope_blur_grayscale_2](../assets/sbs/slope_blur.sbs) | 2 | No | [Parity · 18 renders, 145,664 exact pixels](parity-fixes.md#gradient-warp-displacement-and-sampling) |
 | [smart_auto_tile.sbs/pattern_find_edges_step](../assets/sbs/smart_auto_tile.sbs) | 4 | Yes | [Parity · 16 cases, 3,185,920 exact pixels](parity-fixes.md#tile-edge-masks-and-normalized-spline-distances) |
 | [splatter.sbs/splatter](../assets/sbs/splatter.sbs) | 1 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [splatter_circular.sbs/splatter_circular](../assets/sbs/splatter_circular.sbs) | 2 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |

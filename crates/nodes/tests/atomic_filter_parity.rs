@@ -26,6 +26,43 @@ fn min_blend_accumulates_the_background_weight_on_the_foreground_product() {
 }
 
 #[test]
+fn warp_uses_the_current_gradient_texel_and_its_predecessors() {
+    let source = Image::gray(32, 32, |x, _| (x as f32 + 0.5) / 32.0);
+    let gradient = Image::gray(32, 32, |x, y| f32::from(x == 16 && y == 16));
+    let image = cook("warp", &[Some(source), Some(gradient)], &[], [32, 32], true);
+    for (x, y, expected) in [(15, 16, 15.5), (16, 16, 20.5), (17, 16, 13.5), (16, 17, 16.5)] {
+        assert_eq!(image.get_gray(x, y, false), expected / 32.0);
+    }
+}
+
+#[test]
+fn warp_differences_span_one_stored_gradient_texel_when_inputs_are_larger() {
+    let field = |width, height, seed| {
+        Image::gray(width, height, |x, y| {
+            let code = (131 * x + 367 * y + 29 * x * y + seed) % 2053;
+            1.5 * (code as f32 / 2052.0) - 0.25
+        })
+    };
+    let inputs = [Some(field(64, 32, 17473)), Some(field(32, 64, 17486))];
+    let image = cook("warp", &inputs, &[("intensity", Value::Float(0.8375))], [32, 32], true);
+    for (x, y, bits) in [(5, 0, 0x3ef4626f), (6, 0, 0x3e969df1), (13, 17, 0x3e9b9a34), (31, 31, 0x3eec51f7)] {
+        assert_eq!(image.get_gray(x, y, false).to_bits(), bits);
+    }
+}
+
+#[test]
+fn rectangular_warp_scales_displacement_by_the_shorter_side_and_preserves_nearest_filtering() {
+    let source = Image::generate(32, 16, Kind::Color, |x, y| [(x as f32 + 0.5) / 32.0, (y as f32 + 0.5) / 16.0, 0.0, 1.0]);
+    let gradient = Image::gray(32, 16, |x, y| 0.5 * f32::from(x >= 16) + 0.25 * f32::from(y >= 8));
+    let inputs = [Some(source), Some(gradient)];
+    for (nearest, expected) in [(false, [0.53125, 0.546875]), (true, [0.546875, 0.53125])] {
+        let image = cook("warp", &inputs, &[("nearest", Value::Bool(nearest))], [32, 16], true);
+        let [x, y, _, _] = image.get(16, 8, false);
+        assert_eq!([x, y], expected);
+    }
+}
+
+#[test]
 fn emboss_applies_each_tint_to_a_one_sided_height_difference() {
     let color = Image::filled(32, 32, Kind::Color, [0.25, 0.5, 0.75, 0.375]);
     let height = Image::gray(32, 32, |x, y| if x == 16 && y == 16 { 1.0 } else { 0.0 });

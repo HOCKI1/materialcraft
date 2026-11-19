@@ -51,7 +51,7 @@ fn cooks_and_caches() {
 fn fixed_filters_preserve_each_tiling_axis_when_resizing_an_input() {
     use materialcraft_core::{OutputFormat, ParameterInheritance, SizeMode};
 
-    for (filter, port) in [("levels", "input"), ("blend", "foreground")] {
+    for (filter, port) in [("levels", "input"), ("blend", "foreground"), ("warp", "input")] {
         let mut graph = Graph::new("Tiling");
         let input = graph.add_node("input_grayscale", [0.0; 2]);
         let output = graph.add_node(filter, [100.0, 0.0]);

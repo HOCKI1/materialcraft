@@ -156,6 +156,67 @@ For the threshold series, take the 128² U16 field from j=0 at the 32² setting.
 
 For the two signed series, generate a 32² U16 image with level ((17x+113y+59xy+19)×7919) mod 65536. Reduce to 8² U8, F16 and F32. At seed 15709 test box intensities 0, 2⁻¹⁰, 3.2, 16, −2⁻¹⁰ and −3.2. At U8 the row-zero pixels at columns 2 and 5 are 145 and 139 at zero and 146 and 140 at ±3.2. At seed 15709, repeat both filter types at 0, 2⁻¹⁰, 3.2, −3.2, 64 and −64, with an eighth turn for directional blur. The +64 directional F32 result matches 62/64 pixels, maximum 2.98023224e−8. The independent directional angles retain the F32 differences shown above.
 
+### Gradient warp displacement and sampling
+
+Both Mosaic roots and all three Slope Blur roots match the reference in **88 renders and 722,176 output pixels**, maximum error zero. The new intermediate comparisons also match all **3,461,888 pixels across 2,369 images**, including the input bridges. Each Mosaic contains 16 gradient warps and each Slope Blur contains 32. Before the fix the color Mosaic matched 1,024/142,592 pixels and the gray Mosaic matched 2,695/142,592 on the same inputs.
+
+| Root | Renders | Exact pixels / compared | Maximum error |
+|---|---:|---:|---:|
+| `mosaic.sbs/mosaic` | 17 | 142,592/142,592 | 0 |
+| `mosaic.sbs/mosaic_grayscale` | 17 | 142,592/142,592 | 0 |
+| `slope_blur.sbs/slope_blur` | 18 | 145,664/145,664 | 0 |
+| `slope_blur.sbs/slope_blur_grayscale` | 18 | 145,664/145,664 | 0 |
+| `slope_blur.sbs/slope_blur_grayscale_2` | 18 | 145,664/145,664 | 0 |
+
+All five include the four original renders, the [four-format comparison and independent 32² case](#four-format-inventory-comparison). For each Mosaic, the totals are 119,808 U8, 5,120 U16, 5,120 F16 and 12,544 F32 pixels. For each Slope Blur, the counts are the same except for 15,616 F32 pixels.
+
+For the eight additional Mosaic renders, use the [modular input field](#stored-input-precision-in-box-and-directional-blur). For source and effect in that order, use channel zero for grayscale and add 31 to the effect's seed. The two root indices i are 227 and 228. Use seed 11003+13i and add 0, 1, 2, 2, 2, 2, 6 and 7. Start with 16² U16 input, F32 output, graph defaults. Use 32² floating input and output with one sample and zero intensity. Next use 32² U16 input with four samples and intensity .25 in U8/U16/F16/F32. Finish with eight samples and intensity .6875, using 128×64 floating inputs at a 64² parent and 32×64 U8 inputs at a 32² parent. Both outputs are F32. Store the floating fields as 1.5 times the normalized value minus .25.
+
+For Slope Blur, use the same field and channel conventions with seed 18211+17i for root indices 484–486. Add 0, 1, 2, 2, 2, 2, 6, 7 and 8. Use 16² U8 inputs, F32 output and defaults, followed by 32² floating inputs and output with one sample, zero intensity and mode 0. At 32², use U16 inputs with four samples, intensity 1.375 and mode 1 in all four output formats. For the last three F32 outputs use parent 64×32, 32×64 and 64². Use respectively 64×32 floating inputs with eight samples, intensity 2.5 and mode 2, 64² U8 inputs with three samples, intensity .71875 and mode 0, and 64×128 floating inputs with twelve samples, intensity .25 and mode 1.
+
+The displacement uses the current gradient texel minus its immediate left and upper neighbors. With equal input and output dimensions W×H and S=min(W,H), multiply those differences by intensity×S²/256 to get the source offset in output pixels. On a 32² unit impulse at intensity one, the center moves four pixels in both directions, the texel to its right moves four pixels left, and the texel below moves four pixels up. Each axis respects its own tiling flag. Nearest and bilinear filter the primary image at the displaced coordinates. A gradient up to twice the output size per axis can supply its texels directly. The difference then spans one stored gradient texel, scaled by the gradient-to-output size ratio on that axis.
+
+| Standalone controls | Renders | Exact pixels / compared | Maximum error |
+|---|---:|---:|---:|
+| Planar sources, impulses, ramps and signed fields | 180 | 215,040/215,040 | 0 |
+| Rectangular and square coordinate controls | 40 | 34,816/34,816 | 0 |
+| Color and gray fields, native input sizes | 80 | 219,520/219,520 | 0 |
+| Unequal inputs with an explicit output size | 32 | 50,176/50,176 | 0 |
+
+For the 180 planar renders store the X and Y coordinate ramps (x+.5)/N and (y+.5)/N as separate F32 sources. Use a constant .5 map at 16², then a step map .5[x≥N/2]+.25[y≥N/2] at 16², 32² and 64². At 32² also use a unit center impulse, a ramp (x+2y)/128, and a border map .25[x<2 or y<2]+.5[x=N−1 or y=N−1]. Each bracket is one when true. For the four output formats at 32², use source (((11x+17y+3xy) mod N)+.5)/N and map (((11x+19y+7xy+23) mod 97)−21)/64. Cross these fields with intensities 0, 1, 4, .5, 8, −2.5, 8, 8, 8 and 31. Use nearest for the fifth setting and bilinear for the others. The seventh through ninth use no tiling, X only and Y only. The other settings tile both axes. Start at seed 10009 and add 19 per map/size/output setting. For the 40 coordinate controls, cross both ramps and the step and impulse with nearest and bilinear at 16², 32², 32×16, 16×32 and 64×32. Use intensity one, XY tiling and seed 18121+W+H.
+
+For the mixed-size fields use the same modular field as the Mosaic roots above. Start at seed 17327+29j, add 13 for the gradient and add 0, 1, 1, 1, 1, 5, 6 and 7 for the eight renders. Use parent 16² F32, 32² in U8/U16/F16/F32, 64×32 F32, 32×64 F32 and 64² F32. The size powers in the table multiply the corresponding parent dimension by two to that power. The first series inherits the source dimensions at the warp. Repeat configurations 5–8 with the output explicitly set to the parent dimensions.
+
+| j | Source / gradient storage | Source / gradient size powers | Intensity | Filter and wrapping |
+|---:|---|---|---:|---|
+| 0 | U8 gray / U8 | (0,0) / (0,0) | .0625 | Bilinear XY |
+| 1 | U8 RGBA / U8 | (0,0) / (0,0) | .0625 | Bilinear XY |
+| 2 | U16 RGBA / U16 | (0,0) / (0,0) | 3.25 | Bilinear XY |
+| 3 | F16 gray / F16 | (0,0) / (0,0) | .41875 | Bilinear XY |
+| 4 | F32 gray / F32 | (0,0) / (0,0) | .71875 | Nearest XY |
+| 5 | F32 gray / F32 | (1,0) / (0,1) | .8375 | Bilinear XY |
+| 6 | U16 RGBA / F32 | (−1,0) / (1,−1) | .0625 | Bilinear X |
+| 7 | U16 gray / U8 | (2,1) / (1,2) | −1.375 | Bilinear Y |
+| 8 | F32 RGBA / U16 | (−1,1) / (−2,−1) | 2.125 | Nearest, clamped |
+| 9 | F32 gray / F32 | (0,0) / (0,0) | 1 | Bilinear, clamped |
+
+Ordinary MaterialCraft saves of the five complete graphs in current-header SBS packages reopened in the reference. Their 43 additional renders reproduced all 61,696 output pixels, maximum error zero. The reference app rejected the two MaterialCraft saves whose inputs retained the older 0.1.3 package header. Three current-header standalone warp saves also matched all 42,496 pixels in 36 additional renders.
+
+Ten other roots have a reachable gradient warp. Reuse the [square and rectangular generator controls](#square-and-rectangular-pattern-generators) for the first two Crystal roots, the [patch controls](#bitmap-stamp-filtering-and-compositing) for both patch roots and the [four-format inventory controls](#four-format-inventory-comparison) for the others. The color patch differs by one pixel in each of the four 64² formats. Grayscale matches U8 and differs by one pixel in U16, F16 and F32. Both independent 32² F32 patches differ by one pixel.
+
+| Remaining root | Renders | Exact pixels / compared | Max U8 / U16 levels | Max F16 / F32 error |
+|---|---:|---:|---:|---:|
+| `crystal_1.sbs/crystal_1` | 17 | 144,060/145,664 | 1 / 55 | 0.000244140625 / 0.000106841326 |
+| `crystal_2.sbs/crystal_2` | 17 | 144,468/145,664 | 0 / 19 | 0.000244140625 / 3.05473804e-05 |
+| `fluid.sbs/fluid` | 9 | 131,984/132,096 | 0 / 201 | 0 / 0 |
+| `make_it_tile_patch.sbs/make_it_tile_patch` | 9 | 132,090/132,096 | 1 / 93 | 0.00146484375 / 0.00212101638 |
+| `make_it_tile_patch_grayscale.sbs/make_it_tile_patch_grayscale` | 9 | 132,092/132,096 | 0 / 47 | 0.000732421875 / 0.00105287135 |
+| `microscope_view.sbs/microscope_view` | 9 | 131,217/132,096 | 0 / 61 | 0.000244140625 / 1.52606517e-05 |
+| `noise_crystal_2.sbs/crystal_2` | 9 | 131,037/132,096 | 0 / 46 | 0.00048828125 / 1.52587891e-05 |
+| `noise_fluid.sbs/fluid` | 9 | 129,723/132,096 | 1 / 71 | 0.00048828125 / 0.00016784668 |
+| `noise_liquid.sbs/liquid` | 9 | 127,452/132,096 | 1 / 268 | 0.0009765625 / 0.000885009766 |
+| `noise_microscope_view.sbs/microscope_view` | 9 | 130,081/132,096 | 1 / 48 | 0.000183105469 / 0.000137329102 |
+
 ### Pattern backgrounds and center culling
 
 A connected FX-Map background with matching channels is resized at the wider of its input and output storage precisions. The resize proceeds one power-of-two level at a time. A connected input of the opposite bitmap type produces a zero background in the requested type. With the input disconnected, the authored background color applies. A grayscale map uses the mean of its three color components.

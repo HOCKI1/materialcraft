@@ -100,7 +100,12 @@ pub(super) const FILTERS: &[FilterMap] = &[
             ("manualmiplevel", "mip_level"),
         ],
     },
-    FilterMap { sbs: "warp", def: "warp", inputs: &[("input1", "input"), ("inputgradient", "gradient")], params: &[("intensity", "intensity")] },
+    FilterMap {
+        sbs: "warp",
+        def: "warp",
+        inputs: &[("input1", "input"), ("inputgradient", "gradient")],
+        params: &[("intensity", "intensity"), ("warpfilter", "nearest")],
+    },
     FilterMap { sbs: "passthrough", def: "dot", inputs: &[("input", "input"), ("input1", "input")], params: &[] },
     FilterMap {
         sbs: "text",

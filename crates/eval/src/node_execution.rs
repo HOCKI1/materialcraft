@@ -157,6 +157,7 @@ pub(crate) fn cook_node(
                 | "blur"
                 | "directional_blur"
                 | "directional_warp"
+                | "warp"
                 | "sharpen"
                 | "distance"
                 | "emboss"

@@ -163,6 +163,22 @@ fn native_pattern_inputs_and_hsl_luminosity_round_trip() {
     assert_eq!(legacy.pkg.graphs[0].nodes.iter().find(|node| node.def == "hsl").unwrap().params["lightness"], materialcraft_core::Value::Float(0.75));
 }
 #[test]
+fn warp_filtering_round_trips_as_a_boolean() {
+    let xml = br#"<package><content><graph><identifier v="Warp"/><compNodes><compNode><uid v="1"/>
+        <compImplementation><compFilter><filter v="warp"/><parameters>
+        <parameter><name v="warpfilter"/><paramValue><constantValueBool v="1"/></paramValue></parameter>
+        </parameters></compFilter></compImplementation></compNode></compNodes></graph></content></package>"#;
+    let mut read = read_sbs(xml, "warp.sbs", &|_| None).unwrap();
+    for _ in 0..2 {
+        assert!(read.warnings.is_empty(), "{:?}", read.warnings);
+        assert_eq!(read.pkg.graphs[0].nodes[0].params.get("nearest"), Some(&materialcraft_core::Value::Bool(true)));
+        let bytes = write_sbs(&read.pkg).unwrap();
+        assert!(std::str::from_utf8(&bytes).unwrap().contains("<name v=\"warpfilter\"/>"));
+        read = read_sbs(&bytes, "saved.sbs", &|_| None).unwrap();
+    }
+}
+
+#[test]
 fn transform_mip_settings_survive_sbs_round_trip() {
     let xml = br#"<package><content><graph><identifier v="Mip"/><compNodes><compNode><uid v="1"/>
         <compImplementation><compFilter><filter v="transformation"/><parameters>

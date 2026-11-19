@@ -1,7 +1,7 @@
 use super::ATOMIC;
+use super::input_resize::warp_input;
 use crate::{CookContext, CookResult, NodeDefinition, node};
-use craft_texture::{Image, Kind};
-use materialcraft_core::OutputFormat;
+use craft_texture::Image;
 
 pub(super) fn definition() -> NodeDefinition {
     node("directional_warp", "Directional warp", ATOMIC)
@@ -18,8 +18,8 @@ pub(super) fn definition() -> NodeDefinition {
 fn directional_warp(context: &CookContext) -> CookResult {
     let target = [context.w, context.h].map(|side| side.clamp(1, craft_texture::MAX_SIDE));
     let tiling = context.tiling_axes();
-    let (image, format) = warp_input(context, 0, target, tiling);
-    let (map, map_format) = warp_input(context, 1, target, tiling);
+    let (image, format) = warp_input(context, 0);
+    let (map, map_format) = warp_input(context, 1);
     let map = map.to_gray();
     let same_size = [map.width(), map.height()] == target;
     let radians = context.f("angle") * std::f32::consts::TAU;
@@ -38,39 +38,4 @@ fn directional_warp(context: &CookContext) -> CookResult {
         let uv = [step[0].mul_add(amount, u), step[1].mul_add(amount, v)];
         crate::texture_sampler::sample(&image, uv, tiling, format, None)
     })])
-}
-
-fn warp_input(context: &CookContext, index: usize, target: [u32; 2], tiling: [bool; 2]) -> (Image, OutputFormat) {
-    let Some(mut image) = context.input(index).cloned() else {
-        return (Image::filled(target[0], target[1], Kind::Gray, [0.0; 4]), context.format);
-    };
-    let mut format = context.input_formats.get(index).copied().unwrap_or(if image.integer_sampling() { OutputFormat::U16 } else { OutputFormat::F32 });
-    let mut size = [image.width(), image.height()];
-    // A source up to twice the output on either axis can supply the final taps directly.
-    if size.into_iter().zip(target).all(|(side, output)| (output..=output.saturating_mul(2)).contains(&side)) {
-        return (image, format);
-    }
-    let storage = match (format, context.format) {
-        (OutputFormat::F32, _) | (_, OutputFormat::F32) => OutputFormat::F32,
-        (OutputFormat::F16, _) | (_, OutputFormat::F16) => OutputFormat::F16,
-        (OutputFormat::U8, OutputFormat::U8) => OutputFormat::U8,
-        _ => OutputFormat::U16,
-    };
-    while size != target {
-        // Hold an axis within one level of the output until both axes can take their final step together.
-        let next = std::array::from_fn(|i| {
-            if size[i].saturating_mul(2) < target[i] {
-                size[i] * 2
-            } else if size[i] > target[i].saturating_mul(2) {
-                size[i].div_ceil(2)
-            } else {
-                size[i]
-            }
-        });
-        size = if next == size { target } else { next };
-        image = crate::texture_sampler::resize_input_level(&image, size[0], size[1], format, tiling);
-        image = crate::output_precision::apply(image, storage);
-        format = storage;
-    }
-    (image, format)
 }
