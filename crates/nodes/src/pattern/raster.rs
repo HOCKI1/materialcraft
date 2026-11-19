@@ -149,6 +149,7 @@ pub(super) fn render(context: &CookContext, stamps: &[PatternStamp], max_depth: 
                             let value = foreground[channel];
                             *target = match (kind, stamp.blend) {
                                 (Kind::Gray, 1 | 2) => target.max(value),
+                                (Kind::Color, 0..=2) if texture.is_some() => bitmap::composite(*target, value, stamp_alpha, stamp.blend, channel),
                                 (Kind::Color, 0) if channel == 3 => value.mul_add(1.0 - *target, *target),
                                 (Kind::Color, 1 | 2) => target.mul_add(1.0 - stamp_alpha, value),
                                 _ => *target + value,

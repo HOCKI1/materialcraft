@@ -76,7 +76,7 @@ For an original 64² image, set the byte at `(x,y)` to `(47x + 31y + 7xy + 13) m
 
 The automatic mip estimate selected the observed level in 81 angle and scale combinations, 128 additional independently chosen transforms, and 24 rectangular cases with sides of 32, 64 and 128. The corresponding F32 bit comparisons give 331,582/331,776 (maximum 0.00355535746), 523,951/524,288 (maximum 0.00379943848), 73,702/73,728 (maximum 0.000717163086) respectively. Oblique sample positions still have pixel-level differences. To isolate the nearest-filter error, replace the stamp with a horizontal gradation, then rotate it by a quarter turn and swap its dimensions to measure the other coordinate. Sampling the original bitmap with the two measured coordinates and a zero border reproduces **408,576/408,576 F32 pixels** in 57 renders of 19 geometries, maximum error zero.
 
-For the tint tests, the 32² input channel `c` is `1.5 × (((47x + 31y + 7xy + 13 + 69c + 3xc) mod 256) / 255) − 0.25`. Use opacity 0.375, tint (0.75, 0.375, 1, 0.625) and background (0.25, 0.375, 0.625, 0.8125). Grayscale applies the mean RGB tint. Color mode 0 adds the premultiplied RGB contribution and accumulates alpha. Modes 1 and 2 composite over the background. Signed alpha and premultiplied input are covered. All 28 remaining differences in the 90-render tint matrix are F32 alpha, each 0.0000000596046448. The fixed four-pin renders now match the raw F32 samples as well as the slot selections.
+For the tint tests, the 32² input channel `c` is `1.5 × (((47x + 31y + 7xy + 13 + 69c + 3xc) mod 256) / 255) − 0.25`. Use opacity 0.375, tint (0.75, 0.375, 1, 0.625) and background (0.25, 0.375, 0.625, 0.8125). Grayscale applies the mean RGB tint. Color mode 0 adds the premultiplied RGB contribution and accumulates alpha. Modes 1 and 2 composite over the background. Signed alpha and premultiplied input are covered. The 28 F32 alpha differences in this measurement were each 0.0000000596046448. The [signed blend controls](#signed-bitmap-blend-precision) subsequently close all 28. The fixed four-pin renders now match the raw F32 samples as well as the slot selections.
 
 | Root | Renders | Exact / compared | Maximum U8 / U16 / F16 / F32 error |
 |---|---:|---:|---|
@@ -92,6 +92,25 @@ Six independently authored files with format header `1.1.0.202502` passed throug
 
 The two Alveolus roots use procedural Gaussian stamps. In each root, all eight stage comparisons place the first differing pixel in the FX-Map. On the default 128² and 256² renders its half-width U16 output matches 8,096/8,192 and 32,548/32,768 pixels respectively, maximum one stored level. Isolate the two stamps at (0.25, 0.25) and (0.75, 0.75), local size (3, 1.5), opacity 0.995 and maximum blending. Independently storing the reference F32 result as U16 reproduces the observed U16 values. The coordinate calculation remains open for both roots.
 
+### Signed bitmap blend precision
+
+The bitmap stamp accumulator retains three guard bits below the aligned single-precision significands. A weighted component and its addend each keep a low bit when discarded digits are nonzero. When cancellation removes two or more leading bits, the accumulator drops the low guard bits before storing the result. In additive mode a zero source contribution preserves the background's zero sign. In the over modes a transparent source scales the background by its remaining coverage.
+
+| Procedural inputs | Renders | Previous exact pixels | Exact / compared | Maximum error |
+|---|---:|---:|---:|---:|
+| Constant tint and background, grayscale and color | 90 | 92,132 | 92,160/92,160 | 0 |
+| Signed color over a varying background | 96 | 94,568 | 98,304/98,304 | 0 |
+| Independent exponent ramps and near cancellation | 54 | 66,248 | 96,768/96,768 | 0 |
+| Positive and negative zero with opposite signs | 6 | 5,532 | 6,144/6,144 | 0 |
+
+The [90 tint and opacity controls](#bitmap-stamp-filtering-and-compositing) include U8, U16, F16 and F32 output. For the 96 two-image controls use the same 32² signed RGBA stamp. Set background channel c to `3.55 × fract(((53x + 29y + 11xy + 37) mod 257)/256 + .117c + .005xc) − 1.35`. Cross all three blend modes and both premultiplication settings with four output formats. Use opacity/tint pairs .427/(.487,.683,.237,.563), .375/(.75,.375,1,.625), .923/(1.375,.125,−.125,1.1875) and 1.333/(−.375,1.875,.439,.271). For pair j and blend b use seed 1787+13j+b.
+
+For the 54 independent F32 renders use sides 16, 64 and 32, and seeds 2683+17i+7j+b for size index i, tint index j and blend b. Before cancellation, source channel c is `(((31x+83y+23xy+47c+13) mod 1021)/509−1) × 2^(((3x+7y+11c) mod 19)−9)`. The background is `(((73x+41y+17xy+31c+67) mod 1019)/503−1) × 2^(((5x+7y+3c) mod 23)−11)`. Use opacity/tint pairs .63125/(.4375,−.8125,.733125,.93375), .14875/(1.21325,−.796875,.34375,.713125), and 1/(1,1,1,1). At 32² set source alpha to `1.5 × (((7x+59y+13) mod 509)/508) − .3125`. With F32 arithmetic, place the background at `−V/(1−A+1e−25) × (1+2^−12)` where `V` is the premultiplied, tinted source contribution, `A` is its coverage and `abs(1−A)>1e−5`. At smaller denominators use the original background RGB and alpha .5. The six separate signed-zero renders use a 32² repeating table (+0,−0,1,−1,.5,−.5,2,−2), all three blends, both premultiplication settings and seeds 2729+b. Equality for floating outputs includes the sign bit.
+
+A single nearest-filtered premultiplied texel at full opacity reproduces the former rounding error. Use F32 source bits `baf97631 c061d2bc bc4a2f47 be8c58b1` and background `3ac3d70f 4031485b 3c1eb9a8 3e5c5bb0`. The four over-mode output words are `34f98400 3a61d400 364a3400 388c5c00`. The additive alpha word is `388c6000`.
+
+Replaying 206 renders across 18 affected roots gives 2,131,360/2,246,400 exact pixels. The pattern-package [Tile Random Color matrix](#tile-random-image-and-soft-patterns) gains one F32 pixel and now matches **268,904/276,736** in 40 renders. Its maximum component errors are 163 U8, 59,666 U16, .0478515625 F16 and .90265286 F32. The image-rotation and texel-boundary differences remain. `brick_generator.sbs/resources/Tile`, `histogram_tools.sbs/histogram_compute` and `pattern_brick_generator.sbs/resources/Tile` retain 233,984/233,984 exact pixels in 40 renders combined.
+
 ### Tile Random image and soft patterns
 
 The pattern-package Tile Random and Tile Random Color render the background by itself when the pattern selector is zero. At 64²/827 all 4,096 color output pixels match the original background. Use selector 1 for an image stamp. At 64²/2273, switching from filter 0 to 1 or from 1 to 2 changes 1,187 reference pixels in both roots. Both background and image pins contain procedural fields.
@@ -99,7 +118,7 @@ The pattern-package Tile Random and Tile Random Color render the background by i
 | Root | Renders | Exact / compared | Maximum U8 / U16 / F16 / F32 error |
 |---|---:|---:|---|
 | Tile Random | 32 | 238,215/243,968 | 165 / 60,395 / 0.0498046875 / 1 |
-| Tile Random Color | 40 | 268,903/276,736 | 163 / 59,666 / 0.0478515625 / 0.90265286 |
+| Tile Random Color | 40 | 268,904/276,736 | 163 / 59,666 / 0.0478515625 / 0.90265286 |
 
 The original 20 grayscale renders still match 176,384/176,384 pixels. The color root matches 209,152/209,152 across the same settings, eight additional selector-zero controls, and its archive and inventory cases together. The twelve additional renders per root expose the outstanding differences.
 

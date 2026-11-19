@@ -427,7 +427,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [pattern_tile_generator.sbs/tile_generator](../assets/sbs/pattern_tile_generator.sbs) | 7 | No | [In progress · 217,222/226,048 pixels, stamp placement and waveform rounding differ](parity-fixes.md#beveled-square-gradient-and-wave-stamps) |
 | [pattern_tile_generator.sbs/tile_generator_color](../assets/sbs/pattern_tile_generator.sbs) | 7 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [pattern_tile_random.sbs/tile_random](../assets/sbs/pattern_tile_random.sbs) | 2 | No | [In progress · 238,215/243,968 exact pixels across 32 renders](parity-fixes.md#tile-random-image-and-soft-patterns) |
-| [pattern_tile_random.sbs/tile_random_color](../assets/sbs/pattern_tile_random.sbs) | 2 | No | [In progress · 268,903/276,736 exact pixels across 40 renders](parity-fixes.md#tile-random-image-and-soft-patterns) |
+| [pattern_tile_random.sbs/tile_random_color](../assets/sbs/pattern_tile_random.sbs) | 2 | No | [In progress · 268,904/276,736 exact pixels in 40 renders](parity-fixes.md#signed-bitmap-blend-precision) |
 | [pattern_tile_random_2.sbs/functions/debug_find_cell](../assets/sbs/pattern_tile_random_2.sbs) | 0 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [pattern_tile_random_2.sbs/tile_random_2](../assets/sbs/pattern_tile_random_2.sbs) | 5 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [pattern_tile_sampler.sbs/arrow](../assets/sbs/pattern_tile_sampler.sbs) | 0 | Yes | [Parity · seven 512×512 runs, four formats](parity-fixes.md#transform-edges-and-floating-point-filtering) |

@@ -599,6 +599,31 @@ fn bitmap_stamp_tint_and_coverage_compose_straight_and_premultiplied_colors() {
     }
 }
 
+#[test]
+fn bitmap_stamp_blend_preserves_guard_bits_during_cancellation() {
+    use craft_texture::{Image, Kind};
+    use materialcraft_core::OutputFormat;
+
+    let source = [0xbaf97631, 0xc061d2bc, 0xbc4a2f47, 0xbe8c58b1].map(f32::from_bits);
+    let background = [0x3ac3d70f, 0x4031485b, 0x3c1eb9a8, 0x3e5c5bb0].map(f32::from_bits);
+    let controls = [("color_mode", Value::Bool(true)), ("background", Value::Color(background))];
+    for (mode, expected) in [
+        (0, [0xb9d67c88, 0xbf422984, 0xbb2dd67c, 0x388c6000]),
+        (1, [0x34f98400, 0x3a61d400, 0x364a3400, 0x388c5c00]),
+        (2, [0x34f98400, 0x3a61d400, 0x364a3400, 0x388c5c00]),
+    ] {
+        let stamp = [("imagefiltering", Value::Int(2)), ("imagepremul", Value::Bool(true)), ("blendingmode", Value::Int(mode))];
+        let image = render_bitmap(Image::filled(1, 1, Kind::Color, source), OutputFormat::F32, 1, &stamp, &controls);
+        assert_eq!(image.get(0, 0, false).map(f32::to_bits), expected, "blend {mode}");
+    }
+    let controls = [("color_mode", Value::Bool(true)), ("background", Value::Color([-0.0; 4]))];
+    for mode in 0..=2 {
+        let stamp = [("imagefiltering", Value::Int(2)), ("blendingmode", Value::Int(mode))];
+        let image = render_bitmap(Image::filled(1, 1, Kind::Color, [0.0; 4]), OutputFormat::F32, 1, &stamp, &controls);
+        assert_eq!(image.get(0, 0, false).map(f32::to_bits), [(-0.0_f32).to_bits(); 4]);
+    }
+}
+
 fn roughness_sample(roughness: f32, depth: usize, blend: i32, color: bool, repeat: bool) -> crate::CookResult {
     let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
     for index in 0..depth {
