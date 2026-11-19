@@ -36,7 +36,7 @@ fn blend(context: &CookContext) -> CookResult {
         let (x, y) = (x as i64, y as i64);
         let m = mask.as_ref().map_or(1.0, |m| m.get_gray(x, y, false));
         // These modes read the mask through its transparency before applying global opacity.
-        let m = if ((0..=2).contains(&mode) && color_blending == 0) || matches!(mode, 7 | 8) { 1.0 - (1.0 - m) } else { m };
+        let m = if ((0..=2).contains(&mode) && color_blending == 0) || matches!(mode, 3 | 7 | 8) { 1.0 - (1.0 - m) } else { m };
         ops::blend_px(mode, background.get(x, y, false), foreground.get(x, y, false), opacity * m, color_blending, blend_alpha, clamp)
     })])
 }
@@ -58,6 +58,9 @@ mod tests {
             (0, 0, 0.07, true, false, [0x3f1e8c37, 0x3f236cdd, 0x3d21ff39, 0x3e892c70]),
             (0, 0, 0.3, false, false, [0x3f1e4fbd, 0x3f22b8df, 0x3d267f2b, 0x3e888889]),
             (0, 0, 0.3, true, true, [0x3f514e8e, 0x3f4b8353, 0xbf55520b, 0xbdcc9712]),
+            (3, 0, 0.6875, true, false, [0x3f1d2bec, 0x3f214e9d, 0x3d1e9201, 0x3e8ed249]),
+            (3, 1, 0.6875, true, false, [0x3f145cda, 0x3f131eb2, 0x3d120e5e, 0x3e8ed249]),
+            (3, 3, 0.6875, true, false, [0x3f1d2bec, 0x3f214e9d, 0x3d1e9201, 0x3e8ed249]),
             (7, 0, 0.6137, true, false, [0x3f1a2797, 0x3f1659c4, 0x3d75aca1, 0x3e81bac6]),
             (8, 0, 0.6137, true, false, [0x3f21760a, 0x3f319bf2, 0x3d286e88, 0x3e8e257d]),
             (8, 1, 0.6137, false, false, [0x3f32bf2c, 0x3f834be5, 0x3d57e86e, 0x3e888889]),

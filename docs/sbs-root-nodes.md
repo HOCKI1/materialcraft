@@ -35,7 +35,7 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **311 Parity**, **45 In progress** and **190 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **312 Parity**, **45 In progress** and **189 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
 
 [Grayscale sampler measurements](parity-fixes.md#grayscale-sampling-of-color-inputs) · [Value sampling across 240 typed comparisons](parity-fixes.md#value-processor-texture-filtering)
 
@@ -145,7 +145,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [composite.sbs/composite/background/uniform_color_float3](../assets/sbs/composite.sbs) | 0 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [composite.sbs/composite/blends/blend_content](../assets/sbs/composite.sbs) | 3 | Yes | [Parity · 171,264 exact pixels in 18 renders](parity-fixes.md#segment-mapping-and-normal-graph-rechecks) |
 | [composite.sbs/composite/blends/blend_content_grayscale](../assets/sbs/composite.sbs) | 3 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
-| [composite.sbs/composite/blends/blend_content_pre_post_composite](../assets/sbs/composite.sbs) | 2 | Yes | [Too hard: pixel differences](parity-fixes.md#remaining-differences) |
+| [composite.sbs/composite/blends/blend_content_pre_post_composite](../assets/sbs/composite.sbs) | 2 | Yes | [Parity · 17 renders, all 166,400 RGBA pixels exact](parity-fixes.md#multiply-blending-and-prepost-composition) |
 | [composite.sbs/composite/blends/blend_content_pre_post_composite_grayscale](../assets/sbs/composite.sbs) | 2 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [composite.sbs/composite/blends/blend_matte](../assets/sbs/composite.sbs) | 2 | Yes | [Parity · 19 renders, all 168,448 grayscale pixels exact](parity-fixes.md#unbound-property-links-and-composite-matte) |
 | [composite.sbs/composite/blends/blend_matte_bg_passthrough](../assets/sbs/composite.sbs) | 2 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |

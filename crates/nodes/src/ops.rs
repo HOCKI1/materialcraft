@@ -314,7 +314,8 @@ pub fn blend_channel(mode: i32, b: f32, f: f32) -> f32 {
     match mode {
         1 => b + f,
         2 => b - f,
-        3 => b * f,
+        // Multiply starts at positive zero. Its weighted contribution can still be negative zero.
+        3 => b.mul_add(f, 0.0),
         4 => b + 2.0 * f - 1.0,
         5 => b.max(f),
         6 => b.min(f),
@@ -373,7 +374,7 @@ pub fn blend_px(mode: i32, bg: [f32; 4], fg: [f32; 4], opacity: f32, color_blend
         }
         return out;
     }
-    if ((0..=2).contains(&mode) && color_blending == 0) || (mode == 8 && color_blending != 2) {
+    if ((0..=2).contains(&mode) && color_blending == 0) || (matches!(mode, 3 | 8) && color_blending != 2) {
         // The color weights use the complement of transparency. Coverage uses the original alpha.
         let alpha = if color_blending == 1 { 1.0 } else { 1.0 - (1.0 - fg[3]) };
         let source_weight = alpha * opacity;
@@ -425,6 +426,15 @@ pub fn gray_from(w: u32, h: u32, v: Vec<f32>) -> Result<Image, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn multiply_blend_preserves_the_sign_after_weighting_a_zero_product() {
+        let background = [-0.0, 1.0, -0.5, 0.0];
+        for (alpha, expected) in [(0.0, [0.0, 1.0, -0.5, 0.0]), (-1.0, [-0.0, 3.0, -1.25, -1.0])] {
+            let result = blend_px(3, background, [0.0, -1.0, -0.5, alpha], 1.0, 0, true, false);
+            assert_eq!(result.map(f32::to_bits), expected.map(f32::to_bits));
+        }
+    }
 
     #[test]
     fn divide_blend_handles_zero_and_small_nonzero_divisors() {

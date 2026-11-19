@@ -693,6 +693,18 @@ For shape mapper, the five earlier comparison sizes and four-format inputs are l
 
 For ten further shape mapper renders use H=(((59x+41y+5xy) mod 1021)/1020+u+2v)/4, where u,v are source texel centers. Use defaults at 16²/83, four formats at 64²/167, F32 at 128²/347, a 32×16 input at 32²/499, signed 32²/631 with 3H−1.375, 64²/787 and 64²/827. Set radius .375, width .71875, rotation .09375, nine patterns and seven segments. Use shape 0 and disable non-square expansion for the rectangular input. Use shape 1 elsewhere. Link segments and pattern count for the signed input. Disable alternate flipping and select nearest filtering at seed 787. Together the ten smooth-field renders match all 43,264 stored pixels.
 
+### Multiply blending and pre/post composition
+
+The color pre/post composite matches **166,400/166,400 RGBA pixels in 17 renders**, maximum error zero. The two Levels inputs to the final blend matched on all 4,096 pixels in the changed 64² case before the fix. The multiply blend itself previously matched 2,514/4,096 in the additional 64² F32 field. The complete matrix improved from 162,255/166,400. The final counts are 122,880 U8, 8,192 U16, 8,192 F16 and 27,136 F32.
+
+Use the four archive cases, changed 64²/42 with opacity .37 and mode 3 in all four formats, and the independent 32² case. For eight further cases, take the [composite matte field](#unbound-property-links-and-composite-matte) Hⱼ. Set foreground to (H₁,H₂,H₃,(x mod 5)/4) and background to (H₄,H₅,H₆,(y mod 7)/6). Test 16² opaque/default, 16² with opacity .375 and mode 0, 64² in all four formats with .6875 and mode 3, 32² opaque with 1 and mode 0, then 128² with .3125 and mode 1. Use seeds 103,164,225,286,347 respectively.
+
+Independent multiply controls match **2,990,080/2,990,080 pixels in 130 renders**, including the three signed-zero fields below. The measured source-alpha, ignore-alpha and premultiplied paths preserve separate rounding of the color and coverage weights. For the original byte foreground (116,38,60,36), background (158,163,10,68), mask 44 and opacity .6875, source-alpha returns F32 bits (3f1d2bec,3f214e9d,3d1e9201,3e8ed249). Ignoring foreground alpha for color gives (3f145cda,3f131eb2,3d120e5e,3e8ed249). A separate straight-alpha control remains at 14,395/40,960 across ten renders, maximum F32 component error 377.020249 on signed HDR input.
+
+Use the [independent blend inputs](#color-burn-and-color-dodge) with mode 3 and opacities 1, .6875 and .37. At 64² use varied, opaque, white-mask, constant, black-foreground and transparent-background cases with U8 and F32 sources. Capture the varied case in all four formats. For float sources add the signed field 3H−1 to foreground and background. At .6875 vary the color interpretation and toggle coverage. For grayscale use the 256² byte-pair matrix, reversed pair order and the signed 16-value grid at opacities 1 and .6875. Floating-point comparisons include zero’s sign bit.
+
+For a direct zero test, set V=(+0,−0,1,−1,.5,−.5,2,−2) with indices modulo eight. At 64² set foreground=(V[x],V[x+3],V[x+5],V[y]) and background=(V[floor(x/8)],V[floor(x/8)+1],V[floor(x/8)+4],V[floor(y/8)]). At seeds 137,180,223 use mask 1, V[x+y] and .6875 respectively. The channel product starts at positive zero. Subsequent weighting preserves a negative zero when both terms are negative zero. All 12,288 RGBA32F pixels now match bit for bit, up from 9,779/12,288 with maximum numerical error zero.
+
 ### Unbound property links and composite matte
 
 | Comparison | Renders | Exact pixels / compared | Maximum error |
