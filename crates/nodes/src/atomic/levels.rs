@@ -1,6 +1,7 @@
 use super::ATOMIC;
+use super::input_resize::{InputResize, resized_input};
 use crate::{CookContext, CookResult, NodeDefinition, node};
-use craft_texture::Kind;
+use craft_texture::{Image, Kind};
 use materialcraft_core::OutputFormat;
 
 pub(super) fn definition() -> NodeDefinition {
@@ -19,16 +20,20 @@ pub(super) fn definition() -> NodeDefinition {
 }
 
 fn levels(context: &CookContext) -> CookResult {
-    let image = context.any_or(0, Kind::Gray, [0.0; 4]);
+    let image = resized_input(context, 0, InputResize::Levels).unwrap_or_else(|| Image::filled(context.w, context.h, Kind::Gray, [0.0; 4]));
+    let control = |name| {
+        let rgba = context.v4(name);
+        if image.is_gray() { [(rgba[0] + rgba[1] + rgba[2]) / 3.0; 4] } else { rgba }
+    };
     let endpoint = |name| {
-        let values = context.v4(name);
+        let values = control(name);
         match context.format {
             OutputFormat::U8 | OutputFormat::U16 | OutputFormat::Inherit => values.map(|v| v.clamp(0.0, 1.0)),
             OutputFormat::F16 | OutputFormat::F32 => values,
         }
     };
     let low = endpoint("in_low");
-    let mid = context.v4("in_mid");
+    let mid = control("in_mid");
     let high = endpoint("in_high");
     let output_low = endpoint("out_low");
     let output_high = endpoint("out_high");

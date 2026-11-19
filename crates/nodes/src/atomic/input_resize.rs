@@ -1,0 +1,56 @@
+use crate::CookContext;
+use craft_texture::Image;
+use materialcraft_core::OutputFormat;
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(super) enum InputResize {
+    Copy,
+    Blend,
+    Levels,
+}
+
+pub(super) fn resized_input(context: &CookContext, port: usize, mode: InputResize) -> Option<Image> {
+    let mut image = context.input(port)?.clone();
+    let target = craft_texture::clamp_size(context.w, context.h);
+    if (image.width(), image.height()) == target {
+        return Some(image);
+    }
+    let mut source = context.input_formats.get(port).copied().unwrap_or(if image.integer_sampling() { OutputFormat::U16 } else { OutputFormat::F32 });
+    let storage = if mode == InputResize::Copy {
+        context.format
+    } else {
+        use OutputFormat::*;
+        match (source, context.format) {
+            (F32, _) | (_, F32) => F32,
+            (F16, _) | (_, F16) => F16,
+            (U8, U8) => U8,
+            _ => U16,
+        }
+    };
+    let advance = |now: u32, end: u32| {
+        if now.saturating_mul(2) < end {
+            now.saturating_mul(2)
+        } else if end.saturating_mul(2) < now {
+            now.div_ceil(2)
+        } else {
+            now
+        }
+    };
+    loop {
+        // Leave each axis within one doubling or halving for the final two-dimensional filter.
+        let current = (image.width(), image.height());
+        let intermediate = (advance(current.0, target.0), advance(current.1, target.1));
+        let (w, h) = if intermediate == current { target } else { intermediate };
+        image = crate::texture_sampler::resize_input_level(&image, w, h, source, context.tiling_axes());
+        // A final reduction can feed the Levels curve directly. An enlargement stores the
+        // filtered texels first, which matters when the working image uses half precision.
+        if mode == InputResize::Levels && (w, h) == target && w <= current.0 && h <= current.1 {
+            return Some(image);
+        }
+        image = crate::output_precision::apply(image, storage);
+        if (w, h) == target {
+            return Some(image);
+        }
+        source = storage;
+    }
+}

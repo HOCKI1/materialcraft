@@ -1,9 +1,9 @@
 use super::ATOMIC;
+use super::input_resize::{InputResize, resized_input};
 use crate::ops;
 use crate::ops::BLEND_MODES;
 use crate::{CookContext, CookResult, NodeDefinition, node};
 use craft_texture::{Image, Kind};
-use materialcraft_core::OutputFormat;
 
 pub(super) fn definition() -> NodeDefinition {
     node("blend", "Blend", ATOMIC)
@@ -25,12 +25,12 @@ fn blend(context: &CookContext) -> CookResult {
     let (mode, opacity) = (context.i("mode"), context.f("opacity"));
     let opacity = if matches!(mode, 1 | 2) { opacity.clamp(0.0, 1.0) } else { opacity };
     let copies_foreground = opacity == 1.0 && context.input(2).is_none() && (mode == 7 || (mode == 0 && context.input(0).is_some_and(Image::is_gray)));
-    let foreground = resized_input(context, 0, copies_foreground);
-    let background = resized_input(context, 1, opacity == 0.0);
+    let foreground = resized_input(context, 0, if copies_foreground { InputResize::Copy } else { InputResize::Blend });
+    let background = resized_input(context, 1, if opacity == 0.0 { InputResize::Copy } else { InputResize::Blend });
     let kind = if [&foreground, &background].iter().any(|i| i.as_ref().is_some_and(|i| !i.is_gray())) { Kind::Color } else { Kind::Gray };
     let foreground = foreground.unwrap_or_else(|| Image::filled(context.w, context.h, kind, [0.0, 0.0, 0.0, 0.0]));
     let background = background.unwrap_or_else(|| Image::filled(context.w, context.h, kind, [0.0, 0.0, 0.0, 1.0]));
-    let mask = resized_input(context, 2, false).map(|m| m.to_gray());
+    let mask = resized_input(context, 2, InputResize::Blend).map(|m| m.to_gray());
     let color_blending = context.i("color_blending");
     let blend_alpha = context.b("alpha") && !foreground.is_gray();
     let clamp =
@@ -46,47 +46,6 @@ fn blend(context: &CookContext) -> CookResult {
         };
         ops::blend_px(mode, background.get(x, y, false), foreground.get(x, y, false), opacity * m, color_blending, blend_alpha, clamp)
     })])
-}
-
-fn resized_input(context: &CookContext, port: usize, copied: bool) -> Option<Image> {
-    let mut image = context.input(port)?.clone();
-    let target = craft_texture::clamp_size(context.w, context.h);
-    if (image.width(), image.height()) == target {
-        return Some(image);
-    }
-    let mut source = context.input_formats.get(port).copied().unwrap_or(if image.integer_sampling() { OutputFormat::U16 } else { OutputFormat::F32 });
-    let storage = if copied {
-        context.format
-    } else {
-        use OutputFormat::*;
-        match (source, context.format) {
-            (F32, _) | (_, F32) => F32,
-            (F16, _) | (_, F16) => F16,
-            (U8, U8) => U8,
-            _ => U16,
-        }
-    };
-    let advance = |now: u32, end: u32| {
-        if now.saturating_mul(2) < end {
-            now.saturating_mul(2)
-        } else if end.saturating_mul(2) < now {
-            now.div_ceil(2)
-        } else {
-            now
-        }
-    };
-    loop {
-        // Leave each axis within one doubling or halving for the final two-dimensional filter.
-        let current = (image.width(), image.height());
-        let intermediate = (advance(current.0, target.0), advance(current.1, target.1));
-        let (w, h) = if intermediate == current { target } else { intermediate };
-        image = crate::texture_sampler::resize_input_level(&image, w, h, source, context.tiling_axes());
-        image = crate::output_precision::apply(image, storage);
-        if (w, h) == target {
-            return Some(image);
-        }
-        source = storage;
-    }
 }
 
 #[cfg(test)]

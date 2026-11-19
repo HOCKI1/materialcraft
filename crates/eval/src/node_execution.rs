@@ -152,6 +152,8 @@ pub(crate) fn cook_node(
                 | "value_processor"
                 | "fx_map"
                 | "transformation"
+                | "blend"
+                | "levels"
                 | "blur"
                 | "directional_blur"
                 | "directional_warp"

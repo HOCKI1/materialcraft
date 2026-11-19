@@ -15,6 +15,7 @@ mod grayscale_conversion;
 mod hsl;
 mod input_color;
 mod input_grayscale;
+mod input_resize;
 mod input_value;
 mod levels;
 mod normal;

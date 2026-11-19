@@ -114,6 +114,49 @@ The standalone Add Sub filter matches **59,904/59,904 pixels across 36 renders**
 
 To reproduce the filter controls use one graph per input layout, with foreground, background and optionally mask. In binding order use slot v=0,1,2 for foreground, background and mask. For each channel c use L=(53x+17y+7xy+35v+61c+3cy+3) mod 251. Use L/255 normally. For signed cases use (L−83.125)/53.5 for the images and (L−83.125)/101 for the mask. Masks and grayscale images take channel zero. Set image bridges to F32 for the color graphs and U8 for the grayscale graph. For each graph use 16² F32 at opacity 1, then 32² at opacity .5 in all four formats. At 64² F32 with signed inputs use .6875 with alpha blending disabled, then .3125 with it enabled. At 32² F32 and opacity .6137 run ignored, straight, premultiplied and source alpha. Finish with signed inputs at 16² F32 and opacity zero, followed by 64² F32 with unsigned inputs and opacity 1. Each series starts at seed 5113 and advances by 17.
 
+### Stored input resizing and grayscale Levels controls
+
+Directional noise at 16² now matches all 256 F32 pixels after its 8×16 U16 Blend. Before the fix, the Blend matched 128/128 and the following Levels matched 59/256, with a maximum F32 error of 8.49366188e−6. The remaining first difference at the 32² default is in a U16 FX-Map, with 31/32 pixels equal and a one-level maximum error. On the 64² F32 case, 4,037/4,096 final pixels match with maximum error 3.36766243e−5. The maximum across the earlier comparison was 2.94148922e−5. The larger exact count and the higher maximum are both retained below. [Square and rectangular generator inputs and seeds](#square-and-rectangular-pattern-generators)
+
+| Root | Renders | Previously exact | Current exact pixels / compared | Max U8 / U16 levels | Max F16 / F32 error |
+|---|---:|---:|---:|---:|---:|
+| Black and white spots 3 | 27 | 139,099 | 139,314/185,856 | 1 / 3 | 0.00048828125 / 5.4359436e-05 |
+| Clouds 1 | 17 | 131,293 | 144,125/145,664 | 1 / 11 | 0.00048828125 / 0.000111579895 |
+| Crystal 2 | 17 | 104,017 | 104,128/145,664 | 14 / 12040 | 0.052734375 / 0.136126161 |
+| Directional noise | 23 | 97,505 | 145,135/147,712 | 1 / 3 | 0.00048828125 / 3.36766243e-05 |
+
+Across 300 direct comparisons, all 1,421,760 pixels match in their declared storage, with maximum component error zero. A color pixel counts once when all four components agree. The change uses the stored input precision at destination pixel centers. Intermediate resizes proceed in steps of up to a factor of two. A Levels enlargement stores at the wider input or output precision before applying its curve. The final reduction samples the previous level directly. In grayscale, each of the five Levels controls averages red, green and blue as ((R+G)+B)/3 before any integer endpoint clamp. Fixed Levels and Blend controls receive both resolved tiling axes.
+
+| Direct comparison | Renders | Exact pixels / compared |
+|---|---:|---:|
+| Original gray and color fields, changed size and precision | 84 | 150,528/150,528 |
+| Independent sizes, tiling axes and changed curve | 105 | 188,160/188,160 |
+| Isolated scalar endpoints | 12 | 49,152/49,152 |
+| Independent RGB controls, grayscale and RGBA | 60 | 245,760/245,760 |
+| Complete normalized 16-bit ramp, two curves, four outputs | 8 | 524,288/524,288 |
+| Same ramp through a half input, two curves, two float outputs | 4 | 262,144/262,144 |
+| Two widths and small integer ramps | 11 | 704/704 |
+| Four tiling masks, Levels and Blend, U16 and F32 | 16 | 1,024/1,024 |
+
+The first two field series previously matched 83,073/150,528 and 73,501/188,160 pixels. To reproduce the resize fields, calculate H=((131x+367y+29xy+41c+17xc+seed) mod 2053)/2052 for component c starting at zero. For byte and word input, round H to the nearest stored level. For a floating input use 1.5H−.25 and apply the stated bridge format. Compare 16² F32, 32² U8/U16/F16/F32 and 64² F32/U16 in that order. The seed for field j is 11677+11j plus offsets 0,1,1,1,1,5,6. The changed curve has input low .0705882013, midpoint .522988021, high 1, output low .0134100001 and high .955938995 on RGB. Alpha uses the neutral curve. Intermediate clamping is off.
+
+The source size is the output size multiplied by (2ˣ,2ʸ) for the exponents below. The optional neutral Levels stage has the source dimensions and format. Tiling masks 0,1,2,3 enable neither axis, X, Y and both. In the second group every field includes the neutral stage and uses the changed curve.
+
+| Fields j | Source and dimensions | Controls |
+|---|---|---|
+| 0–2 | RGBA32F (0,0), RGBA16 (−1,0), LUM16 (−1,0) | Direct, neutral, mask 3 |
+| 3–5 | LUM16 (−1,0), (−1,0), (0,0) | Neutral stage, neutral curve for 3 and changed curve for 4–5, mask 3 |
+| 6–8 | LUM16 (0,−1), (1,0), (2,1) | Neutral stage and curve, mask 3 |
+| 9–11 | RGBA8, RGBA16F and RGBA32F, all (−1,0) | Neutral stage and curve, mask 3 |
+| 91–94 | LUM16 (−1,−1) | Masks 3,0,1,2 |
+| 95–99 | LUM16 (−2,−1), (−2,−2), (−1,1), (1,1), (2,2) | Mask 3 |
+| 100–102 | RGBA16F (−1,−1), RGBA32F (−1,−1), RGBA8 (−2,−1) | Mask 3 |
+| 103–105 | RGBA16F, RGBA32F and RGBA8, all (−1,0) | Masks 0,0,3 |
+
+For the 256² ramp, use U16 code 256y+x or store (256y+x)/65535 through an F16 bridge. Compare neutral and changed curves, using seeds 6347 and 6348 for U16, 6733 and 6734 for F16. The 64² independent-control input uses U16 codes round(65535((41x+17y+13xy) mod 4093)/4092). Set the first eight codes to 0,1,2,3,65532,65533,65534,65535. One unclamped grayscale control uses input low (−.5,.25,1.625,−2), mid (−.3,.53,1.25,.1), high (.601,−.375,1.875,2.5), output low (−.125,−.875,1.625,−.5) and high (1.875,1.125,−.375,2.125). At source level 45,308 the result is U16 level 55,876 or F32 bits 0x3f5a44c2.
+
+For the tiling control, enlarge a 4² grayscale word field with code (4y+x)×4096 to 8². Use a neutral Levels or a foreground-only Blend at full opacity. In mask order 0,1,2,3, the top-left U16 levels are 0, 3072, 12288 and 15360 in both operations. Four regression tests cover source filtering, half precision before the curve, grayscale control conversion and independent tiling axes through the evaluator and its cache.
+
 ### Repeated seeds in dirt and pattern generators
 
 At 16² F32 and seed 9802, Dirt 5 produces two reference values at pixel (12,4) on repeated evaluations of the same graph. The other 255/256 pixels agree in all eight observations. With the intermediate images included, the output was 0.21309643983840942 three times and 0.21314725279808044 five times. With only the output observed, the counts were seven and one. The maximum difference in both series is 0.0000508129597. The U16 FX-Map at that coordinate alternates between levels 36,829 and 36,830. The directly connected F32 Levels image also alternates. In the original 16² MaterialCraft render the pixel is 0.21309643983840942. The recorded overall root counts still include the comparison against the original reference observation. [Square and rectangular pattern generators](#square-and-rectangular-pattern-generators)

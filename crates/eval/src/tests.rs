@@ -48,6 +48,38 @@ fn cooks_and_caches() {
 }
 
 #[test]
+fn fixed_filters_preserve_each_tiling_axis_when_resizing_an_input() {
+    use materialcraft_core::{OutputFormat, ParameterInheritance, SizeMode};
+
+    for (filter, port) in [("levels", "input"), ("blend", "foreground")] {
+        let mut graph = Graph::new("Tiling");
+        let input = graph.add_node("input_grayscale", [0.0; 2]);
+        let output = graph.add_node(filter, [100.0, 0.0]);
+        for (id, exponent) in [(input, 2), (output, 3)] {
+            let base = &mut graph.node_mut(id).unwrap().base;
+            base.size_mode = SizeMode::Absolute;
+            base.size = [exponent; 2];
+            base.format = OutputFormat::U16;
+        }
+        graph.connect(input, "output", output, port).unwrap();
+        let mut package = Package::new("Tiling");
+        package.graphs.push(graph);
+        let mut options = Options::new(&no_res);
+        options.inputs.insert("input".into(), Image::gray(4, 4, |x, y| ((4 * y + x) * 4096) as f32 / 65535.0));
+        let cache = Mutex::new(Cache::default());
+        for (tiling, expected) in [([false, false], 0), ([true, false], 3072), ([false, true], 12288), ([true, true], 15360), ([true, false], 3072)] {
+            let base = &mut package.graphs[0].node_mut(output).unwrap().base;
+            base.tiling_mode = ParameterInheritance::Absolute;
+            base.tiling = tiling;
+            let result = cook(&package, 0, &options, &cache);
+            assert_eq!(result.nodes[&output].error, None);
+            let pixel = result.image(output, 0).unwrap().get_gray(0, 0, false);
+            assert_eq!((pixel * 65535.0).round() as u32, expected, "{filter} {tiling:?}");
+        }
+    }
+}
+
+#[test]
 fn subtexel_size_exponents_survive_allocation_and_cache_reuse() {
     use materialcraft_core::{FunctionGraph, OutputFormat, SizeMode};
 

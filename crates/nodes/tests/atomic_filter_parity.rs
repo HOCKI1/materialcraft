@@ -78,6 +78,54 @@ fn levels_applies_signed_gamma_before_mapping_the_output_range() {
 }
 
 #[test]
+fn levels_filters_stored_integer_texels_before_remapping_the_range() {
+    let field = Image::gray(4, 8, |x, y| ((7 * x + 11 * y + 19 * x * y + 9) % 2000) as f32 / 65535.0);
+    let input = materialcraft_nodes::output_precision::apply(field, OutputFormat::U16);
+    let image = cook("levels", &[Some(input)], &[], [8, 8], true);
+    let row = std::array::from_fn(|x| image.get_gray(x as i64, 0, false).to_bits());
+    assert_eq!(row, [0x396000e9, 0x393000b7, 0x396000e9, 0x39900094, 0x39a800a9, 0x39c800ce, 0x39e000e9, 0x39c800ce]);
+}
+
+#[test]
+fn levels_stores_an_enlarged_input_at_half_precision_before_applying_the_curve() {
+    let params = [
+        ("in_low", Value::Float4([0.0625; 4])),
+        ("in_mid", Value::Float4([0.625; 4])),
+        ("out_low", Value::Float4([0.125; 4])),
+        ("out_high", Value::Float4([0.875; 4])),
+    ];
+    for (width, expected) in [(4, 0x3e620000), (16, 0x3e1f4000)] {
+        let field = Image::gray(width, 8, |x, y| ((341 + 3279 * x + 9759 * y + 1737 * x * y) % 65536) as f32 / 65535.0);
+        let input = materialcraft_nodes::output_precision::apply(field, OutputFormat::U16);
+        let image = cook_format("levels", &[Some(input)], &params, [8, 8], true, OutputFormat::F16);
+        let stored = materialcraft_nodes::output_precision::apply(image, OutputFormat::F16);
+        assert_eq!(stored.get_gray(5, 2, false).to_bits(), expected, "source width {width}");
+    }
+}
+
+#[test]
+fn grayscale_levels_averages_rgb_controls_before_bounding_integer_endpoints() {
+    let input = [Some(Image::gray(1, 1, |_, _| 45308.0 / 65535.0))];
+    let params = [
+        ("in_low", Value::Float4([-0.5, 0.25, 1.625, -2.0])),
+        ("in_mid", Value::Float4([-0.3, 0.53, 1.25, 0.1])),
+        ("in_high", Value::Float4([0.601, -0.375, 1.875, 2.5])),
+        ("out_low", Value::Float4([-0.125, -0.875, 1.625, -0.5])),
+        ("out_high", Value::Float4([1.875, 1.125, -0.375, 2.125])),
+        ("clamp_intermediate", Value::Bool(false)),
+    ];
+    let floating = cook("levels", &input, &params, [1, 1], true);
+    assert_eq!(floating.get_gray(0, 0, false).to_bits(), 0x3f5a44c2);
+    let integer = cook_format("levels", &input, &params, [1, 1], true, OutputFormat::U16);
+    let stored = materialcraft_nodes::output_precision::apply(integer, OutputFormat::U16);
+    assert_eq!((stored.get_gray(0, 0, false) * 65535.0).round(), 55876.0);
+
+    let flat = [("out_low", Value::Float4([0.01341; 4])), ("out_high", Value::Float4([0.01341; 4]))];
+    let image = cook("levels", &input, &flat, [1, 1], true);
+    assert_eq!(image.get_gray(0, 0, false).to_bits(), 0x3c5bb59d);
+}
+
+#[test]
 fn integer_levels_bounds_the_four_endpoints_before_applying_gamma() {
     let params = [
         ("in_low", Value::Float4([-1.75, -0.625, -0.125, -0.5])),
