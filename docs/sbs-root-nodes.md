@@ -35,7 +35,7 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **309 Parity**, **45 In progress** and **192 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **310 Parity**, **45 In progress** and **191 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
 
 [Grayscale sampler measurements](parity-fixes.md#grayscale-sampling-of-color-inputs) · [Value sampling across 240 typed comparisons](parity-fixes.md#value-processor-texture-filtering)
 
@@ -162,7 +162,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [constant_values.sbs/integer/constant_integer](../assets/sbs/constant_values.sbs) | 0 | No | [Parity: 3 typed values](parity-fixes.md#verified-cases) |
 | [constant_values.sbs/integer/constant_integer2](../assets/sbs/constant_values.sbs) | 0 | No | [Parity: 3 typed values](parity-fixes.md#verified-cases) |
 | [constant_values.sbs/integer/constant_integer3](../assets/sbs/constant_values.sbs) | 0 | No | [Parity: 3 typed values](parity-fixes.md#verified-cases) |
-| [constant_values.sbs/integer/constant_integer4](../assets/sbs/constant_values.sbs) | 0 | No | [Too hard: integer limit](parity-fixes.md#remaining-differences) |
+| [constant_values.sbs/integer/constant_integer4](../assets/sbs/constant_values.sbs) | 0 | No | [Parity · 41 typed vectors, all components exact](parity-fixes.md#stored-integer-value-outputs) |
 | [contrast_luminosity.sbs/contrast_luminosity](../assets/sbs/contrast_luminosity.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [contrast_luminosity.sbs/contrast_luminosity_grayscale](../assets/sbs/contrast_luminosity.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [creased.sbs/creased](../assets/sbs/creased.sbs) | 0 | Yes | [Too hard: noise field](parity-fixes.md#remaining-differences) |

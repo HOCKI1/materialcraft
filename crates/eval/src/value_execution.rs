@@ -28,5 +28,17 @@ pub(crate) fn evaluate_value(
         variables,
     };
 
-    program.evaluate(&context, &mut EvaluationState::default())
+    let value = program.evaluate(&context, &mut EvaluationState::default())?;
+    Ok(match value {
+        Value::Int(v) => Value::Int(stored_integer(v)),
+        Value::Int2(v) => Value::Int2(v.map(stored_integer)),
+        Value::Int3(v) => Value::Int3(v.map(stored_integer)),
+        Value::Int4(v) => Value::Int4(v.map(stored_integer)),
+        other => other,
+    })
+}
+
+fn stored_integer(value: i32) -> i32 {
+    // The value port rounds to binary32 first. The positive endpoint can round up to 2^31.
+    i32::try_from(value as f32 as i64).unwrap_or(i32::MIN)
 }

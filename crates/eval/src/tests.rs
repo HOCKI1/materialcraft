@@ -82,6 +82,33 @@ fn subtexel_size_exponents_survive_allocation_and_cache_reuse() {
 }
 
 #[test]
+fn value_processor_stores_integer_lanes_at_single_precision() {
+    use materialcraft_core::{FunctionGraph, ValueType};
+    let cache = Mutex::new(Cache::default());
+    let mut graph = Graph::new("Integer output");
+    let processor = graph.add_node("value_processor", [0.0; 2]);
+    let mut package = Package::new("Integer output");
+    package.graphs.push(graph);
+    for (kind, input, expected) in [
+        (ValueType::Integer, Value::Int(i32::MAX), Value::Int(i32::MIN)),
+        (ValueType::Integer2, Value::Int2([16_777_217, -16_777_219]), Value::Int2([16_777_216, -16_777_220])),
+        (ValueType::Integer3, Value::Int3([i32::MIN + 1, 2_147_483_583, 2_147_483_584]), Value::Int3([i32::MIN, 2_147_483_520, i32::MIN])),
+        (ValueType::Integer4, Value::Int4([-31, 0, 1, i32::MAX]), Value::Int4([-31, 0, 1, i32::MIN])),
+    ] {
+        for function in [FunctionGraph::input("numbers", kind), FunctionGraph::constant(input.clone())] {
+            package.graphs[0].node_mut(processor).unwrap().params.insert("function".into(), Value::Function(Box::new(function)));
+            let mut options = Options::new(&no_res);
+            options.overrides.insert("numbers".into(), input.clone());
+            let cooked = cook(&package, 0, &options, &cache);
+            assert_eq!(cooked.value(processor, 0), Some(&expected));
+            let cached = cook(&package, 0, &options, &cache);
+            assert!(cached.nodes[&processor].cached);
+            assert_eq!(cached.value(processor, 0), Some(&expected));
+        }
+    }
+}
+
+#[test]
 fn processor_tiling_variable_tracks_both_axes_and_invalidates_cached_values() {
     let mut function = materialcraft_core::FunctionGraph::default();
     function.output = Some(function.add("get_integer1", &[], Some(Value::Text("$tiling".into()))));
