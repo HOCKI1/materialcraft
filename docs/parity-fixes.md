@@ -114,6 +114,82 @@ The standalone Add Sub filter matches **59,904/59,904 pixels across 36 renders**
 
 To reproduce the filter controls use one graph per input layout, with foreground, background and optionally mask. In binding order use slot v=0,1,2 for foreground, background and mask. For each channel c use L=(53x+17y+7xy+35v+61c+3cy+3) mod 251. Use L/255 normally. For signed cases use (L−83.125)/53.5 for the images and (L−83.125)/101 for the mask. Masks and grayscale images take channel zero. Set image bridges to F32 for the color graphs and U8 for the grayscale graph. For each graph use 16² F32 at opacity 1, then 32² at opacity .5 in all four formats. At 64² F32 with signed inputs use .6875 with alpha blending disabled, then .3125 with it enabled. At 32² F32 and opacity .6137 run ignored, straight, premultiplied and source alpha. Finish with signed inputs at 16² F32 and opacity zero, followed by 64² F32 with unsigned inputs and opacity 1. Each series starts at seed 5113 and advances by 17.
 
+### Square and rectangular pattern generators
+
+Nineteen roots account for 194 new renders and 368,384 output pixels. Capturing the intermediate filters in the same renders places the first difference at an FX-Map in 18 of the 19 roots. Brick 2 matches all eight new outputs and every intermediate image. Its earlier U16, F16 and F32 differences are reproducible. The combined columns include the archived defaults, original changed controls and the earlier four-format and independent cases compared again with the current evaluator. All counts require equality across every stored component.
+
+| Inventory index | Root | New renders | New exact pixels / compared | Combined renders | Combined exact pixels / compared | Max U8 / U16 levels | Max F16 / F32 error |
+|---:|---|---:|---:|---:|---:|---:|---:|
+| 19 | Alveolus | 15 | 31,608/32,000 | 41 | 332,280/334,336 | 0 / 1000 | 0 / 3.05175781e-05 |
+| 57 | Black and white spots 1 | 15 | 25,692/32,000 | 34 | 157,008/204,288 | 1 / 5 | 0.00048828125 / 6.47306442e-05 |
+| 58 | Black and white spots 3 | 8 | 10,283/13,568 | 27 | 139,099/185,856 | 1 / 3 | 0.00048828125 / 5.4359436e-05 |
+| 59 | Brick 1 | 15 | 31,858/32,000 | 34 | 202,490/204,288 | 0 / 1 | 1.52587891e-05 / 1.52587891e-05 |
+| 60 | Brick 2 | 8 | 13,568/13,568 | 27 | 185,560/185,856 | 0 / 1 | 6.10351562e-05 / 1.52662396e-05 |
+| 61 | Brick 3 | 15 | 31,829/32,000 | 34 | 200,505/204,288 | 0 / 3 | 0 / 1.52587891e-05 |
+| 67 | Cells 1 | 8 | 13,525/13,568 | 17 | 144,983/145,664 | 0 / 3 | 0.00048828125 / 3.67760658e-05 |
+| 78 | Clouds 1 | 8 | 7,054/13,568 | 17 | 131,293/145,664 | 1 / 11 | 0.00048828125 / 0.000111401081 |
+| 79 | Clouds 2 | 8 | 13,456/13,568 | 16 | 128,005/129,280 | 1 / 3 | 0.00048828125 / 2.29477882e-05 |
+| 114 | Creased | 8 | 13,483/13,568 | 17 | 143,706/145,664 | 0 / 29 | 0.00048828125 / 1.53183937e-05 |
+| 117 | Crystal 1 | 8 | 1,403/13,568 | 17 | 99,250/145,664 | 52 / 27622 | 0.206420898 / 0.361802135 |
+| 118 | Crystal 2 | 8 | 1,996/13,568 | 17 | 104,017/145,664 | 14 / 12040 | 0.052734375 / 0.136126161 |
+| 127 | Directional noise | 15 | 15,078/32,000 | 23 | 97,505/147,712 | 1 / 2 | 0.0009765625 / 2.94148922e-05 |
+| 128 | Dirt 1 | 8 | 13,565/13,568 | 17 | 144,472/145,664 | 0 / 304 | 0 / 1.52587891e-05 |
+| 129 | Dirt 3 | 8 | 13,535/13,568 | 17 | 145,297/145,664 | 0 / 1 | 1.52587891e-05 / 1.52736902e-05 |
+| 130 | Dirt 5 | 8 | 13,558/13,568 | 16 | 129,218/129,280 | 0 / 4 | 0.000122070312 / 5.0842762e-05 |
+| 131 | Dirt 6 | 8 | 9,039/13,568 | 16 | 117,822/129,280 | 0 / 8 | 0.133789062 / 0.140006408 |
+| 132 | Dirt gradient | 8 | 0/13,568 | 16 | 538/129,280 | 115 / 50249 | 0.453125 / 0.877987966 |
+| 353 | Pattern Alveolus | 15 | 31,436/32,000 | 33 | 201,876/203,264 | 0 / 2 | 0 / 1.52587891e-05 |
+
+All 19 roots generate their own input. For square renders use defaults at 32² F32, setting A at 16² F32, B at 32² in U8/U16/F16/F32, then C at 64² F32 and U16. With the zero-based inventory index i in the table, use seed 8111+13i plus offsets 0, 1, 2, 2, 2, 2, 3 and 4 in that order.
+
+| Roots | Parameters in tuple order | A | B | C |
+|---|---|---|---|---|
+| Both Alveolus | Tiling, filled cells, interstice width | (3,off,.0625) | (1,on,.21875) | (2,off,.375) |
+| Both spots, Clouds 1, Dirt 1 and Dirt 3 | Disorder | .15625 | .46875 | .84375 |
+| Brick 1 and 2 | Tiling, edge smoothness, interstice width | (3,.15625,.21875) | (1,.546875,.0625) | (2,.3125,.375) |
+| Brick 3 | Tiling, roundness, luminance variation, luminance seed, disorder | (2,.125,.15625,7,.125) | (1,.34375,.6875,13,.3125) | (3,.03125,.3125,31,.5625) |
+| Cells 1 | Distance, disorder | (3,12.5) | (11,37.5) | (17,68.75) |
+| Creased and Crystal 1 | Warp intensity, disorder | (0,.15625) | (12.75,.46875) | (27.5,.84375) |
+| Crystal 2 | Warp intensity | 0 | 12.75 | 27.5 |
+| Clouds 2, directional noise, Dirt 5, Dirt 6 and Dirt gradient | Graph seed and dimensions | Defaults | Defaults | Defaults |
+
+For Pattern Alveolus enable non-square expansion in A and C and disable it in B. Both Alveolus roots, black and white spots 1, Bricks 1 and 3, and directional noise also have seven rectangular renders. Use 64×32 F32 at defaults, 32×64 in all four formats at A, 128×32 U16 at B and 32×128 F32 at C. Use seed 8623+19i plus offsets 0, 1, 1, 1, 1, 5 and 6. Width precedes height. The output dimensions were checked against both applications.
+
+The new stage captures compare 2,140,795/2,835,040 pixels across 1,452 images, including output bridges. The first discrepancy in the 16² directional noise Levels output occurs after a matching 8×16 U16 blend. The blend matches all 128 input pixels, while 59/256 Levels samples match with maximum F32 error 8.49366188e−6. In the 64² Dirt 1 render, all 4,096 U16 pattern pixels match, followed by a 16² U8 blur with 255/256 exact pixels and maximum error one level. In the 16² Dirt 5 case, all 256 F32 Levels samples match and the output bridge differs at one pixel by .0000508129597. Dirt gradient first differs in three separate pattern maps. [Previous spot and brick controls](#spot-and-brick-pattern-generators) · [Previous radial stamp controls](#radial-stamp-profiles-and-pattern-generators)
+
+| Stage storage | Images | Exact pixels / compared | Maximum component error |
+|---|---:|---:|---:|
+| LUM16 | 1,148 | 1,777,298/2,364,864 | 57516 |
+| LUM16F | 50 | 53,124/63,488 | 0.453125 |
+| LUM32F | 188 | 250,004/341,504 | 0.877987966 |
+| LUM8 | 66 | 60,369/65,184 | 115 |
+
+### Tiled radial stamp coordinates
+
+An original graph draws a single Gaussian stamp with opacity .995 or a paraboloid with opacity 1. Use maximum blending, size (3,1.5), and center (.25,.25) or (.75,.75). At 32×64 and 64×128 F32, the per-pixel maximum of nine separate untiled renders matches the tiled render. Offset each copy by (dx,dy) with both components in {−1,0,1}. The same result holds for the Gaussian at 64×128 U16. Across the two shapes this gives 40,960/40,960 F32 and 16,384/16,384 U16 pixels, maximum error zero. Seeds are 83 and 84 at the smaller size and 223 and 224 at the larger one.
+
+The following calculation also predicts those ten tiled images. In each axis of length N, let L=N(center+offset−size/2), D=N×size and B=max(0,L). K is the next F32 toward zero from F32(2/D). At pixel center p inside (L,L+D], evaluate the local coordinate as trunc32((p−B)×K+trunc32(−1+(B−L)×K)), where trunc32 rounds toward zero. Preserve full precision inside the two truncations. Apply the [radial profiles](#radial-stamp-profiles-and-pattern-generators) and take the maximum over the copies.
+
+In 52 further renders, this coordinate calculation predicts only 104,640/219,136 F32 pixels and 218,428/219,136 U16 pixels. The respective maximum errors are 8.34465027e−7 and one level. Both shapes use width N/2 and height N, with seed 4729+17j for row j starting at zero. Render each row in F32 and U16. These independent cases keep the general coordinate calculation open.
+
+| N | Center | Size |
+|---:|---|---|
+| 32 | (.25,.25) | (3,1.5) |
+| 256 | (.75,.75) | (3,1.5) |
+| 32 | (.3125,.6875) | (3,1.5) |
+| 128 | (.1875,.8125) | (3,1.5) |
+| 64 | (.5,.5) | (1,1) |
+| 128 | (.5,.5) | (.75,.375) |
+| 64 | (.375,.625) | (1.5,.75) |
+| 64 | (.625,.3125) | (.6875,1.125) |
+| 64 | (.5625,.4375) | (1.4,1.4) |
+| 128 | (.50013,.49967) | (.71875,1.6875) |
+| 128 | (.3125,.6875) | (2,.5) |
+| 64 | (.1875,.3125) | (.618034,.953125) |
+| 256 | (.5,.5) | (4,2) |
+
+For all 26 Gaussian renders in this table, acquiring the same package and capturing its outputs took 352.37 seconds in a long-running reference session and 24.01 seconds in a fresh one. Both captures produced byte-identical outputs at all 219,136 pixels. A second check repeated 13 color renders and obtained byte-identical readbacks at 62,976/62,976 pixels across 39 images. Each run restored the prior graph settings.
+
 ### Fixed integer arguments and the UV debug marker
 
 The UV debug graph now matches all 217,088 pixels in its original 32 renders. The [square-root measurements](#uniform-square-roots-and-the-uv-debug-marker) previously had 194,522 exact. Sixteen additional renders with signed channel offsets match all 10,240 pixels. Six independently wired parents add 56,828/56,832 exact pixels. Compute Irradiance and Compute Ray Direction each retain all 217,088 exact pixels across 32 renders.
@@ -140,7 +216,11 @@ For the wired parents, drive the index and count through value processors. Use t
 
 At (13,24) in the fourth row's 32² F32 output, the reference stores gray .1476394385. MaterialCraft also covers that pixel with the marker color (.43350938,.89819467,0,1). An isolated rectangle centered at (.42769217,.83190984), size (.13307922,.01), rotated .23604888 turns reproduces the extra pixel. In the final row at 32² U16 the reference stores red 15,899 at (9,19), (10,20) and (11,21). MaterialCraft stores 15,898. Both apps store 15,898 when an independent rectangle receives the literal red value .24259558. Integer storage also agrees on all 14,336 output pixels from 56 solid rectangle and uniform-color controls around half-level thresholds.
 
-A folded scalar integer is ordered and converted to F32 using its unsigned 32-bit value. A runtime scalar integer has signed ordering and conversion. For example a folded −5 becomes 4,294,967,296 in F32. With a runtime input of −5 it becomes −5. Compare −32,768 with 2, −5 with −2 in both orders, −1 with 0 in both orders, equal operands, opposite signs and −2³¹ with 1,024. Test less, less-or-equal, greater and greater-or-equal with two literals, two runtime inputs, either operand fixed, and an equivalent literal subtraction. Two serialized scalar integer types and the converted values are covered. All 84/84 returned F32 tuples match. Integer vectors of two, three and four lanes preserve signed conversion in all 12/12 additional typed controls.
+Four independent color and grayscale rectangle series compare coverage at 16², 32², 64² and 128², using the two marker geometries above and offsets of up to a quarter pixel. A forward-transformed quadrilateral reproduces all 197,632 coverage decisions in 88 renders. In 80 additional edge-focused renders it matches 137,175/137,216. Snapping its screen vertices to the nearest 1/256 pixel gives 137,166/137,216. MaterialCraft's inverse-transform test gives 137,185/137,216. The maximum binary coverage error for each method on this second set is one.
+
+For the second set, position one edge of a rotated rectangle at an interior pixel center. Vary its length in [.1,.57], its signed width among −.03125, .009765625, .09765625 and .25, and its rotation among −.38200337, −1/6, .03125, .09375, .125, .21249999, .23604888, .3125 and .4782 turns. Shift each center axis by up to one F32 spacing. The 80 cases include both agreement and disagreement between the analytical coverage tests. They preserve a distinction that the first two geometries alone would miss.
+
+A folded scalar integer is ordered and converted to F32 using its unsigned 32-bit value. A runtime scalar integer has signed ordering and conversion. For example a folded −5 becomes 4,294,967,296 in F32. With a runtime input of −5 it becomes −5. Compare −32,768 with 2, −5 with −2 in both orders, −1 with 0 in both orders, equal operands, opposite signs and −2³¹ with 1,024. Test less, less-or-equal, greater and greater-or-equal with two literals, two runtime inputs, either operand fixed, and an equivalent literal subtraction. Both scalar integer encodings and the converted values are covered. All 84/84 returned F32 tuples match. Integer vectors of two, three and four lanes preserve signed conversion in all 12/12 additional typed controls.
 
 For the scope controls pack the four comparison flags into bits 0 through 3 and use bit 4 for float(left)>1,000,000. Divide by 32. With (−5,2), both fixed yield .875, a fixed left operand and runtime right operand yield .59375, and a runtime left operand with fixed right yields .09375. Use a property function, pixel processor, pattern function and value processor at 16² F32 and 32² in four formats with a positive and a negative argument. All 39,168 image pixels and 15 typed values match.
 
