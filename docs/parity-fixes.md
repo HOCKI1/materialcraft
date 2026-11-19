@@ -1042,6 +1042,30 @@ Every row includes the four original defaults, seed and parameter renders, the 6
 
 The trapezoid pair each has two remaining differences across the archived and new comparisons. The [four-format inventory](#four-format-inventory-comparison) lists the original changed settings and port names.
 
+### Curvature from original normal fields
+
+| Root | Exact pixels / compared | Maximum U8 / U16 error (levels) | Maximum F16 / F32 error |
+|---|---:|---:|---:|
+| Curvature | 2,025/176,384 | 22 / 5,756 | 0.087890625 / 1.70635545 |
+| Curvature smooth | 54,757/176,384 | 1 / 7 | 0.00048828125 / 6.10351562e-05 |
+
+For each root combine the four archive cases and five [inventory renders](#four-format-inventory-comparison) with eleven original normal-map renders. At centered UV coordinates let a=.5sin(2πu)+.25cos(4πv), b=.5cos(2πv)−.25sin(4πu) and z=sqrt(max(0,1−a²−b²)). Encode (a,b,z) as .5+.5×component in RGBA32F. Alpha is ((19x+43y+7xy) mod 255)/254. The stepped field substitutes a=((11x+5y) mod 13−6)×.09375 and b=((3x+7y) mod 9−4)×.125. The flat field sets a=b=0. In the signed case multiply encoded RGB by 2.5 and subtract .75. Read every final grayscale sample at its declared storage precision.
+
+| Input and output | Size / seed | Curvature intensity / invert green / normal format |
+|---|---|---|
+| Wave, F32 | 16² / 53 | Defaults |
+| Wave, all four output formats | 64² / 157 | 1.375 / false / 1 |
+| Wave, F32 | 64² / 157 | .625 / true / 0 |
+| Steps, F32 | 128² / 239 | 2.75 / true / 1 |
+| Flat, F32 | 32² / 389 | Defaults |
+| Signed wave, F32 | 32² / 467 | .1875 / false / 0 |
+| 32×17 stepped input, F32 | 32² / 523 | 2.75 / true / 1 |
+| Wave, F32 | 64² / 787 | 1.375 / false / 1 |
+
+Curvature smooth exposes only the normal format. Both roots match all 1,024 flat-control samples. In the 64²/157 F32 curvature graph, both transformed normal maps and both grayscale channel extractions match all 4,096 pixels apiece. The uniform background matches all 1,024 pixels. Both emboss outputs differ at every pixel, with U16 errors up to 673 and 2,876 levels respectively. This isolates the first difference before their final blend.
+
+In the smooth graph, both 64² channel extractions match exactly. A 16² U16 blend of a transformed channel with the 64² grayscale source matches 240/256 pixels, maximum one level. Both inputs to this blend match before resizing. At this setting the final F32 output matches 2,440/4,096 with maximum error 4.57763672e-5. Both roots remain open.
+
 ### Random draws in pattern properties and iterations
 
 A pattern property starts its own random sequence at the visit seed. For each draw use s=(A×s+C) mod 2²⁴, then return floor(s/2)/2²³. Three draws recorded as the R, G and B channels of an original square stamp distinguish the following sequences. Seeds 0 and 1 constrain the missing low bit of each candidate state. Seeds 2, 5, 42, 223, 743 and 65,537 independently reproduce all three channels.
@@ -1069,6 +1093,8 @@ The initial iterate output receives the visit seed. Each repetition advances it 
 | Nested quadrants, initial output and seed reset | 20 | 41,600 | 66,560/66,560 | 0 |
 | Three recorded draws per property | 72 | 17,408 | 18,432/18,432 | 0 |
 | Count and switch properties, including a computed count | 20 | 11,392 | 17,408/17,408 | 0 |
+
+All 37 archive renders across eight previously matched roots that use iteration or property functions still match, totaling **827,392/827,392 pixels** with maximum error zero. These include both brick tile helpers, position debug, Checker 2, histogram compute, paths polygon, Weave 3 and White Noise.
 
 The following roots use their own procedural fields. The [spot and brick settings](#spot-and-brick-pattern-generators) give the first five matrices. For the other six, add ten renders to the archive and [four-format inventory](#four-format-inventory-comparison). Use defaults at 16²/83, then 32²/139, 64²/223, 64²/743, 128²/293, 32²/419 and 32²/577. Render F32 throughout and all four formats at 64²/223. The two 64² seeds share their parameters. In order of the five changed configurations, Cells 1 uses (distance, disorder) of (3,9.375), (7,37.5), (19,68.75), (1,0) and (31,100). Set disorder to .125, .4375, .6875, 0 and 1 on Clouds 1, Creased and Crystal 1. Set warp intensity to 1.75, 11.5, 37.25, 0 and 63.5 on Creased and both crystals. Clouds 2 exposes no numeric setting.
 
