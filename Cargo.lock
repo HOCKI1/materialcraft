@@ -2869,6 +2869,7 @@ name = "materialcraft-eval"
 version = "0.4.1"
 dependencies = [
  "craft-texture",
+ "half",
  "materialcraft-core",
  "materialcraft-nodes",
  "serde",

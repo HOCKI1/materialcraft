@@ -434,6 +434,40 @@ fn emboss_uses_the_resolved_pixel_size_on_each_axis() {
 }
 
 #[test]
+fn bound_float_bitmap_reduces_close_texels_at_the_measured_filter_precision() {
+    let mut graph = Graph::new("Row reduction");
+    graph.size = [4, 0];
+    graph.format = materialcraft_core::OutputFormat::F32;
+    let input = graph.add_node("input_grayscale", [0.0; 2]);
+    let mut package = Package::new("Row reduction");
+    package.graphs.push(graph);
+    for (width, row, sample, expected) in [(47, 15, 11, 0x3f00_001d), (65, 14, 9, 0x3f00_001d), (67, 14, 4, 0x3f00_001f)] {
+        let image = Image::gray(width, 1, |x, _| f32::from_bits(0x3f00_0000 + (13 * x + 7 * row + 3 * x * row + row * row) % 64));
+        let mut options = Options::new(&no_res);
+        options.inputs.insert("input".into(), image);
+        let result = cook(&package, 0, &options, &Mutex::new(Cache::default()));
+        assert_eq!(result.image(input, 0).unwrap().get_gray(sample, 0, false).to_bits(), expected);
+    }
+}
+
+#[test]
+fn bound_float_bitmap_diffuses_half_rounding_after_resizing() {
+    let mut graph = Graph::new("Half input");
+    graph.size = [5, 5];
+    graph.format = materialcraft_core::OutputFormat::F16;
+    let input = graph.add_node("input_color", [0.0; 2]);
+    let mut package = Package::new("Half input");
+    package.graphs.push(graph);
+    let mut options = Options::new(&no_res);
+    options.inputs.insert("input".into(), Image::filled(32, 17, Kind::Color, [1.0 + 1.0 / 2048.0, -1.0, 0.125, 0.12505]));
+    let result = cook(&package, 0, &options, &Mutex::new(Cache::default()));
+    let image = result.image(input, 0).unwrap();
+    assert_eq!(image.get(0, 0, false), [1.0 + 1.0 / 1024.0, 0.0, 0.125, 0.125]);
+    assert_eq!(image.get(1, 0, false), [1.0, 0.0, 0.125, 0.125]);
+    assert_eq!(image.get(2, 0, false), [1.0 + 1.0 / 1024.0, 0.0, 0.125, 0.125 + 1.0 / 8192.0]);
+}
+
+#[test]
 fn bound_float_image_filters_an_odd_impulse_on_each_axis() {
     let mut graph = Graph::new("Impulse");
     graph.size = [4, 4];

@@ -18,6 +18,7 @@ pub(super) fn resize(image: &Image, size: (u32, u32), kind: Kind, source: Output
         OutputFormat::U8 => Some(255.0),
         OutputFormat::Inherit | OutputFormat::U16 => Some(65535.0),
         OutputFormat::F32 => None,
+        OutputFormat::F16 if input_levels.is_none() => None,
         OutputFormat::F16 => return None,
     };
     // Keep the lower channel depth through both filter passes. A byte raster sent to
@@ -36,7 +37,28 @@ pub(super) fn resize(image: &Image, size: (u32, u32), kind: Kind, source: Output
     for (horizontal, end) in passes {
         filtered = filter_axis(filtered, horizontal, end, maximum.is_some());
     }
+    if output == OutputFormat::F16 {
+        // Float rasters are filtered at full precision before the half writer diffuses its rounding error.
+        return diffuse(&filtered, |original, received| {
+            let stored = nearest_positive_half(original + received);
+            (stored, original - stored)
+        });
+    }
     Some(if let Some(maximum) = maximum { filtered.map(kind, |p| p.map(|v| v / maximum)).with_integer_sampling(output_levels.is_some()) } else { filtered })
+}
+
+fn nearest_positive_half(value: f32) -> f32 {
+    let value = value.max(0.0);
+    let nearest = half::f16::from_f32(value);
+    let lower = nearest.to_f32();
+    if lower < value {
+        let upper = half::f16::from_bits(nearest.to_bits() + 1).to_f32();
+        // The bitmap writer rounds a midpoint to the larger half, including at the subnormal boundary.
+        if value - lower == upper - value {
+            return upper;
+        }
+    }
+    lower
 }
 
 fn filter_axis(image: Image, horizontal: bool, end: u32, integer: bool) -> Image {
@@ -45,13 +67,15 @@ fn filter_axis(image: Image, horizontal: bool, end: u32, integer: bool) -> Image
         return image;
     }
     let scale = f64::from(end) / f64::from(start);
-    let radius = 1.0 / scale.min(1.0);
+    let filter_scale = scale.min(1.0);
+    let radius = 1.0 / filter_scale;
     let taps: Vec<_> = (0..end)
         .map(|index| {
-            let center = (f64::from(index) + 0.5) / scale - 0.5;
-            let first = (center - radius).ceil().max(0.0) as u32;
-            let last = ((center + radius).floor() as u32).min(start - 1);
-            let mut weights: Vec<_> = (first..=last).map(|i| (1.0 - (f64::from(i) - center).abs() / radius).max(0.0)).collect();
+            let center = (f64::from(index) + 0.5) / scale;
+            let first = (center - 0.5 - radius).ceil().max(0.0) as u32;
+            let last = ((center - 0.5 + radius).floor() as u32).min(start - 1);
+            // Keep the downsampling factor through normalization. Cancelling it changes rounding at close texels.
+            let mut weights: Vec<_> = (first..=last).map(|i| filter_scale * (1.0 - (f64::from(i) + 0.5 - center).abs() * filter_scale).max(0.0)).collect();
             let sum: f64 = weights.iter().sum();
             for w in &mut weights {
                 *w /= sum;
@@ -79,35 +103,39 @@ fn filter_axis(image: Image, horizontal: bool, end: u32, integer: bool) -> Image
 }
 
 fn dither(image: &Image, maximum: f32, word_to_byte: bool) -> Option<Image> {
+    let mut state = 1_u64;
+    let unit = maximum.recip();
+    let limit = f32::MAX / (4.0 * maximum);
+    diffuse(image, |value, received| {
+        state = (48_271 * state) % 2_147_483_647;
+        let random = (state as f64 / 2_147_483_647.0) as f32;
+        let original = if value.is_finite() { value.clamp(-limit, limit) } else { f32::from(value > 0.0) };
+        let stored = if word_to_byte {
+            // One full byte level expands to 257 word levels. The noise spans one high-byte step.
+            let word = (original * 65535.0).round();
+            ((word + received * 257.0 + (random - 0.5) * 256.0) / 256.0).floor()
+        } else {
+            let noise = if maximum == 255.0 { (random * maximum).round() / maximum } else { random };
+            ((original + (received + (noise - 0.5)) * unit) * maximum).round()
+        }
+        .clamp(0.0, maximum);
+        (stored, original * maximum - stored)
+    })
+}
+
+fn diffuse(image: &Image, mut quantize: impl FnMut(f32, f32) -> (f32, f32)) -> Option<Image> {
     let width = usize::try_from(image.width()).ok()?;
     let channels = image.channels();
     let mut samples = Vec::new();
     samples.try_reserve_exact(image.data().len()).ok()?;
     samples.extend_from_slice(image.data());
     let mut errors: [_; 3] = std::array::from_fn(|_| vec![[0.0_f32; 4]; width + 4]);
-    let mut state = 1_u64;
-    let unit = maximum.recip();
-    let limit = f32::MAX / (4.0 * maximum);
     for (y, row) in samples.chunks_exact_mut(width * channels).enumerate() {
         let current = y % 3;
         for (x, pixel) in row.chunks_exact_mut(channels).enumerate() {
             let mut error = [0.0; 4];
             for (c, value) in pixel.iter_mut().enumerate() {
-                state = (48_271 * state) % 2_147_483_647;
-                let random = (state as f64 / 2_147_483_647.0) as f32;
-                let original = if value.is_finite() { value.clamp(-limit, limit) } else { f32::from(*value > 0.0) };
-                let received = errors[current][x + 2][c];
-                let stored = if word_to_byte {
-                    // One full byte level expands to 257 word levels. The noise spans one high-byte step.
-                    let word = (original * 65535.0).round();
-                    ((word + received * 257.0 + (random - 0.5) * 256.0) / 256.0).floor()
-                } else {
-                    let noise = if maximum == 255.0 { (random * maximum).round() / maximum } else { random };
-                    ((original + (received + (noise - 0.5)) * unit) * maximum).round()
-                }
-                .clamp(0.0, maximum);
-                error[c] = original * maximum - stored;
-                *value = stored;
+                (*value, error[c]) = quantize(*value, errors[current][x + 2][c]);
             }
             // Two extra columns on each end absorb error outside the image. Propagate the
             // original quantization error once, with the three-row Sierra filter.

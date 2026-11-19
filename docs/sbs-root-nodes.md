@@ -170,8 +170,8 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [crop.sbs/crop_grayscale](../assets/sbs/crop.sbs) | 1 | No | [Parity · 48 renders, all 377,344 pixels across both outputs exact](parity-fixes.md#half-precision-crop-area-and-input-sizes) |
 | [crystal_1.sbs/crystal_1](../assets/sbs/crystal_1.sbs) | 0 | Yes | [In progress · 19 renders, 99,700/172,288 exact pixels](parity-fixes.md#filtering-unequal-inputs-to-a-blend) |
 | [crystal_2.sbs/crystal_2](../assets/sbs/crystal_2.sbs) | 0 | Yes | [In progress · 19 renders, 113/172,288 exact pixels](parity-fixes.md#random-draws-in-pattern-properties-and-iterations) |
-| [curvature.sbs/curvature](../assets/sbs/curvature.sbs) | 1 | No | [Parity · 20 renders, 176,384 exact grayscale pixels](parity-fixes.md#non-power-of-two-float-image-inputs-and-curvature) |
-| [curvature_smooth.sbs/curvature_smooth](../assets/sbs/curvature_smooth.sbs) | 1 | Yes | [Parity · 20 renders, 176,384 exact grayscale pixels](parity-fixes.md#non-power-of-two-float-image-inputs-and-curvature) |
+| [curvature.sbs/curvature](../assets/sbs/curvature.sbs) | 1 | No | [Parity · 20 renders, 176,384 exact grayscale pixels](parity-fixes.md#float-bitmap-reduction-and-half-output) |
+| [curvature_smooth.sbs/curvature_smooth](../assets/sbs/curvature_smooth.sbs) | 1 | Yes | [Parity · 20 renders, 176,384 exact grayscale pixels](parity-fixes.md#float-bitmap-reduction-and-half-output) |
 | [curvature_smooth_v2.sbs/compute_curvature_v2](../assets/sbs/curvature_smooth_v2.sbs) | 2 | Yes | [Parity: 6 cases](parity-fixes.md#verified-cases) |
 | [diffusion.sbs/impl/pass_RGBA](../assets/sbs/diffusion.sbs) | 4 | Yes | [Parity · 19 renders, 143,872 exact pixels](parity-fixes.md#per-pixel-random-initialization) |
 | [diffusion.sbs/impl/pass_UV](../assets/sbs/diffusion.sbs) | 1 | Yes | [Parity · 19 renders, 143,872 exact pixels](parity-fixes.md#per-pixel-random-initialization) |
@@ -352,9 +352,9 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [noise_perlin_noise.sbs/perlin_noise](../assets/sbs/noise_perlin_noise.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [noise_perlin_noise_v2.sbs/perlin_noise](../assets/sbs/noise_perlin_noise_v2.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [noise_plasma.sbs/plasma](../assets/sbs/noise_plasma.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [noise_upscale_1.sbs/noise_upscale_1](../assets/sbs/noise_upscale_1.sbs) | 1 | No | [Parity · 21 renders, 697,344 exact grayscale pixels](parity-fixes.md#source-image-depth-and-the-three-noise-upscalers) |
-| [noise_upscale_2.sbs/noise_upscale_2](../assets/sbs/noise_upscale_2.sbs) | 1 | No | [Parity · 21 renders, 697,344 exact grayscale pixels](parity-fixes.md#source-image-depth-and-the-three-noise-upscalers) |
-| [noise_upscale_3.sbs/noise_upscale_3](../assets/sbs/noise_upscale_3.sbs) | 2 | No | [Parity · 21 renders, 697,344 exact grayscale pixels](parity-fixes.md#source-image-depth-and-the-three-noise-upscalers) |
+| [noise_upscale_1.sbs/noise_upscale_1](../assets/sbs/noise_upscale_1.sbs) | 1 | No | [Parity · 21 renders, 697,344 exact grayscale pixels](parity-fixes.md#float-bitmap-reduction-and-half-output) |
+| [noise_upscale_2.sbs/noise_upscale_2](../assets/sbs/noise_upscale_2.sbs) | 1 | No | [Parity · 21 renders, 697,344 exact grayscale pixels](parity-fixes.md#float-bitmap-reduction-and-half-output) |
+| [noise_upscale_3.sbs/noise_upscale_3](../assets/sbs/noise_upscale_3.sbs) | 2 | No | [Parity · 21 renders, 697,344 exact grayscale pixels](parity-fixes.md#float-bitmap-reduction-and-half-output) |
 | [noise_voronoi.sbs/3d_voronoi](../assets/sbs/noise_voronoi.sbs) | 1 | No | [In progress · 37 renders, 152,320/155,392 exact pixels with stock and shared tables](parity-fixes.md#voronoi-distortion-and-shared-noise-inputs) |
 | [noise_voronoi.sbs/3d_voronoi_fractal](../assets/sbs/noise_voronoi.sbs) | 1 | No | [In progress · 37 renders, 152,163/155,392 exact pixels with stock and shared tables](parity-fixes.md#voronoi-distortion-and-shared-noise-inputs) |
 | [noise_voronoi.sbs/voronoi](../assets/sbs/noise_voronoi.sbs) | 0 | No | [In progress · 37 renders, 152,320/155,392 exact pixels with stock and shared tables](parity-fixes.md#voronoi-distortion-and-shared-noise-inputs) |

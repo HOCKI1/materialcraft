@@ -1114,6 +1114,41 @@ For Worley, Dissolve, the four diffusion passes, six flood-fill outputs and both
 
 For Worley also set size (.75,1.25,1.5), Minkowski number .6875, border width .1875 and roundness .3125. Set optional diffusion controls where exposed. For Flood Fill 2 color use HSL adjustment (.125,−.1875,.25) and random range (.375,.625,.1875). For its grayscale equivalent use luminance adjustment −.1875 and random range .625. The random flood-fill outputs and fast white noise have no additional exposed numeric changes in these controls. Each residual flood-fill difference is at most one U16 level or .0000152587891 in F32. Uniform noise selects the measured per-texel stream. The Gaussian distribution in White Noise v2 still diverges.
 
+### Float bitmap reduction and half output
+
+| Bound input and bridge storage, read through F32 | Renders | Exact pixels before | Exact pixels after / compared | Maximum F32 error after |
+|---|---:|---:|---:|---:|
+| Signed F32 images read through F32 | 78 | 238,988 | 239,608/239,616 | 9.31322575e-10 |
+| F32 images through U8 | 18 | 18,400 | 18,414/18,432 | 0.0039215982 |
+| F32 images through U16 | 18 | 18,399 | 18,418/18,432 | 1.52597204e-05 |
+| F32 images through F16 | 18 | 4,979 | 18,432/18,432 | 0 |
+| Byte and word images through U8 | 36 | 36,854 | 36,864/36,864 | 0 |
+| Byte and word images through U16 | 36 | 36,846 | 36,864/36,864 | 0 |
+| Byte and word images through F16 | 36 | 6,605 | 6,605/36,864 | 0.359375 |
+| Byte and word images through F32 | 36 | 36,846 | 36,864/36,864 | 0 |
+
+Use the [original float fields and shapes](#non-power-of-two-float-image-inputs-and-curvature) and [byte and word fields](#source-image-depth-and-the-three-noise-upscalers). Every channel must match. On the signed 35×49 field at seed 277, the 16×64 bridge retains one different texel in each of the grayscale and RGBA measurements. At (5,7), channel zero has bits `3c737400` in the reference and `3c737401` in MaterialCraft. Reading these bridges at the parent square size gives the eight differing pixels in the first row. Integer-to-half conversion also retains differences.
+
+| Additional direct control | Renders | Exact pixels / compared | Maximum finite error |
+|---|---:|---:|---:|
+| Constants in grayscale and RGBA | 48 | 49,152/49,152 | 0 |
+| Midpoints, underflow, overflow and signed fields | 37 | 37,888/37,888 | 0 |
+| Four different constants in one RGBA image | 1 | 1,024/1,024 | 0 |
+| Close row values and simple row controls | 43 | 11,008/11,008 | 0 |
+
+For a filter axis, let s=target/source, k=min(1,s), and c=(output+.5)/s. At input i the triangle weight is k×max(0,1−k×abs(i+.5−c)). Normalize the surviving weights separately, left to right, in F64. Retaining the outer k changes midpoint decisions on reduction. At width N=47, 65 or 67, bind a one-row float image with bits `3f000000` plus (13x+7j+3xj+j²) mod 64, where j is 15, 14 or 14 respectively. With a 16×1 F32 bridge, samples 11, 9 and 4 have bits `3f00001d`, `3f00001d` and `3f00001f`. For the other 40 rows, use widths 19, 25, 29, 35, 37, 41, 47, 67, 73 and 91. Store x/16−1, ((31x+5x²+9) mod 61)/51, (((19x+7x²+5) mod 32)−17)/8, or (x mod 7)−3. The table counts the 16² final outputs. The row regressions also check the 16×1 bridge.
+
+For an F32 source and half output, resize both axes at F32 storage first. Visit the output pixels in row-major order. Add the accumulated error to each original channel value, clamp at zero and round to nearest half with ties upward. Propagate original minus stored value to neighboring pixels using the [three-row diffusion weights](#non-power-of-two-float-image-inputs-and-curvature). A constant (1+2⁻¹¹,−1,.125,.12505) on a 32×17 input at 32² gives (1+2⁻¹⁰,0,.125,.125) at (0,0), (1,0,.125,.125) at (1,0), and (1+2⁻¹⁰,0,.125,.125+2⁻¹³) at (2,0).
+
+For 48 constant renders, use the same dimensions with values −10, −1, −.01, 0, .0001, .001, .01, .035294117647, .051234, .125, .12505, .21875, .241234, .501234, .813579, .998, 1, 1.125, 1.312345, 1.999, 2.345678, 8.12345, 32.6789 and 76.234 in grayscale and repeated RGBA. The 37 grayscale boundary renders cover four sequences. Use each entry as a constant, then the full sequence indexed by (3x+5y) mod length.
+
+- 65504, 65505, 65519, 65520, 65521, 65535, 65536, 10¹⁰, −10¹⁰.
+- 2⁻²⁶, 2⁻²⁵, 3×2⁻²⁵, 2⁻²⁴, 2⁻¹⁴−2⁻²⁵, 1+2⁻¹¹, 1+3×2⁻¹¹.
+- 0, −.5, 1.5, .375, .625, .12505, .999, 1.001, 4.
+- −10⁻¹², 9×10⁻⁹, .00034, .99, −2.75, 0, 5.5, .1875.
+
+The boundary comparison includes the positions of infinite samples. At a constant 65520, the first five half values are positive infinity, zero, zero, positive infinity and zero. Both curvature roots retain 176,384/176,384 pixels across 20 renders apiece, and each of the three noise upscalers retains 697,344/697,344 across 21 renders. Their [word-depth comparison](#source-image-depth-and-the-three-noise-upscalers) locates the earlier source and mask differences.
+
 ### Source image depth and the three noise upscalers
 
 | Root | Renders | Exact grayscale pixels before | Exact grayscale pixels after / compared | Maximum error after |
