@@ -156,6 +156,33 @@ For the threshold series, take the 128² U16 field from j=0 at the 32² setting.
 
 For the two signed series, generate a 32² U16 image with level ((17x+113y+59xy+19)×7919) mod 65536. Reduce to 8² U8, F16 and F32. At seed 15709 test box intensities 0, 2⁻¹⁰, 3.2, 16, −2⁻¹⁰ and −3.2. At U8 the row-zero pixels at columns 2 and 5 are 145 and 139 at zero and 146 and 140 at ±3.2. At seed 15709, repeat both filter types at 0, 2⁻¹⁰, 3.2, −3.2, 64 and −64, with an eighth turn for directional blur. The +64 directional F32 result matches 62/64 pixels, maximum 2.98023224e−8. The independent directional angles retain the F32 differences shown above.
 
+### Pattern rotation phase
+
+An original horizontal gradient distinguishes .5 from 1.5 turns and .75 from 1.75 turns. The latter rotations leave a small cross-axis component. At 1.5 turns, a stamp four pixels wide and 256 pixels high gives a fitted component of 1.87244e−7. At −3.75 turns the corresponding component is −7.49176e−7. MaterialCraft’s pixel sine and cosine give 1.87254e−7 and −7.49014e−7 from the stored F32 angles. The pattern renderer now uses that same phase calculation. Edges with an exactly zero axis component keep their image-space boundary rule.
+
+| Original controls | Renders | Previously exact | Now exact / compared | Maximum absolute error by format |
+|---|---:|---:|---:|---|
+| Unit gradient, extended turns and neighboring F32 angles | 79 | 225,623 | 241,479/438,272 | 2.38418579e-07 F32 / 1 U16 |
+| Thin gradient, extended turns | 57 | 3,560,754 | 3,595,790/3,735,552 | 8.34465027e-07 F32 |
+| Unit gradient, cardinal rotations | 96 | 1,309,160 | 1,325,612/1,867,776 | 8.94069672e-08 F32 / 1 U16 |
+| Unit gradient, oblique rotations | 16 | 208,057 | 211,579/311,296 | 2.38418579e-07 F32 / 1 U16 |
+| Shape and render-region edge controls | 104 | 618,848 | 618,848/647,168 | 1.78813934e-07 F32 |
+| Oblique square footprints | 78 | 4,542,719 | 4,542,720/4,542,720 | 0 F32 |
+
+For the first row draw a centered unit horizontal gradient. On a 64² canvas, visit −4 through 4 turns in quarter turns, then 1.5 plus each of [−2⁻²⁰,−2⁻²³,2⁻²³,2⁻²⁰], .5 plus [−2⁻²⁰,−2⁻²⁴,2⁻²⁴,2⁻²⁰], and finally [.1875,−.1875,.625,.8125]. Use seed 42313+53j with zero-based angle index j. Add 256×32 and 32×256 at −2.5, −.5, .5, 1.5, 1.75, 2, 2.5 and 3.5 turns. Use F32 throughout and also U16 at −2.5, .5, 1.5, 1.75, 2.5 and 3.5. The extended-angle U16 subset goes from 122,078 to 122,042 exact pixels out of 122,880, with maximum error one level.
+
+For the thin-gradient row use a 256² F32 canvas, height 1 and widths 1/8, 1/32 and 1/64. Center the first two widths and offset the last by .25 pixel on both axes. Use turns [−3.75,−3,−2.5,−1.75,−1.5,−.5,0,.5,1.5,1.75,2,2.25,2.5,2.75,3,3.5,4,1.5−2⁻²³,1.5+2⁻²³] and seed 53851+43j+k for angle j and width k. The maximum pixel error drops from 2.39610672e−5 to 8.34465027e−7. The square that previously missed pixel (307,492) uses size (.755,.391), offset (−.1113,.1437), .13125 turns, seed 1108 and a 512² F32 output. Its right and lower neighbors remain outside. [Shape and render-region controls](#quarter-turn-stamps-and-render-bounds)
+
+| Root | Renders | Previously exact | Now exact / compared | Maximum error in U8, U16, F16 and F32 |
+|---|---:|---:|---:|---|
+| Gradient Linear 1 | 47 | 435,120 | 435,744/435,968 | 1, 1, .000244140625, .0000152587891 |
+| Gradient Linear 3 | 23 | 265,072 | 265,072/277,760 | 0, 2, 0, .0000305175781 |
+| Arc Pavement | 27 | 206,904 | 206,911/211,200 | 0, 0, 0, .00000993907452 |
+| Fibers | 24 | 416,631 | 416,773/424,192 | 0, 1, .0000305175781, .0000153183937 |
+| Pattern Fibers | 24 | 416,669 | 416,799/424,192 | 0, 1, .0000305175781, .0000153183937 |
+
+Arc Pavement previously had a maximum F32 error of .00000987946987. Gradient Linear 1 still has 16 unequal pixels in each of U8, U16 and F16 and 176 in F32. On the 24 profiles per root, Fluid and Noise Fluid give the same counts and maxima as the earlier [pattern-stage comparison](#fibers-and-fluid-pattern-stages). All 3,211,776 pixels from 159 equal-resolution renders of 19 previously matched pattern roots are exact. For the separate file check, save the original test graph, Gradient Linear 1, Fibers and Fluid through the normal save command with input header `1.1.0.202502`. Reopen each save in the reference app and compare to the original in that same app. Across 14 extended-angle controls and nine settings per root, all 134,144 pixels in 41 renders match, with maximum error zero.
+
 ### Fibers and Fluid pattern stages
 
 All four roots first differ in their FX-Map. Each row covers 24 full-root renders and compares 5,120 pixels each in U8 and F16, 285,696 in U16 and 128,256 in F32. Cells show exact pixels and the largest absolute error in that storage format.
@@ -534,6 +561,12 @@ The new stage captures compare 2,140,795/2,835,040 pixels across 1,452 images, i
 | LUM16F | 50 | 53,124/63,488 | 0.453125 |
 | LUM32F | 188 | 250,004/341,504 | 0.877987966 |
 | LUM8 | 66 | 60,369/65,184 | 115 |
+
+### Horizontal stamp bounds at fractional heights
+
+A 24-pixel-wide horizontal gradient on a 64² canvas gives one of two F32 horizontal slopes as only its height and vertical position vary. For each of 21 heights h from 14.75 to 17.25 in eighth-pixel steps, render at centers (32,c), where c=32+j/8 for j from 0 through 7. In these 168 original renders the two possible slopes separate exactly by the integer distance D=floor(c+1.5h+.5)−floor(c−.5h+.5). Where D is 29, 31, 32 or 35, the slope is the nearest F32 to 2/24. Where D is 30, 33 or 34, the slope is two F32 steps below that value. For h=16.25 the eight offsets give slope differences [0,−2,−2,−2,−2,0,0,0]. The calculation establishes the effect of independently rounding the two vertical endpoints. The general slope calculation for other widths remains unresolved.
+
+Follow these renders with widths [12,20,24,40], heights [15,16,17,24,33] and vertical offsets [0,.5] in nested order, with horizontal center 32.5. All 208 controls use F32, zero rotation and seed 59771+23i, starting at i=0. The current release matches 798,890/851,968 raw pixels, maximum 2.38418579e−7. The [single-stamp slope measurements](#horizontal-stamp-slope-and-height) describe how to recover the candidate slope from the stored values.
 
 ### Horizontal stamp slope and height
 

@@ -43,6 +43,10 @@ pub(super) fn component(angle: f32, cosine: bool, scope: super::FunctionScope, l
     }
 }
 
+pub(crate) fn pixel_sin_cos(angle: f32) -> (f32, f32) {
+    (pixel_component(angle, false), pixel_component(angle, true))
+}
+
 fn pixel_component(angle: f32, cosine: bool) -> f32 {
     if !angle.is_finite() {
         return f32::NAN;

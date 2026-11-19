@@ -156,6 +156,31 @@ fn cook_at_size(graph: PatternGraph, variables: &BTreeMap<String, Value>, seed: 
 }
 
 #[test]
+fn stamp_gradients_keep_the_phase_of_extended_turns() {
+    for (turns, x, y, bits) in [(1.5, 30, 6, 0x3f05_ffff), (1.75, 6, 30, 0x3f05_ffff), (-3.0, 19, 26, 0x3e9b_fffe)] {
+        let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
+        graph.nodes[0].parameters = BTreeMap::from([("patterntype".into(), Value::Int(10)), ("patternrotation".into(), Value::Float(turns))]);
+        let image = cook_at_size(graph, &BTreeMap::new(), 43, 64).unwrap().remove(0);
+        assert_eq!(image.get_gray(x, y, false).to_bits(), bits, "{turns} turns at ({x},{y})");
+    }
+}
+
+#[test]
+fn oblique_square_keeps_the_last_sample_inside_its_edge() {
+    let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
+    graph.nodes[0].parameters = BTreeMap::from([
+        ("patterntype".into(), Value::Int(2)),
+        ("patternsize".into(), Value::Float2([0.755, 0.391])),
+        ("patternrotation".into(), Value::Float(0.13125)),
+        ("frameoffset".into(), Value::Float2([-0.1113, 0.1437])),
+    ]);
+    let image = cook_at_size(graph, &BTreeMap::new(), 1108, 512).unwrap().remove(0);
+    assert_eq!(image.get_gray(307, 492, false), 1.0);
+    assert_eq!(image.get_gray(308, 492, false), 0.0);
+    assert_eq!(image.get_gray(307, 493, false), 0.0);
+}
+
+#[test]
 fn quarter_turns_keep_stamp_edge_ownership_in_image_space() {
     // The sample centers on all four rectangle edges distinguish image-space ownership after rotation.
     let size = [0.625, 0.25];

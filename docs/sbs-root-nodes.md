@@ -190,7 +190,7 @@ Pattern center culling matched all 356,352 pixels across 204 renders. Background
 | [extend_shape.sbs/extend_shape_color](../assets/sbs/extend_shape.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [extend_shape.sbs/extend_shape_grayscale](../assets/sbs/extend_shape.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [facing_normal.sbs/facing_normal](../assets/sbs/facing_normal.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
-| [fibers_1.sbs/fibers_1](../assets/sbs/fibers_1.sbs) | 0 | Yes | [In progress · 416,631/424,192 pixels in 24 renders, first difference in the FX-Map](parity-fixes.md#fibers-and-fluid-pattern-stages) |
+| [fibers_1.sbs/fibers_1](../assets/sbs/fibers_1.sbs) | 0 | Yes | [In progress · 416,773/424,192 pixels across 24 renders](parity-fixes.md#pattern-rotation-phase) |
 | [flood_fill.sbs/flood_fill_step](../assets/sbs/flood_fill.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [flood_fill.sbs/flood_fill_to_bbox_size](../assets/sbs/flood_fill.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [flood_fill.sbs/flood_fill_to_position](../assets/sbs/flood_fill.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
@@ -221,9 +221,9 @@ Pattern center culling matched all 356,352 pixels across 204 renders. Background
 | [gradient_axial.sbs/gradient_axial](../assets/sbs/gradient_axial.sbs) | 0 | No | [Parity · 15 cases, 165,120 exact pixels](parity-fixes.md#luminosity-axial-gradients-color-lookup-and-luminance-merge) |
 | [gradient_axial.sbs/gradient_axial_reflected](../assets/sbs/gradient_axial.sbs) | 0 | No | [Parity · 15 cases, 165,120 exact pixels](parity-fixes.md#luminosity-axial-gradients-color-lookup-and-luminance-merge) |
 | [gradient_circular.sbs/gradient_circular](../assets/sbs/gradient_circular.sbs) | 0 | No | [Parity · 13 cases across sizes, seeds and storage formats](parity-fixes.md#runtime-angles-and-circular-gradient) |
-| [gradient_linear_1.sbs/gradient_linear_1](../assets/sbs/gradient_linear_1.sbs) | 0 | No | [In progress · 435,120/435,968 pixels across 47 renders](parity-fixes.md#quarter-turn-stamps-and-render-bounds) |
+| [gradient_linear_1.sbs/gradient_linear_1](../assets/sbs/gradient_linear_1.sbs) | 0 | No | [In progress · 435,744/435,968 pixels across 47 renders](parity-fixes.md#pattern-rotation-phase) |
 | [gradient_linear_2.sbs/gradient_linear_2](../assets/sbs/gradient_linear_2.sbs) | 0 | No | [Parity · 8 cases, grayscale in four formats](parity-fixes.md#linear-gradient-2-and-multiangle-albedo) |
-| [gradient_linear_3.sbs/gradient_linear_3](../assets/sbs/gradient_linear_3.sbs) | 0 | No | [In progress · 265,072/277,760 pixels across 23 renders](parity-fixes.md#quarter-turn-stamps-and-render-bounds) |
+| [gradient_linear_3.sbs/gradient_linear_3](../assets/sbs/gradient_linear_3.sbs) | 0 | No | [In progress · 265,072/277,760 pixels across 23 renders](parity-fixes.md#pattern-rotation-phase) |
 | [gradient_radial.sbs/gradient_radial](../assets/sbs/gradient_radial.sbs) | 0 | No | [Parity · 171,264 exact pixels across 18 renders](parity-fixes.md#color-conversion-gradient-height-and-histogram-controls) |
 | [grid_atlas.sbs/grid_atlas_color](../assets/sbs/grid_atlas.sbs) | 16 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [grid_atlas.sbs/grid_atlas_grayscale](../assets/sbs/grid_atlas.sbs) | 16 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
@@ -407,14 +407,14 @@ Pattern center culling matched all 356,352 pixels across 204 renders. Background
 | [paths_tools.sbs/vertex_processor](../assets/sbs/paths_tools.sbs) | 9 | No | [Parity · 18 renders, all 57,600 pixels exact](parity-fixes.md#marked-variable-reads-in-path-and-mipmap-graphs) |
 | [paths_tools.sbs/vertex_processor_simple](../assets/sbs/paths_tools.sbs) | 5 | No | [Parity · 18 renders, all 57,600 pixels exact](parity-fixes.md#marked-variable-reads-in-path-and-mipmap-graphs) |
 | [pattern_alveolus.sbs/alveolus](../assets/sbs/pattern_alveolus.sbs) | 0 | No | [In progress · 201,876/203,264 pixels across 33 renders](parity-fixes.md#square-and-rectangular-pattern-generators) |
-| [pattern_arc_pavement.sbs/arc_pavement](../assets/sbs/pattern_arc_pavement.sbs) | 1 | No | [In progress · 206,904/211,200 exact pixels, remaining F32 stamp profiles](parity-fixes.md#bitmap-stamp-filtering-and-compositing) |
+| [pattern_arc_pavement.sbs/arc_pavement](../assets/sbs/pattern_arc_pavement.sbs) | 1 | No | [In progress · 206,911/211,200 pixels across 27 renders](parity-fixes.md#pattern-rotation-phase) |
 | [pattern_brick_1.sbs/brick_1](../assets/sbs/pattern_brick_1.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [pattern_brick_2.sbs/brick_2](../assets/sbs/pattern_brick_2.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [pattern_brick_generator.sbs/resources/Tile](../assets/sbs/pattern_brick_generator.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [pattern_checker_1.sbs/checker_1](../assets/sbs/pattern_checker_1.sbs) | 0 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [pattern_cube_3d.sbs/cube_3d](../assets/sbs/pattern_cube_3d.sbs) | 0 | No | [Parity · 18 renders, all 171,264 pixels exact](parity-fixes.md#normal-maps-panoramas-and-primitive-shapes) |
 | [pattern_cube_3d.sbs/cube_3d_gbuffers](../assets/sbs/pattern_cube_3d.sbs) | 0 | No | [Parity · 60 renders, all 685,056 pixels exact](parity-fixes.md#normal-maps-panoramas-and-primitive-shapes) |
-| [pattern_fibers_1.sbs/fibers_1](../assets/sbs/pattern_fibers_1.sbs) | 0 | No | [In progress · 416,669/424,192 pixels in 24 renders, first difference in the FX-Map](parity-fixes.md#fibers-and-fluid-pattern-stages) |
+| [pattern_fibers_1.sbs/fibers_1](../assets/sbs/pattern_fibers_1.sbs) | 0 | No | [In progress · 416,799/424,192 pixels across 24 renders](parity-fixes.md#pattern-rotation-phase) |
 | [pattern_fibers_2.sbs/fibers_2](../assets/sbs/pattern_fibers_2.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [pattern_gaussian_1.sbs/gaussian_1](../assets/sbs/pattern_gaussian_1.sbs) | 0 | No | [In progress · 168,522/171,264 pixels across 18 renders](parity-fixes.md#radial-stamp-profiles-and-pattern-generators) |
 | [pattern_gaussian_2.sbs/gaussian_2](../assets/sbs/pattern_gaussian_2.sbs) | 0 | No | [In progress · 169,796/171,264 pixels across 18 renders](parity-fixes.md#radial-stamp-profiles-and-pattern-generators) |

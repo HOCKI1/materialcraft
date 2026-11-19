@@ -80,18 +80,13 @@ pub(super) fn render(context: &CookContext, stamps: &[PatternStamp], max_depth: 
         let source_alpha = if stamp.scalar_color { stamp.color[0] } else { stamp.color[3] };
         let tinted_offset = matches!(stamp.pattern, 17 | 18);
 
-        let quarters = stamp.rotation * 4.0;
-        let cardinal = quarters.fract() == 0.0;
-        let (sine, cosine) = if cardinal {
-            match quarters.rem_euclid(4.0) as u32 {
-                0 => (0.0, 1.0),
-                1 => (1.0, 0.0),
-                2 => (0.0, -1.0),
-                _ => (-1.0, 0.0),
-            }
-        } else {
-            (stamp.rotation * std::f32::consts::TAU).sin_cos()
-        };
+        let angle = stamp.rotation * std::f32::consts::TAU;
+        if !angle.is_finite() {
+            return Err("pattern rotation exceeds the finite angle range".into());
+        }
+        // Extended quarter turns can retain a small cross-axis component at the stored phase.
+        let (sine, cosine) = crate::function::pixel_sin_cos(angle);
+        let cardinal = sine == 0.0 || cosine == 0.0;
         let texture = if stamp.pattern >= 256 {
             let index = (stamp.pattern - 256) as usize + 1;
             let Some(input) = context.input(index).filter(|image| image.kind() == kind) else { continue };
