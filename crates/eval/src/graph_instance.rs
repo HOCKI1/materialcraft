@@ -86,15 +86,12 @@ pub(crate) fn cook_instance(
     source_options.only = Some(source_graph.nodes.iter().filter(|node| node.def == "output").map(|node| node.id).collect());
     source_options.overrides = params.iter().filter(|(k, _)| source_graph.exposed.iter().any(|e| &e.id == *k)).map(|(k, v)| (k.clone(), v.clone())).collect();
     for (port, input) in input_ports.iter().zip(inputs) {
-        match input {
-            Some((NodeOutput::Image(image), format)) => {
-                source_options.inputs.insert(port.id.clone(), image.clone());
-                source_options.input_formats.insert(port.id.clone(), *format);
-            }
-            Some((NodeOutput::Value(value), _)) => {
-                source_options.overrides.insert(port.id.clone(), value.clone());
-            }
-            None => {}
+        let Some((output, format)) = input else { continue };
+        if let Some((image, texture_format)) = output.texture(*format) {
+            source_options.inputs.insert(port.id.clone(), image.clone());
+            source_options.input_formats.insert(port.id.clone(), texture_format);
+        } else if let Some(value) = output.as_value() {
+            source_options.overrides.insert(port.id.clone(), value.clone());
         }
     }
     let cooked = cook(source, source_graph_index, &source_options, cache);

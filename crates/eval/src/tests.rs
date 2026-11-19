@@ -455,6 +455,50 @@ fn bitmap_growth_maps_the_origin_and_half_texel_offset_separately() {
 }
 
 #[test]
+fn filters_sample_bound_integer_bitmaps_at_the_source_depth() {
+    use OutputFormat::{F16, F32, U8, U16};
+    use materialcraft_core::{OutputFormat, ParameterInheritance};
+
+    let mut graph = Graph::new("Source precision");
+    graph.size = [5, 5];
+    graph.format = F32;
+    let input = graph.add_node("input_grayscale", [0.0; 2]);
+    let transform = graph.add_node("transformation", [0.0; 2]);
+    let output = graph.add_node("output", [0.0; 2]);
+    let node = graph.node_mut(transform).unwrap();
+    node.base.format_mode = ParameterInheritance::Absolute;
+    node.base.format = F32;
+    node.params.insert("offset".into(), Value::Float2([15.0 / 1024.0, -21.0 / 1024.0]));
+    graph.connect(input, "output", transform, "input").unwrap();
+    graph.connect(input, "output", output, "input").unwrap();
+    let mut package = Package::new("Integer input");
+    package.graphs.push(graph);
+    let cache = Mutex::new(Cache::default());
+    for (depth, bridge, expected) in [(U8, F16, 0x3eee_4eee), (U8, F32, 0x3eee_4eee), (U16, F32, 0x3eee_92ef), (U16, F16, 0x3eee_8000)] {
+        let node = package.graphs[0].node_mut(input).unwrap();
+        node.base.format_mode = ParameterInheritance::Absolute;
+        node.base.format = bridge;
+        let mut options = Options::new(&no_res);
+        options.bitmap_formats.insert("input".into(), depth);
+        let image = Image::gray(32, 17, |x, y| {
+            let level = if x % 2 == 0 { 9 } else { 243 };
+            if depth == U8 { level as f32 / 255.0 } else { (level * 257 + (7 * x + 3 * y) % 251) as f32 / 65535.0 }
+        });
+        options.inputs.insert("input".into(), image.with_integer_sampling(true));
+        for _ in 0..2 {
+            let result = cook(&package, 0, &options, &cache);
+            assert!(result.nodes.values().all(|node| node.error.is_none()));
+            assert_eq!(result.image(transform, 0).unwrap().get_gray(0, 0, false).to_bits(), expected);
+            if depth == U8 && bridge == F16 {
+                for id in [input, output] {
+                    assert_eq!(result.image(id, 0).unwrap().get_gray(0, 0, false).to_bits(), 0x3d10_8000);
+                }
+            }
+        }
+    }
+}
+
+#[test]
 fn bitmap_half_storage_uses_the_original_integer_channel_depth() {
     use materialcraft_core::OutputFormat::{F16, U8, U16};
 

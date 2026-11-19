@@ -1167,6 +1167,23 @@ For Worley, Dissolve, the four diffusion passes, six flood-fill outputs and both
 
 For Worley also set size (.75,1.25,1.5), Minkowski number .6875, border width .1875 and roundness .3125. Set optional diffusion controls where exposed. For Flood Fill 2 color use HSL adjustment (.125,−.1875,.25) and random range (.375,.625,.1875). For its grayscale equivalent use luminance adjustment −.1875 and random range .625. The random flood-fill outputs and fast white noise have no additional exposed numeric changes in these controls. Each residual flood-fill difference is at most one U16 level or .0000152587891 in F32. Uniform noise selects the measured per-texel stream. The later [conditional draw comparison](#conditional-pixel-draws-and-white-noise-v2) resolves the Gaussian differences in White Noise v2.
 
+### Sampling integer bitmap inputs through wider bridges
+
+An input node can have distinct readback and sampling precision. With a constant byte level 9 in a 32×17 grayscale PNG, a 32² F16 input bridge reports 3d108000 expanded to F32. A directly connected half output gives the same bits. A separate F32 filter sampling that bridge at a texel center returns 3d109091, the F32 value of 9/255. The filter also uses integer interpolation for off-center reads. A word bitmap converted to half supplies its stored half texture. A word bitmap through F32 still interpolates the normalized word texture.
+
+| Original controls | Renders | Exact output pixels / compared | Maximum error |
+|---|---:|---:|---:|
+| Two source depths and four bridge formats through a translated bilinear transform | 48 | 49,152/49,152 | 0 |
+| Centered and offset filters through a half bridge | 144 | 147,456/147,456 | 0 |
+| Off-center reads through U8, F16 and F32 bridges | 72 | 73,728/73,728 | 0 |
+| Direct output wired to the same three bridge formats | 36 | 36,864/36,864 | 0 |
+
+For the first row use a 32² F32 output, seed 469, identity transform, bilinear filtering and offset (15/1024,−21/1024). Use grayscale or RGBA PNG files with zero-based channel c. On a 32×17 image use level 9 when x+c is even and 243 otherwise. On a 17×23 image use (47x+73y+13xy+31c+113) mod 256. On a 47×33 image use (11x+7c+223) mod 256. For 16-bit files, expand each level b to 257b and add (7x+3y+11c) mod 251 when b < 255. On the alternating grayscale image, the F32 word at (0,0) is 3eee4eee for the 8-bit source through all four bridges. For the word source, the same pixel gives 3eee8eef, 3eee92ef, 3eee8000 and 3eee92ef through U8, U16, F16 and F32 respectively.
+
+For the second row use each half bridge with an identity transform at texel centers, a translated nearest transform, a blur at intensity zero, and a bilinear pixel sampler using the translation above. For each combination of filter and grayscale or RGBA, use the [original PNG fields](#source-image-depth-and-the-three-noise-upscalers) at all three sizes for bytes. For words use the 32×17 constant with levels (9,89,142,199)×257 and the 17×23 and 47×33 word hash. Add 32×17 constants at byte levels 1, 9, 31, 127, 143 and 250 and at their word equivalents. The fields use seed 157 and the constants use seed 379. For the last two rows use the three byte fields, the 32×17 word field and the constant 9 at both depths. Compare a translated bilinear transform, an offset bilinear pixel sampler and a direct wire. The filters render at F32. For the wire, read the declared output storage.
+
+All 106 earlier integer-to-half cases also match at the downstream output, **108,544/108,544 pixels**, including all 26,624 byte pixels. The half readbacks match at the same locations. The two curvature roots and three noise upscalers retain all 2,444,800 pixels in 103 renders. The [float-source integer conversion](#enlarging-bitmap-rows-and-converting-integer-images-to-half) still differs at 18 U8 and 14 U16 pixels on the signed and stepped controls, by at most one level each.
+
 ### Enlarging bitmap rows and converting integer images to half
 
 | External source and destination | Renders | Exact bridge pixels / compared | Exact F32 output pixels / compared | Maximum F32 output error |
@@ -1190,7 +1207,7 @@ For the PNG fields use the [byte and word recipes](#source-image-depth-and-the-t
 
 Filter both axes at the source integer precision. A byte value b reports the half of b/255 rounded toward zero at the bridge. At byte level 9, that is 3d108000 expanded to F32. A word source uses the [three-row diffusion weights](#non-power-of-two-float-image-inputs-and-curvature) in word units with one new random sample per interleaved channel. Start the generator at 1, multiply by 48271 modulo 2147483647, and divide by 2147483647 for a unit draw r. Truncate original word + received error + 16(r−.5) and clamp to the word range. Values 0 through 2 read and reconstruct as zero. Value 3 reads as 2/65536 and reconstructs as 3. For larger values q, store the half of q/65535 rounded toward zero, and reconstruct as min(65535,65536×stored). Propagate original minus reconstructed. For word level 2313 the first three expanded channel words are 3d100000, 3d102000 and 3d10c000.
 
-The reference F32 consumer of these byte sources reads the unrounded filtered byte divided by 255. Its half bridge readback and the consumer value are distinct. This discrepancy accounts for all 22,527 differing downstream pixels in the two byte rows. The float-input to U8 and U16 controls retain 18,414/18,432 and 18,418/18,432 exact pixels, with maximum errors of one stored level. Both curvature roots retain 176,384/176,384 across 20 renders each. Each of the three noise upscalers retains 697,344/697,344 across 21.
+The reference F32 consumer of these byte sources reads the unrounded filtered byte divided by 255. Its half bridge readback and the consumer value are distinct. This discrepancy accounted for all 22,527 differing downstream pixels in the two byte rows. The [subsequent sampling controls](#sampling-integer-bitmap-inputs-through-wider-bridges) resolve them. The float-input to U8 and U16 controls retain 18,414/18,432 and 18,418/18,432 exact pixels, with maximum errors of one stored level. Both curvature roots retain 176,384/176,384 across 20 renders each. Each of the three noise upscalers retains 697,344/697,344 across 21.
 
 ### Float bitmap reduction and half output
 

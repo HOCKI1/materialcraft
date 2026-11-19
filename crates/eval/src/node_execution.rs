@@ -83,7 +83,7 @@ pub(crate) fn cook_node(
             } else {
                 None
             };
-            let stored = output.and_then(NodeOutput::as_image).map(|image| (image, source.map_or(OutputFormat::F32, |source| source.2)));
+            let stored = source.and_then(|(output, _, format)| output.texture(format));
             let image = wired.or(stored);
             inputs.push(image.map(|(image, _)| image.clone()));
             input_formats.push(image.map_or(OutputFormat::F32, |(_, format)| format));
@@ -219,16 +219,17 @@ pub(crate) fn cook_node(
     } else if node.def == "value_processor" {
         evaluate_value(&parameters, variables, seed, [w, h], &inputs, &input_formats, tile).map(|value| vec![NodeOutput::Value(value)])
     } else if matches!(node.def.as_str(), "output" | "dot")
-        && let Some(Some((NodeOutput::Value(value), _))) = incoming.first()
+        && let Some(Some((output, _))) = incoming.first()
+        && (output.as_value().is_some() || matches!(output, NodeOutput::BoundBitmap { stored, .. } if (stored.width(), stored.height()) == (w, h)))
     {
-        Ok(vec![NodeOutput::Value(value.clone())])
+        Ok(vec![(*output).clone()])
     } else if let Some((image, upstream, bitmap)) = input_image {
         let kind = if node.def == "input_grayscale" { Kind::Gray } else { Kind::Color };
         let format = upstream.unwrap_or(OutputFormat::F32);
         let external = if wired { None } else { crate::external_image::resize(&image, (w, h), kind, bitmap.unwrap_or(format), base.format) };
         let tiling = if wired { base.tiling } else { [false; 2] };
-        let image = external.unwrap_or_else(|| cook_bound_image(image, (w, h), kind, format, base.format, tiling));
-        Ok(vec![NodeOutput::Image(image)])
+        let output = external.unwrap_or_else(|| NodeOutput::Image(cook_bound_image(image, (w, h), kind, format, base.format, tiling)));
+        Ok(vec![output])
     } else if node.def == materialcraft_core::MISSING_NODE {
         let name = if node.label.is_empty() { "this node" } else { node.label.as_str() };
 

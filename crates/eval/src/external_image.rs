@@ -1,8 +1,9 @@
+use crate::NodeOutput;
 use craft_texture::{Image, Kind, Limits, MAX_SIDE};
 use materialcraft_core::OutputFormat;
 
 /// Non-power-of-two external rasters filter each axis directly, storing the result between passes.
-pub(super) fn resize(image: &Image, size: (u32, u32), kind: Kind, source: OutputFormat, output: OutputFormat) -> Option<Image> {
+pub(super) fn resize(image: &Image, size: (u32, u32), kind: Kind, source: OutputFormat, output: OutputFormat) -> Option<NodeOutput> {
     let size = craft_texture::clamp_size(size.0, size.1);
     let (width, height) = (image.width(), image.height());
     if (width.is_power_of_two() && height.is_power_of_two()) || (width, height) == size || width.max(height) > MAX_SIDE || image.kind() != kind {
@@ -37,16 +38,30 @@ pub(super) fn resize(image: &Image, size: (u32, u32), kind: Kind, source: Output
     }
     if output == OutputFormat::F16 {
         return match source {
-            OutputFormat::U8 => Some(filtered.map(kind, |p| p.map(|v| crate::output_precision::store_half(v / 255.0))).with_integer_sampling(false)),
-            OutputFormat::U16 => word_to_half(&filtered),
+            OutputFormat::U8 => {
+                let texture = filtered.map(kind, |p| p.map(|v| v / 255.0)).with_integer_sampling(true);
+                let stored = crate::output_precision::apply(texture.clone(), OutputFormat::F16);
+                Some(NodeOutput::BoundBitmap { stored, texture, texture_format: source })
+            }
+            OutputFormat::U16 => word_to_half(&filtered).map(NodeOutput::Image),
             // Float rasters are filtered at full precision before the half writer diffuses its rounding error.
             _ => diffuse(&filtered, |original, received| {
                 let stored = nearest_positive_half(original + received);
                 (stored, original - stored)
-            }),
+            })
+            .map(NodeOutput::Image),
         };
     }
-    Some(if let Some(maximum) = maximum { filtered.map(kind, |p| p.map(|v| v / maximum)).with_integer_sampling(output_levels.is_some()) } else { filtered })
+    let Some(maximum) = maximum else { return Some(NodeOutput::Image(filtered)) };
+    let stored = filtered.map(kind, |p| p.map(|v| v / maximum)).with_integer_sampling(output_levels.is_some());
+    if input_levels.is_some() && output_levels.is_none_or(|levels| levels > maximum) {
+        // A wider bridge can report the same normalized values as the source, yet interpolation
+        // still rounds the weighted sum to normalized integer levels.
+        let texture = stored.clone().with_integer_sampling(true);
+        Some(NodeOutput::BoundBitmap { stored, texture, texture_format: source })
+    } else {
+        Some(NodeOutput::Image(stored))
+    }
 }
 
 fn nearest_positive_half(value: f32) -> f32 {
