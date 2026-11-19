@@ -693,6 +693,22 @@ For shape mapper, the five earlier comparison sizes and four-format inputs are l
 
 For ten further shape mapper renders use H=(((59x+41y+5xy) mod 1021)/1020+u+2v)/4, where u,v are source texel centers. Use defaults at 16²/83, four formats at 64²/167, F32 at 128²/347, a 32×16 input at 32²/499, signed 32²/631 with 3H−1.375, 64²/787 and 64²/827. Set radius .375, width .71875, rotation .09375, nine patterns and seven segments. Use shape 0 and disable non-square expansion for the rectangular input. Use shape 1 elsewhere. Link segments and pattern count for the signed input. Disable alternate flipping and select nearest filtering at seed 787. Together the ten smooth-field renders match all 43,264 stored pixels.
 
+### Unbound property links and composite matte
+
+| Comparison | Renders | Exact pixels / compared | Maximum error |
+|---|---:|---:|---:|
+| Composite matte | 19 | 168,448/168,448 | 0 |
+| Levels property controls | 48 | 141,312/141,312 | 0 |
+| Blend opacity controls | 48 | 196,608/196,608 | 0 |
+
+The matte graph’s grayscale Levels output-high property directly reads an absent user input. The reference app reports a stored property value of (1,1,1,1), which remains in effect. With foreground byte 64 and background byte 191, Levels outputs 64 and the final F32 result is .8120107650756836. Before the fix Levels returned zero and the blend produced .7490196228027344. On the original nine renders, the root improved from 659/132,096 to 132,096/132,096 exact pixels. The ten additional renders match all 36,352 pixels. The combined totals are 122,880 U8, 8,192 U16, 8,192 F16 and 29,184 F32.
+
+Use the 128² default, reversed-input and seed-42 fields, the 256² default and the 64² four-format and independent 32² cases. For the ten additional cases use F32 values (.25,.75) and (.75,.25) for foreground/background at 16², then (0,1) at 32². At 64² in four formats and 128² in F32, fill each input with Hⱼ=(((37+4j)x+(61−2j)y+(7+2j)xy+37j) mod 1021)/1020 using j=1,2. Use seeds 103,164,225,286 and 347 respectively. Also connect just the .25 foreground or just the .75 background at a 32² parent, seed 419. The root exposes no matte-opacity control.
+
+For independent Levels controls use (H₁,H₂,H₃,(x mod 5)/4) as linear RGBA input. Compare the default output-high, a scalar literal .375, an absent scalar, an available scalar, adding .1875 to either scalar, and packing either scalar into all four lanes. Use 16², 64² and 32² at seeds 89,168 and 247 with bound values .375,.75 and 0. At 64² capture all four formats, elsewhere F32. Only the direct absent scalar keeps the stored output-high. Before the fix this control matched 0/17,664 pixels.
+
+On an independently authored blend with scalar inputs H₁ and H₂, compare the default opacity, an absent getter with and without a leading percent sign, that same getter with a disconnected literal, the getter plus .1875, a bound getter, a bound zero and a local write of .3125 followed by a read. Use the same three input sizes and formats, seeds 71,168,265 and bound values .375,.75,.125. The blend’s output is fixed at 64² for these controls. Each direct missing-variable case improved from 24/24,576 to 24,576/24,576 exact pixels. A missing variable used in arithmetic contributes zero, and a zero-valued binding is honored.
+
 ### Stored integer value outputs
 
 The four-integer root matches **41/41 typed vectors**, maximum absolute component error zero. A stored graph input of (−31,0,1,2147483647) cooks to (−31,0,1,−2147483648). Independent scalar, two-, three- and four-component processors matched **132/132 typed results** across immediate constants and direct input reads. In 32 input cases per width, the reference app’s value constructor and graph property preserved all 320 requested integer lanes. At the processor and graph output ports, all 320 matched rounding to binary32 followed by conversion back to signed 32-bit integer. The positive endpoint rounds to 2³¹ and stores −2³¹. For example, 16777217 stores 16777216, −16777219 stores −16777220, and 2147483583 stores 2147483520. The regression checks uncached and cached outputs at all four widths.

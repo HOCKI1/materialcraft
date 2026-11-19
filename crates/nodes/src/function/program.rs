@@ -15,6 +15,15 @@ impl Program {
         self.instructions.get(self.output).map_or(0, |instruction| instruction.type_code)
     }
 
+    /// The variable read by a direct link. Disconnected editor nodes have no instructions.
+    pub fn input_identifier(&self) -> Option<&str> {
+        let [op] = self.instructions.as_slice() else { return None };
+        match &op.value {
+            Some(Value::Text(name)) if op.definition.id.starts_with("get_") => Some(name),
+            _ => None,
+        }
+    }
+
     /// Whether the result depends only on literals and pure operations.
     pub fn output_is_literal(&self) -> bool {
         self.instructions.get(self.output).is_some_and(|instruction| instruction.literal)

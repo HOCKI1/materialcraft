@@ -133,6 +133,7 @@ pub(crate) fn evaluate(
                 resolved.seed,
                 size,
                 crate::parameter_function::ChannelMode::Opaque,
+                None,
             )
             .map_err(|error| format!("function of `{}`: {error}", parameter.identifier()))?;
             if parameter == BaseParameter::OutputSize {

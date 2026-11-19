@@ -43,7 +43,7 @@ pub(crate) fn resolve_parameters(
             ("fx_map", "background", _) if matches!(current, Value::Float4(_)) => ChannelMode::Broadcast,
             _ => ChannelMode::Opaque,
         };
-        let (value, _) = crate::parameter_function::evaluate(function, expected, variables.to_mut(), base.seed, base.size, channels)
+        let (value, _) = crate::parameter_function::evaluate(function, expected, variables.to_mut(), base.seed, base.size, channels, Some(current))
             .map_err(|error| format!("function of `{parameter}`: {error}"))?;
         let value = current.coerce_json(&serde_json::to_value(value).unwrap_or_default()).ok_or_else(|| format!("invalid function value for `{parameter}`"))?;
         parameters.insert(parameter.clone(), value);
@@ -57,4 +57,44 @@ pub(crate) fn resolve_parameters(
     }
 
     Ok(parameters)
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{Cache, Options, cook};
+    use materialcraft_core::{FunctionGraph, Graph, Package, Value, ValueType};
+    use std::sync::Mutex;
+
+    #[test]
+    fn missing_direct_level_link_keeps_the_property_value() {
+        let mut graph = Graph::new("Matte");
+        graph.size = [2; 2];
+        let levels = graph.add_node("levels", [0.0; 2]);
+        let mut package = Package::new("Links");
+        package.graphs.push(graph);
+        let cache = Mutex::new(Cache::default());
+        let reader = FunctionGraph::input("%amount", ValueType::Float);
+        let mut disconnected = reader.clone();
+        disconnected.add_constant(Value::Float(0.75));
+        let mut computed = reader.clone();
+        let value = computed.output.unwrap();
+        let offset = computed.add_constant(Value::Float(0.1875));
+        computed.output = Some(computed.add("add", &[value, offset], None));
+
+        for (function, bound, expected) in [
+            (reader.clone(), None, [1.0; 4]),
+            (disconnected, None, [1.0; 4]),
+            (reader, Some(0.0), [0.0, 0.0, 0.0, 1.0]),
+            (computed, None, [0.1875, 0.1875, 0.1875, 1.0]),
+        ] {
+            package.graphs[0].node_mut(levels).unwrap().functions.insert("out_high".into(), function);
+            let mut options = Options::new(&|_| None);
+            if let Some(level) = bound {
+                options.overrides.insert("amount".into(), Value::Float(level));
+            }
+            let cooked = cook(&package, 0, &options, &cache);
+            assert_eq!(cooked.nodes[&levels].error, None);
+            assert_eq!(cooked.nodes[&levels].parameters.get("out_high"), Some(&Value::Float4(expected)));
+        }
+    }
 }

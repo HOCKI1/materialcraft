@@ -16,11 +16,18 @@ pub(crate) fn evaluate(
     seed: u32,
     size: [u32; 2],
     channels: ChannelMode,
+    fallback: Option<&Value>,
 ) -> Result<(Value, bool), String> {
     let program = compile(function, seed)?;
     let widened = expected == ValueType::Float4 && [ValueType::Float as u32, ValueType::Float3 as u32].contains(&program.output_type());
     if program.output_type() != expected as u32 && !widened {
         return Err(format!("output must be {}", expected.label()));
+    }
+    // A direct link with a missing user input leaves the property's stored setting in effect.
+    if let Some(value) = fallback
+        && program.input_identifier().is_some_and(|name| !name.starts_with('$') && !variables.contains_key(name))
+    {
+        return Ok((value.clone(), false));
     }
 
     let context = EvaluationContext {
