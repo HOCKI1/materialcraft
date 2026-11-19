@@ -112,7 +112,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [bnw_spots_3.sbs/bnw_spots_3](../assets/sbs/bnw_spots_3.sbs) | 0 | Yes | [In progress · 19 renders, 34,974/172,288 exact pixels](parity-fixes.md#random-draws-in-pattern-properties-and-iterations) |
 | [brick_1.sbs/brick_1](../assets/sbs/brick_1.sbs) | 0 | Yes | [In progress · 170,632/172,288 pixels, edge coordinates before U16 storage](parity-fixes.md#brick-edge-distances-and-storage-precision) |
 | [brick_2.sbs/brick_2](../assets/sbs/brick_2.sbs) | 0 | Yes | [In progress · 171,992/172,288 pixels, edge coordinates before U16 storage](parity-fixes.md#brick-edge-distances-and-storage-precision) |
-| [brick_3.sbs/brick_3](../assets/sbs/brick_3.sbs) | 0 | Yes | [In progress · 19 renders, 51,064/172,288 exact pixels](parity-fixes.md#random-draws-in-pattern-properties-and-iterations) |
+| [brick_3.sbs/brick_3](../assets/sbs/brick_3.sbs) | 0 | Yes | [In progress · one exact pattern map, second map within one U16 level](parity-fixes.md#local-seed-expressions-in-pattern-graphs) |
 | [brick_generator.sbs/resources/Tile](../assets/sbs/brick_generator.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [cartesian_polar_transformation.sbs/cartesian_to_polar](../assets/sbs/cartesian_polar_transformation.sbs) | 1 | No | [Parity · 171,264 exact pixels in 18 renders](parity-fixes.md#segment-mapping-and-normal-graph-rechecks) |
 | [cartesian_polar_transformation.sbs/cartesian_to_polar_grayscale](../assets/sbs/cartesian_polar_transformation.sbs) | 1 | No | [Parity · 171,264 exact pixels in 18 renders](parity-fixes.md#segment-mapping-and-normal-graph-rechecks) |
@@ -168,7 +168,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [creased.sbs/creased](../assets/sbs/creased.sbs) | 0 | Yes | [In progress · 19 renders, 112/172,288 exact pixels](parity-fixes.md#random-draws-in-pattern-properties-and-iterations) |
 | [crop.sbs/crop](../assets/sbs/crop.sbs) | 1 | No | [Parity · 48 renders, all 377,344 pixels across both outputs exact](parity-fixes.md#half-precision-crop-area-and-input-sizes) |
 | [crop.sbs/crop_grayscale](../assets/sbs/crop.sbs) | 1 | No | [Parity · 48 renders, all 377,344 pixels across both outputs exact](parity-fixes.md#half-precision-crop-area-and-input-sizes) |
-| [crystal_1.sbs/crystal_1](../assets/sbs/crystal_1.sbs) | 0 | Yes | [In progress · 19 renders, 146/172,288 exact pixels](parity-fixes.md#random-draws-in-pattern-properties-and-iterations) |
+| [crystal_1.sbs/crystal_1](../assets/sbs/crystal_1.sbs) | 0 | Yes | [In progress · 4,067/4,096 exact U16 pattern pixels](parity-fixes.md#local-seed-expressions-in-pattern-graphs) |
 | [crystal_2.sbs/crystal_2](../assets/sbs/crystal_2.sbs) | 0 | Yes | [In progress · 19 renders, 113/172,288 exact pixels](parity-fixes.md#random-draws-in-pattern-properties-and-iterations) |
 | [curvature.sbs/curvature](../assets/sbs/curvature.sbs) | 1 | No | [In progress · 20 renders, both emboss branches differ](parity-fixes.md#curvature-from-original-normal-fields) |
 | [curvature_smooth.sbs/curvature_smooth](../assets/sbs/curvature_smooth.sbs) | 1 | Yes | [In progress · 20 renders, 54,757/176,384 pixels, small multiscale blend differences](parity-fixes.md#curvature-from-original-normal-fields) |

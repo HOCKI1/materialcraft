@@ -168,6 +168,48 @@ fn an_iterate_keeps_the_initial_seed_and_advances_each_repetition() {
 }
 
 #[test]
+fn a_pattern_seed_expression_runs_before_the_stamp_properties() {
+    let mut seed = FunctionGraph::default();
+    let one = seed.add_constant(Value::Float(1.0));
+    let draw = seed.add("rand", &[one], None);
+    let save = seed.add("set", &[draw], Some(Value::Text("seed_draw".into())));
+    let local = seed.add_constant(Value::Int(43));
+    seed.output = Some(seed.add("sequence", &[save, local], None));
+    for (inherits, scope_value, expected) in [(true, false, 0x3f4fd146), (false, false, 0x3e98dd54), (true, true, 0x3ed93158), (false, true, 0x3ed93158)] {
+        let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
+        let params = &mut graph.nodes[0].parameters;
+        params.insert("randominherited".into(), Value::Bool(inherits));
+        params.insert("randomseed".into(), Value::Function(Box::new(seed.clone())));
+        params.insert("patterntype".into(), Value::Int(2));
+        let mut opacity = FunctionGraph::default();
+        let one = opacity.add_constant(Value::Float(1.0));
+        opacity.output =
+            Some(if scope_value { opacity.add("get_float1", &[], Some(Value::Text("seed_draw".into()))) } else { opacity.add("rand", &[one], None) });
+        params.insert("opacity".into(), Value::Function(Box::new(opacity)));
+        let image = cook_with_variables(graph, &BTreeMap::new(), 7).unwrap().remove(0);
+        assert_eq!(image.get(8, 8, false)[0].to_bits(), expected);
+    }
+}
+
+#[test]
+fn a_pattern_uses_the_seed_without_exposing_a_variable_for_it() {
+    let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
+    let params = &mut graph.nodes[0].parameters;
+    params.insert("patterntype".into(), Value::Int(2));
+    params.insert("randomseed".into(), Value::Int(43));
+    let mut opacity = FunctionGraph::default();
+    let variable = Value::Text("$randomseed".into());
+    let exists = opacity.add("isdefined", &[], Some(variable.clone()));
+    let value = opacity.add("get_integer1", &[], Some(variable));
+    let numeric = opacity.add("tofloat", &[value], None);
+    let fallback = opacity.add_constant(Value::Float(0.25));
+    opacity.output = Some(opacity.add("ifelse", &[exists, numeric, fallback], None));
+    params.insert("opacity".into(), Value::Function(Box::new(opacity)));
+    let image = cook_with_variables(graph, &BTreeMap::new(), 7).unwrap().remove(0);
+    assert_eq!(image.get(8, 8, false)[0], 0.25);
+}
+
+#[test]
 fn quadrant_properties_draw_from_independent_streams() {
     for (property, setting, expected) in [
         ("branchoffset", Value::Float2([0.0; 2]), 0x3ee082ec),

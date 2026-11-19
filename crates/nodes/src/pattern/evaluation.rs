@@ -3,6 +3,7 @@ use std::collections::BTreeMap;
 
 use super::{catalog, pattern_stamp::PatternStamp, pattern_visit::PatternVisit, raster};
 use crate::function::{EvaluationContext, EvaluationState, compile};
+use crate::random::FunctionRandom;
 use crate::{CookContext, CookResult};
 
 // A 512-by-512 quadtree needs 349,525 visits including internal quadrants
@@ -34,6 +35,7 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
 
     // Keep Set assignments across iterations within this FX-Map cook
     let mut variables = context.vars.clone();
+    variables.remove("$randomseed");
     let mut max_depth = 0;
     let mut state = EvaluationState::default();
     let mut remaining = MAX_VISITS;
@@ -50,47 +52,40 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
         }
 
         let definition = catalog::definition(node.kind).ok_or("missing pattern definition")?;
-        if node.parameters.get("randominherited").and_then(Value::as_bool) == Some(false) {
-            visit.seed = node.parameters.get("randomseed").and_then(Value::as_i32).unwrap_or(0) as u32;
-        }
-        variables.insert("$randomseed".into(), Value::Int(visit.seed as i32));
         variables.insert("$depth".into(), Value::Float(visit.depth as f32));
         variables.insert("$depthpow2".into(), Value::Float(visit.extent));
         variables.insert("$number".into(), Value::Float(visit.number as f32));
 
-        let mut parameters = BTreeMap::new();
-        let mut random = crate::random::FunctionRandom::image(visit.seed);
-        for parameter in &definition.params {
-            let value = match functions.get(&(node.id, parameter.id)) {
-                Some(program) => {
-                    let evaluation = EvaluationContext {
-                        image_formats: context.input_formats.get(1..).unwrap_or(&[]),
-                        scope: crate::function::FunctionScope::FxMap,
-                        position: visit.center,
-                        size: [context.w as f32, context.h as f32],
-                        images: context.inputs.get(1..).unwrap_or(&[]),
-                        tile: context.tile,
-                        variables: &variables,
-                    };
-
-                    let mut property_random = crate::random::FunctionRandom::pattern(visit.seed, parameter.id);
-                    let value = program.evaluate_with_random(&evaluation, &mut state, property_random.as_mut().unwrap_or(&mut random))?;
-                    variables.extend(state.assignments().clone());
-                    value
-                }
-                None => node.parameters.get(parameter.id).unwrap_or(&parameter.default).clone(),
+        let mut evaluate = |id: &str, random: &mut FunctionRandom| -> Result<Option<Value>, String> {
+            let Some(program) = functions.get(&(node.id, id)) else { return Ok(node.parameters.get(id).cloned()) };
+            let evaluation = EvaluationContext {
+                image_formats: context.input_formats.get(1..).unwrap_or(&[]),
+                scope: crate::function::FunctionScope::FxMap,
+                position: visit.center,
+                size: [context.w as f32, context.h as f32],
+                images: context.inputs.get(1..).unwrap_or(&[]),
+                tile: context.tile,
+                variables: &variables,
             };
-
+            let value = program.evaluate_with_random(&evaluation, &mut state, random)?;
+            variables.extend(state.assignments().clone());
+            Ok(Some(value))
+        };
+        // The seed expression reads the incoming stream before its offset applies to this stamp and its descendants.
+        let offset = evaluate("randomseed", &mut FunctionRandom::uniform(visit.seed))?.and_then(|v| v.as_i32()).unwrap_or(0) as u32;
+        let inherits = evaluate("randominherited", &mut FunctionRandom::image(visit.seed))?.and_then(|v| v.as_bool()).unwrap_or(true);
+        visit.seed = if inherits { visit.seed.wrapping_add(offset) } else { offset };
+        let mut parameters = BTreeMap::new();
+        let mut random = FunctionRandom::image(visit.seed);
+        for parameter in definition.params.iter().filter(|p| !matches!(p.id, "randomseed" | "randominherited")) {
+            let mut stream = FunctionRandom::pattern(visit.seed, parameter.id);
+            let value = evaluate(parameter.id, stream.as_mut().unwrap_or(&mut random))?.unwrap_or_else(|| parameter.default.clone());
             parameters.insert(parameter.id, value);
         }
 
         let scalar = |name: &str| parameters.get(name).and_then(Value::as_f32).unwrap_or(0.0);
         let integer = |name: &str| parameters.get(name).and_then(Value::as_i32).unwrap_or(0);
         let vector = |name: &str| parameters.get(name).and_then(Value::as_vec4).map(|value| [value[0], value[1]]).unwrap_or([0.0; 2]);
-        if parameters.get("randominherited").and_then(Value::as_bool) == Some(false) {
-            visit.seed = integer("randomseed") as u32;
-        }
-
         let mut children = Vec::new();
         match node.kind {
             PatternNodeKind::Dot => {}

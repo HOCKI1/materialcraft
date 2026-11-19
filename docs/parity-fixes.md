@@ -1066,6 +1066,22 @@ Curvature smooth exposes only the normal format. Both roots match all 1,024 flat
 
 In the smooth graph, both 64² channel extractions match exactly. A 16² U16 blend of a transformed channel with the 64² grayscale source matches 240/256 pixels, maximum one level. Both inputs to this blend match before resizing. At this setting the final F32 output matches 2,440/4,096 with maximum error 4.57763672e-5. Both roots remain open.
 
+### Local seed expressions in pattern graphs
+
+In a clean-room control, a single original square records three successive opacity draws in RGB with alpha 1. Give its quadrant, iterate or switch a local integer seed of 43. A visit with seed 7 starts the stamp and child property streams at 50 when it inherits the incoming seed and at 43 when it resets. The first opacity draw has F32 bits 3f4fd146 and 3e98dd54 respectively. A random draw inside the local seed expression itself uses the incoming visit seed. Its update is s=(16,294,893×s+10,493,233) mod 2²⁴ and its value is s/2²⁴. The first draw at 7 has bits 3ed93158. An assignment in this expression is visible to subsequent properties on the same stamp.
+
+For the first group, render a 16² F32 square at seeds 0, 2, 7, 43, 317, 65,537 and 1,048,575. Set the local seed after recording the three expression draws and use inheritance both ways. On a nested graph use quadrant slot 3 or the repeated iterate child, at 64² and seeds 0, 2, 7, 43 and 317. At the same five seeds compare literal and computed 43 on the original 16² stamp. In separate controls read the integer variable `$randomseed` or test whether it is defined inside the expression and the opacity. The getter returns zero and the binding is absent on the tested pattern visits. A positive constant of 43 and two distinct defined-variable marker values distinguish these observations from a failed expression. Read all four channels from the raw output.
+
+| Original F32 controls | Renders | Exact pixels before | Exact pixels after / compared | Maximum error before | Maximum error after |
+|---|---:|---:|---:|---:|---:|
+| Seed function on a quadrant, iterate or switch | 42 | 8,736 | 10,752/10,752 | 0.93937701 | 0 |
+| Nested visits and literal or computed seeds | 60 | 151,520 | 168,960/168,960 | 0.959448397 | 0 |
+| Assignment read on the same stamp | 10 | 1,600 | 2,560/2,560 | 1 | 0 |
+| Integer seed getter on the stamp and repeated child | 40 | 7,456 | 10,240/10,240 | 0.870084286 | 0 |
+| Constant, integer getter and defined-variable controls | 30 | 6,432 | 7,680/7,680 | 317 | 0 |
+
+All 182 renders match 200,192/200,192 pixels. The 18 independent iteration cases in four output formats and 72 property controls also retain all 129,024 exact pixels. In Brick 3 at 64²/223, the two 32² U16 pattern maps improved from 64 to 1,024 and from 840 to 996 exact pixels. The maximum errors after the change are zero and one integer level. At the same setting the Crystal 1 pattern map improved from 0 to 4,067/4,096, with maximum error one level. Both roots have remaining differences downstream.
+
 ### Random draws in pattern properties and iterations
 
 A pattern property starts its own random sequence at the visit seed. For each draw use s=(A×s+C) mod 2²⁴, then return floor(s/2)/2²³. Three draws recorded as the R, G and B channels of an original square stamp distinguish the following sequences. Seeds 0 and 1 constrain the missing low bit of each candidate state. Seeds 2, 5, 42, 223, 743 and 65,537 independently reproduce all three channels.

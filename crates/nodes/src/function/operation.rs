@@ -35,6 +35,8 @@ pub(crate) fn evaluate(
         let missing = || format!("undefined variable `{name}` in this context");
         let value = match context.variable(name, variables)? {
             Some(value) => value,
+            // A pattern's traversal seed selects its stream. The integer getter has no binding for it.
+            None if context.scope == super::FunctionScope::FxMap && name == "$randomseed" && op == "get_integer1" => Value::Int(0),
             // Unset numeric variables start at typed zero in a value processor.
             None if !name.starts_with('$') || context.scope == super::FunctionScope::ValueProcessor => {
                 materialcraft_core::ValueType::from_code(instruction.type_code)
