@@ -25,12 +25,12 @@ fn blend(context: &CookContext) -> CookResult {
     let (mode, opacity) = (context.i("mode"), context.f("opacity"));
     let opacity = if matches!(mode, 1 | 2) { opacity.clamp(0.0, 1.0) } else { opacity };
     let copies_foreground = opacity == 1.0 && context.input(2).is_none() && (mode == 7 || (mode == 0 && context.input(0).is_some_and(Image::is_gray)));
-    let foreground = resized_input(context, 0, if copies_foreground { InputResize::Copy } else { InputResize::Blend });
-    let background = resized_input(context, 1, if opacity == 0.0 { InputResize::Copy } else { InputResize::Blend });
+    let foreground = resized_input(context, 0, if copies_foreground { InputResize::Copy } else { InputResize::Filter });
+    let background = resized_input(context, 1, if opacity == 0.0 { InputResize::Copy } else { InputResize::Filter });
     let kind = if [&foreground, &background].iter().any(|i| i.as_ref().is_some_and(|i| !i.is_gray())) { Kind::Color } else { Kind::Gray };
     let foreground = foreground.unwrap_or_else(|| Image::filled(context.w, context.h, kind, [0.0, 0.0, 0.0, 0.0]));
     let background = background.unwrap_or_else(|| Image::filled(context.w, context.h, kind, [0.0, 0.0, 0.0, 1.0]));
-    let mask = resized_input(context, 2, InputResize::Blend).map(|m| m.to_gray());
+    let mask = resized_input(context, 2, InputResize::Filter).map(|m| m.to_gray());
     let color_blending = context.i("color_blending");
     let blend_alpha = context.b("alpha") && !foreground.is_gray();
     let clamp =

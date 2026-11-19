@@ -1,6 +1,5 @@
-use super::{ATOMIC, box_filter};
+use super::{ATOMIC, box_filter, input_resize};
 use crate::{CookContext, CookResult, NodeDefinition, node};
-use craft_texture::Kind;
 
 pub(super) fn definition() -> NodeDefinition {
     node("blur", "Blur", ATOMIC)
@@ -13,11 +12,11 @@ pub(super) fn definition() -> NodeDefinition {
 }
 
 fn blur(context: &CookContext) -> CookResult {
-    let input = context.any_or(0, Kind::Gray, [0.0; 4]);
+    let intensity = context.f("intensity");
+    let (input, source_format) = input_resize::blur_input(context, intensity);
     const BASE_RESOLUTION: f32 = 256.0;
-    let radius = context.f("intensity").max(0.0) * context.w.min(context.h) as f32 / BASE_RESOLUTION;
+    let radius = intensity.max(0.0) * context.w.min(context.h) as f32 / BASE_RESOLUTION;
     let tile = context.tiling_axes();
-    let source_format = context.input_formats.first().copied().unwrap_or(materialcraft_core::OutputFormat::F32);
 
     let reach = radius - 0.5;
     if reach > 0.0 && reach <= 2.0 {

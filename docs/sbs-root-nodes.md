@@ -179,7 +179,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [diffusion.sbs/impl/pass_normal](../assets/sbs/diffusion.sbs) | 2 | Yes | [Parity · 19 renders, 143,872 exact pixels](parity-fixes.md#per-pixel-random-initialization) |
 | [directional_distance.sbs/directional_distance](../assets/sbs/directional_distance.sbs) | 3 | No | [Parity · 32 renders, both outputs exact across 342,528 pixels](parity-fixes.md#distance-output-channels-axis-wrapping-and-cutoffs) |
 | [directionnal_noise.sbs/directionnal_noise](../assets/sbs/directionnal_noise.sbs) | 0 | Yes | [In progress · 145,135/147,712 pixels across 23 renders](parity-fixes.md#stored-input-resizing-and-grayscale-levels-controls) |
-| [dirt_1.sbs/dirt_1](../assets/sbs/dirt_1.sbs) | 0 | Yes | [In progress · 144,472/145,664 pixels across 17 renders](parity-fixes.md#square-and-rectangular-pattern-generators) |
+| [dirt_1.sbs/dirt_1](../assets/sbs/dirt_1.sbs) | 0 | Yes | [In progress · 145,626/145,664 pixels across 17 renders](parity-fixes.md#stored-input-precision-in-box-and-directional-blur) |
 | [dirt_3.sbs/dirt_3](../assets/sbs/dirt_3.sbs) | 0 | Yes | [In progress · 145,297/145,664 pixels across 17 renders](parity-fixes.md#square-and-rectangular-pattern-generators) |
 | [dirt_5.sbs/dirt_5](../assets/sbs/dirt_5.sbs) | 0 | Yes | [In progress · 129,218/129,280 pixels across 16 renders, one pixel varies at a fixed seed](parity-fixes.md#repeated-seeds-in-dirt-and-pattern-generators) |
 | [dirt_6.sbs/dirt_6](../assets/sbs/dirt_6.sbs) | 0 | Yes | [In progress · 117,822/129,280 pixels across 16 renders](parity-fixes.md#square-and-rectangular-pattern-generators) |

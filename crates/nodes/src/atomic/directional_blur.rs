@@ -1,6 +1,6 @@
-use super::{ATOMIC, box_filter, direction};
+use super::{ATOMIC, box_filter, direction, input_resize};
 use crate::{CookContext, CookResult, NodeDefinition, node};
-use craft_texture::{Image, Kind};
+use craft_texture::Image;
 
 pub(super) fn definition() -> NodeDefinition {
     node("directional_blur", "Directional blur", ATOMIC)
@@ -18,16 +18,16 @@ fn directional_blur(context: &CookContext) -> CookResult {
 }
 
 pub(super) fn blur(context: &CookContext, angle: f32) -> CookResult {
-    let input = context.any_or(0, Kind::Gray, [0.0; 4]);
+    let intensity = context.f("intensity");
+    let (input, source_format) = input_resize::blur_input(context, intensity);
     const BASE_RESOLUTION: f32 = 256.0;
     const MAX_HALF_SAMPLES: i32 = 512;
-    let radius = context.f("intensity").max(0.0) * context.w.min(context.h) as f32 / BASE_RESOLUTION;
+    let radius = intensity.max(0.0) * context.w.min(context.h) as f32 / BASE_RESOLUTION;
     if radius <= 0.5 {
         return Ok(vec![input]);
     }
 
     let tile = context.tiling_axes();
-    let source_format = context.input_formats.first().copied().unwrap_or(materialcraft_core::OutputFormat::F32);
     let quarters = angle * 4.0;
     if quarters.fract() == 0.0 {
         let horizontal = quarters % 2.0 == 0.0;

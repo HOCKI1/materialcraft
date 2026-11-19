@@ -1,21 +1,31 @@
 use crate::CookContext;
-use craft_texture::Image;
+use craft_texture::{Image, Kind};
 use materialcraft_core::OutputFormat;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub(super) enum InputResize {
     Copy,
-    Blend,
+    Filter,
     Levels,
 }
 
 pub(super) fn resized_input(context: &CookContext, port: usize, mode: InputResize) -> Option<Image> {
+    resized_texture(context, port, mode).map(|(image, _)| image)
+}
+
+pub(super) fn blur_input(context: &CookContext, intensity: f32) -> (Image, OutputFormat) {
+    // A zero intensity copies through the destination format. Even a subpixel blur uses the working precision.
+    let mode = if intensity == 0.0 { InputResize::Copy } else { InputResize::Filter };
+    resized_texture(context, 0, mode).unwrap_or_else(|| (Image::filled(context.w, context.h, Kind::Gray, [0.0; 4]), OutputFormat::F32))
+}
+
+fn resized_texture(context: &CookContext, port: usize, mode: InputResize) -> Option<(Image, OutputFormat)> {
     let mut image = context.input(port)?.clone();
+    let mut source = context.input_formats.get(port).copied().unwrap_or(if image.integer_sampling() { OutputFormat::U16 } else { OutputFormat::F32 });
     let target = craft_texture::clamp_size(context.w, context.h);
     if (image.width(), image.height()) == target {
-        return Some(image);
+        return Some((image, source));
     }
-    let mut source = context.input_formats.get(port).copied().unwrap_or(if image.integer_sampling() { OutputFormat::U16 } else { OutputFormat::F32 });
     let storage = if mode == InputResize::Copy {
         context.format
     } else {
@@ -45,11 +55,11 @@ pub(super) fn resized_input(context: &CookContext, port: usize, mode: InputResiz
         // A final reduction can feed the Levels curve directly. An enlargement stores the
         // filtered texels first, which matters when the working image uses half precision.
         if mode == InputResize::Levels && (w, h) == target && w <= current.0 && h <= current.1 {
-            return Some(image);
+            return Some((image, source));
         }
         image = crate::output_precision::apply(image, storage);
         if (w, h) == target {
-            return Some(image);
+            return Some((image, storage));
         }
         source = storage;
     }

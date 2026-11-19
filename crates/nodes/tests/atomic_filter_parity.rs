@@ -279,6 +279,20 @@ fn sharpen_preserves_finite_hdr_constant() {
 }
 
 #[test]
+fn zero_blur_copies_through_the_output_precision_when_resizing() {
+    let field = Image::gray(32, 32, |x, y| (((17 * x + 113 * y + 59 * x * y + 19) * 7919) % 65536) as f32 / 65535.0);
+    let input = [Some(materialcraft_nodes::output_precision::apply(field, OutputFormat::U16))];
+    for (intensity, expected) in [(0.0, [145, 139]), (0.0009765625, [146, 140]), (3.2, [146, 140]), (-3.2, [146, 140])] {
+        let params = [("intensity", Value::Float(intensity))];
+        for id in ["blur", "directional_blur"] {
+            let result = cook_format(id, &input, &params, [8, 8], true, OutputFormat::U8);
+            let stored = materialcraft_nodes::output_precision::apply(result, OutputFormat::U8);
+            assert_eq!([2, 5].map(|x| (stored.get_gray(x, 0, false) * 255.0).round() as u8), expected, "{id} intensity {intensity}");
+        }
+    }
+}
+
+#[test]
 fn blur_uses_fractional_box_coverage() {
     let input = Image::gray(16, 16, |x, y| f32::from(x == 8 && y == 8));
 

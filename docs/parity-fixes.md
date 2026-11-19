@@ -114,6 +114,48 @@ The standalone Add Sub filter matches **59,904/59,904 pixels across 36 renders**
 
 To reproduce the filter controls use one graph per input layout, with foreground, background and optionally mask. In binding order use slot v=0,1,2 for foreground, background and mask. For each channel c use L=(53x+17y+7xy+35v+61c+3cy+3) mod 251. Use L/255 normally. For signed cases use (L−83.125)/53.5 for the images and (L−83.125)/101 for the mask. Masks and grayscale images take channel zero. Set image bridges to F32 for the color graphs and U8 for the grayscale graph. For each graph use 16² F32 at opacity 1, then 32² at opacity .5 in all four formats. At 64² F32 with signed inputs use .6875 with alpha blending disabled, then .3125 with it enabled. At 32² F32 and opacity .6137 run ignored, straight, premultiplied and source alpha. Finish with signed inputs at 16² F32 and opacity zero, followed by 64² F32 with unsigned inputs and opacity 1. Each series starts at seed 5113 and advances by 17.
 
+### Stored input precision in box and directional blur
+
+Dirt 1 matches **145,626/145,664 pixels across 17 renders**. Previously 144,472 matched, with maximum U16 error 304 levels. U16 now matches 123,869/123,904 with maximum error one level. All 5,120 U8 and all 5,120 F16 pixels match. F32 matches 11,517/11,520 with maximum 1.52587891e−5. The 64² case that previously had 255/256 exact pixels at the 16² U8 blur now matches 256/256 at that stage and 4,096/4,096 at the output. The repeated 64² case first differs at the U16 FX-Map, with 4,094/4,096 and maximum one level, while the U8 blur still matches 256/256. [Generator inputs, controls and seeds](#square-and-rectangular-pattern-generators)
+
+A zero blur copies its resized input at the destination precision. With a nonzero intensity, the resize stores each level at the wider input or destination precision, including the final reduction. If the filter has a nonzero radius, it reads the resized texture at that working precision. A matching-size input retains its existing format. This applies to both filters even when the intensity is too small to cover another texel.
+
+| Direct comparisons | Renders | Exact pixels / compared | Max U8 / U16 levels | Max F16 / F32 error |
+|---|---:|---:|---:|---:|
+| Box blur, mixed input sizes and storage | 133 | 238,336/238,336 | 0 / 0 | 0 / 0 |
+| Box blur, zero through 4.001 | 48 | 49,152/49,152 | 0 / 0 | 0 / 0 |
+| Box blur, signed subpixel settings | 18 | 1,152/1,152 | 0 / — | 0 / 0 |
+| Both filters, signed and wider kernels | 36 | 2,302/2,304 | 0 / — | 0 / 2.98023224e-08 |
+| Directional blur, mixed sizes and angles | 91 | 162,606/163,072 | 0 / 0 | 0 / 1.1920929e-07 |
+
+For the mixed-size rows, generate the [original four-channel field](#stored-input-resizing-and-grayscale-levels-controls) with component c = ((131x+367y+29xy+41c+17xc+seed) mod 2053)/2052. For gray take the first component. Encode normalized inputs at their specified depth. For floating inputs use 1.5 times the component minus .25 in linear F32, then store at the indicated input depth. Before the blur, feed a neutral Levels at the input dimensions. At each index j below, use base seed 11677+11(250+j). Render 16² F32, 32² U8/U16/F16/F32, 64² F32 and 64² U16. Add 0, 1, 1, 1, 1, 5 and 6 to the base seed. Multiply the output width and height by two to the respective powers shown to obtain the input dimensions. The angle column gives the additional directional renders in turns.
+
+| j | Input | Size powers (X,Y) | Tiling | Intensity | Directional angles |
+|---:|---|---|---|---:|---|
+| 0 | U16 gray | (2, 2) | XY | 0 | 0 |
+| 1 | U16 gray | (2, 2) | XY | 3.2 | 0.25 |
+| 2 | U16 gray | (2, 1) | XY | 0 | — |
+| 3 | U16 gray | (1, 0) | XY | 0 | 0.125 |
+| 4 | U16 gray | (-1, 0) | XY | 0 | — |
+| 5 | U16 gray | (-2, -1) | X | 0 | -0.0625 |
+| 6 | U16 gray | (-1, 1) | Y | 0 | — |
+| 7 | U8 RGBA | (-2, -1) | XY | 0 | — |
+| 8 | U8 RGBA | (-1, -1) | off | 0 | 0.1875 |
+| 9 | F16 RGBA | (-2, -1) | XY | 0 | 0.125 |
+| 10 | F16 RGBA | (1, 1) | XY | 0 | — |
+| 11 | F32 RGBA | (2, 1) | XY | 0 | — |
+| 12 | F32 RGBA | (-1, 0) | off | 0 | 0 |
+| 13 | U16 gray | (-1, 0) | XY | 8.5 | 0, 0.25 |
+| 14 | U16 gray | (1, 1) | XY | 9 | 0.125 |
+| 15 | U16 gray | (2, 2) | off | 12 | 0.25 |
+| 16 | F32 RGBA | (-1, -1) | X | 12 | — |
+| 17 | F16 RGBA | (-1, 0) | Y | 6 | 0 |
+| 18 | U8 RGBA | (-1, -1) | XY | 10 | 0.125 |
+
+For the threshold series, take the 128² U16 field from j=0 at the 32² setting. Keep seed 15701 and store all four formats at intensities 0, 2⁻¹⁸, 2⁻¹⁰, .03125, .125, .5, 1, 1.5, 2, 3.2, 4 and 4.001. With U8 output, using destination precision throughout matches all 1,024 pixels at zero and 889/1,024 at 2⁻¹⁸. Using the wider precision reverses those counts.
+
+For the two signed series, generate a 32² U16 image with level ((17x+113y+59xy+19)×7919) mod 65536. Reduce to 8² U8, F16 and F32. At seed 15709 test box intensities 0, 2⁻¹⁰, 3.2, 16, −2⁻¹⁰ and −3.2. At U8 the row-zero pixels at columns 2 and 5 are 145 and 139 at zero and 146 and 140 at ±3.2. At seed 15709, repeat both filter types at 0, 2⁻¹⁰, 3.2, −3.2, 64 and −64, with an eighth turn for directional blur. The +64 directional F32 result matches 62/64 pixels, maximum 2.98023224e−8. The independent directional angles retain the F32 differences shown above.
+
 ### Tiling axes and pattern copy bounds
 
 A square stamp now wraps independently on each enabled axis. A repeated copy contributes only when its bounding box overlaps the tiling interval on every wrapped axis. A copy that only touches an endpoint contributes zero. Extending the render window beyond the tiling rectangle exposes the portions of admitted copies that extend into the larger window. A reversed tiling interval uses [0,1] on that axis. The tests exercise all four masks and both edges of a tangency.
