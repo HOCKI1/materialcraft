@@ -158,7 +158,7 @@ impl Program {
                     } else if let Some(product) = &instruction.pixel_product_sum
                         && context.scope == super::FunctionScope::PixelProcessor
                     {
-                        product.evaluate(arguments, instruction.definition.id == "sub")
+                        product.evaluate(arguments, instruction.definition.id == "sub", state)
                     } else {
                         operation::evaluate(instruction, arguments, &mut state.variables, &mut state.random, context)
                     }

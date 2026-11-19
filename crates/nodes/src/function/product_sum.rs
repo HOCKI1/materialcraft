@@ -1,4 +1,4 @@
-use super::{arithmetic::flush_subnormal, instruction::Instruction, value_type};
+use super::{EvaluationState, arithmetic::flush_subnormal, instruction::Instruction, returned_product::Source, value_type};
 use materialcraft_core::Value;
 
 pub(super) struct ProductSum {
@@ -8,17 +8,29 @@ pub(super) struct ProductSum {
     negated: bool,
     operation: &'static str,
     literal_divisor: bool,
+    retained: Option<Box<Source>>,
 }
 
 impl ProductSum {
-    pub(super) fn evaluate(&self, arguments: &[Value], subtract: bool) -> Result<Value, String> {
-        let [first, second, third, rest @ ..] = arguments else { return Err("missing product-sum operands".into()) };
-        let (a, b, c) = if self.product_on_right { (second, third, first) } else { (first, second, third) };
+    /// Evaluate the original call and vector arguments before reading the factors they used.
+    pub(super) fn returned(inputs: &[usize], product_on_right: bool, source: Source) -> Self {
+        Self { inputs: inputs.to_vec(), product_on_right, negated: false, operation: "mul", literal_divisor: false, retained: Some(Box::new(source)) }
+    }
+
+    pub(super) fn evaluate(&self, arguments: &[Value], subtract: bool, state: &EvaluationState) -> Result<Value, String> {
+        let (a, b, c, blend) = if let Some(source) = &self.retained {
+            let (a, b) = source.factors(state)?;
+            let c = arguments.get(usize::from(!self.product_on_right)).ok_or("missing product addend")?;
+            (a, b, c, None)
+        } else {
+            let [first, second, third, rest @ ..] = arguments else { return Err("missing product-sum operands".into()) };
+            let (a, b, c) = if self.product_on_right { (second, third, first) } else { (first, second, third) };
+            (a, b, c, rest.first())
+        };
         let width = value_type::dimensions(a);
         if width != value_type::dimensions(c) || (width != value_type::dimensions(b) && !(self.operation == "mulscalar" && value_type::dimensions(b) == 1)) {
             return Err("float operands must have the same dimensions".into());
         }
-        let blend = rest.first();
         if blend.is_some_and(|v| value_type::dimensions(v) != width && value_type::dimensions(v) != 1) {
             return Err("interpolation factor must be a scalar or match its operands".into());
         }
@@ -135,6 +147,7 @@ pub(super) fn identify(instructions: &mut [Instruction]) {
                         negated: source.negated,
                         operation: product.definition.id,
                         literal_divisor: product.literal_divisor,
+                        retained: None,
                     },
                 ))
             })

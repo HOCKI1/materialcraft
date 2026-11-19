@@ -188,7 +188,7 @@ fn compile_nested(graph: &FunctionGraph, seed: u32, depth: usize, remaining: &mu
     Ok(Program { instructions, output, seed })
 }
 
-fn mark_literals(program: &mut Program, mut arguments: BTreeSet<&str>) {
+fn mark_literals(program: &mut Program, mut arguments: BTreeSet<&str>) -> super::returned_product::Lanes {
     // A write in the callee can replace a literal argument before its next read.
     for op in &program.instructions {
         if op.call.as_ref().is_some_and(|call| call.exports) {
@@ -202,13 +202,17 @@ fn mark_literals(program: &mut Program, mut arguments: BTreeSet<&str>) {
         }
     }
     let mut literals = Vec::with_capacity(program.instructions.len());
-    for op in &mut program.instructions {
+    let mut returned = BTreeMap::new();
+    for (index, op) in program.instructions.iter_mut().enumerate() {
         let literal = |index: &usize| literals.get(*index) == Some(&true);
         let id = op.definition.id;
         op.literal_divisor = id == "div" && op.inputs.get(1).is_some_and(literal);
         if let Some(call) = &mut op.call {
             let bound = call.inputs.iter().zip(&op.inputs).filter(|(_, index)| literal(index)).map(|(name, _)| name.as_str()).collect();
-            mark_literals(&mut call.program, bound);
+            let lanes = mark_literals(&mut call.program, bound);
+            if !call.exports && lanes.iter().any(Option::is_some) {
+                returned.insert(index, lanes);
+            }
         } else {
             op.literal = id.starts_with("const_")
                 || (id.starts_with("get_") && matches!(&op.value, Some(materialcraft_core::Value::Text(name)) if arguments.contains(name.as_str())))
@@ -217,6 +221,7 @@ fn mark_literals(program: &mut Program, mut arguments: BTreeSet<&str>) {
         literals.push(op.literal);
     }
     super::product_sum::identify(&mut program.instructions);
+    super::returned_product::identify(program, returned)
 }
 
 /// The instructions the condition and the body of loop `index` evaluate again on every iteration

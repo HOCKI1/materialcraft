@@ -393,6 +393,67 @@ fn pixel_product_sums_round_once_unless_the_product_is_also_read() {
 }
 
 #[test]
+fn pixel_product_sum_through_packed_lanes_and_calls_keeps_other_reads() {
+    let [a, b, c] = [0xbfd8_e681, 0xc03e_5cec, 0xc05f_9255].map(f32::from_bits);
+    let variables = ["a", "b", "c"].into_iter().map(str::to_owned).zip([a, b, c].map(Value::Float)).collect();
+    let context = EvaluationContext {
+        image_formats: &[],
+        scope: super::FunctionScope::PixelProcessor,
+        position: [0.5; 2],
+        size: [1.0; 2],
+        images: &[],
+        tile: true,
+        variables: &variables,
+    };
+    let pixel = |graph: &FunctionGraph| compile(graph, 0).unwrap().evaluate_pixel(&context, &mut EvaluationState::default()).unwrap();
+    let mut draws = FunctionGraph::default();
+    let one = draws.add_constant(Value::Float(1.0));
+    let first = draws.add("rand", &[one], None);
+    let second = draws.add("rand", &[one], None);
+    draws.output = Some(draws.add("vector2", &[first, second], None));
+    let Value::Float2([first_draw, second_draw]) = pixel(&draws) else { panic!("expected two random draws") };
+    assert_ne!(first_draw, second_draw);
+
+    for called in [false, true] {
+        let mut graph = FunctionGraph::default();
+        let [left, right] = ["a", "b"].map(|name| graph.add("get_float1", &[], Some(Value::Text(name.into()))));
+        let product = graph.add("mul", &[left, right], None);
+        let one = graph.add_constant(Value::Float(1.0));
+        let draw = graph.add("rand", &[one], None);
+        let mut pair = graph.add("vector2", &[product, draw], None);
+        if called {
+            graph.output = Some(pair);
+            let body = std::mem::take(&mut graph);
+            pair = graph.add("instance", &[], None);
+            let node = graph.nodes.last_mut().unwrap();
+            node.instance = Some(materialcraft_core::GraphInstance {
+                label: String::new(),
+                package: String::new(),
+                graph: "pair".into(),
+                inputs: Vec::new(),
+                outputs: Vec::new(),
+                defaults: BTreeMap::new(),
+            });
+            node.source = Some(Ok(std::sync::Arc::new(body)));
+        }
+        let x = graph.add("swizzle1", &[pair], Some(Value::Int(0)));
+        let y = graph.add("swizzle1", &[pair], Some(Value::Int(1)));
+        let addend = graph.add("get_float1", &[], Some(Value::Text("c".into())));
+        for args in [[x, addend], [addend, x]] {
+            let sum = graph.add("add", &args, None);
+            graph.output = Some(graph.add("vector2", &[sum, y], None));
+            assert_eq!(pixel(&graph), Value::Float2([f32::from_bits(0x3fc6_0290), first_draw]));
+            graph.output = Some(graph.add("vector2", &[sum, x], None));
+            assert_eq!(pixel(&graph), Value::Float2([f32::from_bits(0x3fc6_0292), a * b]));
+            let one = graph.add_constant(Value::Float(1.0));
+            let next = graph.add("rand", &[one], None);
+            graph.output = Some(graph.add("vector2", &[sum, next], None));
+            assert_eq!(pixel(&graph), Value::Float2([f32::from_bits(0x3fc6_0290), second_draw]));
+        }
+    }
+}
+
+#[test]
 fn pixel_sums_contract_negated_products_and_preserve_shared_rounded_addends() {
     let values = [0xc0742acf, 0xbf116093, 0x405370ba, 0x3f3eb229].map(|bits| Value::Float(f32::from_bits(bits)));
     let variables = ["a", "b", "c", "d"].into_iter().map(str::to_owned).zip(values).collect();

@@ -62,8 +62,8 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [3d_texture_position.sbs/3d_texture_position](../assets/sbs/3d_texture_position.sbs) | 0 | No | [Parity: native 4K atlas](parity-fixes.md#verified-cases) |
 | [3d_texture_render.sbs/3d_texture_surface_render_irradiance](../assets/sbs/3d_texture_render.sbs) | 6 | Yes | [Parity · 47,360 exact pixels in 71 renders](parity-fixes.md#surface-irradiance-and-uniform-power) |
 | [3d_texture_render.sbs/3d_texture_surface_render_position](../assets/sbs/3d_texture_render.sbs) | 1 | Yes | [Parity · 92,928 exact pixels in 39 renders](parity-fixes.md#surface-position-and-signed-pixel-products) |
-| [3d_texture_render.sbs/3d_texture_volume_render_ibl_pass](../assets/sbs/3d_texture_render.sbs) | 6 | Yes | [In progress · 7,898/31,488 pixels, first dithered step differs](parity-fixes.md#uniform-powers-of-two-and-volume-lighting) |
-| [3d_texture_render.sbs/3d_texture_volume_render_light_pass](../assets/sbs/3d_texture_render.sbs) | 4 | Yes | [In progress · 43,038/43,264 pixels, U8 and U16 exact](parity-fixes.md#uniform-powers-of-two-and-volume-lighting) |
+| [3d_texture_render.sbs/3d_texture_volume_render_ibl_pass](../assets/sbs/3d_texture_render.sbs) | 6 | Yes | [In progress · 7,898/31,488 pixels, first dithered step differs](parity-fixes.md#pixel-products-carried-through-vector-lanes-and-calls) |
+| [3d_texture_render.sbs/3d_texture_volume_render_light_pass](../assets/sbs/3d_texture_render.sbs) | 4 | Yes | [In progress · 43,263/43,264 pixels, one F32 red channel differs](parity-fixes.md#pixel-products-carried-through-vector-lanes-and-calls) |
 | [3d_texture_render.sbs/position_debug](../assets/sbs/3d_texture_render.sbs) | 2 | Yes | [Parity · 14 sphere and plane cases](parity-fixes.md#position-debug) |
 | [3d_texture_transform.sbs/3d_texture_offset_color](../assets/sbs/3d_texture_transform.sbs) | 1 | No | [Parity: 5 cases](parity-fixes.md#verified-cases) |
 | [3d_texture_transform.sbs/3d_texture_offset_grayscale](../assets/sbs/3d_texture_transform.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |

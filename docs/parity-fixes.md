@@ -784,6 +784,26 @@ All 7,680 direct-light density pixels in the [density controls](#volume-density-
 
 Read out named values immediately after initialization and after the first volume step on the 16² thin, 16² dithered, 32² thick and 32² varying-density F32 cases. For environment light the initial ray position, ray direction, noise input, dithering, step size and accumulated depth are each exact at 2,560/2,560. After one step the position and depth each match 1,280/2,560, maximum 1.96305132. Scattered light and transmission match 1,280/2,560, maximum .0574402809. For direct light the initial light color improved from 0/2,560 to 2,560/2,560 exact. Direction, ambient color, noise, step size, first position and first depth are also exact. First-step scattering and transmission match 2,560/2,560, maximum 0. The two light roots remain in progress.
 
+### Pixel products carried through vector lanes and calls
+
+| Comparison | Renders | Exact stored pixels / compared | Maximum error |
+|---|---:|---:|---:|
+| Scalar products and sums through vector components or reusable function calls | 108 | 594,432/594,432 | 0 |
+| Volume ambient-direction helper, fixed sample count | 18 | 78,336/78,336 | 0 |
+| Same helper, sample count read from a texture | 9 | 38,670/39,168 | F32 5.96046448e−8 |
+| Volume direct light | 46 | 43,263/43,264 | F32 .00000370293856 |
+| Volume environment light | 39 | 7,898/31,488 | U8 4, U16 829, F16 .0126953125, F32 .0560382009 |
+
+A varying scalar product used only in a pixel addition rounds once with the addend, including when the product passes through a vector constructor, a component selector or a function return. Reading a different component preserves that behavior. When the product itself is also output, both consumers see its rounded value. A product of two literals rounds before addition. For R, G and B with F32 bits bfd8e681, c03e5cec and c05f9255, R×G+B gives 3fc60290 and the separate product and sum give 3fc60292. MaterialCraft retains the factors already evaluated in each call. The regression checks both operand orders and the next random draw after a sibling component consumes the first draw.
+
+Start with the signed 128² [four-channel hash field](#3d-linear-gradient). Use the upper-left 16²/seed 53, 64²/241 and 128²/373. Render F32 at all three sizes and U8, U16 and F16 at 64². Form R×G directly, in the first lane of (R×G,A), in a scalar function return, and in a function returning the same pair. Add B in either operand order. Also output the product alongside the sum, read the sibling lane when present, and repeat with literal factors 5 and .618034005. These 18 graphs previously matched 545,872/594,432 pixels. The largest errors were one U16 level, 9.53674316e−7 in F16 and 1.90734863e−6 in F32.
+
+For the ambient-direction helper, encode sample index i, noise and sample count N in the first three F32 channels. Use the direct-light iteration-four noise at 16²/0 and 64²/42 with i=4 and N=32. For other cases use i=(x+3y) mod N and noise=((37x+71y+11xy) mod 1021)/1020. Use (side,seed,N) of (32,93,32), (64,271,32), (128,509,37) and (32,719,19). For the last case apply 3×noise−.75. Render all four formats at 64²/271 and F32 elsewhere. Repeat the six inputs with a literal sample count of 32, and with both i=4 and N=32 held literal. The varying-index phase uses (i+1)×float32(.618034005)+noise with one rounding. With literal i, the product rounds first. The remaining 498 mismatches are in the two F32 cases with a changing sample-count input.
+
+The [volume light inputs and format matrix](#uniform-powers-of-two-and-volume-lighting) give 7,424/7,424 pixels each in U8 and U16, 10,752/10,752 in F16, and 17,663/17,664 in F32 for direct light. At iteration prefixes five and six, separately read ray position, depth, and scattering/transmission at 16² with defaults and 64² with changed albedo (.3,.6,.9). These twelve images match 26,112/26,112 pixels. At prefix six the ambient direction, origin, step, maximum distance, distance along the ray, visibility and iteration index each match 4,352/4,352. A separate cosine threshold differs by 4.37113883e−8. In the changed 64² F32 case, the complete iteration outputs at prefixes 9, 17, 25 and 33 match 16,384/16,384. The final stored output differs in red at (2,60), with bits 3c1999d4 in MaterialCraft and 3c198a4c in the reference. The difference is also present in the background term. The environment-light pass uses a random draw in its first dithered step. Its per-pixel [random starting state](#pixel-processor-random-draws) remains unresolved.
+
+The node release suite, formatting, strict workspace Clippy, layers and the ten WebAssembly checks passed. The same executable reproduced all 180,736 Lab-to-RGB pixels, 212,480 RGB-to-Lab pixels and 42,496 blackbody pixels.
+
 ### Volume density, dithering and color-temperature controls
 
 | Root | Renders | Exact RGBA pixels / compared | Maximum U8 / U16 levels | Maximum F16 / F32 error |

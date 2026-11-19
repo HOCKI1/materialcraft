@@ -30,6 +30,7 @@ mod product_sum;
 mod program;
 mod reciprocal;
 mod resolve_instances;
+mod returned_product;
 mod square_root;
 mod system_variable;
 mod trigonometry;
