@@ -15,6 +15,11 @@ impl Program {
         self.instructions.get(self.output).map_or(0, |instruction| instruction.type_code)
     }
 
+    /// Whether the result depends only on literals and pure operations.
+    pub fn output_is_literal(&self) -> bool {
+        self.instructions.get(self.output).is_some_and(|instruction| instruction.literal)
+    }
+
     pub fn node_type(&self, id: u32) -> Option<u32> {
         self.instructions.iter().find(|instruction| instruction.id == id).map(|instruction| instruction.type_code)
     }

@@ -411,6 +411,62 @@ fn bound_image_resizing_filters_rgb_before_grayscale_conversion() {
 }
 
 #[test]
+fn half_blends_store_integer_inputs_on_different_size_paths() {
+    use materialcraft_core::{BaseParameter, FunctionGraph, OutputFormat, SizeMode};
+
+    let mut graph = Graph::new("Blend sizing");
+    graph.size = [1, 0];
+    graph.format = OutputFormat::U8;
+    let [foreground, background] = ["foreground", "background"].map(|identifier| {
+        let id = graph.add_node("input_grayscale", [0.0; 2]);
+        let node = graph.node_mut(id).unwrap();
+        node.params.insert("identifier".into(), Value::Text(identifier.into()));
+        node.base.size_mode = SizeMode::RelativeToParent;
+        id
+    });
+    let bridge = graph.add_node("dot", [0.0; 2]);
+    let blend = graph.add_node("blend", [0.0; 2]);
+    let node = graph.node_mut(blend).unwrap();
+    node.base.format = OutputFormat::F16;
+    node.params.insert("opacity".into(), Value::Float(0.4));
+    graph.connect(foreground, "output", bridge, "input").unwrap();
+    graph.connect(bridge, "output", blend, "foreground").unwrap();
+    graph.connect(background, "output", blend, "background").unwrap();
+    let mut package = Package::new("Blend sizing");
+    package.graphs.push(graph);
+
+    let literal = FunctionGraph::constant(Value::Int2([0, 0]));
+    let mut runtime = FunctionGraph::default();
+    let dimensions = runtime.add("get_float2", &[], Some(Value::Text("$size".into())));
+    let zero = runtime.add_constant(Value::Int2([0, 0]));
+    runtime.output = Some(runtime.add("sequence", &[dimensions, zero], None));
+    let mut options = Options::new(&no_res);
+    for (name, levels) in [("foreground", [71.0, 55.0]), ("background", [155.0, 1.0])] {
+        options.inputs.insert(name.into(), Image::gray(2, 1, |x, _| levels[x as usize] / 255.0));
+    }
+    let cache = Mutex::new(Cache::default());
+    for (front, back, inherit, expected) in [
+        (false, false, false, [0x3ef3c000, 0x3db58000]),
+        (true, false, false, [0x3ef3a000, 0x3db56000]),
+        (false, true, false, [0x3ef38000, 0x3db58000]),
+        (true, true, false, [0x3ef38000, 0x3db56000]),
+        (false, true, true, [0x3ef3a000, 0x3db56000]),
+        (true, true, true, [0x3ef3c000, 0x3db58000]),
+    ] {
+        let graph = &mut package.graphs[0];
+        for (id, dynamic) in [(foreground, front), (background, back)] {
+            graph.node_mut(id).unwrap().base.functions.insert(BaseParameter::OutputSize, if dynamic { runtime.clone() } else { literal.clone() });
+        }
+        graph.node_mut(blend).unwrap().base.size_mode = if inherit { SizeMode::RelativeToInput } else { SizeMode::RelativeToParent };
+        let result = cook(&package, 0, &options, &cache);
+        assert!(result.nodes.values().all(|node| node.error.is_none()));
+        let pixels = result.image(blend, 0).unwrap();
+        assert_eq!([0, 1].map(|x| pixels.get_gray(x, 0, false).to_bits()), expected);
+        assert!(cook(&package, 0, &options, &cache).nodes[&blend].cached);
+    }
+}
+
+#[test]
 fn bound_image_resizing_reads_the_upstream_float_format_inside_instances() {
     use materialcraft_core::{OutputFormat, SizeMode};
     let (mut parent, instance) = instancing("Parent", "Resized");

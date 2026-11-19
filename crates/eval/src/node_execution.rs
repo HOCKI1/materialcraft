@@ -164,7 +164,20 @@ pub(crate) fn cook_node(
     let key = hash_of(&(
         &node.def,
         serde_json::to_string(&parameters).unwrap_or_default(),
-        (w, h, seed, tile, node.disabled, base.size, base.size_underflow, base.format, base.tiling, base.pixel_ratio, base.pixel_size.map(f32::to_bits)),
+        (
+            w,
+            h,
+            seed,
+            tile,
+            node.disabled,
+            base.size,
+            base.size_underflow,
+            base.dynamic_size,
+            base.format,
+            base.tiling,
+            base.pixel_ratio,
+            base.pixel_size.map(f32::to_bits),
+        ),
         &input_keys,
         resource_hash,
         subgraph_hash,
@@ -213,6 +226,18 @@ pub(crate) fn cook_node(
             values
         })
     } else if let Some(definition) = definition {
+        if node.def == "blend" && base.format == OutputFormat::F16 {
+            // Even matching dimensions require half storage when one normalized input has a runtime size.
+            for ((image, format), port) in inputs.iter_mut().zip(&input_formats).zip(input_ports) {
+                if matches!(format, OutputFormat::U8 | OutputFormat::U16 | OutputFormat::Inherit)
+                    && let Some(image) = image
+                    && (image.width(), image.height()) == (w, h)
+                    && prepared.source_base(node.id, &port.id, cooked).is_some_and(|source| source.dynamic_size != base.dynamic_size)
+                {
+                    *image = crate::output_precision::apply(image.clone(), OutputFormat::F16);
+                }
+            }
+        }
         let context = CookContext {
             input_formats: &input_formats,
             format: base.format,

@@ -5,6 +5,9 @@ use std::collections::BTreeMap;
 #[serde(rename_all = "camelCase")]
 pub struct ResolvedBaseParameters {
     pub size: [u32; 2],
+    /// The texture dimensions depend on a runtime size expression in this path.
+    #[serde(skip)]
+    pub dynamic_size: bool,
     /// Negative requested exponents on axes whose allocated texture is one texel.
     #[serde(skip)]
     pub size_underflow: [i32; 2],
@@ -20,6 +23,7 @@ impl ResolvedBaseParameters {
         let parent = options.parent_base;
         Self {
             size: parent.map_or_else(|| graph.size_px(), |base| graph.output_size_px(base.size)),
+            dynamic_size: graph.absolute_output_size.is_none() && parent.is_some_and(|base| base.dynamic_size),
             size_underflow: parent.filter(|_| graph.absolute_output_size.is_none()).map_or([0; 2], |base| base.size_underflow),
             seed: parent.map_or(graph.seed as u32, |base| base.seed),
             format: parent.map_or(graph.format, |base| base.format),
@@ -31,7 +35,8 @@ impl ResolvedBaseParameters {
 
     pub(crate) fn resolve(base: &BaseParameters, input: Option<Self>, parent: Self) -> Self {
         let dimensions = |base: Self| (base.size, base.size_underflow);
-        let (size_base, underflow) = BaseParameter::OutputSize.inheritance(base).resolve(([1; 2], [0; 2]), input.map(dimensions), dimensions(parent));
+        let size_mode = BaseParameter::OutputSize.inheritance(base);
+        let (size_base, underflow) = size_mode.resolve(([1; 2], [0; 2]), input.map(dimensions), dimensions(parent));
         let shift: [i32; 2] = std::array::from_fn(|axis| underflow[axis].saturating_add(base.size[axis].clamp(-12, 13)));
 
         // Internal images may be one texel; the editor minimum would break size functions
@@ -46,6 +51,7 @@ impl ResolvedBaseParameters {
         Self {
             size,
             size_underflow,
+            dynamic_size: size_mode.resolve(false, input.map(|base| base.dynamic_size), parent.dynamic_size),
             seed: inherited_seed.wrapping_add(base.seed as u32),
             format: BaseParameter::Format.inheritance(base).resolve(base.format, input.map(|base| base.format), parent.format),
             tiling: base.tiling_mode.resolve(base.tiling, input.map(|base| base.tiling), parent.tiling),
@@ -98,6 +104,7 @@ pub(crate) fn evaluate(
         pixel_ratio_mode: base.pixel_ratio_mode,
     };
     let mut values = BTreeMap::new();
+    let mut computed_size = false;
     let mut resolved = ResolvedBaseParameters::resolve(&evaluated, input, parent);
 
     // Size and seed establish the context used by the remaining parameter functions
@@ -119,7 +126,7 @@ pub(crate) fn evaluate(
                 resolved.size
             };
 
-            let value = crate::parameter_function::evaluate(
+            let (value, literal) = crate::parameter_function::evaluate(
                 function,
                 parameter.value_type(),
                 variables.to_mut(),
@@ -128,6 +135,9 @@ pub(crate) fn evaluate(
                 crate::parameter_function::ChannelMode::Opaque,
             )
             .map_err(|error| format!("function of `{}`: {error}", parameter.identifier()))?;
+            if parameter == BaseParameter::OutputSize {
+                computed_size = !literal;
+            }
             parameter.set_value(&mut evaluated, &value)?;
             parameter.set_inheritance(&mut evaluated, parameter.inheritance(base));
             resolved = ResolvedBaseParameters::resolve(&evaluated, input, parent);
@@ -136,5 +146,6 @@ pub(crate) fn evaluate(
         values.insert(parameter, parameter.value(&evaluated));
     }
 
+    resolved.dynamic_size |= computed_size;
     Ok((resolved, values))
 }

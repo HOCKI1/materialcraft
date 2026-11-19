@@ -36,19 +36,22 @@ impl<'a> PreparedGraph<'a> {
             .0
             .iter()
             .filter(|port| port.kind != materialcraft_nodes::PortKind::Value && primary.is_none_or(|primary| port.id == primary))
-            .find_map(|port| {
-                let connection = self.index.input_of(id, &port.id)?;
-                let port_index = self.ports(connection.from).1.iter().position(|output| output.id == connection.from_port)?;
-                cooked.nodes.get(&connection.from)?.output_base(port_index)
-            })?;
+            .find_map(|port| self.source_base(id, &port.id, cooked))?;
 
         // Only bypassed generators take their image dimensions from the input
         if !node.disabled && definition.is_some_and(|definition| definition.generator) {
             base.size = self.parent_base.size;
             base.size_underflow = self.parent_base.size_underflow;
+            base.dynamic_size = self.parent_base.dynamic_size;
         }
 
         Some(base)
+    }
+
+    pub fn source_base(&self, id: NodeId, port: &str, cooked: &crate::Cooked) -> Option<crate::ResolvedBaseParameters> {
+        let edge = self.index.input_of(id, port)?;
+        let index = self.ports(edge.from).1.iter().position(|output| output.id == edge.from_port)?;
+        cooked.nodes.get(&edge.from)?.output_base(index)
     }
 
     pub fn ports(&self, id: NodeId) -> (&[Port], &[Port]) {

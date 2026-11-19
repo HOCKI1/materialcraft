@@ -43,7 +43,7 @@ pub(crate) fn resolve_parameters(
             ("fx_map", "background", _) if matches!(current, Value::Float4(_)) => ChannelMode::Broadcast,
             _ => ChannelMode::Opaque,
         };
-        let value = crate::parameter_function::evaluate(function, expected, variables.to_mut(), base.seed, base.size, channels)
+        let (value, _) = crate::parameter_function::evaluate(function, expected, variables.to_mut(), base.seed, base.size, channels)
             .map_err(|error| format!("function of `{parameter}`: {error}"))?;
         let value = current.coerce_json(&serde_json::to_value(value).unwrap_or_default()).ok_or_else(|| format!("invalid function value for `{parameter}`"))?;
         parameters.insert(parameter.clone(), value);

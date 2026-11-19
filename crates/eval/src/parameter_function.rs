@@ -16,7 +16,7 @@ pub(crate) fn evaluate(
     seed: u32,
     size: [u32; 2],
     channels: ChannelMode,
-) -> Result<Value, String> {
+) -> Result<(Value, bool), String> {
     let program = compile(function, seed)?;
     let widened = expected == ValueType::Float4 && [ValueType::Float as u32, ValueType::Float3 as u32].contains(&program.output_type());
     if program.output_type() != expected as u32 && !widened {
@@ -46,5 +46,5 @@ pub(crate) fn evaluate(
 
     variables.extend(state.assignments().clone());
 
-    Ok(value)
+    Ok((value, program.output_is_literal()))
 }

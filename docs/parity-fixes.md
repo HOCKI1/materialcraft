@@ -209,6 +209,32 @@ Feed an original 128² image to a Pixel Processor and read input zero with the g
 
 For RGBA8 use ((17x+31y) mod 256, floor(255x/127), 255−floor(255y/127), (7x+13y) mod 256). For the floating formats use the signed four-channel input under [3D linear gradient](#3d-linear-gradient). For RGBA16 encode round((channel+4)×65535/8) from that field. The eight grayscale-bridge controls also match all pixels. Their U8 input is (61x+137y+7xy) mod 256. Their U16 input is q=(2029x+4889y+193xy) mod 65536. For floating storage, supply a linear RGB image with the same float32 value q/8191−3.25 in each channel and alpha one, and select a grayscale bridge. The single stored channel is sampled directly. The sixteen comparisons match **262,144/262,144 pixels**, maximum error zero. A separate luminance-only float EXR was readable in the reference app and the current MaterialCraft decoder returned an error for that file.
 
+### Half-precision Crop area and input sizes
+
+| Root | Renders | Exact stored pixels / compared | Maximum error |
+|---|---:|---:|---:|
+| Color Crop, both outputs | 48 | 377,344/377,344 | 0 |
+| Grayscale Crop, both outputs | 48 | 377,344/377,344 | 0 |
+
+Each root produced 256,000 exact U8 pixels, 26,624 U16, 30,720 F16 and 64,000 F32. The four archived renders each expose two image outputs. The remaining runs change storage at the producing node of Output or Area. The formerly mismatching enabled Area renders at 64² now match all 4,096 pixels each. The [earlier Crop controls](#crop-output-and-area) give the source fields, transforms and first exact counts.
+
+For the additional twelve renders per port, use original bytes Hⱼ=((37+13j)x+(29−5j)y+(7+2j)xy+53j) mod 256. Use j=0…3 for RGBA and j=0 for gray. Run native defaults at 16²/seed 47 in F32. Enable Show Crop Area for the remaining cases. At 32²/139 use Input Size (32,64), matrix (.75,−.125,.375,1.25), offset (−.1875,.3125) and filter 0. At 64²/277 use (64,64), (.625,.25,−.375,1.125), (.125,−.25) and filter 1. Run both in all four output formats. At 32²/419 use 16×32 input, Input Size (16,32), identity, offset (.09375,.1875), filter 0 in F16 and F32. Repeat the first changed F16 case at seed 619. These inputs contribute 47,616 exact pixels per root.
+
+With F16 blend output and equal physical extents, normalized integer inputs pass through half storage when the source and blend differ in whether their effective output size depends on a runtime expression. A plain size, a literal Int2 or an expression made solely of constants each use the static path. A getter or assignment sequenced before the same Int2 can change the rounding. A blend inheriting the background size also inherits that dependency. A pass-through node preserves it. The cook cache includes the distinction.
+
+For a two-pixel reproduction, blend foreground bytes (71,55) over background (155,1) at opacity .4. Use a static (0,0) relative size or a sequence that reads the runtime size then returns (0,0). The half output expanded to F32 has bits 3ef3c000 and 3db58000 with both inputs static. Making just the foreground size dynamic changes them to 3ef3a000 and 3db56000. The regression varies both sources and blend inheritance with a shared cache.
+
+| Standalone blend controls | Renders | Exact stored pixels / compared | Largest stored error¹ |
+|---|---:|---:|---:|
+| Output size read or assignment | 64 | 262,144/262,144 | 0 |
+| Size inheritance through two image sources | 96 | 391,540/393,216 | 1 |
+| Eleven expressions with byte, word or half inputs | 132 | 540,672/540,672 | 0 |
+| Independent foreground, background and opacity sizes | 36 | 147,456/147,456 | 0 |
+| Eleven expressions with full-float inputs | 44 | 180,224/180,224 | 0 |
+| Different physical extents and equal-size controls | 96 | 293,493/393,216 | 5501 |
+
+¹ Integer errors use stored levels. Floating errors use absolute component differences. For the separate source-depth controls, use a 64² linear field Hⱼ=(((19+16j)x+(13+28j)y+(7+6j)xy+43j) mod 1021)/1019−.03125 for foreground j=0 and background j=1. Change the stored precision, size inheritance and expression independently. Compare all four output formats. The 96 size-inheritance renders match all 98,304 F16 pixels. In that set, 1,674 F32 pixels differ by at most 1.19209290e−7 and two U16 pixels differ by one level. The physical-size controls also exercise 16, 32 and 128 texel inputs to a 64² blend. Those filter results have their own measurements above.
+
 ### Crop output and area
 
 The color and grayscale Crop roots each match **229,376/229,376** pixels across both outputs in the four original cases. Use the default graph at 128² and 256² with seed zero, repeat 128² with seed 42, then disable Show Crop Area, set Input Size to (128,128), Matrix to (1.2,.25,−.125,.8), Offset to (.1,−.15), and Filtering to 1 at 128². The inputs are the original foreground or grayscale ramp from the first pass. At 64² seed 42, retaining the 128² original input, these altered settings match a further 32,768/32,768 pixels per root across the two outputs and all four storage formats. Every maximum is zero.
