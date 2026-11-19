@@ -843,6 +843,22 @@ Nine independent graphs match **158,976/158,976 pixels in 54 renders**, maximum 
 
 A tenth helper that both subtracts the quotient and adds it back internally still matches 16,011/17,664 pixels, maximum one U16 level or .000751018524 in F32. The measured correction covers the single-operation helper.
 
+### Vector products in the direct-light pass
+
+| Comparison | Renders | Exact RGBA pixels / compared | Maximum error |
+|---|---:|---:|---:|
+| Volume direct light, final output | 46 | 43,264/43,264 | 0 |
+| Vector products returned through calls | 96 | 282,624/282,624 | 0 |
+| Sums of two, four and eight returned products | 6 | 3,840/3,840 | 0 |
+
+All 7,424 U8, 7,424 U16, 10,752 F16 and 17,664 F32 direct-light pixels match. Use the [volume light fields, seeds and parameters](#uniform-powers-of-two-and-volume-lighting). The last differing pixel was red at (2,60) in the changed 64² F32 render. At that pixel the secondary lighting processor now stores .007045745849609375 in F16. Forcing that stage to F32 gives bits 3be6ffff in both engines. The final red now has bits 3c198a4c.
+
+For the independent graphs, take the upper-left 16², 64² and 32² corners of the signed 128² [four-channel hash field](#3d-linear-gradient), multiply green by .75, and replace the first two texels with (3.25,.3,1,.0625) and (−3.4875,3.625,.875,−.625). Use seeds 47, 223 and 449 respectively, selecting all four formats at 64² and F32 elsewhere. Have a function return ((a,b)×(c,d),d). Call it with (R,G,B,A) and (B,A,G,R), then sum the two returned vectors. Repeat with vector-by-scalar multiplication by c, with the two product lanes swapped, and with an assignment returning d in the third lane. For each version, export the sum, then expose each returned product’s first lane in turn, then expose the first call’s third lane. At the second texel the red sum has F32 bits 3df6666c. Exposing the first product changes the red sum to 3df66660. Reading the other component keeps the first value. Each single-consumer component contracts with its addend using its evaluated factors, including when its sibling performs an assignment. All 594,432 pixels in the [scalar packing and call controls](#pixel-products-carried-through-vector-lanes-and-calls) also match.
+
+The eight isolated ambient samples explain the original rounding discrepancy. For sample i let aᵢ be its stored alpha and let uᵢ be the F32 product of (1−aᵢ) and channel coefficient 3e5b2d9a, 3ea31892 or 3f800000 (F32 bits). With background b=.03310475870966911, every isolated color channel equals the rounded b×uᵢ. Start the eight-term sum with FMA(b,u₀,round(b×u₁)), apply FMA(b,uᵢ,sum) for i=2 through 7, then multiply by .125. This reconstructs every reference RGB value at 64². MaterialCraft’s normal F16 secondary stage now matches all 12,288 RGB components. At forced F32, 4,088, 4,090 and 4,089 of 4,096 components match in R, G and B.
+
+A separate difference survives inside the secondary stage. Its normal F16 alpha matches at 3,109/4,096 pixels, maximum .05224609375. In the observed mean, reference alpha equals the eighth ambient sample at all 4,096 pixels. A two-call control returning a pair (set a variable to x, read that variable) reproduces this ordering difference. Explicitly sequencing the write before the read in each call gives matching results. The final direct-light output matches in all 46 cases above.
+
 ### Pixel products carried through vector lanes and calls
 
 | Comparison | Renders | Exact stored pixels / compared | Maximum error |

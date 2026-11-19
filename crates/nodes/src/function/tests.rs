@@ -492,6 +492,61 @@ fn a_pixel_quotient_rounds_with_the_subtraction_in_a_called_function() {
 }
 
 #[test]
+fn vector_sums_use_the_unrounded_product_of_each_independently_returned_lane() {
+    use materialcraft_core::{GraphInstance, GraphPort};
+    let mut body = FunctionGraph::default();
+    let [left, right] = ["left", "right"].map(|name| body.add("get_float2", &[], Some(Value::Text(name.into()))));
+    let product = body.add("mul", &[left, right], None);
+    let side = body.add("get_float1", &[], Some(Value::Text("side".into())));
+    let side = body.add("set", &[side], Some(Value::Text("last".into())));
+    body.output = Some(body.add("vector3", &[product, side], None));
+    let source = std::sync::Arc::new(body);
+    let interface = GraphInstance {
+        label: String::new(),
+        package: String::new(),
+        graph: "pair".into(),
+        inputs: [("left", 512), ("right", 512), ("side", 256)].map(|(name, type_code)| GraphPort { identifier: name.into(), type_code }).into(),
+        outputs: Vec::new(),
+        defaults: [("left", Value::Float2([0.0; 2])), ("right", Value::Float2([0.0; 2])), ("side", Value::Float(0.0))].map(|(k, v)| (k.into(), v)).into(),
+    };
+    let mut graph = FunctionGraph::default();
+    let [r, g, b, a] = ["r", "g", "b", "a"].map(|name| graph.add("get_float1", &[], Some(Value::Text(name.into()))));
+    let [rg, ba, gr] = [[r, g], [b, a], [g, r]].map(|xy| graph.add("vector2", &xy, None));
+    let [first, second] = [[rg, ba, a], [ba, gr, r]].map(|arguments| {
+        let call = graph.add("instance", &arguments, None);
+        let node = graph.nodes.last_mut().unwrap();
+        node.instance = Some(interface.clone());
+        node.source = Some(Ok(source.clone()));
+        call
+    });
+    let sum = graph.add("add", &[first, second], None);
+    let variables = ["r", "g", "b", "a"]
+        .map(str::to_owned)
+        .into_iter()
+        .zip([0xc05f3333, 0x40680000, 0x3f600000, 0xbf200000].map(|v| Value::Float(f32::from_bits(v))))
+        .collect();
+    let context = EvaluationContext {
+        image_formats: &[],
+        scope: super::FunctionScope::PixelProcessor,
+        position: [0.5; 2],
+        size: [1.0; 2],
+        images: &[],
+        tile: true,
+        variables: &variables,
+    };
+    for (read, lane, expected) in [
+        (first, 0, [0x3df66660, 0xbdb00000, 0xc083999a, 0xc0434ccd]),
+        (second, 0, [0x3df6666c, 0xbdb00000, 0xc083999a, 0x404b0000]),
+        (first, 2, [0x3df6666c, 0xbdb00000, 0xc083999a, 0xbf200000]),
+    ] {
+        let exposed = graph.add("swizzle1", &[read], Some(Value::Int(lane)));
+        graph.output = Some(graph.add("vector4", &[sum, exposed], None));
+        let value = compile(&graph, 0).unwrap().evaluate_pixel(&context, &mut EvaluationState::default()).unwrap();
+        assert_eq!(value, Value::Float4(expected.map(f32::from_bits)));
+    }
+}
+
+#[test]
 fn pixel_sums_contract_negated_products_and_preserve_shared_rounded_addends() {
     let values = [0xc0742acf, 0xbf116093, 0x405370ba, 0x3f3eb229].map(|bits| Value::Float(f32::from_bits(bits)));
     let variables = ["a", "b", "c", "d"].into_iter().map(str::to_owned).zip(values).collect();

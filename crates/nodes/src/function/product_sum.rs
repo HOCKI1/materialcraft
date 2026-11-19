@@ -7,10 +7,9 @@ enum Addend {
     Literal(Value),
 }
 
-struct Retained {
-    source: Source,
-    addend: Addend,
-    subtract: bool,
+enum Retained {
+    Argument { source: Source, addend: Addend, subtract: bool },
+    Lanes(super::returned_product::Sum),
 }
 
 pub(super) struct ProductSum {
@@ -25,25 +24,32 @@ pub(super) struct ProductSum {
 
 impl ProductSum {
     /// Evaluate the original call and vector arguments before reading the factors they used.
-    pub(super) fn returned(inputs: &[usize], product_on_right: bool, source: Source) -> Self {
-        let addend = Addend::Argument(usize::from(!product_on_right));
-        let retained = Retained { source, addend, subtract: false };
-        Self { inputs: inputs.to_vec(), product_on_right, negated: false, operation: "mul", literal_divisor: false, retained: Some(Box::new(retained)) }
+    pub(super) fn returned(inputs: &[usize], terms: super::returned_product::Sum) -> Self {
+        Self {
+            inputs: inputs.to_vec(),
+            product_on_right: false,
+            negated: false,
+            operation: "mul",
+            literal_divisor: false,
+            retained: Some(Box::new(Retained::Lanes(terms))),
+        }
     }
 
     pub(super) fn evaluate(&self, arguments: &[Value], subtract: bool, state: &EvaluationState) -> Result<Value, String> {
-        let subtract = subtract || self.retained.as_ref().is_some_and(|term| term.subtract);
-        let (a, b, c, blend) = if let Some(term) = &self.retained {
-            let (a, b) = term.source.factors(state)?;
-            let c = match &term.addend {
+        if let Some(Retained::Lanes(terms)) = self.retained.as_deref() {
+            return super::returned_product::evaluate_sum(terms, arguments, state);
+        }
+        let (a, b, c, blend, subtract) = if let Some(Retained::Argument { source, addend, subtract }) = self.retained.as_deref() {
+            let (a, b) = source.factors(state)?;
+            let c = match addend {
                 Addend::Argument(i) => arguments.get(*i).ok_or("missing product addend")?,
                 Addend::Literal(value) => value,
             };
-            (a, b, c, None)
+            (a, b, c, None, *subtract)
         } else {
             let [first, second, third, rest @ ..] = arguments else { return Err("missing product-sum operands".into()) };
             let (a, b, c) = if self.product_on_right { (second, third, first) } else { (first, second, third) };
-            (a, b, c, rest.first())
+            (a, b, c, rest.first(), subtract)
         };
         let width = value_type::dimensions(a);
         if width != value_type::dimensions(c) || (width != value_type::dimensions(b) && !(self.operation == "mulscalar" && value_type::dimensions(b) == 1)) {
@@ -114,7 +120,7 @@ fn called_sum(op: &Instruction, instructions: &[Instruction], usage: &[ProductUs
             return None;
         }
         let &[a, b] = product.inputs.as_slice() else { return None };
-        let retained = Retained { source: Source::local([a, b]), addend: addend.clone(), subtract: sum.definition.id == "sub" };
+        let retained = Retained::Argument { source: Source::local([a, b]), addend: addend.clone(), subtract: sum.definition.id == "sub" };
         Some(ProductSum {
             inputs: op.inputs.clone(),
             product_on_right,

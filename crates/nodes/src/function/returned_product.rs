@@ -1,17 +1,18 @@
-use super::{EvaluationState, Program, instruction::Instruction, product_sum::ProductSum, value_type};
+use super::{EvaluationState, Program, arithmetic::flush_subnormal, instruction::Instruction, product_sum::ProductSum, value_type};
 use materialcraft_core::Value;
 use std::collections::BTreeMap;
 
-/// Registers of the factors before the scalar product rounded, in the call that evaluated it.
+/// Registers and components of the factors in the call that evaluated a product.
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub(super) struct Source {
     calls: Vec<usize>,
     factors: [usize; 2],
+    components: [usize; 2],
 }
 
 impl Source {
     pub(super) fn local(factors: [usize; 2]) -> Self {
-        Self { calls: Vec::new(), factors }
+        Self { calls: Vec::new(), factors, components: [0, 0] }
     }
 
     pub(super) fn factors<'a>(&self, mut state: &'a EvaluationState) -> Result<(&'a Value, &'a Value), String> {
@@ -22,6 +23,37 @@ impl Source {
         let [a, b] = self.factors;
         Ok((read(a)?, read(b)?))
     }
+}
+
+pub(super) struct Term {
+    source: Source,
+    on_right: bool,
+}
+
+pub(super) type Sum = [Option<Term>; 4];
+
+pub(super) fn evaluate_sum(terms: &Sum, arguments: &[Value], state: &EvaluationState) -> Result<Value, String> {
+    let [left, right] = arguments else { return Err("missing addition operands".into()) };
+    let width = value_type::dimensions(left);
+    if width != value_type::dimensions(right) {
+        return Err("float operands must have the same dimensions".into());
+    }
+    let left = value_type::floats(left)?.map(flush_subnormal);
+    let right = value_type::floats(right)?.map(flush_subnormal);
+    let mut result = [0.0; 4];
+    for (((output, term), left), right) in result.iter_mut().zip(terms).zip(left).zip(right).take(width) {
+        let sum = if let Some(term) = term {
+            let (a, b) = term.source.factors(state)?;
+            let [i, j] = term.source.components;
+            let a = *value_type::floats(a)?.get(i).ok_or("invalid product component")?;
+            let b = *value_type::floats(b)?.get(j).ok_or("invalid product component")?;
+            flush_subnormal(a).mul_add(flush_subnormal(b), if term.on_right { left } else { right })
+        } else {
+            left + right
+        };
+        *output = flush_subnormal(sum);
+    }
+    value_type::intermediate_float_value(result.get(..width).ok_or("invalid addition dimensions")?)
 }
 
 pub(super) type Lanes = [Option<Source>; 4];
@@ -66,7 +98,8 @@ pub(super) fn identify(program: &mut Program, mut returned: BTreeMap<usize, Lane
     let empty = || std::array::from_fn(|_| None);
     // Loop iterations invalidate individual registers. Only retain factors for straight-line lifetimes.
     if program.instructions.iter().any(|op| op.definition.id == "while")
-        || (returned.is_empty() && !program.instructions.iter().any(|op| op.definition.id == "mul" && op.type_code == 256 && !op.literal))
+        || (returned.is_empty()
+            && !program.instructions.iter().any(|op| matches!(op.definition.id, "mul" | "mulscalar") && float_width(op.type_code) > 0 && !op.literal))
     {
         return empty();
     }
@@ -85,25 +118,28 @@ pub(super) fn identify(program: &mut Program, mut returned: BTreeMap<usize, Lane
                 *uses += 1;
             }
         }
-        if op.definition.id == "add" && op.type_code == 256 && op.pixel_product_sum.is_none() {
-            let mut candidates = op.inputs.iter().enumerate().filter_map(|(slot, input)| {
-                let input_op = program.instructions.get(*input)?;
-                if !matches!(input_op.definition.id, "swizzle1" | "instance") {
-                    return None;
-                }
-                Some((index, origins.get(*input)?[0]?, slot == 1))
-            });
-            if let Some(sum) = candidates.next()
-                && candidates.next().is_none()
-            {
-                sums.push(sum);
+        let width = float_width(op.type_code);
+        if op.definition.id == "add"
+            && width > 0
+            && op.pixel_product_sum.is_none()
+            && let &[left, right] = op.inputs.as_slice()
+        {
+            let sides = [left, right].map(|i| origins.get(i).copied().unwrap_or([None; 4]));
+            if sides.iter().flatten().any(Option::is_some) {
+                sums.push((index, sides));
             }
         }
 
         let mut lanes = [None; 4];
-        if let ("mul", 256, false, &[a, b]) = (op.definition.id, op.type_code, op.literal, op.inputs.as_slice()) {
-            lanes[0] = Some(products.len());
-            products.push((Source::local([a, b]), 0));
+        if matches!(op.definition.id, "mul" | "mulscalar")
+            && !op.literal
+            && let &[a, b] = op.inputs.as_slice()
+        {
+            for (i, lane) in lanes.iter_mut().take(width).enumerate() {
+                *lane = Some(products.len());
+                let j = if op.definition.id == "mulscalar" { 0 } else { i };
+                products.push((Source { components: [i, j], ..Source::local([a, b]) }, 0));
+            }
         } else if let Some(exports) = returned.remove(&index) {
             // Two returned lanes can reference the same product. Count their downstream reads together.
             let mut distinct = BTreeMap::new();
@@ -131,11 +167,19 @@ pub(super) fn identify(program: &mut Program, mut returned: BTreeMap<usize, Lane
             *uses += 1;
         }
     }
-    for (index, id, on_right) in sums {
-        if let Some((source, 1)) = products.get(id)
+    for (index, sides) in sums {
+        let terms: Sum = std::array::from_fn(|i| {
+            // A shared lane has already rounded. When both products are free, the left one contracts.
+            sides.iter().enumerate().find_map(|(side, lanes)| {
+                let id = lanes.get(i).copied().flatten()?;
+                let (source, uses) = products.get(id)?;
+                (*uses == 1).then(|| Term { source: source.clone(), on_right: side == 1 })
+            })
+        });
+        if terms.iter().any(Option::is_some)
             && let Some(op) = program.instructions.get_mut(index)
         {
-            op.pixel_product_sum = Some(ProductSum::returned(&op.inputs, on_right, source.clone()));
+            op.pixel_product_sum = Some(ProductSum::returned(&op.inputs, terms));
         }
     }
     exported
