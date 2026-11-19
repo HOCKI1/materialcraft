@@ -4,6 +4,7 @@
 mod cache;
 mod cache_key;
 mod cooked;
+mod external_image;
 mod graph_execution;
 mod graph_instance;
 mod graph_output;

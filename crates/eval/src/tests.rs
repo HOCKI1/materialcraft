@@ -434,6 +434,40 @@ fn emboss_uses_the_resolved_pixel_size_on_each_axis() {
 }
 
 #[test]
+fn bound_float_image_filters_an_odd_impulse_on_each_axis() {
+    let mut graph = Graph::new("Impulse");
+    graph.size = [4, 4];
+    graph.format = materialcraft_core::OutputFormat::F32;
+    let input = graph.add_node("input_grayscale", [0.0; 2]);
+    let mut package = Package::new("Float input");
+    package.graphs.push(graph);
+    for (width, height, center) in [(3, 3, 0x3f524000), (35, 21, 0x3dbac261)] {
+        let mut options = Options::new(&no_res);
+        options.inputs.insert("input".into(), Image::gray(width, height, |x, y| f32::from(x == width / 2 && y == height / 2)));
+        let result = cook(&package, 0, &options, &Mutex::new(Cache::default()));
+        assert_eq!(result.image(input, 0).unwrap().get_gray(8, 8, false).to_bits(), center);
+    }
+}
+
+#[test]
+fn bound_float_image_with_an_odd_height_retains_its_stored_word_levels() {
+    let mut graph = Graph::new("Odd height");
+    graph.size = [5, 5];
+    graph.format = materialcraft_core::OutputFormat::U16;
+    let input = graph.add_node("input_color", [0.0; 2]);
+    let mut package = Package::new("Word input");
+    package.graphs.push(graph);
+    let mut options = Options::new(&no_res);
+    options.inputs.insert("input".into(), Image::filled(32, 17, Kind::Color, [0.21875, 0.25, 0.5, 0.75]));
+    let result = cook(&package, 0, &options, &Mutex::new(Cache::default()));
+    let image = result.image(input, 0).unwrap();
+    let levels = |x, y| image.get(x, y, false).map(|v| (v * 65535.0).round() as u16);
+    assert_eq!(levels(0, 0), [14335, 16383, 32768, 49152]);
+    assert_eq!(levels(1, 0), [14336, 16384, 32767, 49151]);
+    assert_eq!(levels(0, 2), [14336, 16384, 32768, 49151]);
+}
+
+#[test]
 fn bound_image_resizing_filters_normalized_levels_before_float_storage() {
     let mut graph = Graph::new("levels");
     graph.size = [4, 4];

@@ -1042,6 +1042,31 @@ Every row includes the four original defaults, seed and parameter renders, the 6
 
 The trapezoid pair each has two remaining differences across the archived and new comparisons. The [four-format inventory](#four-format-inventory-comparison) lists the original changed settings and port names.
 
+### Non-power-of-two float image inputs and curvature
+
+The final F32 output on the 32×17 stepped normal field now matches all 1,024 pixels for both roots. The previous RGBA16 input matched 201/1,024 within one level. The corrected input matches 1,024/1,024 with zero error. Each root now matches all archived, four-format, independent and held-out cases. The normal fields, seeds and parameter settings are specified in [Curvature from original normal fields](#curvature-from-original-normal-fields).
+
+| Root | Renders | Exact pixels before | Exact pixels after / compared | Maximum error after |
+|---|---:|---:|---:|---:|
+| Curvature | 20 | 175,774 | 176,384/176,384 | 0 |
+| Curvature smooth | 20 | 176,030 | 176,384/176,384 | 0 |
+
+Each root covers 8,192 U8, 122,880 U16, 8,192 F16 and 37,120 F32 grayscale pixels. The 32×17 RGBA32F input exercises a distinct bitmap resampling path. At each output texel center filter with a triangle of radius max(1, source length / destination length) in source texel units. Drop out-of-bounds taps and normalize the remaining weights. When the width grows, filter vertically first. Otherwise filter horizontally first. Write the intermediate in its working precision. A unit impulse at the center of a 3×3 or 35×21 F32 input, filtered to 16², gives respective F32 bits 3f524000 and 3dbac261 at (8,8).
+
+For normalized output, quantize the F32 input before filtering. Scan from top left in channel order. For each channel advance s=48271s mod 2147483647 from initial state 1. Center s/2147483647 on zero. For U8, round that fraction to the nearest 1/255 before centering. Add the received quantization error and centered noise in output-level units, then round and saturate the sample. Spread the difference between the original and stored level using the Sierra weights (5,3) to the right, (2,4,5,4,2) on the next row and (2,3,2) two rows below, all divided by 32. Discard errors beyond an edge. For constant RGBA (.21875,.25,.5,.75) at 32×17, the first two output texels at 32² have U16 levels (14335,16383,32768,49152) and (14336,16384,32767,49151).
+
+| Independent input controls | Renders | Exact output pixels before | Exact output pixels after / compared | Largest absolute output error |
+|---|---:|---:|---:|---:|
+| F32 center impulses and steps | 6 | 2,402 | 3,072/3,072 | 0 |
+| Signed F32 fields | 78 | 24,464 | 238,988/239,616 | 9.53674316e-7 |
+| F32 input through U8 storage | 18 | 4,730 | 18,400/18,432 | 1/255 within F32 rounding |
+| F32 input through U16 storage | 18 | 3,230 | 18,399/18,432 | 1/65535 within F32 rounding |
+| F32 input through F16 storage | 18 | 4,979 | 4,979/18,432 | 34.25 |
+
+For the signed field use H=((97x+71y+13xy+11s+79c+5xc) mod 1021)/1020 then (3H−1.25) × 2^((x+3y) mod 11−5). Use RGBA and the first channel alone. Source sizes are 17×19, 23×11, 9×7, 17², 31×33, 19×47, 67×21, 73×63, 35×49, 41×27, 91×55 and a 16×32 control. Use seed 277 and repeat 23×11 with seed 571. Compare 32², 64×16 and 16×64 bridge outputs through an F32 identity read at the parent square size.
+
+For each stored-format group, use the constant above at 32×17. Use H with 11s replaced by 214 and 79c by 23c at 23×17, 31×17, 47×73 and 41×27. Use (floor(11H)+2)/16 at 17×32, and the signed field with seed 307 at 23×19, 17×49 and 9×7. Read all results through F32 at 32². Residuals remain on input storage boundaries and on float reductions. The F16 input conversion still differs, particularly for negative values.
+
 ### Tile Random, cell fields and noise upscaling
 
 After the [pattern seed](#local-seed-expressions-in-pattern-graphs) and [blend](#filtering-unequal-inputs-to-a-blend) changes, the pattern-package Tile Random matches all **176,384/176,384** pixels across 20 renders. Its [four-format inventory cases](#four-format-inventory-comparison), independent 32² case and four archived cases contribute 132,096 pixels. Eleven new inputs add 44,288. The two 64² F32 circle renders at seeds 251 and 947 contain 507 and 510 distinct stored levels respectively. Counts below include every measured end-to-end case.
