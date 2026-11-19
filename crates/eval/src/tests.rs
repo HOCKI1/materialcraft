@@ -401,6 +401,39 @@ fn same_size_resources_key_differently() {
 }
 
 #[test]
+fn emboss_uses_the_resolved_pixel_size_on_each_axis() {
+    use materialcraft_core::{OutputFormat, ParameterInheritance};
+
+    let mut graph = Graph::new("Relief");
+    graph.size = [5, 5];
+    graph.format = OutputFormat::F32;
+    let [base, height] = ["base", "height"].map(|name| {
+        let id = graph.add_node("input_grayscale", [0.0; 2]);
+        graph.node_mut(id).unwrap().params.insert("identifier".into(), Value::Text(name.into()));
+        id
+    });
+    let emboss = graph.add_node("emboss", [0.0; 2]);
+    let node = graph.node_mut(emboss).unwrap();
+    node.base.pixel_size_mode = ParameterInheritance::Absolute;
+    node.base.pixel_size = [0.5, 2.0];
+    node.params.insert("intensity".into(), Value::Float(1.0));
+    graph.connect(base, "output", emboss, "input").unwrap();
+    graph.connect(height, "output", emboss, "height").unwrap();
+    let mut package = Package::new("Relief");
+    package.graphs.push(graph);
+    let mut options = Options::new(&no_res);
+    options.inputs.insert("base".into(), Image::filled(32, 32, Kind::Gray, [0.5; 4]));
+    options.inputs.insert("height".into(), Image::gray(32, 32, |x, y| if x == 16 && y == 16 { 1.0 } else { 0.0 }));
+    let cache = Mutex::new(Cache::default());
+    for (angle, east, south, center) in [(0.0, 0.4375, 0.5, 0.5625), (0.25, 0.5, 0.25, 0.75)] {
+        package.graphs[0].node_mut(emboss).unwrap().params.insert("light_angle".into(), Value::Float(angle));
+        let result = cook(&package, 0, &options, &cache);
+        let image = result.image(emboss, 0).unwrap();
+        assert_eq!([image.get_gray(17, 16, false), image.get_gray(16, 17, false), image.get_gray(16, 16, false)], [east, south, center]);
+    }
+}
+
+#[test]
 fn bound_image_resizing_filters_normalized_levels_before_float_storage() {
     let mut graph = Graph::new("levels");
     graph.size = [4, 4];

@@ -18,6 +18,37 @@ fn cook_format(id: &str, inputs: &[Option<Image>], values: &[(&str, Value)], siz
 }
 
 #[test]
+fn emboss_applies_each_tint_to_a_one_sided_height_difference() {
+    let color = Image::filled(32, 32, Kind::Color, [0.25, 0.5, 0.75, 0.375]);
+    let height = Image::gray(32, 32, |x, y| if x == 16 && y == 16 { 1.0 } else { 0.0 });
+    let image = cook(
+        "emboss",
+        &[Some(color), Some(height)],
+        &[("intensity", Value::Float(2.0)), ("highlight", Value::Color([0.75, 0.25, 0.125, 0.5])), ("shadow", Value::Color([0.125, 0.875, 0.375, 0.25]))],
+        [32, 32],
+        true,
+    );
+    assert_eq!(image.get(16, 16, false), [0.4375, 0.5625, 0.78125, 0.375]);
+    assert_eq!(image.get(17, 16, false), [0.03125, 0.46875, 0.59375, 0.375]);
+    assert_eq!(image.get(15, 16, false), [0.25, 0.5, 0.75, 0.375]);
+}
+
+#[test]
+fn emboss_averages_the_tints_for_a_grayscale_input() {
+    let base = Image::gray(32, 32, |_, _| 0.5);
+    let height = Image::gray(32, 32, |x, y| f32::from(x == 16 && y == 16));
+    let image = cook(
+        "emboss",
+        &[Some(base), Some(height)],
+        &[("intensity", Value::Float(1.0)), ("highlight", Value::Color([0.75, 0.25, 0.125, 0.5])), ("shadow", Value::Color([0.125, 0.875, 0.375, 0.25]))],
+        [32, 32],
+        true,
+    );
+    assert_eq!(image.get_gray(16, 16, false), 0.546875);
+    assert_eq!(image.get_gray(17, 16, false), 0.4322917);
+}
+
+#[test]
 fn grayscale_uses_all_driven_weights_and_flattens_signed_alpha() {
     let px = [0xbfd95555, 0xbf9aaaab, 0xbf380000, 0xbe6aaaab].map(f32::from_bits);
     let inp = Image::generate(2, 1, Kind::Color, |x, _| if x == 0 { [-0.0; 4] } else { px });

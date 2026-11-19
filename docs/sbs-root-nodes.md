@@ -170,7 +170,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [crop.sbs/crop_grayscale](../assets/sbs/crop.sbs) | 1 | No | [Parity · 48 renders, all 377,344 pixels across both outputs exact](parity-fixes.md#half-precision-crop-area-and-input-sizes) |
 | [crystal_1.sbs/crystal_1](../assets/sbs/crystal_1.sbs) | 0 | Yes | [In progress · 19 renders, 99,700/172,288 exact pixels](parity-fixes.md#filtering-unequal-inputs-to-a-blend) |
 | [crystal_2.sbs/crystal_2](../assets/sbs/crystal_2.sbs) | 0 | Yes | [In progress · 19 renders, 113/172,288 exact pixels](parity-fixes.md#random-draws-in-pattern-properties-and-iterations) |
-| [curvature.sbs/curvature](../assets/sbs/curvature.sbs) | 1 | No | [In progress · 20 renders, both emboss branches differ](parity-fixes.md#curvature-from-original-normal-fields) |
+| [curvature.sbs/curvature](../assets/sbs/curvature.sbs) | 1 | No | [In progress · 19/20 renders exact, 175,774/176,384 pixels](parity-fixes.md#emboss-lighting-and-physical-pixel-size) |
 | [curvature_smooth.sbs/curvature_smooth](../assets/sbs/curvature_smooth.sbs) | 1 | Yes | [In progress · 20 renders, 176,030/176,384 exact pixels](parity-fixes.md#filtering-unequal-inputs-to-a-blend) |
 | [curvature_smooth_v2.sbs/compute_curvature_v2](../assets/sbs/curvature_smooth_v2.sbs) | 2 | Yes | [Parity: 6 cases](parity-fixes.md#verified-cases) |
 | [diffusion.sbs/impl/pass_RGBA](../assets/sbs/diffusion.sbs) | 4 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |

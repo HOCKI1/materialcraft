@@ -128,7 +128,7 @@ pub(crate) fn cook_node(
     if !node.functions.is_empty()
         || matches!(
             node.def.as_str(),
-            "pixel_processor" | "value_processor" | "fx_map" | "transformation" | "blur" | "directional_blur" | "sharpen" | "distance"
+            "pixel_processor" | "value_processor" | "fx_map" | "transformation" | "blur" | "directional_blur" | "sharpen" | "distance" | "emboss"
         )
     {
         base.variables(variables.to_mut());
@@ -139,6 +139,9 @@ pub(crate) fn cook_node(
         Ok(parameters) => parameters,
         Err(error) => return fail(error, 0),
     };
+    if node.def == "emboss" {
+        variables.to_mut().insert("$pixelsize".into(), Value::Float2(base.pixel_size));
+    }
     let variables = &variables;
 
     let tile = base.tiling[0] && base.tiling[1];

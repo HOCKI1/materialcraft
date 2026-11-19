@@ -1042,6 +1042,26 @@ Every row includes the four original defaults, seed and parameter renders, the 6
 
 The trapezoid pair each has two remaining differences across the archived and new comparisons. The [four-format inventory](#four-format-inventory-comparison) lists the original changed settings and port names.
 
+### Emboss lighting and physical pixel size
+
+An original height impulse at (16,16), intensity 1, light angle zero and a .5 gray base gives .625 at the impulse and .375 immediately to its right. The pixel to its left equals .5. For a general height H use dx=H(x,y)−H(x−1,y), dy=H(x,y)−H(x,y−1). A tiled axis wraps and an untiled axis clamps. Scale intensity by min(width,height)/256. Multiply cosine and sine of the angle in turns by the respective physical pixel sizes, then by that scale. Use F32 radians. Round the x product and accumulate the y product with one fused multiply-add. A right-angle rotation retains the small computed cosine.
+
+For each RGB channel, accumulate light×highlight on the base when light is positive, or light×(1−shadow) when negative, with one fused multiply-add. Preserve the base alpha. A gray base uses the arithmetic mean of the three highlight or three shadow components before calculating the signed contribution. At 32²/277 use a .5 base, the impulse above, highlight (.75,.25,.125,.5) and shadow (.125,.875,.375,.25). The impulse and its right neighbor have raw F32 values .546875 and .4322917. Swapping single-channel red, green and blue tints leaves the gray output identical.
+
+| Original controls | Renders | Exact pixels before the corresponding change | Exact pixels after / compared | Maximum error after |
+|---|---:|---:|---:|---:|
+| Gray ramps, steps, impulses and modular fields | 192 | 86,649 | 330,240/330,240 | 0 |
+| RGBA bases and independent colored tints | 128 | 207,552 | 425,984/425,984 | 0 |
+| Rectangular outputs and four tiling modes | 96 | 17,223 | 147,456/147,456 | 0 |
+| Colored tints over a gray base | 32 | 31,026 | 81,920/81,920 | 0 |
+| Independent tint and base values | 32 | 31,363 | 81,920/81,920 | 0 |
+
+For the first 192 renders use the horizontal and vertical ramps x/(w−1), y/(h−1), a center impulse, a horizontal step and H=((53x+71y+19xy+23) mod 509)/508. Use .5+(H−.5)/32 for the low-amplitude field. Bases are .25, .5, .75 and H. Compare default intensity 5 and 0, .25, .625, 1, 1.375 and 2. Use axial angles 0, .25, .5 and .75 turns and oblique angles .125 and −.1875. Vary both physical axes between .1 and 4 and use (.5,2) to distinguish them. Compare 16², 32² and 64² with seed 97+29j in field order. Read F32 throughout and U8, U16 and F16 on the 64² H base. Use F32 and U16 heights. For the rectangles use 32×64 and 64×16, the .5 base and H height, angles 0, .25 and .1875, physical size (.5,2), tiling masks 0 through 3, four output formats and seed 563.
+
+For RGBA use the [independent modular color field](#filtering-unequal-inputs-to-a-blend) with s=193 and j=2. Compare the step, impulse, H and low-amplitude heights at 32² F32 and at 64² U16, F16 and F32. Use intensity 2, angles 0 and .1875, and the default, custom, reversed and alpha-zero tints. For gray tint tests repeat the impulse at 32² and the low-amplitude field at 64² in all four formats. Use seed 277 with the constant base, or 457 with H and four independent tint pairs. One such pair is (.147,.913,.718,.0625) and (.796,.344,.521,.875). The 480 original controls match **1,067,520/1,067,520 raw pixels**, maximum error zero.
+
+Curvature now matches **175,774/176,384** final pixels across the [20 normal-field renders](#curvature-from-original-normal-fields), up from 2,025. All U8, U16 and F16 samples and 36,510/37,120 F32 samples match. The largest F32 difference is .0001068115234375. The two emboss branches use a dynamic physical pixel size of 204.8/side. Applying the measured lighting to the reference's two incoming height fields reproduces all 88,576 U16 branch pixels from the eleven additional cases. The one remaining end-to-end difference occurs on the 32×17 stepped input at 32². The first different stage is its RGBA16 image input, which matches 201/1,024 pixels within one level, just as in [smooth curvature](#filtering-unequal-inputs-to-a-blend).
+
 ### Filtering unequal inputs to a blend
 
 An original 2×2 grayscale field with row-major values (0,.25,.75,1) distinguishes direct 8× enlargement from three successive 2× filters. Connect it to one port of a 16² Copy blend, seed 317. Read the foreground at full opacity, the background at zero opacity, or a mask between white and black. At (2,7) and (6,12) the U16 foreground produces levels 26,112 and 42,495. An F32 mask produces levels 102 and 165 in U8. The comparable U16 background produces F16 values .3984375 and .64794921875.
