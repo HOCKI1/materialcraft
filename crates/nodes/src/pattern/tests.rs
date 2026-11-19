@@ -2,6 +2,11 @@ use crate::{CookContext, find, resolve_params};
 use materialcraft_core::{FunctionGraph, PatternGraph, PatternNodeKind, Value};
 use std::collections::BTreeMap;
 
+fn coverage(shape: i32, x: f32, y: f32, variation: f32) -> f32 {
+    let (base, offset) = super::shape::profile(shape, x, y, variation).unwrap();
+    base + offset
+}
+
 #[test]
 fn radial_stamps_keep_the_measured_center_and_skirt() {
     for (x, y, expected) in [
@@ -10,7 +15,7 @@ fn radial_stamps_keep_the_measured_center_and_skirt() {
         (0x3c7fffbf, 0x3c7fffbf, [0x3f7fe000, 0x3f7f8018, 0x3f7e9cc6]),
     ] {
         for (shape, bits) in (4..=6).zip(expected) {
-            let value = super::shape::coverage(shape, f32::from_bits(x), f32::from_bits(y), 0.0).unwrap();
+            let value = coverage(shape, f32::from_bits(x), f32::from_bits(y), 0.0);
             assert_eq!(value.to_bits(), bits, "shape {shape} at ({x:08x}, {y:08x})");
         }
     }
@@ -24,14 +29,14 @@ fn beveled_square_multiplies_the_two_edge_profiles() {
         (-0.984375, -0.984375, 0.125, 0x3af20000),
         (-0.984375, -0.984375, -0.25, 0x3f800000),
     ] {
-        assert_eq!(super::shape::coverage(9, x, y, variation).unwrap().to_bits(), expected);
+        assert_eq!(coverage(9, x, y, variation).to_bits(), expected);
     }
 }
 
 #[test]
 fn gradient_variation_attenuates_the_horizontal_ramp() {
     for (variation, expected) in [(-0.25, 0.2578125), (0.0625, 0.241_699_22), (0.5, 0.12890625), (1.0, 0.0), (1.25, -0.064453125)] {
-        assert_eq!(super::shape::coverage(10, -0.484375, 0.75, variation).unwrap(), expected);
+        assert_eq!(coverage(10, -0.484375, 0.75, variation), expected);
     }
 }
 
@@ -40,9 +45,9 @@ fn wave_frequency_and_radial_falloff_follow_stamp_coordinates() {
     let x = f32::from_bits(0x3d5fffef);
     let y = f32::from_bits(0xbe080003);
     for (variation, expected) in [(-0.25, 0x3f6a8659), (0.0, 0x3f6a8659), (0.1875, 0x3f4b2e24), (0.25, 0x3f3dd911), (1.0, 0x3d9ac833)] {
-        assert_eq!(super::shape::coverage(11, x, y, variation).unwrap().to_bits(), expected);
+        assert_eq!(coverage(11, x, y, variation).to_bits(), expected);
     }
-    assert_eq!(super::shape::coverage(11, 0.0, 0.5, 0.25).unwrap(), 0.75);
+    assert_eq!(coverage(11, 0.0, 0.5, 0.25), 0.75);
 }
 
 #[test]
@@ -64,13 +69,58 @@ fn stamp_profiles_follow_the_radial_and_horizontal_falloffs() {
         (18, 0x3ec7fffd, 0xbec80001, 0.25, 0x3f8ab222),
         (18, 0xbf7c0000, 0xbf7c0000, 0.25, 0x00000000),
     ] {
-        let value = super::shape::coverage(shape, f32::from_bits(x), f32::from_bits(y), variation).unwrap();
+        let value = coverage(shape, f32::from_bits(x), f32::from_bits(y), variation);
         assert_eq!(value.to_bits(), bits, "shape {shape} at ({x:08x}, {y:08x})");
     }
 }
 
 fn cook(graph: PatternGraph) -> crate::CookResult {
     cook_with_variables(graph, &BTreeMap::new(), 7)
+}
+
+#[test]
+fn gradient_stamp_offsets_apply_to_the_tinted_channels() {
+    let background = [0.5, 0.375, 0.75, 0.875];
+    for (shape, variation, blend, background, position, expected) in [
+        (17, 0.25, 0, [0.0; 4], 16, [0x3ebde000, 0x3e9ef000, 0x3ed28000, 0x3ed28000]),
+        (17, -0.125, 0, [0.0; 4], 16, [0xbb880000, 0xbd844000, 0x3d140000, 0x3d140000]),
+        (2, 0.0, 0, background, 16, [0x3f3c0000, 0x3efc0000, 0x3f880000, 0x3f6a0000]),
+        (2, 0.0, 2, background, 16, [0x3f140000, 0x3ec00000, 0x3f540000, 0x3f6a0000]),
+        (18, -0.125, 1, background, 0, background.map(f32::to_bits)),
+    ] {
+        let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
+        graph.nodes[0].parameters = BTreeMap::from([
+            ("patterntype".into(), Value::Int(shape)),
+            ("patternsuppl".into(), Value::Float(variation)),
+            ("opacity".into(), Value::Float4([0.75, 0.375, 1.0, 0.625])),
+            ("blendingmode".into(), Value::Int(blend)),
+        ]);
+        let definition = find("fx_map").unwrap();
+        let parameters = resolve_params(
+            definition,
+            &BTreeMap::from([
+                ("pattern".into(), Value::PatternGraph(Box::new(graph))),
+                ("color_mode".into(), Value::Bool(true)),
+                ("roughness".into(), Value::Float(0.0)),
+                ("opacity".into(), Value::Float(0.5)),
+                ("background".into(), Value::Color(background)),
+            ]),
+        );
+        let context = CookContext {
+            input_formats: &[],
+            format: materialcraft_core::OutputFormat::F32,
+            w: 32,
+            h: 32,
+            seed: 468,
+            tile: true,
+            inputs: &[],
+            params: &parameters,
+            resource: &|_| None,
+            vars: &BTreeMap::new(),
+        };
+        let image = (definition.cook)(&context).unwrap().remove(0);
+        assert_eq!(image.get(position, position, false).map(f32::to_bits), expected);
+    }
 }
 
 fn cook_with_variables(graph: PatternGraph, variables: &BTreeMap<String, Value>, seed: u32) -> crate::CookResult {
@@ -351,10 +401,10 @@ fn roughness_attenuates_quadrants_by_depth_and_keeps_background() {
                 let pixel = image.get(0, 0, false);
                 for (channel, foreground) in [0.8_f32, 0.4, 0.2, 1.0].into_iter().take(image.channels()).enumerate() {
                     let value = foreground * 0.5 * weight;
-                    let expected = match blend {
-                        1 if !color => value.max(0.1),
-                        1 => value + 0.1 * (1.0 - 0.5 * weight),
-                        2 => value.max(0.1),
+                    let expected = match (color, blend) {
+                        (false, 1 | 2) => value.max(0.1),
+                        (true, 1 | 2) => value + 0.1 * (1.0 - 0.5 * weight),
+                        (true, 0) if channel == 3 => value + 0.1 * (1.0 - value),
                         _ => value + 0.1,
                     };
 

@@ -1,4 +1,5 @@
-pub(super) fn coverage(pattern: i32, x: f32, y: f32, variation: f32) -> Result<f32, String> {
+/// Geometric coverage and the signed channel offset applied after tint and opacity.
+pub(super) fn profile(pattern: i32, x: f32, y: f32, variation: f32) -> Result<(f32, f32), String> {
     let radius_squared = y.mul_add(y, x * x);
     let radial = (1.0 - radius_squared).max(0.0);
     let value = match pattern - 1 {
@@ -54,13 +55,13 @@ pub(super) fn coverage(pattern: i32, x: f32, y: f32, variation: f32) -> Result<f
             (-20.0_f32).mul_add(distance_squared, 1.0).max(0.0)
         }
         15 => (1.0 - crate::function::pixel_sqrt(radius_squared)).max(0.0),
-        16 => (x + 1.0) * 0.5 + variation,
-        17 if radius_squared <= 1.0 => crate::function::pixel_sqrt(radial) + variation,
+        16 => return Ok(((x + 1.0) * 0.5, variation)),
+        17 if radius_squared <= 1.0 => return Ok((crate::function::pixel_sqrt(radial), variation)),
         17 => 0.0,
         _ => return Err(format!("unknown built-in pattern {pattern}")),
     };
 
-    Ok(value)
+    Ok((value, 0.0))
 }
 
 fn quartic_bell(radius_squared: f32) -> f32 {

@@ -1758,6 +1758,24 @@ The table below rechecks one control for each of the 149 roots marked Too hard b
 
 Of the 149 controls, three match exactly and 125 have measured pixel differences. Twenty pattern traversals reached the execution budget. One text graph requires an external font. The 20 incomplete traversals produced no comparable pixels. The font case exported 1,024 matching pixels with a cook error on its text branch and stays open.
 
+### Tinted stamp offsets and alpha
+
+The directional gradient and hemisphere add signed variation to each channel after tint and opacity. The hemisphere applies the offset inside its support disk. Color blend modes 1 and 2 composite the premultiplied source over the background with its signed alpha. Mode 0 adds RGB and accumulates alpha as background alpha plus source alpha times the remaining background transparency. Grayscale modes 1 and 2 take the maximum. A constant RGBA background in a grayscale graph contributes the mean of its three color channels.
+
+| F32 single-stamp controls | Renders | Previous exact | Current exact / compared | Maximum absolute error |
+|---|---:|---:|---:|---:|
+| Transparent RGBA | 18 | 5,076 | 14,042/18,432 | 7.30156898e-07 |
+| RGBA over a fixed background | 12 | 2,661 | 11,182/12,288 | 1.1920929e-07 |
+| Square, gradient and hemisphere over a fixed background | 30 | 2,296 | 28,924/30,720 | 5.96046448e-07 |
+
+Use a centered unit stamp at 32² with roughness zero. For the 18 transparent controls set tint (.75,.375,1,.625). Use (blend mode, global opacity) of (0,1), (0,.5) and (1,.5), seeds 431, 468 and 505, for shapes 17 and 18 at variation 0, .25 and −.125. The next twelve controls use background (.5,.375,.75,.875), global opacity .5 and color blend modes 1 or 2 at those same three variations. For the last thirty controls use the same background, global opacity .5, all three modes, and run RGBA with that tint or grayscale with a white stamp. Use shape 2 at variation zero and shapes 17 and 18 at −.125 and .875. The seed is 943+9×shape+j, with j=0 for the first variation and j=1 for the second.
+
+For the transparent gradient at opacity .5 and variation −.125, pixel (16,16) has F32 bits bb880000, bd844000, 3d140000 and 3d140000. The unit square at opacity .5 over the stated background returns (.734375,.4921875,1.0625,.9140625) in mode 0 and (.578125,.375,.828125,.9140625) in modes 1 and 2.
+
+Across the earlier [260 profile renders](#directional-and-additive-stamp-profiles), exact pixels increased from 727,162 to 746,795 of 892,928. RGBA16 now matches 56,868/57,344, maximum one level. RGBA32F matches 28,361/57,344, maximum 2.42888927e−6. Earlier RGBA maxima were 12,544 levels and .191407166 respectively. Lower-coverage and transformed stamps retain coordinate differences.
+
+Fifteen previously exact inventory roots with reachable pattern filters match 2,544,128/2,544,128 pixels in 112 equal-resolution renders. For [Position Debug](#position-debug), the 16² zero-distance control has two 4096² internal images in the full graph. Its full render matches 256/256. If only MaterialCraft caps those images at 128², 236/256 output pixels match the full reference, maximum 128 U8 levels. To compare the preview, explicitly set the reference pattern filter and its source pixel processor to 128² and keep the graph at 16². All 256 output pixels then match. All seven observed node images agree on 34,048/34,048 pixels including both 128² intermediates.
+
 ### Directional and additive stamp profiles
 
 Eight built-in shapes were measured in original single-stamp graphs. Across 260 renders, the complete renderer improved from 297,007 to 727,162 exact pixels out of 892,928. Color requires all four stored channels to match. Integer maxima are channel levels.
