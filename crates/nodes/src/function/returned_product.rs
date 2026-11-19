@@ -10,6 +10,10 @@ pub(super) struct Source {
 }
 
 impl Source {
+    pub(super) fn local(factors: [usize; 2]) -> Self {
+        Self { calls: Vec::new(), factors }
+    }
+
     pub(super) fn factors<'a>(&self, mut state: &'a EvaluationState) -> Result<(&'a Value, &'a Value), String> {
         for call in &self.calls {
             state = state.calls.get(call).ok_or("missing evaluated product call")?;
@@ -99,7 +103,7 @@ pub(super) fn identify(program: &mut Program, mut returned: BTreeMap<usize, Lane
         let mut lanes = [None; 4];
         if let ("mul", 256, false, &[a, b]) = (op.definition.id, op.type_code, op.literal, op.inputs.as_slice()) {
             lanes[0] = Some(products.len());
-            products.push((Source { calls: Vec::new(), factors: [a, b] }, 0));
+            products.push((Source::local([a, b]), 0));
         } else if let Some(exports) = returned.remove(&index) {
             // Two returned lanes can reference the same product. Count their downstream reads together.
             let mut distinct = BTreeMap::new();

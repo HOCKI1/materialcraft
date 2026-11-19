@@ -145,7 +145,11 @@ impl Program {
                 Apply { instruction: index, base } => {
                     let instruction = self.instruction(index)?;
                     let arguments = state.values.get(base..).ok_or("invalid function operands")?;
-                    let result = if let Some(call) = &instruction.call {
+                    let result = if let Some(product) = &instruction.pixel_product_sum
+                        && context.scope == super::FunctionScope::PixelProcessor
+                    {
+                        product.evaluate(arguments, instruction.definition.id == "sub", state)
+                    } else if let Some(call) = &instruction.call {
                         let storage = state.calls.entry(index).or_default();
                         storage.variables.clone_from(&state.variables);
                         storage.variables.extend(call.defaults.clone());
@@ -164,10 +168,6 @@ impl Program {
                         }
 
                         result
-                    } else if let Some(product) = &instruction.pixel_product_sum
-                        && context.scope == super::FunctionScope::PixelProcessor
-                    {
-                        product.evaluate(arguments, instruction.definition.id == "sub", state)
                     } else {
                         operation::evaluate(instruction, arguments, &mut state.variables, &mut state.random, context)
                     }

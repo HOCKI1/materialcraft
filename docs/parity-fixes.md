@@ -820,6 +820,29 @@ All 7,680 direct-light density pixels in the [density controls](#volume-density-
 
 Read out named values immediately after initialization and after the first volume step on the 16² thin, 16² dithered, 32² thick and 32² varying-density F32 cases. For environment light the initial ray position, ray direction, noise input, dithering, step size and accumulated depth are each exact at 2,560/2,560. After one step the position and depth each match 1,280/2,560, maximum 1.96305132. Scattered light and transmission match 1,280/2,560, maximum .0574402809. For direct light the initial light color improved from 0/2,560 to 2,560/2,560 exact. Direction, ambient color, noise, step size, first position and first depth are also exact. First-step scattering and transmission match 2,560/2,560, maximum 0. The two light roots remain in progress.
 
+### Scalar arithmetic across a call argument
+
+The second color-selection root matches **179,389/179,456 grayscale pixels in 23 renders**. Its nine archive, changed four-format and independent cases are now exact. The 14 additional renders match 47,293/47,360. All 123,904 U8, 9,216 U16 and 9,216 F16 pixels match. In F32, 37,053/37,120 match, maximum absolute error 5.06639481e−7. The 67 differing pixels all use the perceptual color-difference mode at 32². Observing that distance directly gives 949/1,024 exact F32 values, maximum 1.78813934e−7.
+
+For the additional inputs use N×N texels, u=(x+.5)/width, v=(y+.5)/height and Hⱼ=(((41+6j)x+(73−4j)y+(7+2j)xy+47j) mod 1021)/1020. Store (H₀,u,v,H₁) and (H₂,H₃,1−u,v) as linear RGBA32F. Take the eight rows below with seeds 79+71j, j starting at zero. At 16² use defaults. For the other rows use fixed color (.17,.57,.89) and distance weights (.875,.625,1.4375).
+
+| Parent | Distance mode | Use color input | Threshold | Fade | Outputs |
+|---|---:|---|---:|---:|---|
+| 16² | Default | Default | Default | Default | F32 |
+| 64² | 1 | Yes | .3125 | .4375 | U8, U16, F16, F32 |
+| 32² | 0 | Yes | .75 | .125 | F32 |
+| 64² | 2 | No | .625 | .3125 | F32 |
+| 32² | 3 | Yes | .5 | .6875 | U8, U16, F16, F32 |
+| 64² | 4 | Yes | .8125 | .5 | F32 |
+| 128² | 1 | Yes | .4 | .75 | F32 |
+| 32² with 16×32 inputs | 1 | Yes | .3125 | .4375 | F32 |
+
+On the changed 64² case and the additional 64² mode-1 field, the RGB distance, selected distance, threshold and quotient each matched 8,192/8,192 before the fix. The next helper subtracts that quotient from one. Its output improved from 2,932/8,192 to 8,192/8,192. A scalar product or quotient with a single reader can round together with the addend inside a simple called addition or subtraction. A second reader of the product retains the rounded result. Original arguments still evaluate in their wired order.
+
+Nine independent graphs match **158,976/158,976 pixels in 54 renders**, maximum error zero. Use the top-left 16², 64² and 32² of the original linear RGBA32F [signed hash field](#3d-linear-gradient), multiply green by .75, and set the first two texels to (3.25,.3,1,.0625) and (−3.4875,3.625,.875,−.625). Use seeds 47,223,449. Test F32 at each size and U8, U16 and F16 at 64². Compare an inline B−R/G, that same operation through a two-argument helper, the reverse subtraction, addition, B−RG, a literal divisor 3.625, two readers of the quotient, two readers of the addend, and a wholly literal 7.75/3.625 passed to the helper. For R,G,B with F32 bits c022f465,bfb54d77,3f4cdf41, B−R/G returned from the helper stores bf7f5030. Returning the quotient alongside it gives bf7f502f and 3fe617b8.
+
+A tenth helper that both subtracts the quotient and adds it back internally still matches 16,011/17,664 pixels, maximum one U16 level or .000751018524 in F32. The measured correction covers the single-operation helper.
+
 ### Pixel products carried through vector lanes and calls
 
 | Comparison | Renders | Exact stored pixels / compared | Maximum error |

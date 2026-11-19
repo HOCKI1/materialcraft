@@ -454,6 +454,44 @@ fn pixel_product_sum_through_packed_lanes_and_calls_keeps_other_reads() {
 }
 
 #[test]
+fn a_pixel_quotient_rounds_with_the_subtraction_in_a_called_function() {
+    let names = ["offset", "amount"];
+    let mut inner = FunctionGraph::default();
+    let [offset, amount] = names.map(|name| inner.add("get_float1", &[], Some(Value::Text(name.into()))));
+    inner.output = Some(inner.add("sub", &[offset, amount], None));
+
+    let mut graph = FunctionGraph::default();
+    let [x, y, z] = ["x", "y", "z"].map(|name| graph.add("get_float1", &[], Some(Value::Text(name.into()))));
+    let quotient = graph.add("div", &[x, y], None);
+    let result = graph.add("instance", &[z, quotient], None);
+    let call = graph.nodes.last_mut().unwrap();
+    call.instance = Some(materialcraft_core::GraphInstance {
+        label: String::new(),
+        package: String::new(),
+        graph: "difference".into(),
+        inputs: names.map(|name| materialcraft_core::GraphPort { identifier: name.into(), type_code: 256 }).into(),
+        outputs: Vec::new(),
+        defaults: names.into_iter().map(|name| (name.into(), Value::Float(0.0))).collect(),
+    });
+    call.source = Some(Ok(std::sync::Arc::new(inner)));
+    let variables = ["x", "y", "z"].map(str::to_owned).into_iter().zip([0xc022f465, 0xbfb54d77, 0x3f4cdf41].map(|b| Value::Float(f32::from_bits(b)))).collect();
+    let context = EvaluationContext {
+        image_formats: &[],
+        scope: super::FunctionScope::PixelProcessor,
+        position: [0.5; 2],
+        size: [1.0; 2],
+        images: &[],
+        tile: true,
+        variables: &variables,
+    };
+    let pixel = |g: &FunctionGraph| compile(g, 0).unwrap().evaluate_pixel(&context, &mut EvaluationState::default()).unwrap();
+    graph.output = Some(result);
+    assert_eq!(pixel(&graph), Value::Float(f32::from_bits(0xbf7f5030)));
+    graph.output = Some(graph.add("vector2", &[result, quotient], None));
+    assert_eq!(pixel(&graph), Value::Float2([0xbf7f502f, 0x3fe617b8].map(f32::from_bits)));
+}
+
+#[test]
 fn pixel_sums_contract_negated_products_and_preserve_shared_rounded_addends() {
     let values = [0xc0742acf, 0xbf116093, 0x405370ba, 0x3f3eb229].map(|bits| Value::Float(f32::from_bits(bits)));
     let variables = ["a", "b", "c", "d"].into_iter().map(str::to_owned).zip(values).collect();

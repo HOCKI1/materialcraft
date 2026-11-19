@@ -1,6 +1,18 @@
 use super::{EvaluationState, arithmetic::flush_subnormal, instruction::Instruction, returned_product::Source, value_type};
 use materialcraft_core::Value;
 
+#[derive(Clone)]
+enum Addend {
+    Argument(usize),
+    Literal(Value),
+}
+
+struct Retained {
+    source: Source,
+    addend: Addend,
+    subtract: bool,
+}
+
 pub(super) struct ProductSum {
     // Visit operands in their original order, including reads with side effects.
     pub(super) inputs: Vec<usize>,
@@ -8,19 +20,25 @@ pub(super) struct ProductSum {
     negated: bool,
     operation: &'static str,
     literal_divisor: bool,
-    retained: Option<Box<Source>>,
+    retained: Option<Box<Retained>>,
 }
 
 impl ProductSum {
     /// Evaluate the original call and vector arguments before reading the factors they used.
     pub(super) fn returned(inputs: &[usize], product_on_right: bool, source: Source) -> Self {
-        Self { inputs: inputs.to_vec(), product_on_right, negated: false, operation: "mul", literal_divisor: false, retained: Some(Box::new(source)) }
+        let addend = Addend::Argument(usize::from(!product_on_right));
+        let retained = Retained { source, addend, subtract: false };
+        Self { inputs: inputs.to_vec(), product_on_right, negated: false, operation: "mul", literal_divisor: false, retained: Some(Box::new(retained)) }
     }
 
     pub(super) fn evaluate(&self, arguments: &[Value], subtract: bool, state: &EvaluationState) -> Result<Value, String> {
-        let (a, b, c, blend) = if let Some(source) = &self.retained {
-            let (a, b) = source.factors(state)?;
-            let c = arguments.get(usize::from(!self.product_on_right)).ok_or("missing product addend")?;
+        let subtract = subtract || self.retained.as_ref().is_some_and(|term| term.subtract);
+        let (a, b, c, blend) = if let Some(term) = &self.retained {
+            let (a, b) = term.source.factors(state)?;
+            let c = match &term.addend {
+                Addend::Argument(i) => arguments.get(*i).ok_or("missing product addend")?,
+                Addend::Literal(value) => value,
+            };
             (a, b, c, None)
         } else {
             let [first, second, third, rest @ ..] = arguments else { return Err("missing product-sum operands".into()) };
@@ -62,6 +80,52 @@ struct ProductOperand {
 struct ProductUsage {
     count: usize,
     rounded: bool,
+}
+
+/// A scalar argument can contract with a callee's addition when that addition is its only use.
+fn called_sum(op: &Instruction, instructions: &[Instruction], usage: &[ProductUsage]) -> Option<ProductSum> {
+    let call = op.call.as_ref()?;
+    let body = &call.program;
+    let sum = body.instructions.get(body.output)?;
+    if sum.type_code != 256 || !matches!(sum.definition.id, "add" | "sub") {
+        return None;
+    }
+    let leaf = |index: usize| {
+        let node = body.instructions.get(index)?;
+        match (node.definition.id, node.value.as_ref()?) {
+            ("get_float1", Value::Text(name)) if !name.starts_with('$') => call.inputs.iter().position(|p| p == name).map(Addend::Argument),
+            ("const_float1", value @ Value::Float(_)) => Some(Addend::Literal(value.clone())),
+            _ => None,
+        }
+    };
+    let &[left, right] = sum.inputs.as_slice() else { return None };
+    if left == right {
+        return None;
+    }
+    let (left, right) = (leaf(left)?, leaf(right)?);
+    if matches!((&left, &right), (Addend::Argument(a), Addend::Argument(b)) if a == b) {
+        return None;
+    }
+    let mut terms = [(&left, &right, false), (&right, &left, true)].into_iter().filter_map(|(operand, addend, product_on_right)| {
+        let Addend::Argument(slot) = operand else { return None };
+        let index = *op.inputs.get(*slot)?;
+        let product = instructions.get(index)?;
+        if usage.get(index)?.count != 1 || product.literal || product.type_code != 256 || !matches!(product.definition.id, "mul" | "div") {
+            return None;
+        }
+        let &[a, b] = product.inputs.as_slice() else { return None };
+        let retained = Retained { source: Source::local([a, b]), addend: addend.clone(), subtract: sum.definition.id == "sub" };
+        Some(ProductSum {
+            inputs: op.inputs.clone(),
+            product_on_right,
+            negated: false,
+            operation: product.definition.id,
+            literal_divisor: product.literal_divisor,
+            retained: Some(Box::new(retained)),
+        })
+    });
+    let term = terms.next()?;
+    terms.next().is_none().then_some(term)
 }
 
 pub(super) fn identify(instructions: &mut [Instruction]) {
@@ -115,6 +179,15 @@ pub(super) fn identify(instructions: &mut [Instruction]) {
     for index in 0..instructions.len() {
         let Some(op) = instructions.get(index) else { continue };
         if !matches!(op.type_code, 256 | 512 | 1024 | 2048) {
+            continue;
+        }
+        if op.call.is_some() {
+            if !has_loop {
+                let sum = called_sum(op, instructions, &usage);
+                if let Some(op) = instructions.get_mut(index) {
+                    op.pixel_product_sum = sum;
+                }
+            }
             continue;
         }
         let (left, right, blend) = match (op.definition.id, op.inputs.as_slice()) {
