@@ -156,6 +156,7 @@ fn fx_map_starts_with_a_quadrant_and_grows_image_inputs_as_connected() {
     assert_eq!(loaded_pattern.nodes[0].kind, PatternNodeKind::Quadrant);
     assert_eq!(loaded_pattern.root, Some(loaded_pattern.nodes[0].id));
 
+    execute(&mut session, "graph.node.param", &json!({"id": owner.0, "param": "color_mode", "value": false})).unwrap();
     for index in 0..6 {
         let input = if index == 5 { sixth } else { source };
         execute(&mut session, "graph.connect", &json!({"from": input.0, "to": owner.0, "toPort": format!("pattern{index}")})).unwrap();
