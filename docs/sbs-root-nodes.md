@@ -108,11 +108,11 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [blend_switch.sbs/switch_grayscale](../assets/sbs/blend_switch.sbs) | 2 | No | [Parity: 6 cases](parity-fixes.md#verified-cases) |
 | [blur_hq.sbs/blur_hq](../assets/sbs/blur_hq.sbs) | 1 | No | [In progress · 63,731/171,264 exact pixels, wide blur differs](parity-fixes.md#short-oblique-directional-blur) |
 | [blur_hq.sbs/blur_hq_grayscale](../assets/sbs/blur_hq.sbs) | 1 | No | [In progress · 125,647/171,264 exact pixels, wide blur differs](parity-fixes.md#short-oblique-directional-blur) |
-| [bnw_spots_1.sbs/bnw_spots_1](../assets/sbs/bnw_spots_1.sbs) | 0 | Yes | [In progress · 19 renders, 27,157/172,288 exact pixels](parity-fixes.md#random-draws-in-pattern-properties-and-iterations) |
-| [bnw_spots_3.sbs/bnw_spots_3](../assets/sbs/bnw_spots_3.sbs) | 0 | Yes | [In progress · 19 renders, 34,974/172,288 exact pixels](parity-fixes.md#random-draws-in-pattern-properties-and-iterations) |
+| [bnw_spots_1.sbs/bnw_spots_1](../assets/sbs/bnw_spots_1.sbs) | 0 | Yes | [In progress · 19 renders, 131,316/172,288 exact pixels](parity-fixes.md#filtering-unequal-inputs-to-a-blend) |
+| [bnw_spots_3.sbs/bnw_spots_3](../assets/sbs/bnw_spots_3.sbs) | 0 | Yes | [In progress · 19 renders, 124,148/172,288 exact pixels](parity-fixes.md#filtering-unequal-inputs-to-a-blend) |
 | [brick_1.sbs/brick_1](../assets/sbs/brick_1.sbs) | 0 | Yes | [In progress · 170,632/172,288 pixels, edge coordinates before U16 storage](parity-fixes.md#brick-edge-distances-and-storage-precision) |
 | [brick_2.sbs/brick_2](../assets/sbs/brick_2.sbs) | 0 | Yes | [In progress · 171,992/172,288 pixels, edge coordinates before U16 storage](parity-fixes.md#brick-edge-distances-and-storage-precision) |
-| [brick_3.sbs/brick_3](../assets/sbs/brick_3.sbs) | 0 | Yes | [In progress · one exact pattern map, second map within one U16 level](parity-fixes.md#local-seed-expressions-in-pattern-graphs) |
+| [brick_3.sbs/brick_3](../assets/sbs/brick_3.sbs) | 0 | Yes | [In progress · 19 renders, 168,676/172,288 exact pixels](parity-fixes.md#filtering-unequal-inputs-to-a-blend) |
 | [brick_generator.sbs/resources/Tile](../assets/sbs/brick_generator.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [cartesian_polar_transformation.sbs/cartesian_to_polar](../assets/sbs/cartesian_polar_transformation.sbs) | 1 | No | [Parity · 171,264 exact pixels in 18 renders](parity-fixes.md#segment-mapping-and-normal-graph-rechecks) |
 | [cartesian_polar_transformation.sbs/cartesian_to_polar_grayscale](../assets/sbs/cartesian_polar_transformation.sbs) | 1 | No | [Parity · 171,264 exact pixels in 18 renders](parity-fixes.md#segment-mapping-and-normal-graph-rechecks) |
@@ -129,8 +129,8 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [clone_patch.sbs/transform_from_center](../assets/sbs/clone_patch.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [clone_patch.sbs/transform_to_center](../assets/sbs/clone_patch.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [clone_patch.sbs/transform_to_center_grayscale](../assets/sbs/clone_patch.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
-| [clouds_1.sbs/clouds_1](../assets/sbs/clouds_1.sbs) | 0 | Yes | [In progress · 19 renders, 122,064/172,288 exact pixels](parity-fixes.md#random-draws-in-pattern-properties-and-iterations) |
-| [clouds_2.sbs/clouds_2](../assets/sbs/clouds_2.sbs) | 0 | Yes | [In progress · 18 renders, 138,259/155,904 exact pixels](parity-fixes.md#random-draws-in-pattern-properties-and-iterations) |
+| [clouds_1.sbs/clouds_1](../assets/sbs/clouds_1.sbs) | 0 | Yes | [In progress · 19 renders, 136,408/172,288 exact pixels](parity-fixes.md#filtering-unequal-inputs-to-a-blend) |
+| [clouds_2.sbs/clouds_2](../assets/sbs/clouds_2.sbs) | 0 | Yes | [In progress · 18 renders, 154,536/155,904 exact pixels](parity-fixes.md#filtering-unequal-inputs-to-a-blend) |
 | [color_space_conversion.sbs/acescg_to_linear_srgb](../assets/sbs/color_space_conversion.sbs) | 1 | No | [Parity · eight cases in four formats](parity-fixes.md#color-conversion-checker-and-clone) |
 | [color_space_conversion.sbs/acescg_to_srgb](../assets/sbs/color_space_conversion.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [color_space_conversion.sbs/linear_srgb_to_acescg](../assets/sbs/color_space_conversion.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
@@ -165,13 +165,13 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [constant_values.sbs/integer/constant_integer4](../assets/sbs/constant_values.sbs) | 0 | No | [Parity · 41 typed vectors, all components exact](parity-fixes.md#stored-integer-value-outputs) |
 | [contrast_luminosity.sbs/contrast_luminosity](../assets/sbs/contrast_luminosity.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [contrast_luminosity.sbs/contrast_luminosity_grayscale](../assets/sbs/contrast_luminosity.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
-| [creased.sbs/creased](../assets/sbs/creased.sbs) | 0 | Yes | [In progress · 19 renders, 112/172,288 exact pixels](parity-fixes.md#random-draws-in-pattern-properties-and-iterations) |
+| [creased.sbs/creased](../assets/sbs/creased.sbs) | 0 | Yes | [In progress · 19 renders, 243/172,288 exact pixels](parity-fixes.md#filtering-unequal-inputs-to-a-blend) |
 | [crop.sbs/crop](../assets/sbs/crop.sbs) | 1 | No | [Parity · 48 renders, all 377,344 pixels across both outputs exact](parity-fixes.md#half-precision-crop-area-and-input-sizes) |
 | [crop.sbs/crop_grayscale](../assets/sbs/crop.sbs) | 1 | No | [Parity · 48 renders, all 377,344 pixels across both outputs exact](parity-fixes.md#half-precision-crop-area-and-input-sizes) |
-| [crystal_1.sbs/crystal_1](../assets/sbs/crystal_1.sbs) | 0 | Yes | [In progress · 4,067/4,096 exact U16 pattern pixels](parity-fixes.md#local-seed-expressions-in-pattern-graphs) |
+| [crystal_1.sbs/crystal_1](../assets/sbs/crystal_1.sbs) | 0 | Yes | [In progress · 19 renders, 99,700/172,288 exact pixels](parity-fixes.md#filtering-unequal-inputs-to-a-blend) |
 | [crystal_2.sbs/crystal_2](../assets/sbs/crystal_2.sbs) | 0 | Yes | [In progress · 19 renders, 113/172,288 exact pixels](parity-fixes.md#random-draws-in-pattern-properties-and-iterations) |
 | [curvature.sbs/curvature](../assets/sbs/curvature.sbs) | 1 | No | [In progress · 20 renders, both emboss branches differ](parity-fixes.md#curvature-from-original-normal-fields) |
-| [curvature_smooth.sbs/curvature_smooth](../assets/sbs/curvature_smooth.sbs) | 1 | Yes | [In progress · 20 renders, 54,757/176,384 pixels, small multiscale blend differences](parity-fixes.md#curvature-from-original-normal-fields) |
+| [curvature_smooth.sbs/curvature_smooth](../assets/sbs/curvature_smooth.sbs) | 1 | Yes | [In progress · 20 renders, 176,030/176,384 exact pixels](parity-fixes.md#filtering-unequal-inputs-to-a-blend) |
 | [curvature_smooth_v2.sbs/compute_curvature_v2](../assets/sbs/curvature_smooth_v2.sbs) | 2 | Yes | [Parity: 6 cases](parity-fixes.md#verified-cases) |
 | [diffusion.sbs/impl/pass_RGBA](../assets/sbs/diffusion.sbs) | 4 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [diffusion.sbs/impl/pass_UV](../assets/sbs/diffusion.sbs) | 1 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |

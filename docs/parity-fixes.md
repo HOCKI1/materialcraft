@@ -1042,6 +1042,42 @@ Every row includes the four original defaults, seed and parameter renders, the 6
 
 The trapezoid pair each has two remaining differences across the archived and new comparisons. The [four-format inventory](#four-format-inventory-comparison) lists the original changed settings and port names.
 
+### Filtering unequal inputs to a blend
+
+An original 2×2 grayscale field with row-major values (0,.25,.75,1) distinguishes direct 8× enlargement from three successive 2× filters. Connect it to one port of a 16² Copy blend, seed 317. Read the foreground at full opacity, the background at zero opacity, or a mask between white and black. At (2,7) and (6,12) the U16 foreground produces levels 26,112 and 42,495. An F32 mask produces levels 102 and 165 in U8. The comparable U16 background produces F16 values .3984375 and .64794921875.
+
+For larger jumps, each axis takes a factor-two step while its distance to the destination exceeds one doubling or halving. The final pass filters both axes to the destination. For example, an 8×16 input to 64² visits 16×32 then 32×32 then 64×64. In weighted blends each resized port uses the higher precision of that port and the destination, including the final filtered image. The order observed is U8, U16, F16, F32. An unmasked grayscale Copy at full opacity, a background at zero opacity and the selected input of a full-opacity Switch use destination storage for the copied input. Rounding the unrelated port to the same higher precision gave a different result in the independent mixed-format controls.
+
+| Original controls | Renders | Exact pixels before | Exact pixels after / compared | Maximum error after (integer levels or native float units) |
+|---|---:|---:|---:|---|
+| Individual foreground, background and mask impulses | 3 | 68 | 768/768 | 0 |
+| Five layouts and individual ports | 152 | 59,404 | 164,864/164,864 | 0 |
+| Independent rectangular gray and RGBA fields | 160 | 33,516 | 174,592/174,592 | 0 |
+| Ports with different source formats | 48 | 19,980 | 49,152/49,152 | 0 |
+| Copy, Add, Add Sub and Switch at three opacities | 144 | 93,665 | 147,455/147,456 | LUM16 1 |
+| Inputs passed through intermediate nodes at different sizes | 96 | 293,493 | 381,372/393,216 | LUM16F 0.083984375, LUM32F 0.0839429498, LUM16 5501, LUM8 22 |
+
+For the gray controls, set H=((97x+71y+13xy+11s) mod 1021)/1020 with s=107. Use 2.5H−.75 for signed fields. Compare 8²→32², 64²→16², 8×16→64², 64×8→32² and 32²→32². Repeat the 8²→32² and 64²→16² foregrounds at seed 391. In the independent inputs use 4×32→64², 64×4→16², 128×32→8², 8²→32² and 16×64→4², opacity .375 and seed 431. For RGBA output, add 57j+79c+5xc inside the numerator of H for port j and channel c. Masks and gray controls use s=431+17j. Compare all four source and destination formats. At 8²→32² additionally set the resized and other port formats to (U8,F32), (F32,U8), (U16,F16) and (F16,U16). Use s=551+73j at opacity .375. For the 144 mode controls use U16 and F32 sources, seeds 613 and 719, three output formats, and opacity 0, .375 or 1. One U16 pixel still differs by one level. The 96 rerenders with intermediate nodes have residuals on 32² and 128² inputs to a 64² blend.
+
+The following root results include both the blend change and the [local pattern seed change](#local-seed-expressions-in-pattern-graphs). Use the [spot, brick, cell and cloud inputs](#random-draws-in-pattern-properties-and-iterations) and the [normal fields](#curvature-from-original-normal-fields).
+
+| Root | Renders | Exact pixels before both changes | Exact pixels after / compared | Maximum U8 / U16 error (levels) | Maximum F16 / F32 error |
+|---|---:|---:|---:|---:|---:|
+| Black and white spots 1 | 19 | 27,157 | 131,316/172,288 | 1 / 5 | 0.00048828125 / 6.47306442e-05 |
+| Black and white spots 3 | 19 | 34,974 | 124,148/172,288 | 1 / 3 | 0.00048828125 / 5.4359436e-05 |
+| Brick 1 | 19 | 170,632 | 170,632/172,288 | 0 / 1 | 1.52587891e-05 / 1.52587891e-05 |
+| Brick 2 | 19 | 171,992 | 171,992/172,288 | 0 / 1 | 6.10351562e-05 / 1.52662396e-05 |
+| Brick 3 | 19 | 51,064 | 168,676/172,288 | 0 / 3 | 0 / 1.52587891e-05 |
+| Cells 1 | 19 | 171,491 | 171,491/172,288 | 0 / 3 | 0.00048828125 / 3.67760658e-05 |
+| Clouds 1 | 19 | 122,064 | 136,408/172,288 | 1 / 11 | 0.00048828125 / 0.000112771988 |
+| Clouds 2 | 18 | 138,259 | 154,536/155,904 | 1 / 3 | 0.00048828125 / 2.30669975e-05 |
+| Creased | 19 | 112 | 243/172,288 | 99 / 40,002 | 0.387939453 / 0.483289391 |
+| Crystal 1 | 19 | 146 | 99,700/172,288 | 46 / 11,996 | 0.183105469 / 0.451787651 |
+| Crystal 2 | 19 | 113 | 113/172,288 | 151 / 58,015 | 0.592163086 / 0.821276069 |
+| Curvature smooth | 20 | 54,757 | 176,030/176,384 | 0 / 0 | 0 / 3.05473804e-05 |
+
+Smooth curvature matches all samples in 19 of its 20 renders. Its remaining 354 differences occur only on the 32×17 stepped input rendered at 32². The first different stage is the RGBA16 input bridge, where 201/1,024 pixels match and the largest channel error is one level. At (0,0) the first two channels read 14,335 and 16,383 in the reference app and 14,336 and 16,384 in MaterialCraft. All 139,264 U8, U16 and F16 final samples match. In Brick 3 the complete U8 and F16 outputs also match. Creased and Crystal 2 still diverge at the first pattern stage.
+
 ### Curvature from original normal fields
 
 | Root | Exact pixels / compared | Maximum U8 / U16 error (levels) | Maximum F16 / F32 error |
