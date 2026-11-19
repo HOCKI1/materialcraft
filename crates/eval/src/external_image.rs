@@ -17,9 +17,7 @@ pub(super) fn resize(image: &Image, size: (u32, u32), kind: Kind, source: Output
     let output_levels = match output {
         OutputFormat::U8 => Some(255.0),
         OutputFormat::Inherit | OutputFormat::U16 => Some(65535.0),
-        OutputFormat::F32 => None,
-        OutputFormat::F16 if input_levels.is_none() => None,
-        OutputFormat::F16 => return None,
+        OutputFormat::F32 | OutputFormat::F16 => None,
     };
     // Keep the lower channel depth through both filter passes. A byte raster sent to
     // a word or float output still filters at byte precision.
@@ -38,11 +36,15 @@ pub(super) fn resize(image: &Image, size: (u32, u32), kind: Kind, source: Output
         filtered = filter_axis(filtered, horizontal, end, maximum.is_some());
     }
     if output == OutputFormat::F16 {
-        // Float rasters are filtered at full precision before the half writer diffuses its rounding error.
-        return diffuse(&filtered, |original, received| {
-            let stored = nearest_positive_half(original + received);
-            (stored, original - stored)
-        });
+        return match source {
+            OutputFormat::U8 => Some(filtered.map(kind, |p| p.map(|v| crate::output_precision::store_half(v / 255.0))).with_integer_sampling(false)),
+            OutputFormat::U16 => word_to_half(&filtered),
+            // Float rasters are filtered at full precision before the half writer diffuses its rounding error.
+            _ => diffuse(&filtered, |original, received| {
+                let stored = nearest_positive_half(original + received);
+                (stored, original - stored)
+            }),
+        };
     }
     Some(if let Some(maximum) = maximum { filtered.map(kind, |p| p.map(|v| v / maximum)).with_integer_sampling(output_levels.is_some()) } else { filtered })
 }
@@ -71,7 +73,8 @@ fn filter_axis(image: Image, horizontal: bool, end: u32, integer: bool) -> Image
     let radius = 1.0 / filter_scale;
     let taps: Vec<_> = (0..end)
         .map(|index| {
-            let center = (f64::from(index) + 0.5) / scale;
+            // On enlargement the mapped origin and half-texel offset round independently.
+            let center = if end > start { f64::from(index) / scale + 0.5 / scale } else { (f64::from(index) + 0.5) / scale };
             let first = (center - 0.5 - radius).ceil().max(0.0) as u32;
             let last = ((center - 0.5 + radius).floor() as u32).min(start - 1);
             // Keep the downsampling factor through normalization. Cancelling it changes rounding at close texels.
@@ -102,13 +105,35 @@ fn filter_axis(image: Image, horizontal: bool, end: u32, integer: bool) -> Image
     })
 }
 
+fn next_fraction(state: &mut u64) -> f32 {
+    *state = (48_271 * *state) % 2_147_483_647;
+    (*state as f64 / 2_147_483_647.0) as f32
+}
+
+fn word_to_half(image: &Image) -> Option<Image> {
+    let mut state = 1_u64;
+    diffuse(image, |original, received| {
+        let original = f32::from(original as u16);
+        let word = (original + received + (next_fraction(&mut state) - 0.5) * 16.0) as u16;
+        let (stored, reconstructed) = match word {
+            // The low-end conversion has distinct readback and error values at word three.
+            0..=2 => (0.0, 0.0),
+            3 => (2.0 / 65536.0, 3.0),
+            _ => {
+                let stored = crate::output_precision::store_half(f32::from(word) / 65535.0);
+                (stored, (stored * 65536.0).min(65535.0))
+            }
+        };
+        (stored, original - reconstructed)
+    })
+}
+
 fn dither(image: &Image, maximum: f32, word_to_byte: bool) -> Option<Image> {
     let mut state = 1_u64;
     let unit = maximum.recip();
     let limit = f32::MAX / (4.0 * maximum);
     diffuse(image, |value, received| {
-        state = (48_271 * state) % 2_147_483_647;
-        let random = (state as f64 / 2_147_483_647.0) as f32;
+        let random = next_fraction(&mut state);
         let original = if value.is_finite() { value.clamp(-limit, limit) } else { f32::from(value > 0.0) };
         let stored = if word_to_byte {
             // One full byte level expands to 257 word levels. The noise spans one high-byte step.

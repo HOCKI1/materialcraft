@@ -434,6 +434,51 @@ fn emboss_uses_the_resolved_pixel_size_on_each_axis() {
 }
 
 #[test]
+fn bitmap_growth_maps_the_origin_and_half_texel_offset_separately() {
+    let mut graph = Graph::new("Column");
+    graph.size = [0, 6];
+    graph.format = materialcraft_core::OutputFormat::F32;
+    let input = graph.add_node("input_grayscale", [0.0; 2]);
+    let mut package = Package::new("Column");
+    package.graphs.push(graph);
+    let mut options = Options::new(&no_res);
+    let column = Image::gray(1, 49, |_, y| {
+        f32::from_bits(match y {
+            5 => 0xbeae_712e,
+            6 => 0x3f90_4fe4,
+            _ => 0,
+        })
+    });
+    options.inputs.insert("input".into(), column);
+    let result = cook(&package, 0, &options, &Mutex::new(Cache::default()));
+    assert_eq!(result.image(input, 0).unwrap().get_gray(0, 7, false).to_bits(), 0x3c73_7400);
+}
+
+#[test]
+fn bitmap_half_storage_uses_the_original_integer_channel_depth() {
+    use materialcraft_core::OutputFormat::{F16, U8, U16};
+
+    let mut graph = Graph::new("Byte and word");
+    graph.size = [5, 5];
+    graph.format = F16;
+    let input = graph.add_node("input_grayscale", [0.0; 2]);
+    let mut package = Package::new("Integer source");
+    package.graphs.push(graph);
+    for (depth, level, expected) in [
+        (U8, 9.0 / 255.0, [0x3d10_8000; 3]),
+        (U16, 2313.0 / 65535.0, [0x3d10_0000, 0x3d10_2000, 0x3d10_c000]),
+        (U16, 1.0, [0x3f7f_e000, 0x3f7f_e000, 0x3f80_0000]),
+    ] {
+        let mut options = Options::new(&no_res);
+        options.bitmap_formats.insert("input".into(), depth);
+        options.inputs.insert("input".into(), Image::filled(32, 17, Kind::Gray, [level; 4]).with_integer_sampling(true));
+        let result = cook(&package, 0, &options, &Mutex::new(Cache::default()));
+        let image = result.image(input, 0).unwrap();
+        assert_eq!([0, 1, 2].map(|x| image.get_gray(x, 0, false).to_bits()), expected);
+    }
+}
+
+#[test]
 fn bound_float_bitmap_reduces_close_texels_at_the_measured_filter_precision() {
     let mut graph = Graph::new("Row reduction");
     graph.size = [4, 0];

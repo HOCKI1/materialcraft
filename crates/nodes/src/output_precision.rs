@@ -2,7 +2,8 @@ use craft_texture::{Image, Limits};
 use materialcraft_core::OutputFormat;
 use std::sync::Arc;
 
-fn store_half(pixel: f32) -> f32 {
+/// Round to the half value used when storing a cooked channel.
+pub fn store_half(pixel: f32) -> f32 {
     if !pixel.is_finite() {
         return if pixel.is_nan() { half::f16::from_bits(0x7fff).to_f32() } else { pixel };
     }

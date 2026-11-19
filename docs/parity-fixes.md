@@ -1167,6 +1167,31 @@ For Worley, Dissolve, the four diffusion passes, six flood-fill outputs and both
 
 For Worley also set size (.75,1.25,1.5), Minkowski number .6875, border width .1875 and roundness .3125. Set optional diffusion controls where exposed. For Flood Fill 2 color use HSL adjustment (.125,−.1875,.25) and random range (.375,.625,.1875). For its grayscale equivalent use luminance adjustment −.1875 and random range .625. The random flood-fill outputs and fast white noise have no additional exposed numeric changes in these controls. Each residual flood-fill difference is at most one U16 level or .0000152587891 in F32. Uniform noise selects the measured per-texel stream. The later [conditional draw comparison](#conditional-pixel-draws-and-white-noise-v2) resolves the Gaussian differences in White Noise v2.
 
+### Enlarging bitmap rows and converting integer images to half
+
+| External source and destination | Renders | Exact bridge pixels / compared | Exact F32 output pixels / compared | Maximum F32 output error |
+|---|---:|---:|---:|---:|
+| Signed F32 fields, original sizes | 78 | 79,872/79,872 | 239,616/239,616 | 0 |
+| Signed F32 fields, 17 additional growth ratios | 51 | 147,456/147,456 | 466,944/466,944 | 0 |
+| Six byte PNG fields read through half | 6 | 6,144/6,144 | 1/6,144 | .000486373901 |
+| Thirty word PNG fields read through half | 30 | 30,720/30,720 | 30,720/30,720 | 0 |
+| Twenty byte PNG constants read through half | 20 | 20,480/20,480 | 4,096/20,480 | .000411689281 |
+| Fifty word PNG constants read through half | 50 | 51,200/51,200 | 51,200/51,200 | 0 |
+
+A one-column input reproduces the previous [float growth difference](#float-bitmap-reduction-and-half-output). Resize 49 rows to 64. Put F32 words beae712e and 3f904fe4 in rows 5 and 6, with zeros elsewhere. Row 7 has bits 3c737400. During enlargement, map the output index and half-texel offset separately in F64, as i/s + .5/s for s=destination/source. The original 35×49 grayscale and RGBA fields now match at the bridge and at the square output.
+
+For the 51 additional controls, the source width and bridge width are 32. Use source heights 21, 35, 43, 45, 47, 49, 51, 55, 57 and 61 with destination height 64. Use heights 67, 71, 87, 91, 93, 97 and 105 with destination height 128. Render at the destination height squared, sampling the bridge at normalized texel centers. At each height generate three original RGBA32F images, with zero-based x, y and channel c.
+
+- At seed 709, use (((17x+53y+31xy+19c) mod 2047)/1024−1) × 2^((3x+7y+c) mod 8−4).
+- At seed 710, reinterpret 3f800001 plus (37x+53y+13xy+31c) mod 256 as F32 bits. Negate where x+3y+c is odd.
+- At seed 711, use (((21x+29y+11c+13xy) mod 1021)/1020−.5) × 2^((x+y) mod 13−5).
+
+For the PNG fields use the [byte and word recipes](#source-image-depth-and-the-three-noise-upscalers). For constants, bind 32×17 grayscale and repeated RGBA images to a 32² half bridge, seed 881. Byte levels are 0, 1, 9, 31, 127, 128, 143, 196, 250 and 255. Word levels are 0, 1, 3, 7, 9, 13, 16, 127, 128, 129, 251, 513, 1023, 2117, 2313, 4118, 8193, 15427, 22001, 32079, 32767, 39114, 49197, 65529 and 65535.
+
+Filter both axes at the source integer precision. A byte value b reports the half of b/255 rounded toward zero at the bridge. At byte level 9, that is 3d108000 expanded to F32. A word source uses the [three-row diffusion weights](#non-power-of-two-float-image-inputs-and-curvature) in word units with one new random sample per interleaved channel. Start the generator at 1, multiply by 48271 modulo 2147483647, and divide by 2147483647 for a unit draw r. Truncate original word + received error + 16(r−.5) and clamp to the word range. Values 0 through 2 read and reconstruct as zero. Value 3 reads as 2/65536 and reconstructs as 3. For larger values q, store the half of q/65535 rounded toward zero, and reconstruct as min(65535,65536×stored). Propagate original minus reconstructed. For word level 2313 the first three expanded channel words are 3d100000, 3d102000 and 3d10c000.
+
+The reference F32 consumer of these byte sources reads the unrounded filtered byte divided by 255. Its half bridge readback and the consumer value are distinct. This discrepancy accounts for all 22,527 differing downstream pixels in the two byte rows. The float-input to U8 and U16 controls retain 18,414/18,432 and 18,418/18,432 exact pixels, with maximum errors of one stored level. Both curvature roots retain 176,384/176,384 across 20 renders each. Each of the three noise upscalers retains 697,344/697,344 across 21.
+
 ### Float bitmap reduction and half output
 
 | Bound input and bridge storage, read through F32 | Renders | Exact pixels before | Exact pixels after / compared | Maximum F32 error after |
