@@ -374,7 +374,7 @@ pub fn blend_px(mode: i32, bg: [f32; 4], fg: [f32; 4], opacity: f32, color_blend
         }
         return out;
     }
-    if ((0..=2).contains(&mode) && color_blending == 0) || (matches!(mode, 3 | 5 | 6 | 8) && color_blending != 2) {
+    if ((0..=2).contains(&mode) && color_blending == 0) || (matches!(mode, 3..=6 | 8) && color_blending != 2) {
         // The color weights use the complement of transparency. Coverage uses the original alpha.
         let alpha = if color_blending == 1 { 1.0 } else { 1.0 - (1.0 - fg[3]) };
         let source_weight = alpha * opacity;
@@ -426,6 +426,14 @@ pub fn gray_from(w: u32, h: u32, v: Vec<f32>) -> Result<Image, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn add_sub_blend_weights_source_color_and_coverage_separately() {
+        let background = [24.0, 5.0, 8.0, 8.0].map(|byte| byte / 255.0);
+        let foreground = [231.0, 250.0, 247.0, 8.0].map(|byte| byte / 255.0);
+        let result = blend_px(4, background, foreground, 0.5, 0, true, false);
+        assert_eq!(result.map(f32::to_bits), [0x3dda_d4cf, 0x3d0e_0b89, 0x3d3c_b8b5, 0x3d3e_bcbb]);
+    }
 
     #[test]
     fn multiply_blend_preserves_the_sign_after_weighting_a_zero_product() {

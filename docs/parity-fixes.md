@@ -79,6 +79,24 @@ For the 16 additional Bevel renders set position offset (1,1) and supply the con
 
 Standalone signed rectangles and discs still render at both signs of either size component. The 60 color/gray rectangle and gray disc renders match 310,272/310,272 pixels. At 64² a rectangle centered at (.4766544,.6173407), size (.37573713,−.01), rotated −.37499994 turns covers 17 pixels in both applications. A separate directional gradation on the same five geometries and four sign combinations matches 103,316/103,424 pixels. Its maxima are 0 U8, 1 U16, .00006103515625 F16 and .00000011920929 F32.
 
+### Source-alpha rounding in Highpass
+
+| Root | Renders | Exact pixels / compared | Maximum error |
+|---|---:|---:|---:|
+| Highpass, RGBA | 21 | 177,408/177,408 | 0 |
+| Highpass, grayscale | 30 | 216,576/216,576 | 0 |
+| Add Sub graph | 7 | 311,296/311,296 | 0 |
+
+The RGBA high-pass uses the source as background and a blurred, inverted image as foreground. The input bridge, blur and levels matched before the fix. The first discrepancy was the final Add Sub blend at half opacity. Across the same 21 renders, 165,429/177,408 pixels matched before the change. Maximum errors were one U16 level and 1.19209290e−7 F32. The corrected RGBA counts are 122,880 U8, 8,192 U16, 8,192 F16 and 38,144 F32, all exact. In each of the 12 new renders of each high-pass graph, all five observed nodes match. The grayscale total also includes the [earlier nine field variations](#high-pass-anisotropic-noise-and-triangle-grid-controls).
+
+For those 12 renders, channel c of the original F32 source is H=((31x+53y+11xy+67c+5xc+17) mod 509)/508. Use channel zero for grayscale. In order, use 16² F32 with the default radius, 32² F32 with radius zero, and 64² with radius 2.75 in U8, U16, F16 and F32. Repeat the 64² F32 case with alpha one. At 32² use radius .125 and alpha zero. At 128² use radius 6.5 and alpha one. Follow with a 32×16 source at 32² and radius 1.375, then 32² at radius .6875. In the last two cases RGB is 2.375H−.625. Finish by repeating the original 64² F32 radius 2.75 render. Seeds start at 5021 and advance by 19.
+
+For source alpha, form a=1−(1−foreground alpha) in F32 and w=a×opacity. For each color channel, foreground contribution is ((background+2×foreground)−1)×w. Use a fused multiply-add to compute 1−a×opacity, then another to multiply that weight by background and add the foreground contribution. Coverage is the fused sum background alpha+(1−background alpha)×(foreground alpha×opacity). With background bytes (24,5,8,8), foreground (231,250,247,8) and opacity .5, the F32 result has bits 3ddad4cf, 3d0e0b89, 3d3cb8b5 and 3d3ebcbb.
+
+The standalone Add Sub filter matches **59,904/59,904 pixels across 36 renders** using source, ignored or premultiplied alpha. These include enabled and disabled alpha blending, an absent or connected opacity mask, grayscale and color, and signed floating-point inputs. The three straight-alpha probes at 32² F32 remain open. Connected-mask and unmasked color match 64/1,024 and 62/1,024 pixels, maximum 2.38418579e−7 for both. Masked grayscale matches 604/1,024, maximum 1.19209290e−7. The Add Sub graph row reports its own seven renders.
+
+To reproduce the filter controls use one graph per input layout, with foreground, background and optionally mask. In binding order use slot v=0,1,2 for foreground, background and mask. For each channel c use L=(53x+17y+7xy+35v+61c+3cy+3) mod 251. Use L/255 normally. For signed cases use (L−83.125)/53.5 for the images and (L−83.125)/101 for the mask. Masks and grayscale images take channel zero. Set image bridges to F32 for the color graphs and U8 for the grayscale graph. For each graph use 16² F32 at opacity 1, then 32² at opacity .5 in all four formats. At 64² F32 with signed inputs use .6875 with alpha blending disabled, then .3125 with it enabled. At 32² F32 and opacity .6137 run ignored, straight, premultiplied and source alpha. Finish with signed inputs at 16² F32 and opacity zero, followed by 64² F32 with unsigned inputs and opacity 1. Each series starts at seed 5113 and advances by 17.
+
 ### Uniform square roots and the UV debug marker
 
 The UV debug marker now cooks all **32** previously measured cases. The 27 cases that already cooked still match every pixel. Across all 32 renders **194,522/217,088 RGBA pixels** match. Maximum errors are 253 U8 levels, 0 U16 levels, 0 F16 and 1 F32. The five formerly rejected renders contribute 218/22,784 exact pixels. At 16² with index 0, count 1 and offset −1, the first output pixel has gray level .360237986 in the reference app and zero in MaterialCraft. At index 1, count 4 and offset 0, both store zero there. The input's first RGB and alpha components differ at this position. Both sibling roots, Compute Irradiance and Compute Ray Direction, retain 217,088/217,088 pixels each across 32 renders each, with error zero. [Wired sample inputs and seeds](#environment-rotation-and-wired-irradiance-samples)

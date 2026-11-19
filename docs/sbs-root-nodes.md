@@ -35,7 +35,7 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **352 Parity**, **66 In progress** and **128 Too hard**. The November 17–19 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons) · [November 19 measurements](parity-fixes.md#2026-11-19-root-comparisons)
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **353 Parity**, **66 In progress** and **127 Too hard**. The November 17–19 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons) · [November 19 measurements](parity-fixes.md#2026-11-19-root-comparisons)
 
 [Grayscale sampler measurements](parity-fixes.md#grayscale-sampling-of-color-inputs) · [Value sampling across 240 typed comparisons](parity-fixes.md#value-processor-texture-filtering)
 
@@ -84,7 +84,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [bevel_smooth.sbs/jump_flood_segment_iteration](../assets/sbs/bevel_smooth.sbs) | 1 | Yes | [Parity · 171,264 exact pixels in 18 renders](parity-fixes.md#segment-mapping-and-normal-graph-rechecks) |
 | [blackbody.sbs/blackbody](../assets/sbs/blackbody.sbs) | 0 | No | [Parity · 19 renders, 42,496 exact RGBA pixels](parity-fixes.md#literal-arguments-inside-pixel-function-calls) |
 | [blend.sbs/add](../assets/sbs/blend.sbs) | 3 | Yes | [Parity: 5 cases](parity-fixes.md#verified-cases) |
-| [blend.sbs/add_sub](../assets/sbs/blend.sbs) | 3 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
+| [blend.sbs/add_sub](../assets/sbs/blend.sbs) | 3 | Yes | [Parity · 7 renders, 311,296 exact pixels](parity-fixes.md#source-alpha-rounding-in-highpass) |
 | [blend.sbs/color](../assets/sbs/blend.sbs) | 3 | No | [Parity · 18 cases, 171,264 exact pixels](parity-fixes.md#gradient-interpolation-color-blend-and-chrominance) |
 | [blend.sbs/color_burn](../assets/sbs/blend.sbs) | 3 | No | [Parity · 18 cases, 171,264 exact RGBA pixels](parity-fixes.md#color-burn-and-color-dodge) |
 | [blend.sbs/color_dodge](../assets/sbs/blend.sbs) | 3 | No | [Parity · 18 cases, 171,264 exact RGBA pixels](parity-fixes.md#color-burn-and-color-dodge) |
@@ -236,8 +236,8 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [height_extrude.sbs/impl/acceleration_struct_impl](../assets/sbs/height_extrude.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [height_to_normal_world_units.sbs/height_to_normal_world_units](../assets/sbs/height_to_normal_world_units.sbs) | 1 | Yes | [Parity · eight cases in four formats](parity-fixes.md#height-to-normal-in-world-units) |
 | [height_to_normal_world_units.sbs/height_to_normal_world_units_2](../assets/sbs/height_to_normal_world_units.sbs) | 1 | No | [Parity · eight cases in four formats](parity-fixes.md#height-to-normal-in-world-units) |
-| [highpass.sbs/highpass](../assets/sbs/highpass.sbs) | 1 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [highpass.sbs/highpass_grayscale](../assets/sbs/highpass.sbs) | 1 | No | [Parity · 18 renders, all 171,264 pixels exact](parity-fixes.md#high-pass-anisotropic-noise-and-triangle-grid-controls) |
+| [highpass.sbs/highpass](../assets/sbs/highpass.sbs) | 1 | No | [Parity · 21 renders, 177,408 exact pixels](parity-fixes.md#source-alpha-rounding-in-highpass) |
+| [highpass.sbs/highpass_grayscale](../assets/sbs/highpass.sbs) | 1 | No | [Parity · 30 renders, 216,576 exact pixels](parity-fixes.md#source-alpha-rounding-in-highpass) |
 | [histogram_range.sbs/histogram_range](../assets/sbs/histogram_range.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [histogram_scan.sbs/histogram_scan](../assets/sbs/histogram_scan.sbs) | 1 | No | [Parity · 171,264 exact pixels across 18 renders](parity-fixes.md#color-conversion-gradient-height-and-histogram-controls) |
 | [histogram_scan_non_uniform.sbs/histogram_scan_non_uniform](../assets/sbs/histogram_scan_non_uniform.sbs) | 3 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
