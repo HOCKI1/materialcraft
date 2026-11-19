@@ -35,7 +35,7 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **344 Parity**, **63 In progress** and **139 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **344 Parity**, **67 In progress** and **135 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
 
 [Grayscale sampler measurements](parity-fixes.md#grayscale-sampling-of-color-inputs) · [Value sampling across 240 typed comparisons](parity-fixes.md#value-processor-texture-filtering)
 
@@ -361,8 +361,8 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [noise_voronoi.sbs/voronoi_fractal](../assets/sbs/noise_voronoi.sbs) | 0 | No | [In progress · 37 renders, 152,320/155,392 exact pixels with stock and shared tables](parity-fixes.md#voronoi-distortion-and-shared-noise-inputs) |
 | [non_square_transform.sbs/non_square_transform](../assets/sbs/non_square_transform.sbs) | 1 | No | [Parity · 204,032 exact pixels in 23 renders](parity-fixes.md#rotated-transforms-and-fractional-texture-coordinates) |
 | [non_square_transform.sbs/non_square_transform_greyscale](../assets/sbs/non_square_transform.sbs) | 1 | No | [Parity · 204,032 exact pixels in 23 renders](parity-fixes.md#rotated-transforms-and-fractional-texture-coordinates) |
-| [non_uniform_blur.sbs/non_uniform_blur_grayscale_sample](../assets/sbs/non_uniform_blur.sbs) | 2 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [non_uniform_blur.sbs/non_uniform_blur_sample](../assets/sbs/non_uniform_blur.sbs) | 2 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [non_uniform_blur.sbs/non_uniform_blur_grayscale_sample](../assets/sbs/non_uniform_blur.sbs) | 2 | Yes | [In progress · 96,971/132,096 exact pixels in 9 renders](parity-fixes.md#other-roots-using-uniform-arc-tangents) |
+| [non_uniform_blur.sbs/non_uniform_blur_sample](../assets/sbs/non_uniform_blur.sbs) | 2 | Yes | [In progress · 50,664/132,096 exact pixels in 9 renders](parity-fixes.md#other-roots-using-uniform-arc-tangents) |
 | [non_uniform_rotation.sbs/non_uniform_rotation_color](../assets/sbs/non_uniform_rotation.sbs) | 3 | No | [Parity · 206,336 exact pixels in 26 renders](parity-fixes.md#segment-mapping-and-normal-graph-rechecks) |
 | [non_uniform_rotation.sbs/non_uniform_rotation_grayscale](../assets/sbs/non_uniform_rotation.sbs) | 3 | No | [Parity · 171,264 exact pixels in 18 renders](parity-fixes.md#segment-mapping-and-normal-graph-rechecks) |
 | [normal_color.sbs/normal_color](../assets/sbs/normal_color.sbs) | 0 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
@@ -421,9 +421,9 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [pattern_polygon_2.sbs/polygon_2](../assets/sbs/pattern_polygon_2.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [pattern_shape.sbs/hemisphere](../assets/sbs/pattern_shape.sbs) | 0 | No | [Parity · 18 renders, all 171,264 pixels exact](parity-fixes.md#normal-maps-panoramas-and-primitive-shapes) |
 | [pattern_shape.sbs/shape_base](../assets/sbs/pattern_shape.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [pattern_splatter_circular.sbs/splatter_circular](../assets/sbs/pattern_splatter_circular.sbs) | 7 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [pattern_splatter_circular.sbs/splatter_circular_color](../assets/sbs/pattern_splatter_circular.sbs) | 7 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [pattern_stripes.sbs/stripes](../assets/sbs/pattern_stripes.sbs) | 0 | No | [In progress · 43 hard stripe edges differ in four formats](parity-fixes.md#facet-masks-and-stripe-boundaries) |
+| [pattern_splatter_circular.sbs/splatter_circular](../assets/sbs/pattern_splatter_circular.sbs) | 7 | No | [In progress · 130,917/132,096 exact pixels in 9 renders](parity-fixes.md#other-roots-using-uniform-arc-tangents) |
+| [pattern_splatter_circular.sbs/splatter_circular_color](../assets/sbs/pattern_splatter_circular.sbs) | 7 | No | [In progress · 130,678/132,096 exact pixels in 9 renders](parity-fixes.md#other-roots-using-uniform-arc-tangents) |
+| [pattern_stripes.sbs/stripes](../assets/sbs/pattern_stripes.sbs) | 0 | No | [In progress · 215,036/215,040 exact pixels in 18 renders](parity-fixes.md#other-roots-using-uniform-arc-tangents) |
 | [pattern_tile_generator.sbs/tile_generator](../assets/sbs/pattern_tile_generator.sbs) | 7 | No | [In progress · 217,222/226,048 pixels, stamp placement and waveform rounding differ](parity-fixes.md#beveled-square-gradient-and-wave-stamps) |
 | [pattern_tile_generator.sbs/tile_generator_color](../assets/sbs/pattern_tile_generator.sbs) | 7 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [pattern_tile_random.sbs/tile_random](../assets/sbs/pattern_tile_random.sbs) | 2 | No | [Parity · 20 renders, 176,384/176,384 exact pixels](parity-fixes.md#tile-random-cell-fields-and-noise-upscaling) |
@@ -561,7 +561,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [spline_tools.sbs/internal_tools/spline_warp_sub](../assets/sbs/spline_tools.sbs) | 6 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [spot_emboss.sbs/spot_emboss](../assets/sbs/spot_emboss.sbs) | 2 | No | [Parity · 218,368 exact cook pixels and six exact saved-file renders](parity-fixes.md#integer-defaults-in-saved-graph-interfaces) |
 | [starburst.sbs/starburst](../assets/sbs/starburst.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [stripes.sbs/stripes](../assets/sbs/stripes.sbs) | 0 | Yes | [In progress · 55 hard stripe edges differ in four formats](parity-fixes.md#facet-masks-and-stripe-boundaries) |
+| [stripes.sbs/stripes](../assets/sbs/stripes.sbs) | 0 | Yes | [In progress · 215,012/215,040 exact pixels in 18 renders](parity-fixes.md#other-roots-using-uniform-arc-tangents) |
 | [summed_area_table.sbs/summed_area_table_iteration](../assets/sbs/summed_area_table.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [summed_area_table_2.sbs/summed_area_table_iteration](../assets/sbs/summed_area_table_2.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [swirl.sbs/swirl](../assets/sbs/swirl.sbs) | 1 | No | [Parity · 171,264/171,264 pixels in 18 renders](parity-fixes.md#quad-swirl-trapezoid-and-vector-morph-comparisons) |

@@ -1787,6 +1787,25 @@ For defaults use 16², 32² and 128² F32 at seeds 101, 271 and 401. Set scale 1
 
 These image tests also expose a separate file-handoff difference. Reopening the [saved Arc Pavement file](#integer-defaults-in-saved-graph-interfaces) and rendering the three image-filter cases produced black. The original file has 2,026 nonzero pixels in each. Its six previously reported saved-file comparisons exercised the default and disc controls.
 
+### Other roots using uniform arc tangents
+
+These measurements follow the [uniform arc-tangent correction](#uniform-arc-tangents-and-pavement-rotations). For each root, replay its archived defaults, seeds and changed controls, then the [four 64² formats and the independent 32² input](#four-format-inventory-comparison). For both Stripes roots also replay the nine [hard-edge and filtered controls](#facet-masks-and-stripe-boundaries). Integer maxima count stored levels.
+
+| Root | Cases | Exact pixels / compared | Maximum U8 / U16 | Maximum F16 / F32 |
+|---|---:|---:|---:|---:|
+| Bevel Smooth debug position | 13 | 246,632/246,784 | 64 / 16384 | 0.25 / 0.25 |
+| Dirt 4 | 9 | No comparable pixels | — | — |
+| Dirt 4, second version | 9 | No comparable pixels | — | — |
+| Non-uniform blur sample, grayscale | 9 | 96,971/132,096 | 4 / 771 | 0.01171875 / 0.0117647052 |
+| Non-uniform blur sample, color | 9 | 50,664/132,096 | 4 / 771 | 0.0119628906 / 0.011764735 |
+| Circular splatter, grayscale | 9 | 130,917/132,096 | 223 / 57311 | 0.874511719 / 0.921568625 |
+| Circular splatter, color | 9 | 130,678/132,096 | 254 / 65535 | 0.996078491 / 0.996078431 |
+| Pattern Stripes | 18 | 215,036/215,040 | 255 / 65535 | 1 / 1 |
+| Irradiance hit UV debug | 8 | 115,708/115,712 | 0 / 0 | 0 / 7.4505806e-09 |
+| Standalone Stripes | 18 | 215,012/215,040 | 0 / 65535 | 0 / 0 |
+
+The remaining hard edge on Pattern Stripes is (23,59) at 128². MaterialCraft returns zero and the reference returns one at that pixel in each of the four output formats. Standalone Stripes matches every hard-edge control and retains 28 differences in the archived U16 renders. Both Dirt 4 versions reach the pattern traversal budget before producing an image in all nine cases. The additional [wired irradiance controls](#environment-rotation-and-wired-irradiance-samples) include nonfinite stamp parameters and remain open.
+
 ### Integer defaults in saved graph interfaces
 
 Two packages with a `0.1.3` format header failed to reopen in the reference app after MaterialCraft Save As. Changing only that field to `1.1.0.202502` in a temporary copy let the reference app open both packages. Spot Emboss then reproduced all six original renders. Arc Pavement reproduced its default render, but six scalar integer settings had no readable default on the saved graph. The [earlier round trips](#vector-equality-lab-to-rgb-and-sbs-round-trips) cover a separate function library and a package that failed to load.
