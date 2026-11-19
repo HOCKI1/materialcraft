@@ -1806,6 +1806,14 @@ These measurements follow the [uniform arc-tangent correction](#uniform-arc-tang
 
 The remaining hard edge on Pattern Stripes is (23,59) at 128². MaterialCraft returns zero and the reference returns one at that pixel in each of the four output formats. Standalone Stripes matches every hard-edge control and retains 28 differences in the archived U16 renders. Both Dirt 4 versions reach the pattern traversal budget before producing an image in all nine cases. The additional [wired irradiance controls](#environment-rotation-and-wired-irradiance-samples) include nonfinite stamp parameters and remain open.
 
+### Runtime selection across disconnected image sockets
+
+All 66 two-input cases in [image selection in saved graphs](#image-selection-in-saved-pattern-graphs) now match **194,304/194,304 pixels**, maximum error zero. A selector read at runtime uses the first wired image socket at or above the requested index. Requests above the last socket use the last image. With only slots 0 and 3 wired, a request for 1 or 12 samples slot 3, and −1 samples slot 0. With no images the stamp contributes nothing. A literal selecting an empty socket still contributes nothing. This resolves the 8,832 differing pixels in the previous two-pin measurement.
+
+Use the same four 16² constant fields with byte values 31, 79, 151 and 229. Wire all four, {0,2,3}, {0,2}, {1,3}, {2}, no sockets, {0,3}, {1}, or {0}. Read an exposed integer set to −1, 0, 1, 2, 3, 4 and 12, then repeat with a literal 12. Repeat the seven runtime selections with all four sockets and packed pattern types 256, 257 and 259. The runtime index takes precedence even at zero. Across the 93 F32 renders the selected byte values agree at **23,808/23,808 pixels**. The raw float results agree at **14,848/23,808**, maximum 2.98023224e−8. The thirty earlier fixed four-input cases still match 5,632/7,680 raw F32 pixels and all 7,680 selected bytes. The remaining raw error occurs when rendering the selected constant image.
+
+Arc Pavement retains its separate measurements of 202,429/211,200 CPU-cooked pixels and 112,896/112,896 saved-file pixels. The earlier [file handoff](#image-selection-in-saved-pattern-graphs) gives the version and parameters.
+
 ### Image selection in saved pattern graphs
 
 When opening Arc Pavement, the first image socket is `pattern0`. An omitted `imageindex` selects that socket. MaterialCraft previously wrote an explicit 1 when saving such a graph. The reference app then sampled an empty second socket. MaterialCraft now defaults the index to zero, and its numeric image selector and SBS writer use the same slot numbers. For automation that sets `imageindex` explicitly, use 5 for the sixth connected image. A nonzero positive selector also overrides the slot embedded in pattern codes 256 through 511. A negative selector draws nothing in the measured controls.

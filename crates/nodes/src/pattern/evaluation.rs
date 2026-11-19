@@ -33,6 +33,8 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
         }
     }
 
+    let image_slots: Vec<_> =
+        context.inputs.iter().skip(1).take(crate::MAX_IMAGE_INPUTS).enumerate().filter_map(|(i, image)| image.as_ref().map(|_| i as i32)).collect();
     let mut pending = Vec::new();
     if let Some(root) = graph.root {
         pending.push(PatternVisit { node: root, center: [0.5; 2], extent: 1.0, depth: 0, number: 0, seed: context.seed });
@@ -105,12 +107,16 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
                 visit.center = [visit.center[0] + offset[0], visit.center[1] + offset[1]];
                 let mut pattern = integer("patterntype");
                 if pattern == 1 || (256..256 + crate::MAX_IMAGE_INPUTS as i32).contains(&pattern) {
-                    // Zero uses the slot encoded in the pattern. The generic image pattern starts at slot zero.
-                    pattern = match integer("imageindex") {
-                        0 => pattern.max(256),
-                        index if index > 0 => index.saturating_add(256),
-                        _ => 0,
+                    let requested = integer("imageindex");
+                    let slot = if functions.get(&(node.id, "imageindex")).is_some_and(|program| !program.output_is_literal()) {
+                        // A runtime selector advances across disconnected slots and stops at the last wired image.
+                        let pos = image_slots.partition_point(|&i| i < requested);
+                        image_slots.get(pos).or_else(|| image_slots.last()).copied()
+                    } else {
+                        // A fixed zero preserves the packed slot. The generic image pattern starts at slot zero.
+                        (requested >= 0).then_some(if requested == 0 { pattern.max(256) - 256 } else { requested })
                     };
+                    pattern = slot.map_or(0, |i| i.saturating_add(256));
                 }
                 if pattern != 0 {
                     let offset = vector("frameoffset");

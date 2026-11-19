@@ -449,23 +449,37 @@ fn patterns_reject_cycles_and_bound_exponential_traversal() {
 fn image_selectors_use_zero_based_slots_and_override_packed_patterns() {
     use craft_texture::{Image, Kind};
 
-    let inputs = [None, Some(Image::filled(4, 4, Kind::Gray, [0.25; 4])), Some(Image::filled(4, 4, Kind::Gray, [0.75; 4]))];
+    let gray = |v| Some(Image::filled(4, 4, Kind::Gray, [v; 4]));
+    let inputs = [None, gray(0.25), gray(0.75), None, gray(0.5)];
     let definition = find("fx_map").unwrap();
-    for (pattern, slot, expected) in [
-        (1, None, 0.25),
-        (1, Some(0), 0.25),
-        (1, Some(1), 0.75),
-        (1, Some(2), 0.0),
-        (256, Some(1), 0.75),
-        (257, None, 0.75),
-        (258, Some(1), 0.75),
-        (257, Some(-1), 0.0),
+    for (pattern, slot, computed, expected) in [
+        (1, None, false, 0.25),
+        (1, Some(0), false, 0.25),
+        (1, Some(1), false, 0.75),
+        (1, Some(2), false, 0.0),
+        (256, Some(1), false, 0.75),
+        (257, None, false, 0.75),
+        (258, Some(1), false, 0.75),
+        (257, Some(-1), false, 0.0),
+        (1, Some(2), true, 0.5),
+        (1, Some(12), true, 0.5),
+        (257, Some(-1), true, 0.25),
+        (257, Some(0), true, 0.25),
     ] {
         let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
         let node = &mut graph.nodes[0];
         node.parameters.insert("patterntype".into(), Value::Int(pattern));
+        let mut vars = BTreeMap::new();
         if let Some(slot) = slot {
-            node.parameters.insert("imageindex".into(), Value::Int(slot));
+            let selector = if computed {
+                vars.insert("requested".into(), Value::Int(slot));
+                let mut function = FunctionGraph::default();
+                function.output = Some(function.add("get_integer1", &[], Some(Value::Text("requested".into()))));
+                Value::Function(Box::new(function))
+            } else {
+                Value::Int(slot)
+            };
+            node.parameters.insert("imageindex".into(), selector);
         }
         let parameters =
             resolve_params(definition, &BTreeMap::from([("pattern".into(), Value::PatternGraph(Box::new(graph))), ("color_mode".into(), Value::Bool(false))]));
@@ -479,7 +493,7 @@ fn image_selectors_use_zero_based_slots_and_override_packed_patterns() {
             inputs: &inputs,
             params: &parameters,
             resource: &|_| None,
-            vars: &BTreeMap::new(),
+            vars: &vars,
         };
         let image = (definition.cook)(&context).unwrap().remove(0);
         assert_eq!(image.get(2, 2, false)[0], expected, "pattern {pattern}, slot {slot:?}");
