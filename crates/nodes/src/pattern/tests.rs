@@ -814,7 +814,7 @@ fn reversing_a_render_interval_selects_the_full_extent_of_that_axis() {
         ([0.1875, 0.8125, 0.75, 0.25], [0.19238281, 0.0078125]),
         ([0.8125, 0.1875, 0.75, 0.25], [0.0078125; 2]),
     ] {
-        let region = super::region::Region::for_render(bounds).unwrap();
+        let region = super::region::Region::new(bounds).unwrap();
         assert_eq!(region.point([0, 0], [64, 64]), first_center);
     }
 }

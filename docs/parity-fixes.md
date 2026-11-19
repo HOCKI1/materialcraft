@@ -114,6 +114,38 @@ The standalone Add Sub filter matches **59,904/59,904 pixels across 36 renders**
 
 To reproduce the filter controls use one graph per input layout, with foreground, background and optionally mask. In binding order use slot v=0,1,2 for foreground, background and mask. For each channel c use L=(53x+17y+7xy+35v+61c+3cy+3) mod 251. Use L/255 normally. For signed cases use (L−83.125)/53.5 for the images and (L−83.125)/101 for the mask. Masks and grayscale images take channel zero. Set image bridges to F32 for the color graphs and U8 for the grayscale graph. For each graph use 16² F32 at opacity 1, then 32² at opacity .5 in all four formats. At 64² F32 with signed inputs use .6875 with alpha blending disabled, then .3125 with it enabled. At 32² F32 and opacity .6137 run ignored, straight, premultiplied and source alpha. Finish with signed inputs at 16² F32 and opacity zero, followed by 64² F32 with unsigned inputs and opacity 1. Each series starts at seed 5113 and advances by 17.
 
+### Tiling axes and pattern copy bounds
+
+A square stamp now wraps independently on each enabled axis. A repeated copy contributes only when its bounding box overlaps the tiling interval on every wrapped axis. A copy that only touches an endpoint contributes zero. Extending the render window beyond the tiling rectangle exposes the portions of admitted copies that extend into the larger window. A reversed tiling interval uses [0,1] on that axis. The tests exercise all four masks and both edges of a tangency.
+
+| MaterialCraft compared with the reference | Renders | Exact pixels / compared | Maximum stored-component error |
+|---|---:|---:|---:|
+| Axis-aligned square, two regions, grayscale and RGBA | 112 | 200,704/200,704 | 0 |
+| Default, expanded and reversed regions, RGBA32F | 22 | 90,112/90,112 | 0 |
+| Rotated square, paraboloid, Gaussian and tangent squares, F32 | 81 | 160,564/163,328 | 2.14576721e−6 |
+
+For the first row use maximum blending, an axis-aligned square and a black background. For each of masks 0, X, Y and XY, first use unit render and tiling regions, then render (−.25,1.25,0,1) with tiling (.125,.875,.25,.75). Regions are in left, right, top, bottom order. Render these seven settings, in order, with seed 7949+19j.
+
+| Output | Center offset from (.5,.5) | Stamp size |
+|---|---|---|
+| 16² F32 | (−.46875,−.4375) | (.25,.3125) |
+| 32² U8, U16, F16, F32 | (.421875,.453125) | (.375,.25) |
+| 64² F32 | (−.734375,−.546875) | (.5625,.375) |
+| 64² U16 | (.671875,−.59375) | (.3125,.125) |
+
+At 64² F32 the covered pixel counts for 0, X, Y and XY are 27, 324, 72 and 864 in the unit region and 117, 216, 312 and 576 in the custom region. For the second row, draw the centered half-size square at seed zero and the first row's 16² geometry at seed 1511, both at 64². With render (0,2,0,1) compare the unit and matching tiling regions, tiling disabled and the tiling region omitted. Also render (0,2,0,2) with unit tiling, and (−.5,1.5,0,1) with X tiling. Finally use a unit render window and tiling (.25,.75,.125,.875), reversing X, Y and then both axes. Repeat the last setting with tiling disabled.
+
+For the final row, render each F32 shape separately at the following settings. Capture X, Y and XY tiling and the individual untiled copies offset by integer multiples of the tiling interval. The pixelwise maximum of the admitted untiled reference copies reproduces all 32,256/32,256 pixels in the 18 tiled reference renders, maximum zero. The cross-application counts above include the separate shape renders. Small radial-profile differences remain.
+
+| Shape | Output | Center | Size | Turns | Tiling region | Render region | Seed of tiled image |
+|---|---:|---|---|---:|---|---|---:|
+| Square | 64×64 | (0.0625, 0.21875) | (0.34375, 0.40625) | 0.125 | (0.125, 0.875, 0.25, 0.75) | (-0.25, 1.25, -0.5, 1.5) | 3322 |
+| Square | 16×32 | (1.390625, 0.8125) | (0.53125, 0.6875) | -0.1875 | (-0.375, 1.125, -0.125, 0.75) | (-0.75, 1.5, -0.5, 1.25) | 3393 |
+| Paraboloid | 32×64 | (-0.234375, 0.109375) | (0.21875, 0.3125) | 0.25 | (0.3125, 0.6875, 0.25, 0.625) | (-0.25, 1.25, -0.375, 1.375) | 3464 |
+| Gaussian | 32×64 | (0.21875, -0.15625) | (0.5625, 0.4375) | 0 | (-0.375, 0.125, -0.625, 0.125) | (-0.875, 0.625, -1, 0.625) | 3535 |
+| Square | 32×32 | (0.125, 0.875) | (0.25, 0.5) | 0 | (0.25, 0.75, 0.125, 0.875) | (0, 1, 0, 1) | 3606 |
+| Square | 32×32 | (0.875, 0.125) | (0.25, 0.5) | 0 | (0.25, 0.75, 0.125, 0.875) | (0, 1, 0, 1) | 3677 |
+
 ### Stored input resizing and grayscale Levels controls
 
 Directional noise at 16² now matches all 256 F32 pixels after its 8×16 U16 Blend. Before the fix, the Blend matched 128/128 and the following Levels matched 59/256, with a maximum F32 error of 8.49366188e−6. The remaining first difference at the 32² default is in a U16 FX-Map, with 31/32 pixels equal and a one-level maximum error. On the 64² F32 case, 4,037/4,096 final pixels match with maximum error 3.36766243e−5. The maximum across the earlier comparison was 2.94148922e−5. The larger exact count and the higher maximum are both retained below. [Square and rectangular generator inputs and seeds](#square-and-rectangular-pattern-generators)

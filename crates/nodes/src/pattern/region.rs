@@ -12,14 +12,10 @@ impl Region {
             return Err("pattern regions must be finite with nonzero width and height".into());
         }
 
-        Ok(Self { start, span })
-    }
-
-    pub fn for_render(value: [f32; 4]) -> Result<Self, String> {
-        let mut region = Self::new(value)?;
+        let mut region = Self { start, span };
         for (start, span) in region.start.iter_mut().zip(&mut region.span) {
             if *span < 0.0 {
-                // A reversed render interval selects the full axis in pattern space.
+                // A reversed interval selects the full axis in pattern space.
                 *start = 0.0;
                 *span = 1.0;
             }
@@ -43,18 +39,27 @@ impl Region {
     }
 
     pub fn period(&self) -> [f32; 2] {
-        self.span.map(f32::abs)
+        self.span
     }
 
-    pub fn repeats(&self, center: [f32; 2], radius: [f32; 2], period: [f32; 2]) -> Result<[[i32; 2]; 2], String> {
+    pub fn repeats(&self, render: &Self, center: [f32; 2], radius: [f32; 2], axes: [bool; 2]) -> Result<[[i32; 2]; 2], String> {
         let mut result = [[0; 2]; 2];
         for axis in 0..2 {
-            let end = self.start[axis] + self.span[axis];
-            let first = ((self.start[axis].min(end) - center[axis] - radius[axis]) / period[axis]).ceil();
-            let last = ((self.start[axis].max(end) - center[axis] + radius[axis]) / period[axis]).floor();
+            if !axes[axis] {
+                continue;
+            }
+            let period = f64::from(self.span[axis]);
+            let start = f64::from(self.start[axis]);
+            let visible = f64::from(render.start[axis]);
+            let center = f64::from(center[axis]);
+            let radius = f64::from(radius[axis]);
+            // A copy must overlap both windows. Touching an edge alone does not draw it.
+            let first = ((start.max(visible) - center - radius) / period).floor() + 1.0;
+            let last = (((start + period).min(visible + f64::from(render.span[axis])) - center + radius) / period).ceil() - 1.0;
 
             // A tiny period or huge pattern cannot create unbounded work, even outside the image
-            if !first.is_finite() || !last.is_finite() || first < i32::MIN as f32 || last >= i32::MAX as f32 {
+            let coordinates = f64::from(i32::MIN)..=f64::from(i32::MAX);
+            if !coordinates.contains(&first) || !coordinates.contains(&last) {
                 return Err("pattern repetition exceeds its coordinate budget".into());
             }
 

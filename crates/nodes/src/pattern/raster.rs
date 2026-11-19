@@ -34,10 +34,18 @@ pub(super) fn render(context: &CookContext, stamps: &[PatternStamp], max_depth: 
     let pixels = Arc::make_mut(&mut data);
     let mut budget = MAX_SAMPLES;
     let mut copies_left = MAX_STAMP_COPIES;
-    let render_region = Region::for_render(context.v4("render_region"))?;
+    let render_region = Region::new(context.v4("render_region"))?;
     let span = render_region.period();
     let pixel_size = [span[0] / width as f32, span[1] / height as f32];
-    let period = if context.tile { Region::new(context.v4("tiling_region"))?.period() } else { [1.0; 2] };
+    let axes = context.tiling_axes();
+    let mut tiling = context.v4("tiling_region");
+    for (interval, enabled) in tiling.as_chunks_mut::<2>().0.iter_mut().zip(axes) {
+        if !enabled {
+            *interval = [0.0, 1.0];
+        }
+    }
+    let tile_region = Region::new(tiling)?;
+    let period = tile_region.period();
     let mut mipmaps = bitmap::Mipmaps::new();
 
     for stamp in stamps {
@@ -93,10 +101,13 @@ pub(super) fn render(context: &CookContext, stamps: &[PatternStamp], max_depth: 
             (stamp.size[0] * cosine).abs() * 0.5 + (stamp.size[1] * sine).abs() * 0.5,
             (stamp.size[0] * sine).abs() * 0.5 + (stamp.size[1] * cosine).abs() * 0.5,
         ];
-        let center = if context.tile { std::array::from_fn(|axis| stamp.center[axis].rem_euclid(period[axis])) } else { stamp.center };
-        let repeats = if context.tile { render_region.repeats(center, radius, period)? } else { [[0, 0]; 2] };
+        let center = std::array::from_fn(|axis| if axes[axis] { stamp.center[axis].rem_euclid(period[axis]) } else { stamp.center[axis] });
+        let repeats = tile_region.repeats(&render_region, center, radius, axes)?;
         let count = |axis: usize| (i64::from(repeats[axis][1]) - i64::from(repeats[axis][0]) + 1).max(0) as u64;
         let copies = count(0).checked_mul(count(1)).ok_or("pattern repetition exceeds its budget")?;
+        if copies == 0 {
+            continue;
+        }
         copies_left = copies_left.checked_sub(copies).ok_or("pattern repetition exceeds its budget")?;
         for repeat_y in repeats[1][0]..=repeats[1][1] {
             for repeat_x in repeats[0][0]..=repeats[0][1] {
