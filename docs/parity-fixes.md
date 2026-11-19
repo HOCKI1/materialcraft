@@ -1042,6 +1042,49 @@ Every row includes the four original defaults, seed and parameter renders, the 6
 
 The trapezoid pair each has two remaining differences across the archived and new comparisons. The [four-format inventory](#four-format-inventory-comparison) lists the original changed settings and port names.
 
+### Per-pixel random initialization
+
+The first four calls to `rand(1)` at pixel (0,0) of a 32² graph give (6046590,4572138,703596,3572932) / 2²³ at seed zero. At seed one they give (3086392,1966280,4339094,3323762) / 2²³. At (16,1) of a 32×16 graph, seed 42 gives (3941566,2846122,6888364,1390724) / 2²³. These observations distinguish the graph seed, position, resolution and draw order.
+
+Start a 32-bit hash at zero. In order, mix the integer graph seed and the F32 bit patterns of the normalized texel center ((x+.5)/width,(y+.5)/height). For each word, set `t=(h+word)×1025` and `h=t XOR (t >> 6)`. Finish with `t=h×9` and `s=(t XOR (t >> 11))×32769`. All products and sums wrap to 32 bits. Use the low 24 bits of s to start the [measured pixel draw sequence](#pixel-processor-random-draws). This is the word-wise form of the public one-at-a-time mixing operation. [Bob Jenkins, Hash Functions](https://burtleburtle.net/bob/hash/doobs.html)
+
+All **95,512/95,512 RGBA32F pixels in 337 direct renders** match, maximum component error zero. The earlier 13 four-draw images and 16 fan-out and scaling controls account for 53,568 pixels. For 288 new controls, set absolute width×height to 1×1, 1×2, 1×8, 1×32, 1×256, 2×1, 2×2, 8×1, 8×2, 8×8, 32×1 or 256×1. Use parent side 16 and seeds 0–5, 7, 8, 16, 17, 31, 32, 42, 127, 128, 255, 256, 257, 4095, 65535, 65536 and 16777216. Repeat seed zero at parent sides 32 and 64. The last 20 controls use 64×8, 8×64, 16×128 and 128×16 at seeds 0, 73, 983, 879201 and 16777217.
+
+| Root | Renders | Exact pixels / compared | Maximum U8 / U16 levels | Maximum F16 / F32 error |
+|---|---:|---:|---:|---:|
+| Volume environment light | 39 | 31,387/31,488 | 0 / 0 | 0 / 0.000266551971 |
+| 3D Worley noise | 34 | 312,832/312,832 | 0 / 0 | 0 / 0 |
+| Dissolve | 28 | 183,040/183,040 | 0 / 0 | 0 / 0 |
+| Diffusion RGBA pass | 19 | 143,872/143,872 | 0 / 0 | 0 / 0 |
+| Diffusion UV pass | 19 | 143,872/143,872 | 0 / 0 | 0 / 0 |
+| Diffusion grayscale pass | 19 | 143,872/143,872 | 0 / 0 | 0 / 0 |
+| Diffusion normal pass | 19 | 143,872/143,872 | 0 / 0 | 0 / 0 |
+| Flood Fill random color | 19 | 143,501/143,872 | 0 / 1 | 0 / 1.52587891e-05 |
+| Flood Fill random grayscale | 19 | 143,795/143,872 | 0 / 1 | 0 / 1.52587891e-05 |
+| Flood Fill 2 color | 19 | 143,858/143,872 | 0 / 1 | 0 / 1.42455101e-05 |
+| Flood Fill 2 grayscale | 19 | 143,871/143,872 | 0 / 0 | 0 / 5.96046448e-06 |
+| Flood Fill 2 random color | 19 | 143,487/143,872 | 0 / 1 | 0 / 1.52587891e-05 |
+| Flood Fill 2 random grayscale | 19 | 143,800/143,872 | 0 / 1 | 0 / 1.52587891e-05 |
+| Shape Splatter blend | 18 | 171,264/171,264 | 0 / 0 | 0 / 0 |
+| Shape Splatter blend color | 23 | 204,032/204,032 | 0 / 0 | 0 / 0 |
+| Shape Splatter to mask | 4 | 114,688/114,688 | — / — | — / 0 |
+| White Noise fast | 18 | 127,488/127,488 | 0 / 0 | 0 / 0 |
+| White Noise v2 | 19 | 104,036/143,872 | 165 / 39351 | 0.600250244 / 0.751115441 |
+
+The root counts include each root's archived and four-format measurements where available. The earlier measurements specify the [Worley position fields](#3d-volume-mask-and-worley-noise) and [Dissolve inputs](#segment-mapping-and-normal-graph-rechecks). The [volume](#volume-density-dithering-and-color-temperature-controls) and [splatter](#plane-light-splatter-symmetry-and-waveform-comparisons) comparisons give the additional held-out fields for those roots. The remaining 101 environment-light differences are F32. In the 32² density ramp, 987/1,024 pixels match and the maximum error is .000266551971. The mask row covers its four archived F32 renders.
+
+For Worley, Dissolve, the four diffusion passes, six flood-fill outputs and both white noises, add ten renders apiece. At 16² use defaults and seed 17. Use variant A at 32² in U8, U16, F16 and F32 with seed 137. Use variant B at 64²/413 and with a 32×16 field on a 32² graph/673. Use A with a constant 32² field/733, C with a signed 16² field/839, and A again at 32²/1237. All six single-format cases use F32. The two noise generators have no image input. For image pin j (one-based in declared probe order) and zero-based channel c, use H=((79x+53y+11xy+113j+73c+3xc) mod 1019)/1018. A grayscale pin uses channel zero. The constant is (.375,.625,.1875,.8125) and the signed field is 2.5H−.875. Worley uses normalized texel center (u,v) and position (u,v,.5+.25 sin(2π(u+v)),1). For flood-fill cell input, let sx=max(2,floor(width/5)), sy=max(3,floor(height/3)). Store (((x mod sx)+.5)/sx,((y mod sy)+.5)/sy,sx/width,sy/height) and zero cells where (floor(x/sx)+3floor(y/sy)) mod 7 is zero. Constant and signed cases replace these fields. Dissolve pin order is foreground, background, mask. For diffusion it is input/reference/mask/direction (RGBA), input (UV), input/reference/intensity (grayscale) and input/reference (normal). Flood Fill 2 color and grayscale take the cell input first and the color or grayscale field second.
+
+| Parameter | A | B | C |
+|---|---|---|---|
+| Worley scale, mode, style, invert | 9,1,0,off | 13,2,1,off | 3,3,2,on |
+| Dissolve opacity, alpha blending | .5625,on | .3125,off | .8125,on |
+| Diffusion iter, nbIter, dither, normal | 2,5,on,off | 4,7,off,off | 0,3,on,on |
+| Flood Fill 2 color/grayscale filtering | 1 | 0 | 1 |
+| White Noise v2 distribution, disorder, speed | 1,.375,.625 | 0,.8125,1.25 | 1,.1875,.375 |
+
+For Worley also set size (.75,1.25,1.5), Minkowski number .6875, border width .1875 and roundness .3125. Set optional diffusion controls where exposed. For Flood Fill 2 color use HSL adjustment (.125,−.1875,.25) and random range (.375,.625,.1875). For its grayscale equivalent use luminance adjustment −.1875 and random range .625. The random flood-fill outputs and fast white noise have no additional exposed numeric changes in these controls. Each residual flood-fill difference is at most one U16 level or .0000152587891 in F32. Uniform noise selects the measured per-texel stream. The Gaussian distribution in White Noise v2 still diverges.
+
 ### Source image depth and the three noise upscalers
 
 | Root | Renders | Exact grayscale pixels before | Exact grayscale pixels after / compared | Maximum error after |
@@ -1973,7 +2016,7 @@ Here i is the row-major pixel index. The first-octant fit is quartic in the smal
 
 Emit four independent calls to `rand(1)` as RGBA32F. In the reference app the four values recover a unique initial 24-bit state at each of **27,968/27,968 pixels**. Advance the state with `s=(3626811*s+51137) mod 2^24` and return `floor(s/2)/2^23`. The four outputs then match at every pixel, maximum error zero. Use square canvases of sides 8, 16, 32, 64 and 128 at seed zero, also 32² at seeds 1, 2, 42 and 137, and 32×16 and 16×32 at seeds zero and 42. The first 32² pixel starts from 9,091,073 at seed zero and 3,342,178 at seed 42.
 
-Four additional original graphs replicate a single draw to RGBA, reuse two draws in alternating channels, double a reused draw, or apply ranges 1, 1, −2 and .375 to successive draws. At 16², 32² and 64² with seed zero and 32² with seed 42, all **25,600/25,600 reference pixels** agree with the corresponding channel expressions, maximum error zero. The MaterialCraft evaluator now matches the progression given the recovered initial state. Its mapping from pixel position and graph seed to that state remains open. For example, the native and CPU four-draw images at 32² still match 0/1,024 entire pixels at seeds zero and 42, with maximum component errors .995849967 and .989675045.
+Four additional original graphs replicate a single draw to RGBA, reuse two draws in alternating channels, double a reused draw, or apply ranges 1, 1, −2 and .375 to successive draws. At 16², 32² and 64² with seed zero and 32² with seed 42, all **25,600/25,600 reference pixels** agree with the corresponding channel expressions, maximum error zero. The MaterialCraft evaluator now matches the progression given the recovered initial state. Before the [per-pixel initialization fix](#per-pixel-random-initialization), the native and CPU four-draw images at 32² matched 0/1,024 entire pixels at seeds zero and 42, with maximum component errors .995849967 and .989675045.
 
 ### Color conversion, checker and clone
 
@@ -2755,7 +2798,7 @@ Use the first-pass linear position texture. For side `N`, store RGBA8 `(floor(25
 
 **Mask.** The 128² cylinder with default rotation, size and feathering gives 16,379/16,384 exact LUM16 pixels, with maximum error 1. The RGBA16 position bridge matches all 16,384 pixels. In LUM32F, changing only cylinder rotation gives 564/16,384 (1.907349e-6), only size gives 14,088/16,384 (9.536743e-7), and only feather width gives 13,716/16,384 (3.814697e-6). A cube with `position_input=1` and `position_worldspace=(.375,.375,.5)` matches 16,384/16,384 float pixels exactly.
 
-**Worley.** With a constant input position of `(0,0,0,255)`, no LUM32F pixel matches in the 32² default case at seed 0 (maximum .02120566) or seed 42 (.07068205). The graph's internal random table uses four draws. A standalone Pixel Processor writing four successive `rand(1)` values to RGBA16 reproduces a discrepancy before any cell-distance calculation. It gives 0/1,024 exact pixels at 32², seed 0 (maximum 65,122), 0/16,384 at 128², seed 0 (65,136), and 0/16,384 at 128², seed 42 (65,348). At seed 0 the first reference pixel changes with resolution, from `(47238,35719,5497,27913)` to `(37730,56747,64327,4184)`. MaterialCraft returns `(42015,40251,56435,61318)` at both sizes. The random sequence and any residual differences in the distance calculation remain open.
+**Worley.** With a constant input position of `(0,0,0,255)`, no LUM32F pixel matches in the 32² default case at seed 0 (maximum .02120566) or seed 42 (.07068205). The graph's internal random table uses four draws. A standalone Pixel Processor writing four successive `rand(1)` values to RGBA16 reproduces a discrepancy before any cell-distance calculation. It gives 0/1,024 exact pixels at 32², seed 0 (maximum 65,122), 0/16,384 at 128², seed 0 (65,136), and 0/16,384 at 128², seed 42 (65,348). At seed 0 the first reference pixel changes with resolution, from `(47238,35719,5497,27913)` to `(37730,56747,64327,4184)`. MaterialCraft returns `(42015,40251,56435,61318)` at both sizes. The subsequent [per-pixel initialization comparison](#per-pixel-random-initialization) covers these settings and the complete 34-render Worley matrix.
 
 ### November 17 validation
 

@@ -794,6 +794,29 @@ fn measured_pixel_reciprocals_preserve_runtime_rounding() {
 }
 
 #[test]
+fn pixel_random_starts_at_the_normalized_texel_center_and_graph_seed() {
+    let mut graph = FunctionGraph::default();
+    let one = graph.add_constant(Value::Float(1.0));
+    graph.output = Some(graph.add("rand", &[one], None));
+    for (seed, width, height, x, y, first_draw) in
+        [(0, 32, 32, 0, 0, 6_046_590), (0, 32, 32, 16, 1, 1_903_037), (1, 32, 32, 31, 31, 6_085_635), (42, 32, 16, 16, 1, 3_941_566)]
+    {
+        let context = EvaluationContext {
+            scope: super::FunctionScope::PixelProcessor,
+            position: [(x as f32 + 0.5) / width as f32, (y as f32 + 0.5) / height as f32],
+            size: [width as f32, height as f32],
+            images: &[],
+            image_formats: &[],
+            tile: true,
+            variables: &BTreeMap::new(),
+        };
+        let program = compile(&graph, seed).unwrap();
+        let value = program.evaluate_pixel(&context, &mut EvaluationState::default()).unwrap();
+        assert_eq!(value, Value::Float(first_draw as f32 / 8_388_608.0));
+    }
+}
+
+#[test]
 fn measured_pixel_random_draws_share_one_stream() {
     let mut graph = FunctionGraph::default();
     let one = graph.add_constant(Value::Float(1.0));

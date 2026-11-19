@@ -1,14 +1,3 @@
-// Lowbias32 integer hash by Chris Wellons, public domain
-#[inline]
-pub fn hash(mut x: u32) -> u32 {
-    x ^= x >> 16;
-    x = x.wrapping_mul(0x7feb_352d);
-    x ^= x >> 15;
-    x = x.wrapping_mul(0x846c_a68b);
-    x ^= x >> 16;
-    x
-}
-
 #[derive(Clone, Copy)]
 pub(crate) struct FunctionRandom {
     state: u32,
@@ -24,6 +13,17 @@ impl FunctionRandom {
 
     pub(crate) fn image(state: u32) -> Self {
         Self { state, multiplier: 3_626_811, increment: 51_137, uniform: false }
+    }
+
+    /// Jenkins one-at-a-time mixing over the graph seed and the two normalized F32 coordinate words.
+    pub(crate) fn pixel(seed: u32, position: [f32; 2]) -> Self {
+        let mut hash = 0_u32;
+        for word in [seed, position[0].to_bits(), position[1].to_bits()] {
+            let mixed = hash.wrapping_add(word).wrapping_mul(1025);
+            hash = mixed ^ (mixed >> 6);
+        }
+        let mixed = hash.wrapping_mul(9);
+        Self::image((mixed ^ (mixed >> 11)).wrapping_mul(32769))
     }
 
     /// Each of these pattern properties starts its own sequence at the traversal seed.

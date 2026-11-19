@@ -86,12 +86,7 @@ impl Program {
     fn random_stream(&self, context: &EvaluationContext<'_>) -> FunctionRandom {
         let seed = context.variables.get("$randomseed").and_then(Value::as_i32).map_or(self.seed, |seed| seed as u32);
         if context.scope == super::FunctionScope::PixelProcessor {
-            // Each pixel owns a deterministic stream, independent of worker scheduling
-            let x = (context.position[0] * context.size[0]).floor() as u32;
-            let y = (context.position[1] * context.size[1]).floor() as u32;
-            FunctionRandom::image(crate::random::hash(
-                seed ^ crate::random::hash(x.wrapping_add(0x9e37_79b9)) ^ crate::random::hash(y.wrapping_add(0x85eb_ca6b)),
-            ))
+            FunctionRandom::pixel(seed, context.position)
         } else if context.scope == super::FunctionScope::FxMap {
             FunctionRandom::image(seed)
         } else {
