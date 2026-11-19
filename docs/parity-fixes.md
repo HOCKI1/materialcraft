@@ -79,6 +79,25 @@ For the 16 additional Bevel renders set position offset (1,1) and supply the con
 
 Standalone signed rectangles and discs still render at both signs of either size component. The 60 color/gray rectangle and gray disc renders match 310,272/310,272 pixels. At 64² a rectangle centered at (.4766544,.6173407), size (.37573713,−.01), rotated −.37499994 turns covers 17 pixels in both applications. A separate directional gradation on the same five geometries and four sign combinations matches 103,316/103,424 pixels. Its maxima are 0 U8, 1 U16, .00006103515625 F16 and .00000011920929 F32.
 
+### Uniform square roots and the UV debug marker
+
+The UV debug marker now cooks all **32** previously measured cases. The 27 cases that already cooked still match every pixel. Across all 32 renders **194,522/217,088 RGBA pixels** match. Maximum errors are 253 U8 levels, 0 U16 levels, 0 F16 and 1 F32. The five formerly rejected renders contribute 218/22,784 exact pixels. At 16² with index 0, count 1 and offset −1, the first output pixel has gray level .360237986 in the reference app and zero in MaterialCraft. At index 1, count 4 and offset 0, both store zero there. The input's first RGB and alpha components differ at this position. Both sibling roots, Compute Irradiance and Compute Ray Direction, retain 217,088/217,088 pixels each across 32 renders each, with error zero. [Wired sample inputs and seeds](#environment-rotation-and-wired-irradiance-samples)
+
+A uniform square root returns positive zero for negative values, either sign of zero, positive subnormals and NaN. Positive normal values use the ordinary F32 square root. For example, sqrt(1.375) has bits `3f9617e3` in a uniform function and `3f9617e2` in a runtime pixel expression. Positive infinity propagates in the comparisons. A literal square root preserves negative zero and accepts a positive subnormal. These distinctions apply before the output is stored. [Runtime pixel square roots](#runtime-pixel-square-roots)
+
+| Original controls | Renders | Exact stored pixels | Exact typed floats | Maximum absolute error |
+|---|---:|---:|---:|---:|
+| Runtime roots and equality predicates | 136 | 26,112/26,112 | 34/34 | 0 |
+| Quotients by zero, literal predicates and positive controls | 52 | 9,984/9,984 | 13/13 | 0 |
+| Raw literal roots | 28 | 5,120/5,376 | 7/7 | 0 |
+| Pattern dimensions, offsets, rotation and color | 35 | 43,520/43,520 | — | 0 |
+
+For the first three rows evaluate the expression independently in a node parameter, pattern, Pixel Processor and Value Processor. The three images are 16² LUM32F. For the first row read the raw square root r and the separate expression [r=0]+2[r=r]. Use −.25, −1, −.00003125, −0, +0, the least positive subnormal, the least positive normal, .0625, .31875, .81234568, 1, 1.375, 2, 3, 7.03125, 1337.125 and 2⁻⁹⁸. Start at seed 4319 and add 11 per entry.
+
+For the quotient controls compute d=a/0 for a=0,−1,1 and output [sqrt(d)=0]+2[sqrt(d)=sqrt(d)]+4[sqrt(d)=d]. The three uniform results are 3, 3 and 6. For the literal predicate pack four equalities into bits 0 through 3. Compare the roots of F32 bits bf800000, 80000000 and 00000001 to zero, and the root of 3f801000 to 3f800800. The other positive and subnormal controls take F32 bits 3f801000, 40300000, 3fe20000, 007fffff, 00800001, 7f000010, 00800000, 3fb3d23a and 3f8081cd. Each series starts at seed 4457 and advances by 13. For the raw literals use −.25, −0, 00000001, 007fffff, 3f801000, 0/0 and −1/0, selected by a runtime index with seeds 4549+13j. The typed results have bits 00000000, 80000000, 1a3504f3, 1fffffff, 3f800800, 00000000 and 00000000. Only the grayscale maximum-blend square with literal −0 differs in the sign of zero at all 256 pixels. The reference image stores +0. The numeric maximum error is zero and the table counts bitwise matches.
+
+For the last row draw a parent square with size (.375,.5), color (.75,.25,.5,1), transparent black background and no tiling. Draw a second square on its upper-left child with local size (.25,.25), color (.25,.75,.125,1), maximum blend and zero roughness. Bind sqrt(t) to the parent's width with height .3125, the X pattern offset, the rotation, the X branch offset or the red channel, one graph per property. Keep Y offsets zero. Render t=.0625 and −.25 at 16² F32, then −.25 at 32² in all four formats, then .25 at 64² F32. Use seeds 4271+13j within each series. Before the square-root fix, the 25 negative-input cases reported a nonfinite function result. Both stamps now evaluate without an error. At 16² a negative input to width leaves the four child pixels visible.
+
 ### Paths, caustics and cell fields after pattern sampling
 
 | Root | Renders | Exact pixels / compared | Maximum U8 / U16 levels | Maximum F16 / F32 error |

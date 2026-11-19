@@ -107,7 +107,11 @@ pub(crate) fn evaluate(
             "floor" => left.floor(),
             "ceil" => left.ceil(),
             "sqrt" if pixel_math => super::square_root::evaluate(left),
-            "sqrt" => left.sqrt(),
+            "sqrt" => {
+                // Literal roots preserve negative zero and positive subnormals. Runtime roots flush both to positive zero.
+                let minimum = if instruction.literal { 0.0 } else { f32::MIN_POSITIVE };
+                if left >= minimum { left.sqrt() } else { 0.0 }
+            }
             "exp" => super::binary_exponential::exp(left, pixel_math),
             "log" if pixel_math => super::binary_exponential::ln(left),
             "log" => super::binary_exponential::uniform_ln(left),

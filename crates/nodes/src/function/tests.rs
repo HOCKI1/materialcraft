@@ -118,6 +118,22 @@ fn uniform_logarithms_and_powers_use_their_measured_domains() {
 }
 
 #[test]
+fn uniform_square_root_clears_negative_and_subnormal_lanes() {
+    for scope in [super::FunctionScope::Node, super::FunctionScope::ValueProcessor, super::FunctionScope::FxMap] {
+        let input = Value::Float4([-0.25, -0.0, f32::from_bits(1), 1.375]);
+        let Value::Float4(result) = scoped_operation(scope, "sqrt", &[input], false) else { panic!("expected four components") };
+        assert_eq!(result.map(f32::to_bits), [0, 0, 0, 1.375_f32.sqrt().to_bits()], "{scope:?}");
+        assert_eq!(scoped_operation(scope, "sqrt", &[Value::Float(f32::MIN_POSITIVE)], false), Value::Float(f32::from_bits(0x20000000)));
+        let special = Value::Float4([f32::NAN, f32::NEG_INFINITY, f32::INFINITY, f32::from_bits(0x3f801000)]);
+        let Value::Float4(result) = scoped_operation(scope, "sqrt", &[special], false) else { panic!("expected four components") };
+        assert_eq!(result.map(f32::to_bits), [0, 0, f32::INFINITY.to_bits(), 0x3f800800]);
+        let literal = Value::Float4([-1.0, -0.0, f32::from_bits(1), f32::from_bits(0x007fffff)]);
+        let Value::Float4(result) = scoped_operation(scope, "sqrt", &[literal], true) else { panic!("expected four components") };
+        assert_eq!(result.map(f32::to_bits), [0, 0x80000000, 0x1a3504f3, 0x1fffffff]);
+    }
+}
+
+#[test]
 fn runtime_pixel_square_root_normalizes_exponents_and_rounds_halfway_down() {
     for (input, expected) in [
         (0x3f801000, 0x3f8007ff),

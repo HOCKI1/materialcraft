@@ -505,7 +505,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [rt_caustics.sbs/rt_caustics_base](../assets/sbs/rt_caustics.sbs) | 3 | Yes | [In progress · 152,777/172,288 pixels in 19 renders](parity-fixes.md#paths-caustics-and-cell-fields-after-pattern-sampling) |
 | [rt_irradiance.sbs/compute_irradiance](../assets/sbs/rt_irradiance.sbs) | 5 | Yes | [Parity · 32 renders, all 217,088 RGBA pixels exact](parity-fixes.md#environment-rotation-and-wired-irradiance-samples) |
 | [rt_irradiance.sbs/compute_ray_direction](../assets/sbs/rt_irradiance.sbs) | 4 | Yes | [Parity · 32 renders, all 217,088 RGBA pixels exact](parity-fixes.md#environment-rotation-and-wired-irradiance-samples) |
-| [rt_irradiance.sbs/debug_hit_uv](../assets/sbs/rt_irradiance.sbs) | 3 | Yes | [In progress · 194,304 exact pixels in 27 renders, five nonfinite cases open](parity-fixes.md#paths-caustics-and-cell-fields-after-pattern-sampling) |
+| [rt_irradiance.sbs/debug_hit_uv](../assets/sbs/rt_irradiance.sbs) | 3 | Yes | [In progress · all 32 renders cook, 194,522/217,088 pixels exact](parity-fixes.md#uniform-square-roots-and-the-uv-debug-marker) |
 | [rt_irradiance.sbs/mip_max](../assets/sbs/rt_irradiance.sbs) | 1 | Yes | [Parity · 167,168 exact pixels in 17 cases](parity-fixes.md#pixel-processor-canvas-and-mip-maxima) |
 | [rt_irradiance.sbs/panoramic_lod](../assets/sbs/rt_irradiance.sbs) | 1 | Yes | [Parity · 18 cases, 186,624 exact pixels](parity-fixes.md#large-transform-offsets-and-additive-blends) |
 | [rt_irradiance.sbs/template/pp_template](../assets/sbs/rt_irradiance.sbs) | 3 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
