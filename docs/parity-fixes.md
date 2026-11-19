@@ -59,6 +59,26 @@ The first pass classifies all 546 roots: 166 Parity and 380 Too hard. These meas
 
 ## 2026-11-19 root comparisons
 
+### Texture sampling in pattern functions
+
+The Bevel Smooth debug position root matches **354,560/354,560 RGBA pixels in 38 renders**, maximum error zero. This includes 12,288 pixels in each of U8, U16 and F16 and 317,696 in F32. Previously the 22 recorded cases matched 285,715/285,952 and the 16 offset controls matched 68,394/68,608. At 64² on the [position field](#segment-mapping-and-normal-graph-rechecks), the incoming image was exact but the last FX-Map drew a 17-pixel diagonal at x=22…38, y=x+9. Its texture read determined the location and angle. The upstream processor, both FX-Maps and the input and output bridges now match 368,640/368,640 pixels across 18 instrumented renders.
+
+A pattern function wraps both axes when sampling an image, including when output tiling is disabled. A nearest read on an exact negative texel boundary takes the preceding texel. For example, (−.125,−.25) in a 32² image selects (27,23). The [value-function filter](#value-processor-texture-filtering) also applies to pattern reads. Its bilinear fractions retain F32 precision. For a gray read from a color source, filter each channel and then evaluate ((G+B)+R) × float32(1/3).
+
+| Original sampler controls | Renders | Previously exact pixels | Exact / compared | Maximum error |
+|---|---:|---:|---:|---:|
+| Nearest and bilinear, color and gray, plus a disconnected sampler | 90 | 190,720 | 422,400/422,400 | 0 |
+| Four input formats, signed coordinates and both output tiling settings | 208 | 36,864 | 212,992/212,992 | 0 |
+| Separate Value Processors, U8 and F32 sources | 52 | — | 52/52 Float4 values | 0 |
+
+For the first row, fill a square stamp from the sampled color, or broadcast the sampled luminosity with alpha one. Use source (x/N, y/N, ((47x+31y+7xy+13) mod 257)/256, 1). For N=16,32,64,128 read (.5,.5) at 16 and (.3125,.6875) at the other sizes. At 64² place a sample (.25,.5,.75,.999 or .001) texels past (20,44) on both axes. Also sample (−.125,.4375), (1.125,1.625), (0,0), (1,1), (.199,.78125) and (.49999,.50001). Finish with (.1234567,.7654321) at 32², (.4891,.9125) at 128² and (.103,.253) at 16². Seeds start at 3877 and increase by 17. Repeat on an empty second image socket with the nearest color sampler.
+
+For the second row use a 32² field with RGB level L=((47x+31y+7xy+13+c(29+3x)) mod 251) in channel c and alpha level 255. For U16 multiply all four levels by 251. For F16/F32 take (L−99.3125)/31.375 and alpha one. Test color and gray in both sampling modes with transparent black behind the stamp. In order, use (−.125,−.25), (−4.001,−7.999)/32, (0,0), (1,−1), (2.25,−1.625), (.3125,.6875), (.5,6.5)/32, (.0013121,.998713), (.71897,.39151), (.625,.427), (−.12,.016), (1.0311,−.65315) and (.920211,.090037). Start at seed 3989 plus the storage index in U8/U16/F16/F32 order and add 11 per coordinate. Enable tiling when the storage index plus the bilinear and grayscale flags is odd. At (.71897,.39151) the U8 bilinear red has F32 bits `3e90e1aa` and its luminosity has bits `3ef8d016`. The separate value graphs use the same coordinates and return the color directly.
+
+For the 16 additional Bevel renders set position offset (1,1) and supply the constant RGBA32F field (p.x+d.x, p.y+d.y, .375, a). Default to p=(.3125,.6875), a=1, debug mode on, 64² F32. Start with p=(.5,.5) at 32² and d=(0,0), then the default p with d=(0,0). Use d=(.1875,−.1875) in all four formats, then (.1875,.1875), (.1875,0) and (0,.1875). Repeat (.1875,−.1875) with a=0, then at 128² and 32² with a=1. For the mode-off cases use p=(.25,.75), d=(.0625,.0625) and then d=(−.125,.375), a=.5 at 32². Finish with p=(.25,.75), d=(−.2,.3) and the default p with (.1875,−.1875), mode on. Seed j is 3659+17j, starting at j=0.
+
+Standalone signed rectangles and discs still render at both signs of either size component. The 60 color/gray rectangle and gray disc renders match 310,272/310,272 pixels. At 64² a rectangle centered at (.4766544,.6173407), size (.37573713,−.01), rotated −.37499994 turns covers 17 pixels in both applications. A separate directional gradation on the same five geometries and four sign combinations matches 103,316/103,424 pixels. Its maxima are 0 U8, 1 U16, .00006103515625 F16 and .00000011920929 F32.
+
 ### Integer and oblique directional blur
 
 | Root | Renders | Previous exact pixels | Exact / compared | Maximum error |
@@ -105,6 +125,10 @@ For the independent stripes use U8 inputs at (side, radius) (32,2.375), (64,3.12
 For the code patches, assign k=16⌊y/16⌋+⌊x/16⌋ on a 256² field and store channels (k,k+1,k+67,k+129) modulo 256. The other inputs are 64² row fields or a 32² one-level pulse across four base levels. One row field uses `((31y+7y²+17) mod 128)+32+c`. The other uses `U=((117y+53y²+17) mod 251)`, with channels U, (U+12) mod 256 and the transposes of both. In the pulse field add one to (0,4,45,184) every eighth row. For the U16 inputs, scale each code by 257 and add 29c below code 255. Use the same four radii at .125 turns and seeds 3433–3436 in field order. Store each U8 source in U8, U16 and F32, and each U16 source in U16 and F32. All 299,008 U8 output pixels in this set match.
 
 The 38 instrumented color and grayscale anisotropic renders compare 304 graph images, including the input and output bridges. 2,560,000/2,560,000 pixels match, maximum stored-component error 0. Six other roots with a reachable directional blur retain all 790,528 exact pixels in 52 renders.
+
+Four additional large and rectangular-source anisotropic stage captures match 278,528/278,528 pixels in 32 images. Reloading the package for each color or grayscale pair took 506.09 seconds in total. Repeating the same four captures with the open package took 4.14 seconds. All raw readbacks were byte-identical. The graph size, seed, numeric controls, source bindings and output format were restored between captures.
+
+The high-quality color and grayscale blur graphs each have 65 observed images across their 128² changed input and four archived controls. The final outputs match 131,072/131,072 pixels in each graph. Across all observed images, color matches 1,703,770/1,703,936 and grayscale 1,703,876/1,703,936. At the default 256² input, four directional passes and one intermediate blend differ by at most one U8 level in each graph.
 
 ### Bitmap stamp filtering and compositing
 

@@ -651,6 +651,36 @@ fn paired_sums_keep_the_same_product_unrounded() {
 }
 
 #[test]
+fn pattern_texture_reads_wrap_negative_edges_and_keep_fractional_weights() {
+    let image = Image::generate(32, 32, Kind::Color, |x, y| {
+        let channel = |c: u32| ((47 * x + 31 * y + 7 * x * y + 13 + c * (29 + 3 * x)) % 251) as f32 / 255.0;
+        [channel(0), channel(1), channel(2), 1.0]
+    })
+    .with_integer_sampling(true);
+    let context = EvaluationContext {
+        scope: super::FunctionScope::FxMap,
+        position: [0.5; 2],
+        size: [32.0; 2],
+        images: &[Some(image)],
+        image_formats: &[materialcraft_core::OutputFormat::U8],
+        tile: false,
+        variables: &BTreeMap::new(),
+    };
+    for (uv, mode, color, gray) in [
+        ([-0.125, -0.25], 0, [0x3e868687, 0x3f31b1b2, 0x3e109091, 0x3f800000], 0x3ebb6612),
+        ([0.71897, 0.39151], 1, [0x3e90e1aa, 0x3f25d28e, 0x3f06f4bc, 0x3f800000], 0x3ef8d016),
+    ] {
+        let mut graph = FunctionGraph::default();
+        let position = graph.add_constant(Value::Float2(uv));
+        for (sampler, expected) in [("samplecol", Value::Float4(color.map(f32::from_bits))), ("samplelum", Value::Float(f32::from_bits(gray)))] {
+            graph.output = Some(graph.add(sampler, &[position], Some(Value::Int2([0, mode]))));
+            let value = compile(&graph, 0).unwrap().evaluate(&context, &mut EvaluationState::default()).unwrap();
+            assert_eq!(value, expected);
+        }
+    }
+}
+
+#[test]
 fn pixel_gray_sampler_combines_stored_color_channels_after_reading() {
     let mut graph = FunctionGraph::default();
     let position = graph.add_constant(Value::Float2([0.5; 2]));

@@ -128,10 +128,11 @@ pub(crate) fn evaluate(
             // Pixel samplers repeat both texture axes independently of the processor's output tiling.
             let repeat = context.scope == super::FunctionScope::PixelProcessor || context.tile;
             let image = context.images.get(index).and_then(Option::as_ref);
+            let uniform_sampler = matches!(context.scope, super::FunctionScope::ValueProcessor | super::FunctionScope::FxMap);
             let pixel = match image {
-                Some(image) if context.scope == super::FunctionScope::ValueProcessor => {
+                Some(image) if uniform_sampler => {
                     let format = context.image_formats.get(index).copied().unwrap_or(materialcraft_core::OutputFormat::F32);
-                    crate::texture_sampler::sample_value(image, [position[0], position[1]], format, setting[1] != 0)
+                    crate::texture_sampler::sample_uniform(image, [position[0], position[1]], format, setting[1] != 0)
                 }
                 Some(image) if setting[1] == 0 => {
                     image.get((position[0] * image.width() as f32).floor() as i64, (position[1] * image.height() as f32).floor() as i64, repeat)
@@ -146,7 +147,7 @@ pub(crate) fn evaluate(
 
             if op == "samplecol" {
                 Value::Float4(pixel)
-            } else if matches!(context.scope, super::FunctionScope::PixelProcessor | super::FunctionScope::ValueProcessor)
+            } else if (uniform_sampler || context.scope == super::FunctionScope::PixelProcessor)
                 && image.is_some_and(|texture| texture.kind() == craft_texture::Kind::Color)
             {
                 Value::Float(((pixel[1] + pixel[2]) + pixel[0]) * (1.0 / 3.0))

@@ -6,8 +6,8 @@ pub fn resize_input_level(image: &Image, width: u32, height: u32, format: Output
     Image::generate_uv(width, height, image.kind(), |u, v| sample(image, [u, v], tiling, format, None))
 }
 
-/// A value function filters the stored channel levels using full-precision texel fractions.
-pub(crate) fn sample_value(image: &Image, uv: [f32; 2], format: OutputFormat, bilinear: bool) -> [f32; 4] {
+/// Value and pattern functions filter stored channel levels using full-precision texel fractions.
+pub(crate) fn sample_uniform(image: &Image, uv: [f32; 2], format: OutputFormat, bilinear: bool) -> [f32; 4] {
     if !uv.iter().all(|v| v.is_finite()) {
         return [0.0, 0.0, 0.0, 1.0];
     }
@@ -18,7 +18,9 @@ pub(crate) fn sample_value(image: &Image, uv: [f32; 2], format: OutputFormat, bi
         // At extreme magnitudes the UV is a whole number of repeats. Keep neighboring indices bounded.
         let texel = if scaled.is_finite() { scaled - offset } else { -offset };
         let first = texel.floor();
-        ((first % extent) as i64, texel - first)
+        // A nearest read exactly on a negative texel boundary belongs to the preceding texel.
+        let previous = !bilinear && texel < 0.0 && texel == first;
+        ((first % extent) as i64 - i64::from(previous), texel - first)
     };
     let (x, dx) = axis(uv[0], image.width());
     let (y, dy) = axis(uv[1], image.height());
