@@ -156,6 +156,43 @@ For the threshold series, take the 128² U16 field from j=0 at the 32² setting.
 
 For the two signed series, generate a 32² U16 image with level ((17x+113y+59xy+19)×7919) mod 65536. Reduce to 8² U8, F16 and F32. At seed 15709 test box intensities 0, 2⁻¹⁰, 3.2, 16, −2⁻¹⁰ and −3.2. At U8 the row-zero pixels at columns 2 and 5 are 145 and 139 at zero and 146 and 140 at ±3.2. At seed 15709, repeat both filter types at 0, 2⁻¹⁰, 3.2, −3.2, 64 and −64, with an eighth turn for directional blur. The +64 directional F32 result matches 62/64 pixels, maximum 2.98023224e−8. The independent directional angles retain the F32 differences shown above.
 
+### Fibers and Fluid pattern stages
+
+All four roots first differ in their FX-Map. Each row covers 24 full-root renders and compares 5,120 pixels each in U8 and F16, 285,696 in U16 and 128,256 in F32. Cells show exact pixels and the largest absolute error in that storage format.
+
+| Package and root | All formats, exact / compared | U8 | U16 | F16 | F32 |
+|---|---:|---:|---:|---:|---:|
+| `fibers_1.sbs/fibers_1` | 416,631/424,192 | 5,120 · 0 | 280,553 · 1 | 5,116 · 3.05175781e-05 | 125,842 · 1.53183937e-05 |
+| `fluid.sbs/fluid` | 423,928/424,192 | 5,120 · 0 | 285,544 · 201 | 5,120 · 0 | 128,144 · 0.00306707621 |
+| `noise_fluid.sbs/fluid` | 396,306/424,192 | 5,118 · 1 | 263,238 · 79 | 5,103 · 0.0009765625 | 122,847 · 0.00108343363 |
+| `pattern_fibers_1.sbs/fibers_1` | 416,669/424,192 | 5,120 · 0 | 280,422 · 1 | 5,116 · 3.05175781e-05 | 126,011 · 1.53183937e-05 |
+
+Start with the four archive renders and the five [precision and independent runs](#four-format-inventory-comparison). Use the following settings for the additional 15 runs. The indices are 137 and 361 for Fibers and Pattern Fibers, and 153 and 272 for Fluid and Noise Fluid, respectively.
+
+| Controls in graph order | A | B | C |
+|---|---|---|---|
+| Fibers, tiling | 1 | 2 | 3 |
+| Pattern Fibers, tiling and non-square expansion | 1, on | 2, off | 3, on |
+| Fluid, disorder, warp intensity, flow, pattern length, pattern width | 0, 0, 0, .5, .5 | .3125, 17, .1875, .625, .25 | .71875, 41, −.125, .8125, .375 |
+| Noise Fluid, scale, disorder, warp intensity, pattern size, non-square expansion | 1, 0, 0, (.5,1), on | 2, .3125, .1875, (.625,.25), off | 3, .71875, .4375, (.8125,.375), on |
+
+At 16² use defaults in F32. At 32² use A in F32, then B in U8, U16, F16 and F32. Use C at 64×32 in F32 and 32×64 in U16. At 64² use B in F32. The seeds are 31721+7i plus offsets 0, 1, 2, 2, 2, 2, 6, 7 and 8, where i is the root index. The last six profiles are 128² F32 at defaults/41713, 256² F32 at defaults/0, 256² U16 at defaults/41713, 256×128 F32 and 128×256 U16 at B/13217, and 256² U16 at C/6217.
+
+In Fluid at 256² and seed 0, three of the 16,384 U8 pattern samples differ by a single level. At (76,1) the local and reference levels are 139 and 140. At (17,104) they are 226 and 225, and at (43,110) they are 210 and 209. At C and seed 6217 only (5,45) differs, at 212 and 213. Reconnect the downstream filters to a 128² grayscale input with the same stored format. Using the locally rendered field reproduces the 112 differing default output pixels in U16 and F32 and the 40 differing pixels in the C U16 output. Adjusting the three default samples or the single C sample in the scratch control makes all 65,536 output pixels exact in each of the three comparisons with the original root.
+
+The two versions of each input field were measured at 256² U16 and F32. Three independent 128² byte inputs add four output formats each. At texel (x,y) the first field is (11x+31y+7xy+93) mod 256. The second is 237 on the main diagonal and 13 elsewhere. The third is 128 when (x+13y) mod 23 is zero and 127 elsewhere. Use seeds 16319, 16390 and 16461, with defaults for the first two and C for the third. The 20 renders match all **1,310,720 output pixels**, and all 6,225,920 pixels in the 200 observed stage images, maximum zero.
+
+For each graph, connect its pattern primitive directly to the graph output. Use defaults at 128²/0, 256²/0 and 256²/41713, then C at 256²/6217. Also repeat 256² defaults at seed 0 in a second visit. Each visit covers U8, U16, F16 and F32. The primitive's own size rules apply within the parent. Check the resolved storage in both apps. The isolated native U8, U16 and F32 buffers also match those of the full graph with the same pattern storage in all 60 paired captures.
+
+| Isolated pattern | Exact / compared in 20 renders | U8 max | U16 max | F16 max | F32 max |
+|---|---:|---:|---:|---:|---:|
+| fibers_1.sbs/fibers_1 | 347,323/458,752 | 1 | 1 | 0.00048828125 | 1.10268593e-06 |
+| fluid.sbs/fluid | 217,580/278,528 | 1 | 1 | 0.00048828125 | 4.17232513e-06 |
+| noise_fluid.sbs/fluid | 209,826/278,528 | 1 | 2 | 0.00048828125 | 2.87890434e-05 |
+| pattern_fibers_1.sbs/fibers_1 | 347,323/458,752 | 1 | 1 | 0.00048828125 | 1.10268593e-06 |
+
+The isolated Fibers primitives use Gaussian stamps. Both Fluid primitives use the asymmetric quartic profile at a quarter turn and variation .779999971. Their remaining differences are present in the pattern output before the downstream transform, blur, Levels and warp filters. The [single-stamp measurements](#horizontal-stamp-slope-and-height) constrain the shared coordinate calculation.
+
 ### Stored grayscale stops and scalar Levels controls
 
 Three fractal sum roots match **436,992/436,992 output pixels across 54 renders**, maximum error zero. Each root contributes 119,808 U16, 5,120 U8, 5,120 F16 and 15,616 F32 pixels. Use the nine inventory renders and the nine seed, size and parameter profiles recorded with the [box blur measurements](#box-blur-and-signed-pixel-sizes). The comparisons include defaults, changed roughness and opacity, restricted octave ranges and both rectangular orientations. All reachable stage images in the nine instrumented renders per root also match.
@@ -497,6 +534,16 @@ The new stage captures compare 2,140,795/2,835,040 pixels across 1,452 images, i
 | LUM16F | 50 | 53,124/63,488 | 0.453125 |
 | LUM32F | 188 | 250,004/341,504 | 0.877987966 |
 | LUM8 | 66 | 60,369/65,184 | 115 |
+
+### Horizontal stamp slope and height
+
+An original single horizontal gradient stamp changes its F32 slope when only its height changes. For example, use size (24,16) in pixel units, center (64,64), zero rotation, zero roughness, opacity 1 and disabled tiling on a 128² canvas. Repeat with heights 33 and 63.25. Against the nearest F32 to 2/24, the only compatible F32 horizontal slopes are respectively 0, −2 and 0 representable steps away. Each nonempty row within each image has identical stored pixels. Moving a 48.125×32 stamp by .5 pixel horizontally also changes its slope by one representable step. These height and origin controls constrain the coordinate calculation for the [tiled radial stamps](#tiled-radial-stamp-coordinates).
+
+To recover the slope, use every interior sample of the horizontal ramp. For each candidate F32 slope s near 2/width, bound the intercept b at every pixel center x by requiring the stored ramp to equal F32((trunc32(sx+b)+1)/2). The intersection of those bounds identifies the possible slopes. The 198 F32 renders below give **3,304,944/3,428,352 exact pixels** with the current renderer, maximum 2.38418579e−7.
+
+For the first 55 renders, use sizes in pixels and offsets from the canvas center. For each width in [12,20,24,40,48], keep height 16 and visit sides 64, 128 and 256 in order. At side 128 render widths [12,24,40,48] for each (horizontal offset, height) in [(7,16),(.375,16),(0,33),(0,63.25),(11.25,48)]. At height 32 place the left edge of widths 24, 48 and 96 at x in [−2,0,1.125,3.5]. Finally, offset a 48.125×32 stamp horizontally by [0,.25,.5,.75,1,1.5,7.5,32]. Use seed 31237+19j in the order given, starting at j=0.
+
+The next 143 renders use side 128 and seed 41249+17j. Center width 24 and set height to [4,5,6,7,8,9,10,11,12,13,14,15,15.125,15.75,15.984375,16,16.015625,16.25,16.875,17,18,19,20,21,22,23,24,25,31,32,33,34,39,40,47,48,63,64,80,96,121]. For each width/height pair [(24,16),(24,17),(24,16.25),(24,16.875),(24,32),(48.125,32),(32,16)], use offsets [(0,.25),(0,.5),(0,.75),(0,1),(.5,.5),(.125,−3.5)]. Finally center every width in [20,30,32,40,48,64] at each height in [8,16,17,24,31,32,33,40,48,64]. The general slope calculation remains open.
 
 ### Tiled radial stamp coordinates
 
