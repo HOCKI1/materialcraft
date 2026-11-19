@@ -808,6 +808,29 @@ Every row includes the four original defaults, seed and parameter renders, the 6
 
 The trapezoid pair each has two remaining differences across the archived and new comparisons. The [four-format inventory](#four-format-inventory-comparison) lists the original changed settings and port names.
 
+### Beveled square, gradient and wave stamps
+
+The pattern Tile Generator matches **217,222/226,048** pixels in 43 renders. Before the profile changes it matched 182,039/226,048. U8 matches 16,381/16,384 and U16 matches 162,929/164,608, each with maximum error one level. F16 matches 15,234/16,384 with maximum .0009765625. F32 matches 22,678/28,672 with maximum 3.33786011e−6. The root remains in progress.
+
+Start with the [four-format inventory inputs](#four-format-inventory-comparison) and add 34 renders. Use defaults, then set X Amount and Y Amount to (1,1) and (2,2). For these three configurations run 16² U16, 32² F32 and 64² in four formats. With (2,2) select pattern identifiers 2, 3, 4, 5, 6, 8, 10 and 11 individually, at 32² F32 and 64² U16. In the order given, the eleven configurations use seed 111+19j starting at j=0.
+
+| Single-stamp controls | Renders | Exact stored pixels / compared | Largest stored error¹ |
+|---|---:|---:|---:|
+| Beveled square | 119 | 451,766/578,816 | 1 |
+| Horizontal and vertical gradients | 40 | 116,093/163,840 | 1 |
+| Wave frequency at eight variations | 8 | 43,727/131,072 | 1.93715096e-06 |
+| Translated and out-of-range bevel and wave | 24 | 74,072/98,304 | 1 |
+
+¹ Integer errors use stored levels. The bevel’s maximum F32 error is 3.81469727e−6, the gradient’s is 5.96046448e−8 and the wave’s is 1.93715096e−6 in the first three sets, respectively.
+
+For shape 9 the two axes fade independently. On each axis take t=clamp((1−abs(x))/variation,0,1) and apply 3t²−2t³, then multiply the axis results. A nonpositive variation produces a flat stamp. At local coordinates (−.984375,0) and (−.984375,−.984375) with variation .0625, the stored F32 values have bits 3e200000 and 3cc80000. The independent bevel controls use variations 0, .0625, .125, .25, .375, .5, .75, .875 and 1 with seeds 133+11j. Render a unit stamp at 16² and 32² F32, 64² in four formats and 128² F32. At 0, .25, .5 and 1 add a quarter-turn and a (.875,.625) stamp at .0625 turns with offset (.125,−.1875).
+
+For shape 10, scale the horizontal ramp (x+1)/2 by 1−max(variation,0). In an additive F32 output, variation 1.25 produces a negative ramp. At 64², compare zero turns and .25 turns for variations −.25, 0, .0625, .1875, .25, .375, .5, .75, 1 and 1.25, seeds 101+7j. Under maximum blending the reference’s zero-variation ramp, scaled and clipped for each variation, predicts all 81,920 F32 texels. The full renderer comparison includes placement error.
+
+For shape 11 the radial term is max(0,1−x²−y²). In eight 128² F32 unit-stamp fields, multiplying the measured column waveform by the reference radial stamp gives 131,072/131,072 exact pixels. Use variations 0, .0625, .1875, .25, .375, .5, .75 and 1, seeds 463+37j. The fitted waveform uses 1.5+6×max(variation,0) cycles per local x unit, a periodic triangle, and a parabolic correction. Local waveform rounding and absolute placement still differ. The separate 64² U16/F32 cases cover −.25 and 1.25, offsets (.0078125,.0078125) at .0625, .375 and .71875, and size (1.375,.6875) at offset (−.0625,.125) and variation .3125. Use seeds 181+19j.
+
+The [radial profile comparisons](#radial-stamp-profiles-and-pattern-generators) give the previous placement controls. At 64² and 128², float32(2(i+.5)(1−2⁻²⁴)/N−1) predicts the unit gradient coordinates. Four of the 32 axis values at 32² still disagree. Rotated and translated coordinates remain open.
+
 ### Radial stamp profiles and pattern generators
 
 A single stamp in an original grayscale pattern graph isolates the local profile. For each shape, use a centered stamp of size (1,1), then a quarter-turn, then size (1.375,.6875) at .0625 turns with offset (.109375,−.1875). Render at 16² F32/seed 433, 32² F32/127, 64² in U8, U16, F16 and F32/733, and 128² F32/983. The counts compare stored pixels for all 21 renders per shape.

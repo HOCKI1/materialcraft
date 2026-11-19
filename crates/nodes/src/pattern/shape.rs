@@ -23,12 +23,28 @@ pub(super) fn coverage(pattern: i32, x: f32, y: f32, variation: f32) -> Result<f
         }
         6 => (1.0 - radius_squared.sqrt()).max(0.0).powi(4),
         7 => (1.0 - x.abs().max(y.abs())).max(0.0),
+        8 if variation <= 0.0 => 1.0,
         8 => {
-            let bevel = variation.clamp(0.0, 1.0);
-            if bevel <= f32::EPSILON { 1.0 } else { ((1.0 - x.abs().max(y.abs())) / bevel).clamp(0.0, 1.0) }
+            // Each edge fades independently, including at a corner.
+            let inverse_width = variation.max(f32::MIN_POSITIVE).recip();
+            let fade = |coordinate: f32| {
+                let t = ((1.0 - coordinate.abs()) * inverse_width).clamp(0.0, 1.0);
+                let square = t * t;
+                (-2.0_f32).mul_add(square * t, 3.0 * square)
+            };
+            fade(x) * fade(y)
         }
-        9 => (x + 1.0) * 0.5,
-        10 => (x * std::f32::consts::PI).cos() * 0.5 + 0.5,
+        9 => (x + 1.0) * 0.5 * (1.0 - variation.max(0.0)),
+        10 => {
+            let cycles = 1.5 + 6.0 * f64::from(variation.max(0.0));
+            let phase = f64::from(x) * cycles;
+            let triangle = (1.0 - 4.0 * (phase - phase.round()).abs()) as f32;
+            let parabola = (-triangle.abs()).mul_add(triangle, 2.0 * triangle);
+            // The measured wave uses a quadratic correction before the radial fade.
+            const CORRECTION: f32 = 0.223_936_68;
+            let wave = parabola * CORRECTION.mul_add(parabola.abs(), 1.0 - CORRECTION);
+            radial * (0.5 * wave + 0.5)
+        }
         11 => radial * radial * if x >= 0.0 { 1.0 } else { 0.0 },
         12 => (1.0 - x.abs()).max(0.0).powi(2),
         13 => {

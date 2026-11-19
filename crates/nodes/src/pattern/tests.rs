@@ -16,6 +16,35 @@ fn radial_stamps_keep_the_measured_center_and_skirt() {
     }
 }
 
+#[test]
+fn beveled_square_multiplies_the_two_edge_profiles() {
+    for (x, y, variation, expected) in [
+        (-0.984375, 0.0, 0.0625, 0x3e200000),
+        (-0.984375, -0.984375, 0.0625, 0x3cc80000),
+        (-0.984375, -0.984375, 0.125, 0x3af20000),
+        (-0.984375, -0.984375, -0.25, 0x3f800000),
+    ] {
+        assert_eq!(super::shape::coverage(9, x, y, variation).unwrap().to_bits(), expected);
+    }
+}
+
+#[test]
+fn gradient_variation_attenuates_the_horizontal_ramp() {
+    for (variation, expected) in [(-0.25, 0.2578125), (0.0625, 0.241_699_22), (0.5, 0.12890625), (1.0, 0.0), (1.25, -0.064453125)] {
+        assert_eq!(super::shape::coverage(10, -0.484375, 0.75, variation).unwrap(), expected);
+    }
+}
+
+#[test]
+fn wave_frequency_and_radial_falloff_follow_stamp_coordinates() {
+    let x = f32::from_bits(0x3d5fffef);
+    let y = f32::from_bits(0xbe080003);
+    for (variation, expected) in [(-0.25, 0x3f6a8659), (0.0, 0x3f6a8659), (0.1875, 0x3f4b2e24), (0.25, 0x3f3dd911), (1.0, 0x3d9ac833)] {
+        assert_eq!(super::shape::coverage(11, x, y, variation).unwrap().to_bits(), expected);
+    }
+    assert_eq!(super::shape::coverage(11, 0.0, 0.5, 0.25).unwrap(), 0.75);
+}
+
 fn cook(graph: PatternGraph) -> crate::CookResult {
     cook_with_variables(graph, &BTreeMap::new())
 }
