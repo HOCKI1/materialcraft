@@ -1,5 +1,6 @@
 use super::{EvaluationState, arithmetic::flush_subnormal, instruction::Instruction, returned_product::Source, value_type};
 use materialcraft_core::Value;
+use std::collections::BTreeMap;
 
 #[derive(Clone)]
 enum Addend {
@@ -182,6 +183,7 @@ pub(super) fn identify(instructions: &mut [Instruction]) {
         }
     }
 
+    let mut shared_pairs = BTreeMap::new();
     for index in 0..instructions.len() {
         let Some(op) = instructions.get(index) else { continue };
         if !matches!(op.type_code, 256 | 512 | 1024 | 2048) {
@@ -201,7 +203,20 @@ pub(super) fn identify(instructions: &mut [Instruction]) {
             ("lerp", &[left, right, factor]) => (left, right, Some(factor)),
             _ => continue,
         };
-        let product = [(left, right, false), (right, left, true)]
+        let mut sides = [(left, right, false), (right, left, true)];
+        if op.type_code == 256
+            && blend.is_none()
+            && let (Some(p), Some(q)) = (operand(left), operand(right))
+            && p.index != q.index
+            && [p.index, q.index].iter().all(|&i| usage[i].count > 1 && instructions[i].definition.id == "mul")
+        {
+            // Sums sharing both products reuse the rounded addend chosen by the first sum.
+            let pair = (p.index.min(q.index), p.index.max(q.index));
+            if *shared_pairs.entry(pair).or_insert(p.index) == q.index {
+                sides.swap(0, 1);
+            }
+        }
+        let product = sides
             .into_iter()
             .filter(|(_, _, on_right)| blend.is_none() || *on_right)
             .filter_map(|(source, other, product_on_right)| {

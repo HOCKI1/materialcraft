@@ -584,6 +584,32 @@ fn pixel_sums_contract_negated_products_and_preserve_shared_rounded_addends() {
 }
 
 #[test]
+fn paired_sums_keep_the_same_product_unrounded() {
+    let values = [0xbfd8e681, 0xc00ec5b1, 0xc05f9255, 0xc020d2bc].map(|bits| Value::Float(f32::from_bits(bits)));
+    let variables = ["r", "g", "b", "a"].into_iter().map(str::to_owned).zip(values).collect();
+    let context = EvaluationContext {
+        image_formats: &[],
+        scope: super::FunctionScope::PixelProcessor,
+        position: [0.5; 2],
+        size: [1.0; 2],
+        images: &[],
+        tile: true,
+        variables: &variables,
+    };
+    let mut graph = FunctionGraph::default();
+    let [r, g, b, a] = ["r", "g", "b", "a"].map(|name| graph.add("get_float1", &[], Some(Value::Text(name.into()))));
+    let p = graph.add("mul", &[r, b], None);
+    let q = graph.add("mul", &[g, a], None);
+    let sum = graph.add("add", &[p, q], None);
+    let difference = graph.add("sub", &[q, p], None);
+    for (order, expected) in [([sum, difference], [0x41386778, 0xbea0a9ae]), ([difference, sum], [0xbea0a9ab, 0x41386779])] {
+        graph.output = Some(graph.add("vector2", &order, None));
+        let actual = compile(&graph, 0).unwrap().evaluate_pixel(&context, &mut EvaluationState::default()).unwrap();
+        assert_eq!(actual, Value::Float2(expected.map(f32::from_bits)));
+    }
+}
+
+#[test]
 fn pixel_gray_sampler_combines_stored_color_channels_after_reading() {
     let mut graph = FunctionGraph::default();
     let position = graph.add_constant(Value::Float2([0.5; 2]));

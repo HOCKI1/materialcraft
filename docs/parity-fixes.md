@@ -824,6 +824,21 @@ All 7,680 direct-light density pixels in the [density controls](#volume-density-
 
 Read out named values immediately after initialization and after the first volume step on the 16² thin, 16² dithered, 32² thick and 32² varying-density F32 cases. For environment light the initial ray position, ray direction, noise input, dithering, step size and accumulated depth are each exact at 2,560/2,560. After one step the position and depth each match 1,280/2,560, maximum 1.96305132. Scattered light and transmission match 1,280/2,560, maximum .0574402809. For direct light the initial light color improved from 0/2,560 to 2,560/2,560 exact. Direction, ambient color, noise, step size, first position and first depth are also exact. First-step scattering and transmission match 2,560/2,560, maximum 0. The two light roots remain in progress.
 
+### Two sums sharing the same scalar products
+
+| Comparison | Renders | Exact pixels / compared | Maximum error |
+|---|---:|---:|---:|
+| Second color-selection root | 23 | 179,430/179,456 | 3.57627869e−7 F32 |
+| Normalized lightness difference at 32² | 1 | 1,024/1,024 | 0 |
+| Complete perceptual distance at 32² | 1 | 998/1,024 | 1.19209290e−7 F32 |
+| Original graphs with two shared products | 120 | 353,280/353,280 | 0 |
+
+In the [color-selection matrix](#scalar-arithmetic-across-a-call-argument), 41 more root pixels match after preserving the same unrounded product across two sums. All 123,904 U8, 9,216 U16 and 9,216 F16 pixels match. The remaining 26 differences are in the 32² F32 perceptual-distance case. In the normalized lightness term, the numerator and denominator each matched at all 1,024 pixels when exported separately. Exporting their quotient previously gave 926/1,024. The sum and difference share two lightness values scaled by 100. Both operations contract the same scaled value when used together.
+
+For independent controls use the [direct-light signed field, sizes, formats and seeds](#vector-products-in-the-direct-light-pass). Form P=R×B and Q=G×A, then export P+Q and Q−P in two channels. Repeat with P=100R and Q=100G, swap the output channels, and reverse either sum's operand order. With the four varying factors, also expose P or Q as a third channel, divide the two results, and reverse the declaration order while keeping the output connections. These 20 graphs each have six renders. At input (bfd8e681,c00ec5b1,c05f9255,c020d2bc), written as F32 bits, (P+Q,Q−P) gives (41386778,bea0a9ae). Requesting the difference first gives (bea0a9ab,41386779). Exposing a product separately preserves its rounded value.
+
+The remaining rotation contribution differs at 66/1,024 pixels, with maximum 3.87430191e−7. The hue in degrees, its offset from 275, scaled width, negative square and exponential each match all 1,024 intermediate values. The conversion to radians matches only 17/1,024, maximum 1.19209290e−7. With the measured exponential E, float32(60E) multiplied by float32(π/180) reconstructs every reference radian value. MaterialCraft’s effective factor is one F32 step higher. The square-root chroma term is exact. The complete root remains in progress.
+
 ### Scalar arithmetic across a call argument
 
 The second color-selection root matches **179,389/179,456 grayscale pixels in 23 renders**. Its nine archive, changed four-format and independent cases are now exact. The 14 additional renders match 47,293/47,360. All 123,904 U8, 9,216 U16 and 9,216 F16 pixels match. In F32, 37,053/37,120 match, maximum absolute error 5.06639481e−7. The 67 differing pixels all use the perceptual color-difference mode at 32². Observing that distance directly gives 949/1,024 exact F32 values, maximum 1.78813934e−7.

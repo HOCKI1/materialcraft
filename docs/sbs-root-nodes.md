@@ -141,7 +141,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [color_space_conversion.sbs/srgb_to_linear_srgb_grayscale](../assets/sbs/color_space_conversion.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [color_temperature_adjustment.sbs/color_temperature_adjustment](../assets/sbs/color_temperature_adjustment.sbs) | 1 | No | [Parity · 18 cases, 171,264 exact RGBA pixels](parity-fixes.md#color-temperature-range-reductions-sky-parameters-and-polygon-paths) |
 | [color_to_mask.sbs/color_to_mask](../assets/sbs/color_to_mask.sbs) | 1 | Yes | [Parity · 18 cases, 168,192 exact pixels](parity-fixes.md#levels-endpoints-camera-tangents-and-uniform-exponentials) |
-| [color_to_mask_v2.sbs/color_to_mask](../assets/sbs/color_to_mask_v2.sbs) | 2 | No | [In progress · 179,389/179,456 pixels, 67 F32 perceptual-distance pixels differ](parity-fixes.md#scalar-arithmetic-across-a-call-argument) |
+| [color_to_mask_v2.sbs/color_to_mask](../assets/sbs/color_to_mask_v2.sbs) | 2 | No | [In progress · 179,430/179,456 pixels, 26 F32 perceptual-distance pixels differ](parity-fixes.md#two-sums-sharing-the-same-scalar-products) |
 | [composite.sbs/composite/background/uniform_color_float3](../assets/sbs/composite.sbs) | 0 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [composite.sbs/composite/blends/blend_content](../assets/sbs/composite.sbs) | 3 | Yes | [Parity · 171,264 exact pixels in 18 renders](parity-fixes.md#segment-mapping-and-normal-graph-rechecks) |
 | [composite.sbs/composite/blends/blend_content_grayscale](../assets/sbs/composite.sbs) | 3 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
