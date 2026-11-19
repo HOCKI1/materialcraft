@@ -1544,6 +1544,194 @@ For shape 11 the radial term is max(0,1−x²−y²). In eight 128² F32 unit-st
 
 The [radial profile comparisons](#radial-stamp-profiles-and-pattern-generators) give the previous placement controls. At 64² and 128², float32(2(i+.5)(1−2⁻²⁴)/N−1) predicts the unit gradient coordinates. Four of the 32 axis values at 32² still disagree. Rotated and translated coordinates remain open.
 
+### Parquet 1 and outstanding inventory controls
+
+Parquet 1 matches all 289,024 stored pixels across 25 renders. The maximum error is zero in every format.
+
+| Output | Renders | Exact / compared |
+|---|---:|---:|
+| LUM8 | 8 | 140,288/140,288 |
+| LUM16 | 4 | 25,600/25,600 |
+| LUM16F | 4 | 25,600/25,600 |
+| LUM32F | 9 | 97,536/97,536 |
+
+Use the four original archive cases, the [64² format sweep and independent 32² case](#four-format-inventory-comparison), then the following sixteen original parameter cases. Each row lists (Tiling, Luminance_Variation), square output side and seed. The graph has no input pins.
+
+| Tiling | Luminance variation | Side | Seed | Outputs |
+|---:|---:|---:|---:|---|
+| 1 | 0 | 32 | 31 | F32 |
+| 1 | .125 | 64 | 191 | F32 |
+| 2 | .375 | 32 | 653 | U8, U16, F16, F32 |
+| 3 | .6875 | 128 | 467 | U8, U16, F16, F32 |
+| 4 | 1 | 64 | 977 | U8, U16, F16, F32 |
+| 5 | .53125 | 256 | 131 | F32 |
+| 7 | .25 | 16 | 821 | F32 |
+
+Two other roots pass the independent 32² control and retain differences in the nine-render comparison.
+
+| Root | Exact / compared | Maximum U8 / U16 levels | Maximum F16 / F32 |
+|---|---:|---:|---:|
+| `pattern_arc_pavement.sbs/arc_pavement` | 132,092/132,096 | 0 / 65535 | 0 / 0 |
+| `spot_emboss.sbs/spot_emboss` | 131,394/132,096 | 4 / 411 | 0.00634765625 / 0.00627452135 |
+
+Arc Pavement differs at four pixels in the archived U16 output. Spot Emboss differs at two pixels in each of the four changed 64² outputs, as well as in its archived U8 cases.
+
+The table below rechecks one control for each of the 149 roots marked Too hard before the directional stamp measurements. The 32² independent input, parameter values and seed are specified in the [four-format inventory](#four-format-inventory-comparison). The one 64² row uses that root’s changed F32 case. Results use local revision `25ddf9e` except for Arc Pavement, whose matched independent control was replayed at `9ab2e6d`. The three full comparisons above use the latter revision. Later measurements of a root supersede this dated control. Every pixel of an RGBA output must match in all four channels.
+
+| Root | Control | Format | Exact / compared | Maximum absolute error or cook result |
+|---|---|---|---:|---:|
+| `directionnal_noise.sbs/directionnal_noise` | 32² independent | LUM32F | 191/1,024 | 2.13086605e-05 |
+| `dirt_1.sbs/dirt_1` | 32² independent | LUM32F | 1,023/1,024 | 1.52587891e-05 |
+| `dirt_3.sbs/dirt_3` | 32² independent | LUM32F | 1,023/1,024 | 1.52587891e-05 |
+| `dirt_6.sbs/dirt_6` | 32² independent | LUM32F | 381/1,024 | 0.121068738 |
+| `dirt_gradient.sbs/dirt_gradient` | 32² independent | LUM32F | 0/1,024 | 0.481860787 |
+| `fibers_1.sbs/fibers_1` | 32² independent | LUM32F | 1,008/1,024 | 1.52587891e-05 |
+| `fluid.sbs/fluid` | 32² independent | LUM32F | 0/1,024 | 0.546566069 |
+| `fractal_sum_base.sbs/fractal_sum_base` | 32² independent | LUM32F | 1/1,024 | 0.115129322 |
+| `fur_1.sbs/fur_1` | 32² independent | LUM32F | 885/1,024 | 3.05175781e-05 |
+| `fur_2.sbs/fur_2` | 32² independent | LUM32F | 6/1,024 | 7.00354576e-06 |
+| `fur_3.sbs/fur_3` | 32² independent | LUM32F | 773/1,024 | 3.05175781e-05 |
+| `fur_4.sbs/fur_4` | 32² independent | LUM32F | 817/1,024 | 3.05175781e-05 |
+| `gaussian_spots_2.sbs/gaussian_spots_2` | 32² independent | LUM32F | 27/1,024 | 3.96370888e-06 |
+| `gradient_linear_1.sbs/gradient_linear_1` | 32² independent | LUM32F | 896/1,024 | 6.67572021e-06 |
+| `highpass.sbs/highpass` | 32² independent | RGBA32F | 287/1,024 | 1.1920929e-07 |
+| `make_it_tile_patch.sbs/make_it_tile_patch` | 32² independent | RGBA32F | 230/1,024 | 0.535881579 |
+| `make_it_tile_patch_grayscale.sbs/make_it_tile_patch_grayscale` | 32² independent | LUM32F | 230/1,024 | 0.459052384 |
+| `me_water_level.sbs/scratches_2` | 32² independent | RGBA32F | 0/1,024 | 0.300794378 |
+| `mesh_1.sbs/mesh_1` | 32² independent | LUM32F | 0/1,024 | 0.856000617 |
+| `mesh_2.sbs/mesh_2` | 32² independent | LUM32F | 48/1,024 | 0.984206913 |
+| `messy_fibers_1.sbs/messy_fibers_1` | 32² independent | LUM32F | 339/1,024 | 4.6312809e-05 |
+| `messy_fibers_2.sbs/messy_fibers_2` | 32² independent | LUM32F | 3/1,024 | 0.00293257833 |
+| `messy_fibers_3.sbs/messy_fibers_3` | 32² independent | LUM32F | 1/1,024 | 1.16668423 |
+| `messy_fibers_4.sbs/messy_fibers_4` | 32² independent | LUM32F | 0/1,024 | 0.775814459 |
+| `microscope_view.sbs/microscope_view` | 32² independent | LUM32F | 0/1,024 | 0.398368992 |
+| `moisture_noise.sbs/moisture_noise` | 32² independent | LUM32F | 19/1,024 | 7.79032707e-05 |
+| `mosaic.sbs/mosaic` | 32² independent | RGBA32F | 0/1,024 | 0.694117658 |
+| `mosaic.sbs/mosaic_grayscale` | 32² independent | LUM32F | 11/1,024 | 0.505882375 |
+| `multi_directional_warp.sbs/multi_directional_warp_color` | 32² independent | RGBA32F | 56/1,024 | 0.200000018 |
+| `multi_directional_warp.sbs/multi_directional_warp_grayscale` | 32² independent | LUM32F | 611/1,024 | 0.105882347 |
+| `noise_bnw_spots_1.sbs/bnw_spots_1` | 32² independent | LUM32F | — | Pattern traversal budget |
+| `noise_bnw_spots_1_v2.sbs/bnw_spots_1` | 32² independent | LUM32F | — | Pattern traversal budget |
+| `noise_bnw_spots_3.sbs/bnw_spots_3` | 32² independent | LUM32F | — | Pattern traversal budget |
+| `noise_bnw_spots_3_v2.sbs/bnw_spots_3` | 32² independent | LUM32F | — | Pattern traversal budget |
+| `noise_cells_1.sbs/cells_1` | 32² independent | LUM32F | 241/1,024 | 4.76837158e-07 |
+| `noise_clouds_1.sbs/clouds_1` | 32² independent | LUM32F | 928/1,024 | 1.52587891e-05 |
+| `noise_clouds_1_v2.sbs/clouds_1` | 32² independent | LUM32F | 2/1,024 | 9.65595245e-06 |
+| `noise_clouds_2.sbs/clouds_2` | 32² independent | LUM32F | 1,020/1,024 | 2.28881836e-05 |
+| `noise_clouds_2_v2.sbs/clouds_2` | 32² independent | LUM32F | 11/1,024 | 0.00367540121 |
+| `noise_creased.sbs/creased` | 32² independent | LUM32F | 0/1,024 | 0.451300859 |
+| `noise_crystal_1.sbs/crystal_1` | 32² independent | LUM32F | 1,010/1,024 | 1.92448497e-05 |
+| `noise_crystal_2.sbs/crystal_2` | 32² independent | LUM32F | 0/1,024 | 0.508284688 |
+| `noise_directional_noise_1.sbs/directional_noise_1` | 32² independent | LUM32F | 800/1,024 | 2.67028809e-05 |
+| `noise_directional_noise_1_v2.sbs/directional_noise_1` | 32² independent | LUM32F | 0/1,024 | 0.00392669439 |
+| `noise_directional_noise_2.sbs/directional_noise_2` | 32² independent | LUM32F | — | Pattern traversal budget |
+| `noise_directional_noise_2_v2.sbs/directional_noise_2` | 32² independent | LUM32F | — | Pattern traversal budget |
+| `noise_directional_noise_3.sbs/directional_noise_3` | 32² independent | LUM32F | — | Pattern traversal budget |
+| `noise_directional_noise_3_v2.sbs/directional_noise_3` | 32² independent | LUM32F | — | Pattern traversal budget |
+| `noise_directional_noise_4.sbs/directional_noise_4` | 32² independent | LUM32F | 54/1,024 | 1.78813934e-06 |
+| `noise_directional_noise_4_v2.sbs/directional_noise_4` | 32² independent | LUM32F | 46/1,024 | 2.32458115e-06 |
+| `noise_directional_scratches.sbs/directional_scratches` | 32² independent | LUM32F | 698/1,024 | 5.12599945e-06 |
+| `noise_directional_scratches_v2.sbs/directional_scratches` | 32² independent | LUM32F | 506/1,024 | 4.62494791e-06 |
+| `noise_dirt_1.sbs/dirt_1` | 32² independent | LUM32F | — | Pattern traversal budget |
+| `noise_dirt_1_v2.sbs/dirt_1` | 32² independent | LUM32F | — | Pattern traversal budget |
+| `noise_dirt_2.sbs/dirt_2` | 32² independent | LUM32F | — | Pattern traversal budget |
+| `noise_dirt_3.sbs/dirt_3` | 32² independent | LUM32F | 50/1,024 | 3.20076942e-05 |
+| `noise_dirt_3_v2.sbs/dirt_3` | 32² independent | LUM32F | 23/1,024 | 2.25305557e-05 |
+| `noise_dirt_4.sbs/dirt_4` | 32² independent | LUM32F | — | Pattern traversal budget |
+| `noise_dirt_4_v2.sbs/dirt_4` | 32² independent | LUM32F | — | Pattern traversal budget |
+| `noise_dirt_5.sbs/dirt_5` | 32² independent | LUM32F | — | Pattern traversal budget |
+| `noise_dirt_5_v2.sbs/dirt_5` | 32² independent | LUM32F | — | Pattern traversal budget |
+| `noise_dirt_gradient.sbs/dirt_gradient` | 32² independent | LUM32F | 0/1,024 | 0.257863402 |
+| `noise_dirt_gradient_v2.sbs/dirt_gradient` | 32² independent | LUM32F | — | Pattern traversal budget |
+| `noise_fluid.sbs/fluid` | 32² independent | LUM32F | 0/1,024 | 0.332752407 |
+| `noise_fractal_sum_base.sbs/fractal_sum_base` | 32² independent | LUM32F | 0/1,024 | 0.150255591 |
+| `noise_fractal_sum_base.sbs/fractal_sum_base_2` | 32² independent | LUM32F | 0/1,024 | 0.121705964 |
+| `noise_fractal_sum_base_v2.sbs/noise_blend` | 32² independent | LUM32F | 82/1,024 | 0.392156869 |
+| `noise_fractal_sum_base_v2.sbs/noise_upscale` | 32² independent | LUM32F | 0/1,024 | 0.228064887 |
+| `noise_fur_1.sbs/fur_1` | 32² independent | LUM32F | 2/1,024 | 1.6450882e-05 |
+| `noise_fur_2.sbs/fur_2` | 32² independent | LUM32F | 4/1,024 | 1.35451555e-05 |
+| `noise_fur_3.sbs/fur_3` | 32² independent | LUM32F | 3/1,024 | 1.21295452e-05 |
+| `noise_gaussian_noise.sbs/gaussian_noise` | 32² independent | LUM32F | 46/1,024 | 3.57627869e-07 |
+| `noise_gaussian_noise_v2.sbs/gaussian_noise` | 32² independent | LUM32F | 44/1,024 | 3.57627869e-07 |
+| `noise_gaussian_spots_2.sbs/gaussian_spots_2` | 32² independent | LUM32F | 23/1,024 | 1.37388706e-05 |
+| `noise_gaussian_spots_2_v2.sbs/gaussian_spots_2` | 32² independent | LUM32F | 2/1,024 | 1.42455101e-05 |
+| `noise_liquid.sbs/liquid` | 32² independent | LUM32F | 0/1,024 | 0.209913433 |
+| `noise_messy_fibers_1.sbs/messy_fibers_1` | 32² independent | LUM32F | 18/1,024 | 2.97576189e-05 |
+| `noise_messy_fibers_1_v2.sbs/messy_fibers_1` | 32² independent | LUM32F | 17/1,024 | 1.94311142e-05 |
+| `noise_messy_fibers_2.sbs/messy_fibers_2` | 32² independent | LUM32F | 6/1,024 | 4.4375658e-05 |
+| `noise_messy_fibers_2_v2.sbs/messy_fibers_2` | 32² independent | LUM32F | 4/1,024 | 5.65648079e-05 |
+| `noise_messy_fibers_3.sbs/messy_fibers_3` | 32² independent | LUM32F | 37/1,024 | 1.16653473 |
+| `noise_messy_fibers_3_v2.sbs/messy_fibers_3` | 32² independent | LUM32F | 3/1,024 | 1.1268341 |
+| `noise_microscope_view.sbs/microscope_view` | 32² independent | LUM32F | 0/1,024 | 0.103792138 |
+| `noise_moisture_noise.sbs/moisture_noise` | 32² independent | LUM32F | — | Pattern traversal budget |
+| `noise_moisture_noise_1_v2.sbs/moisture_noise_1` | 32² independent | LUM32F | — | Pattern traversal budget |
+| `noise_moisture_noise_2.sbs/moisture_noise_2` | 32² independent | LUM32F | — | Pattern traversal budget |
+| `noise_perlin_noise.sbs/perlin_noise` | 32² independent | LUM32F | 996/1,024 | 3.05771828e-05 |
+| `noise_perlin_noise_v2.sbs/perlin_noise` | 32² independent | LUM32F | 97/1,024 | 5.66244125e-07 |
+| `noise_plasma.sbs/plasma` | 32² independent | LUM32F | 1,005/1,024 | 1.52587891e-05 |
+| `non_uniform_blur.sbs/non_uniform_blur_grayscale_sample` | 32² independent | LUM32F | 669/1,024 | 0.00784315169 |
+| `non_uniform_blur.sbs/non_uniform_blur_sample` | 32² independent | RGBA32F | 247/1,024 | 0.00784315169 |
+| `normal_to_height_2.sbs/normal_to_height` | 32² independent | LUM32F | 270/1,024 | 0.305256728 |
+| `paper_path.sbs/paper_path` | 32² independent | LUM32F | 7/1,024 | 0.0057874918 |
+| `parquet_1.sbs/parquet_1` | 32² independent | LUM32F | 1,024/1,024 | 0 |
+| `paths_tools.sbs/paths_trace` | 32² independent | RGBA32F | 901/1,024 | 1.66666675 |
+| `pattern_arc_pavement.sbs/arc_pavement` | 32² independent | LUM32F | 1,024/1,024 | 0 |
+| `pattern_brick_1.sbs/brick_1` | 32² independent | LUM32F | 712/1,024 | 2.08616257e-06 |
+| `pattern_brick_2.sbs/brick_2` | 32² independent | LUM32F | 444/1,024 | 1.02072954e-06 |
+| `pattern_fibers_1.sbs/fibers_1` | 32² independent | LUM32F | 1,008/1,024 | 1.52587891e-05 |
+| `pattern_fibers_2.sbs/fibers_2` | 64² changed | LUM32F | 3,976/4,096 | 3.05175781e-05 |
+| `pattern_mesh_1.sbs/mesh_1` | 32² independent | LUM32F | 0/1,024 | 0.856000617 |
+| `pattern_mesh_2.sbs/mesh_2` | 32² independent | LUM32F | 48/1,024 | 0.984206913 |
+| `pattern_polygon_2.sbs/polygon_2` | 32² independent | LUM32F | 1,012/1,024 | 1.52587891e-05 |
+| `pattern_shape.sbs/shape_base` | 32² independent | LUM32F | 720/1,024 | 1.37090683e-06 |
+| `pattern_splatter_circular.sbs/splatter_circular` | 32² independent | LUM32F | 1,003/1,024 | 0.921568625 |
+| `pattern_splatter_circular.sbs/splatter_circular_color` | 32² independent | RGBA32F | 1,003/1,024 | 0.996078431 |
+| `pattern_tile_generator.sbs/tile_generator_color` | 32² independent | RGBA32F | 0/1,024 | 4.99215698 |
+| `pattern_tile_random.sbs/tile_random_color` | 32² independent | RGBA32F | 735/1,024 | 1 |
+| `pattern_tile_random_2.sbs/tile_random_2` | 32² independent | LUM32F | 363/1,024 | 1 |
+| `pattern_weave_1.sbs/weave_1` | 32² independent | LUM32F | 0/1,024 | 1 |
+| `pattern_weave_2.sbs/weave_2` | 32² independent | LUM32F | 26/1,024 | 0.780254856 |
+| `pavement_1.sbs/pavement_1` | 32² independent | LUM32F | 64/1,024 | 0.718337655 |
+| `pbr_render_ortho.sbs/blue_noise` | 32² independent | RGBA32F | 0/1,024 | 1.99178356 |
+| `pbr_render_ortho.sbs/ibl_shadow_pass` | 32² independent | RGBA32F | 0/1,024 | 28.3294125 |
+| `pbr_render_ortho.sbs/sphere_displace` | 32² independent | RGBA32F | 1,022/1,024 | 1.52587891e-05 |
+| `perlin_noise_zoom.sbs/perlin_noise_zoom` | 32² independent | LUM32F | 48/1,024 | 6.2584877e-07 |
+| `quantize_color.sbs/kmeans_iteration` | 32² independent | RGBA32F | 4,080/4,096 | 5.96046448e-08 |
+| `radial_blur.sbs/radial_blur_grayscale` | 32² independent | LUM32F | 315/1,024 | 0.00073248148 |
+| `replace_color.sbs/replace_color` | 32² independent | RGBA32F | 0/1,024 | 0.244705796 |
+| `rt_caustics.sbs/rt_caustics_base` | 32² independent | LUM32F | 199/1,024 | 0.0106643774 |
+| `scratches_1.sbs/scratches_1` | 32² independent | LUM32F | 508/1,024 | 1.59740448e-05 |
+| `scratches_2.sbs/scratches_2` | 32² independent | LUM32F | 9/1,024 | 1.24573708e-05 |
+| `scratches_4.sbs/scratches_4` | 32² independent | LUM32F | 0/1,024 | 1 |
+| `shape.sbs/shape_base` | 32² independent | LUM32F | 720/1,024 | 1.37090683e-06 |
+| `shape_splatter_v2.sbs/shape_splatter_compute_normal` | 32² independent | RGBA32F | 0/1,024 | 0.979619235 |
+| `slope_blur.sbs/slope_blur` | 32² independent | RGBA32F | 0/1,024 | 0.76862745 |
+| `slope_blur.sbs/slope_blur_grayscale` | 32² independent | LUM32F | 12/1,024 | 0.32941179 |
+| `slope_blur.sbs/slope_blur_grayscale_2` | 32² independent | LUM32F | 12/1,024 | 0.32941179 |
+| `splatter.sbs/splatter` | 32² independent | LUM32F | 112/1,024 | 0.475806788 |
+| `splatter_circular.sbs/splatter_circular` | 32² independent | LUM32F | 959/1,024 | 1.00000006 |
+| `splatter_circular.sbs/splatter_circular_color` | 32² independent | RGBA32F | 879/1,024 | 0.996078431 |
+| `splatter_color.sbs/splatter_color` | 32² independent | RGBA32F | 112/1,024 | 0.484412894 |
+| `spline_tools.sbs/internal_tools/modify_spline_property_sub` | 32² independent | RGBA32F | 969/1,024 | 0.261176467 |
+| `spline_tools.sbs/internal_tools/points_preview` | 32² independent | LUM32F | 1,024/1,024 on the exported output | External font unavailable |
+| `spline_tools.sbs/internal_tools/resample_spline_data` | 32² independent | RGBA32F | 986/1,024 | 0.5 |
+| `spline_tools.sbs/internal_tools/select_spline_sub` | 32² independent | RGBA32F | 30,720/32,768 | 0.5 |
+| `spline_tools.sbs/internal_tools/spline_warp_sub` | 32² independent | RGBA32F | 992/1,024 | 0.181807004 |
+| `spot_emboss.sbs/spot_emboss` | 32² independent | RGBA32F | 1,024/1,024 | 0 |
+| `starburst.sbs/starburst` | 32² independent | LUM32F | 796/1,024 | 0.853360829 |
+| `tile_generator.sbs/tile_generator` | 32² independent | LUM32F | 862/1,024 | 3.93390656e-06 |
+| `tile_generator_color.sbs/tile_generator_color` | 32² independent | RGBA32F | 494/1,024 | 1 |
+| `tile_random.sbs/tile_random` | 32² independent | LUM32F | 724/1,024 | 1.00000006 |
+| `tile_random.sbs/tile_random_color` | 32² independent | RGBA32F | 148/1,024 | 1.00000006 |
+| `tileable_material_to_mesh_material.sbs/tileable_material_to_mesh_material` | 32² independent | RGBA32F | 477/1,024 | 5.96046448e-08 |
+| `vertical_noise.sbs/vertical_noise` | 32² independent | LUM32F | 215/1,024 | 2.12192535e-05 |
+| `weave_1.sbs/weave_1` | 32² independent | LUM32F | 0/1,024 | 1 |
+| `weave_2.sbs/weave_2` | 32² independent | LUM32F | 6/1,024 | 0.243778139 |
+| `wood_fibers_1.sbs/wood_fibers_1` | 32² independent | LUM32F | 985/1,024 | 1.93715096e-05 |
+| `wood_fibers_2.sbs/wood_fibers_2` | 32² independent | LUM32F | — | Pattern traversal budget |
+
+Of the 149 controls, three match exactly and 125 have measured pixel differences. Twenty pattern traversals reached the execution budget. One text graph requires an external font. The 20 incomplete traversals produced no comparable pixels. The font case exported 1,024 matching pixels with a cook error on its text branch and stays open.
+
 ### Directional and additive stamp profiles
 
 Eight built-in shapes were measured in original single-stamp graphs. Across 260 renders, the complete renderer improved from 297,007 to 727,162 exact pixels out of 892,928. Color requires all four stored channels to match. Integer maxima are channel levels.
