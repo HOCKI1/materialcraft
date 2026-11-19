@@ -5,6 +5,7 @@ use materialcraft_core::OutputFormat;
 enum Read {
     Texel { level: usize, position: i64 },
     Filtered(f32),
+    AcrossSeam { level: usize, along: f32, shift: f32 },
 }
 
 struct Tap {
@@ -15,12 +16,24 @@ struct Tap {
 #[derive(Clone, Copy)]
 pub(super) enum Edges {
     Paired,
-    Separate,
+    Sheared(f32),
 }
 
 impl Tap {
     fn texel(position: i64, width: u32, weight: f32) -> Self {
         Self { read: Read::Texel { level: width.ilog2() as usize, position: position.div_euclid(i64::from(width)) }, weight }
+    }
+
+    fn wrap_sheared(&mut self, length: u32, slope: f32) {
+        let Read::Texel { level, position } = self.read else { return };
+        let count = i64::from(length >> level);
+        let turns = position.div_euclid(count);
+        if turns != 0 {
+            // Crossing a period on the sheared grid shifts the other coordinate.
+            // Interpolate the already stored mip at that shift, including for endpoint taps.
+            let along = (position.rem_euclid(count) as f32 + 0.5) / count as f32;
+            self.read = Read::AcrossSeam { level, along, shift: turns as f32 * slope };
+        }
     }
 }
 
@@ -84,6 +97,13 @@ pub(super) fn filter(input: &Image, reach: f32, horizontal: bool, tile: bool, so
     let windows: Vec<_> = (0..length)
         .map(|position| {
             let mut taps = window(position, length, reach, tile, edges);
+            if let Edges::Sheared(slope) = edges
+                && slope.fract() != 0.0
+            {
+                for tap in &mut taps {
+                    tap.wrap_sheared(length, slope);
+                }
+            }
             if horizontal {
                 taps.reverse();
             }
@@ -91,6 +111,13 @@ pub(super) fn filter(input: &Image, reach: f32, horizontal: bool, tile: bool, so
         })
         .collect();
     let scale = 0.5 / radius;
+    // On a sheared grid the normalized integer window includes a positive storage offset.
+    // A one-level pulse exposes it before the inverse shear averages neighboring texels.
+    let storage_offset = match (edges, destination) {
+        (Edges::Sheared(_), OutputFormat::U8) => Some(0.5 / 256.0),
+        (Edges::Sheared(_), OutputFormat::U16 | OutputFormat::Inherit) => Some(0.4 / 65535.0),
+        _ => None,
+    };
     Image::generate(input.width(), input.height(), input.kind(), |x, y| {
         let (position, across, other_size) = if horizontal { (x, y, input.height()) } else { (y, x, input.width()) };
         let other_uv = (across as f32 + 0.5) / other_size as f32;
@@ -103,6 +130,12 @@ pub(super) fn filter(input: &Image, reach: f32, horizontal: bool, tile: bool, so
                 let xy = if horizontal { [uv, other_uv] } else { [other_uv, uv] };
                 texture_sampler::sample(input, xy, [tile; 2], source, None)
             }
+            Read::AcrossSeam { level, along, shift } => {
+                let across = other_uv + shift;
+                let xy = if horizontal { [along, across] } else { [across, along] };
+                let format = if level == 0 { source } else { destination };
+                texture_sampler::sample(levels.get(level).unwrap_or(input), xy, [true; 2], format, None)
+            }
         };
         let Some((first, rest)) = windows.get(position as usize).and_then(|taps| taps.split_first()) else {
             return input.get(i64::from(x), i64::from(y), false);
@@ -113,6 +146,9 @@ pub(super) fn filter(input: &Image, reach: f32, horizontal: bool, tile: bool, so
                 *total = v.mul_add(tap.weight, *total);
             }
         }
-        sum.map(|v| v * scale)
+        match storage_offset {
+            Some(offset) => sum.map(|v| v.mul_add(scale, offset)),
+            None => sum.map(|v| v * scale),
+        }
     })
 }

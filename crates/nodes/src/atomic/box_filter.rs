@@ -4,8 +4,8 @@ use rayon::prelude::*;
 
 mod mip_window;
 
-/// A unit-slope shear on a square, periodic image has the same period as the source.
-pub(super) fn diagonal(input: &Image, reach: f32, horizontal: bool, slope: f32, source: OutputFormat, destination: OutputFormat) -> Option<Image> {
+/// Filter a periodic square on a sheared grid, accounting for the transverse shift at a seam.
+pub(super) fn sheared(input: &Image, reach: f32, horizontal: bool, slope: f32, source: OutputFormat, destination: OutputFormat) -> Option<Image> {
     let length = input.width();
     let radius = reach + 0.5;
     if length != input.height() || !length.is_power_of_two() || !radius.is_finite() || radius > length as f32 {
@@ -16,10 +16,7 @@ pub(super) fn diagonal(input: &Image, reach: f32, horizontal: bool, slope: f32, 
     if !input.data().iter().all(|v| v.abs() <= limit) {
         return None;
     }
-    let intermediate = match destination {
-        OutputFormat::U8 | OutputFormat::U16 | OutputFormat::Inherit => OutputFormat::U16,
-        _ => destination,
-    };
+    let intermediate = if destination == OutputFormat::Inherit { OutputFormat::U16 } else { destination };
     let shear = |image: &Image, slope: f32, format| {
         Image::generate_uv(length, length, image.kind(), |u, v| {
             let uv = if horizontal { [u, v + slope * (u - 0.5)] } else { [u + slope * (v - 0.5), v] };
@@ -27,7 +24,7 @@ pub(super) fn diagonal(input: &Image, reach: f32, horizontal: bool, slope: f32, 
         })
     };
     let displaced = crate::output_precision::apply(shear(input, slope, source), intermediate);
-    let filtered = mip_window::filter(&displaced, reach, horizontal, true, intermediate, intermediate, mip_window::Edges::Separate);
+    let filtered = mip_window::filter(&displaced, reach, horizontal, true, intermediate, intermediate, mip_window::Edges::Sheared(slope));
     let filtered = crate::output_precision::apply(filtered, intermediate);
     Some(shear(&filtered, -slope, intermediate))
 }

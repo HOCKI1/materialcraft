@@ -325,6 +325,30 @@ fn wide_diagonal_blur_filters_between_two_sheared_grids() {
 }
 
 #[test]
+fn diagonal_blur_stores_the_integer_window_before_resampling() {
+    let input = [Some(Image::gray(32, 32, |_, y| if y % 8 == 0 { 1.0 / 255.0 } else { 0.0 }))];
+    for (format, strength, maximum, expected) in
+        [(OutputFormat::U8, 19.0, 255.0, [0, 0, 1, 0, 0, 0, 1, 1]), (OutputFormat::U16, 48.0, 65535.0, [30, 30, 30, 30, 52, 30, 30, 30])]
+    {
+        let settings = [("intensity", Value::Float(strength)), ("angle", Value::Float(0.125))];
+        let image = cook_format("directional_blur", &input, &settings, [32; 2], true, format);
+        let levels: [u32; 8] = std::array::from_fn(|y| (image.get_gray(0, y as i64, false) * maximum).round() as u32);
+        assert_eq!(levels, expected, "{format:?}");
+    }
+}
+
+#[test]
+fn oblique_blur_samples_stored_levels_across_the_tile_seam() {
+    let input = [Some(impulse_and_stripes())];
+    let params = [("intensity", Value::Float(10.75)), ("angle", Value::Float(0.0625))];
+    let blurred = cook_format("directional_blur", &input, &params, [128; 2], true, OutputFormat::U8);
+    let stored = materialcraft_nodes::output_precision::apply(blurred, OutputFormat::U8);
+    for (x, y, expected) in [(0, 65, [0, 0, 57, 116]), (127, 52, [0, 0, 0, 88]), (64, 64, [17, 26, 61, 99])] {
+        assert_eq!(stored.get(x, y, false).map(|v| (v * 255.0).round() as u8), expected, "({x}, {y})");
+    }
+}
+
+#[test]
 fn short_oblique_blur_filters_fractional_taps_and_preserves_the_image_aspect() {
     let input = [Some(impulse_and_stripes())];
     for (angle, strength, x, y, expected) in

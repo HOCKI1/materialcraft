@@ -59,6 +59,53 @@ The first pass classifies all 546 roots: 166 Parity and 380 Too hard. These meas
 
 ## 2026-11-19 root comparisons
 
+### Integer and oblique directional blur
+
+| Root | Renders | Previous exact pixels | Exact / compared | Maximum error |
+|---|---:|---:|---:|---:|
+| `anisotropic_blur.sbs/anisotropic_blur` | 29 | 145,109 | 200,192/200,192 | 0 |
+| `anisotropic_blur.sbs/anisotropic_blur_grayscale` | 29 | 165,764 | 200,192/200,192 | 0 |
+| `blur_hq.sbs/blur_hq` | 18 | 65,482 | 171,264/171,264 | 0 |
+| `blur_hq.sbs/blur_hq_grayscale` | 18 | 128,880 | 171,264/171,264 | 0 |
+
+On the 128² anisotropic color and grayscale inputs at angle .0625, intensity 17.5, anisotropy .625 and high quality, the first directional pass operates at intensity 10.5. Look at the raw U8 output of that pass. Before the change, 191/16,384 color and 2,125/16,384 grayscale pixels matched. On both inputs all 16,384 now match. A sheared sampling grid crosses the image boundary at a different position on the other axis. Wrap each tap at its own stored mip level and bilinearly sample the transverse shift. Recomputing the padded edge from the original bitmap still misses 675 color and 290 grayscale pixels, with a maximum error of two byte levels.
+
+An integer diagonal blur stores the first shear and each reduction at the destination depth. In the window normalization, adding half of 1/256 before the U8 store reproduces the measured byte controls. The measured U16 offset is approximately .4 of one stored level. To isolate the rounding, generate a 32² image whose rows divisible by eight contain 1/255, with all other rows zero. Set angle .125 and both axes to repeat. At intensity 19 the U8 output at x=0 for the first eight rows is `0,0,1,0,0,0,1,1`. At intensity 48 the U16 levels are `30,30,30,30,52,30,30,30`. For the edge test use the 128² signed [impulse-and-stripes field](#tiled-diagonal-directional-blur), angle .0625 and intensity 10.75. Pixel (0,65) is RGBA8 (0,0,57,116), (127,52) is (0,0,0,88), and (64,64) is (17,26,61,99).
+
+All four roots include the [archive and four-format comparisons](#tiled-diagonal-directional-blur), the independent 32² input and nine further fields. For those nine use `H=((37x+41y+7xy+61c+5xc) mod 509)/508` for color channel c. Use c=0 for grayscale RGB with opaque alpha. Render defaults at 16²/43. At 64²/157 render all four formats at intensity 5.25 with high quality. At 128²/293 use intensity 18.5 with high quality off. At 32²/463 use signed input `2.5H−.75` and intensity 10.25 with high quality. Apply the signed transformation to every channel. Repeat the 128² settings at 32²/599 with a 32×16 input and the 64² settings at seed 751. On the anisotropic roots the three changed intensity settings use anisotropy/angle .6875/.0625, .3125/.15625 and 1/−.21875.
+
+The anisotropic roots include twelve additional fields. Use `H=((73x+37y+11xy+157+43c+3cx) mod 1021)/1020`, with c=0 for the grayscale image. Columns for each case below give square side, seed, intensity, anisotropy, angle in turns, quality and output. Apply `2.5H−.875` to both signed inputs.
+
+| Side | Seed | Intensity | Anisotropy | Angle | High quality | Output |
+|---:|---:|---:|---:|---:|---|---|
+| 16 | 2833 | 10 | .5 | 0 | Off | F32 |
+| 32 | 2953 | 10 | .5 | 0 | Off | U8 |
+| 64 | 3001 | 24 | .8125 | .125 | Off | U8, U16, F16, F32 |
+| 128 | 3049 | 17.5 | .625 | .0625 | On | F32, signed |
+| 32 | 3119 | 5.375 | .375 | −.1875 | Off | F32, signed |
+| 32 | 3203 | 0 | 1 | .03125 | On | F32 |
+| 64 | 3251 | 27 | 0 | −.375 | On | F32 |
+| 64 | 3271 | 24 | .8125 | .125 | Off | F32 |
+| 32 | 3313 | 13 | .75 | .1875 | On | F32 |
+
+### Direct blur controls and remaining differences
+
+| Procedural control | Renders | Previous exact pixels | Current exact / compared | Maximum U8 / U16 / F16 / F32 error |
+|---|---:|---:|---:|---|
+| Tiled eighth turns | 96 | 1,046,248 | 1,158,974/1,351,680 | 0 / 1 / 0.00048828125 / 3.57627869e-07 |
+| Tiled .0625 and .21875 turns | 24 | 2,625 | 280,184/337,920 | 1 / 74 / 0.00146484375 / 0.00263102353 |
+| Untiled .125 turns | 12 | 5,523 | 5,523/168,960 | 192 / 49,199 / 1.09570312 / 1.09612465 |
+| Independent stripes and projected axial controls | 64 | 134,690 | 160,571/163,840 | 0 / 0 / 3.81469727e-06 / 5.96046448e-08 |
+| Code patches, low pulses and translated row fields | 80 | 1,200,293 | 1,454,692/1,495,040 | 0 / 1 / — / 1.78813934e-07 |
+
+The [impulse and stripes controls](#tiled-diagonal-directional-blur) specify the input, strength and seed for the first three rows. In the 96 tiled eighth-turn renders, all 163,840 RGBA8 pixels match. Of 163,840 RGBA16 pixels, 90 still differ by one level. Off-axis filtering has further differences at .21875 turns. Untiled boundaries and non-square processing grids still use the direct sampling path.
+
+For the independent stripes use U8 inputs at (side, radius) (32,2.375), (64,3.125), (64,6) and (32,5.375). Set R=(53x+29x²+19) mod 256, G=(31y+7y²+17) mod 256, B to 208 or 23 according to the parity of x+y, and A to 127. The second field uses 1 or 2 by x parity, 9 or 2 by y parity, (x+3y) mod 17 and 127+(x(y+1) mod 3). Set intensity to 256×radius/side at .125 turns. For the first field also render horizontal and vertical controls with radius .5+(radius−.5)/√2, across all four formats at seeds 3359 through 3362.
+
+For the code patches, assign k=16⌊y/16⌋+⌊x/16⌋ on a 256² field and store channels (k,k+1,k+67,k+129) modulo 256. The other inputs are 64² row fields or a 32² one-level pulse across four base levels. One row field uses `((31y+7y²+17) mod 128)+32+c`. The other uses `U=((117y+53y²+17) mod 251)`, with channels U, (U+12) mod 256 and the transposes of both. In the pulse field add one to (0,4,45,184) every eighth row. For the U16 inputs, scale each code by 257 and add 29c below code 255. Use the same four radii at .125 turns and seeds 3433–3436 in field order. Store each U8 source in U8, U16 and F32, and each U16 source in U16 and F32. All 299,008 U8 output pixels in this set match.
+
+The 38 instrumented color and grayscale anisotropic renders compare 304 graph images, including the input and output bridges. 2,560,000/2,560,000 pixels match, maximum stored-component error 0. Six other roots with a reachable directional blur retain all 790,528 exact pixels in 52 renders.
+
 ### Bitmap stamp filtering and compositing
 
 A quadrant with an image pattern uses automatic bilinear mip filtering when `imagefiltering` is omitted or zero. Mode 1 selects the original level with bilinear filtering. Mode 2 selects the nearest texel. Filter taps outside the bitmap use transparent black. Intermediate reductions store each level at the source precision, which matters even when the final output is F32. A grayscale stamp needs a grayscale image and a color stamp needs a color image. Wiring the opposite kind leaves the background intact.
