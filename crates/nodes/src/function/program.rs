@@ -151,6 +151,16 @@ impl Program {
                         product.evaluate(arguments, instruction.definition.id == "sub", state)
                     } else if let Some(call) = &instruction.call {
                         let storage = state.calls.entry(index).or_default();
+                        storage.argument_factors = if let Some([a, b]) = call.argument_factors.filter(|_| context.scope == super::FunctionScope::PixelProcessor)
+                        {
+                            let factor = |i| match state.registers.get(i) {
+                                Some(Some(Value::Float(value))) => Ok(*value),
+                                _ => Err("missing scalar argument factor"),
+                            };
+                            Some([factor(a)?, factor(b)?])
+                        } else {
+                            None
+                        };
                         storage.variables.clone_from(&state.variables);
                         storage.variables.extend(call.defaults.clone());
                         for (name, value) in call.inputs.iter().zip(arguments) {

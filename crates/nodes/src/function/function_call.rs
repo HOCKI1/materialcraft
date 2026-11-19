@@ -6,6 +6,8 @@ pub(crate) struct FunctionCall {
     pub program: Program,
     pub inputs: Vec<String>,
     pub defaults: std::collections::BTreeMap<String, materialcraft_core::Value>,
+    /// Parent registers for an argument used only in scalar sums within the call.
+    pub argument_factors: Option<[usize; 2]>,
     /// The called graph sets variables, directly or in a graph it calls; the caller reads them after the call
     pub exports: bool,
 }

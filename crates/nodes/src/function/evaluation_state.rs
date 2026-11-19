@@ -11,6 +11,7 @@ pub struct EvaluationState {
     pub(crate) variables: BTreeMap<String, Value>,
     pub(crate) assignments: BTreeMap<String, Value>,
     pub(crate) random: u32,
+    pub(super) argument_factors: Option<[f32; 2]>,
     pub(crate) calls: BTreeMap<usize, EvaluationState>,
 }
 

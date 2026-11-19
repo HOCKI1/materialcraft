@@ -824,6 +824,22 @@ All 7,680 direct-light density pixels in the [density controls](#volume-density-
 
 Read out named values immediately after initialization and after the first volume step on the 16² thin, 16² dithered, 32² thick and 32² varying-density F32 cases. For environment light the initial ray position, ray direction, noise input, dithering, step size and accumulated depth are each exact at 2,560/2,560. After one step the position and depth each match 1,280/2,560, maximum 1.96305132. Scattered light and transmission match 1,280/2,560, maximum .0574402809. For direct light the initial light color improved from 0/2,560 to 2,560/2,560 exact. Direction, ambient color, noise, step size, first position and first depth are also exact. First-step scattering and transmission match 2,560/2,560, maximum 0. The two light roots remain in progress.
 
+### Scalar products used by sums inside a called function
+
+| Measured output | Renders | Exact pixels / compared | Maximum error |
+|---|---:|---:|---:|
+| Two-point panorama gradient | 19 | 143,104/143,104 | 0 |
+| Linear panorama gradient | 19 | 143,104/143,104 | 0 |
+| Intermediate outputs of the two gradients, F32 | 38 | 97,280/97,280 | 0 |
+| Independent called and inlined expressions | 156 | 459,264/459,264 | 0 |
+| Earlier scalar call controls | 60 | 176,640/176,640 | 0 |
+
+Each panorama root now matches 127,744 F32 pixels and 5,120 pixels in each of U8, U16 and F16. The two-point gradient previously matched 138,704 of these pixels and the linear gradient matched 138,579. The original direction, color, contrast, seam, pole and coincident-point cases are listed under [panorama gradient weights](#panorama-gradient-weights).
+
+When a pixel function passes a scalar product or quotient to a second function, additions and subtractions inside that function can use the original factors. At texel (1,0) of the 32² linear gradient, the dot product has F32 bits 3f01187e and the width is .6875. The range helper returns bits 3f5de345. Returning the quotient in a second output channel rounds it to 3f3bc689 and changes the range result to 3f5de344. The regression exercises both graphs.
+
+For the 156 renders, use the [signed RGBA field, six output settings and seeds](#vector-products-in-the-direct-light-pass). Let Q be R/G or R×G and B be the blue channel. Evaluate (Q+1)/2 and (B−Q)+Q for both terms. For division also evaluate (Q−B)/3, (B+Q)×.375, (Q+B)−Q and (B−Q)−Q. For both terms repeat (Q+1)/2 while returning Q in a separate channel, and subtract max(Q,B) from the half-range within the same function. For division also evaluate (B−Q)+Q². Render each expression as a separate function with explicit arguments, then inline it. The earlier build matched 446,883/459,264. The 120 controls for [two shared products](#two-sums-sharing-the-same-scalar-products) still match all 353,280 pixels.
+
 ### Panorama gradient weights
 
 | Root | Renders | Exact RGBA pixels / compared | Maximum U8 / U16 / F16 / F32 error |

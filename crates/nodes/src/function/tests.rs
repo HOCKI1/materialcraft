@@ -454,6 +454,47 @@ fn pixel_product_sum_through_packed_lanes_and_calls_keeps_other_reads() {
 }
 
 #[test]
+fn a_quotient_can_round_with_an_intermediate_sum_in_a_called_function() {
+    let variables = BTreeMap::from([("dot".into(), Value::Float(f32::from_bits(0x3f01187e))), ("width".into(), Value::Float(0.6875))]);
+    let context = EvaluationContext {
+        scope: super::FunctionScope::PixelProcessor,
+        position: [0.5; 2],
+        size: [1.0; 2],
+        images: &[],
+        image_formats: &[],
+        tile: true,
+        variables: &variables,
+    };
+
+    let mut inner = FunctionGraph::default();
+    let q = inner.add("get_float1", &[], Some(Value::Text("q".into())));
+    let one = inner.add_constant(Value::Float(1.0));
+    let sum = inner.add("add", &[q, one], None);
+    let two = inner.add_constant(Value::Float(2.0));
+    inner.output = Some(inner.add("div", &[sum, two], None));
+
+    let mut graph = FunctionGraph::default();
+    let [dot, width] = ["dot", "width"].map(|name| graph.add("get_float1", &[], Some(Value::Text(name.into()))));
+    let quotient = graph.add("div", &[dot, width], None);
+    let result = graph.add("instance", &[quotient], None);
+    let call = graph.nodes.last_mut().unwrap();
+    call.instance = Some(materialcraft_core::GraphInstance {
+        label: String::new(),
+        package: String::new(),
+        graph: "half_range".into(),
+        inputs: vec![materialcraft_core::GraphPort { identifier: "q".into(), type_code: 256 }],
+        outputs: Vec::new(),
+        defaults: BTreeMap::from([("q".into(), Value::Float(0.0))]),
+    });
+    call.source = Some(Ok(std::sync::Arc::new(inner)));
+    let pixel = |g: &FunctionGraph| compile(g, 0).unwrap().evaluate_pixel(&context, &mut EvaluationState::default()).unwrap();
+    graph.output = Some(result);
+    assert_eq!(pixel(&graph), Value::Float(f32::from_bits(0x3f5de345)));
+    graph.output = Some(graph.add("vector2", &[result, quotient], None));
+    assert_eq!(pixel(&graph), Value::Float2([0x3f5de344, 0x3f3bc689].map(f32::from_bits)));
+}
+
+#[test]
 fn a_pixel_quotient_rounds_with_the_subtraction_in_a_called_function() {
     let names = ["offset", "amount"];
     let mut inner = FunctionGraph::default();

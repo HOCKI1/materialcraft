@@ -10,6 +10,7 @@ enum Addend {
 
 enum Retained {
     Argument { source: Source, addend: Addend, subtract: bool },
+    PassedArgument,
     Lanes(super::returned_product::Sum),
 }
 
@@ -40,6 +41,7 @@ impl ProductSum {
         if let Some(Retained::Lanes(terms)) = self.retained.as_deref() {
             return super::returned_product::evaluate_sum(terms, arguments, state);
         }
+        let passed;
         let (a, b, c, blend, subtract) = if let Some(Retained::Argument { source, addend, subtract }) = self.retained.as_deref() {
             let (a, b) = source.factors(state)?;
             let c = match addend {
@@ -47,6 +49,10 @@ impl ProductSum {
                 Addend::Literal(value) => value,
             };
             (a, b, c, None, *subtract)
+        } else if matches!(self.retained.as_deref(), Some(Retained::PassedArgument)) {
+            let [left, right] = arguments else { return Err("missing scalar sum operands".into()) };
+            passed = state.argument_factors.ok_or("missing scalar argument factors")?.map(Value::Float);
+            (&passed[0], &passed[1], if self.product_on_right { left } else { right }, None, subtract)
         } else {
             let [first, second, third, rest @ ..] = arguments else { return Err("missing product-sum operands".into()) };
             let (a, b, c) = if self.product_on_right { (second, third, first) } else { (first, second, third) };
@@ -135,6 +141,48 @@ fn called_sum(op: &Instruction, instructions: &[Instruction], usage: &[ProductUs
     terms.next().is_none().then_some(term)
 }
 
+fn pass_into_sums(call: &mut super::function_call::FunctionCall, inputs: &[usize], previous: &[Instruction], usage: &[ProductUsage]) {
+    let mut candidates = call.inputs.iter().zip(inputs).filter_map(|(name, &index)| {
+        let product = previous.get(index)?;
+        (usage.get(index)?.count == 1 && !product.literal && product.type_code == 256 && matches!(product.definition.id, "mul" | "div"))
+            .then_some((name, product))
+    });
+    let Some((name, product)) = candidates.next() else { return };
+    let &[a, b] = product.inputs.as_slice() else { return };
+    let body = &mut call.program.instructions;
+    if candidates.next().is_some() || call.exports || body.iter().any(|op| op.call.is_some() || matches!(op.definition.id, "ifelse" | "sequence" | "while")) {
+        return;
+    }
+
+    let reads: Vec<_> = body.iter().map(|op| op.definition.id == "get_float1" && matches!(&op.value, Some(Value::Text(id)) if id == name)).collect();
+    let mut sums = Vec::new();
+    for (index, op) in body.iter().enumerate() {
+        let mut uses = op.inputs.iter().enumerate().filter(|(_, input)| reads.get(**input) == Some(&true));
+        let Some((slot, _)) = uses.next() else { continue };
+        // Any other reader observes the rounded argument and makes it common to these sums.
+        if uses.next().is_some() || op.type_code != 256 || !matches!(op.definition.id, "add" | "sub") || op.pixel_product_sum.is_some() {
+            return;
+        }
+        sums.push((index, slot == 1));
+    }
+    if sums.is_empty() {
+        return;
+    }
+    call.argument_factors = Some([a, b]);
+    for (index, product_on_right) in sums {
+        if let Some(sum) = body.get_mut(index) {
+            sum.pixel_product_sum = Some(ProductSum {
+                inputs: sum.inputs.clone(),
+                product_on_right,
+                negated: false,
+                operation: product.definition.id,
+                literal_divisor: product.literal_divisor,
+                retained: Some(Box::new(Retained::PassedArgument)),
+            });
+        }
+    }
+}
+
 pub(super) fn identify(instructions: &mut [Instruction]) {
     // A sign change can be applied to a factor inside the fused operation. Follow inputs in
     // compilation order so even a long chain of negations takes a single bounded pass.
@@ -191,9 +239,14 @@ pub(super) fn identify(instructions: &mut [Instruction]) {
         }
         if op.call.is_some() {
             if !has_loop {
-                let sum = called_sum(op, instructions, &usage);
-                if let Some(op) = instructions.get_mut(index) {
-                    op.pixel_product_sum = sum;
+                let (previous, current) = instructions.split_at_mut(index);
+                if let Some(op) = current.first_mut() {
+                    op.pixel_product_sum = called_sum(op, previous, &usage);
+                    if op.pixel_product_sum.is_none()
+                        && let Some(call) = &mut op.call
+                    {
+                        pass_into_sums(call, &op.inputs, previous, &usage);
+                    }
                 }
             }
             continue;

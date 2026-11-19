@@ -142,7 +142,7 @@ fn compile_nested(graph: &FunctionGraph, seed: u32, depth: usize, remaining: &mu
             let inputs = ports.iter().filter(|(_, input)| input.is_some()).map(|(name, _)| (*name).to_string()).collect();
             let exports =
                 program.instructions.iter().any(|instruction| instruction.definition.id == "set" || instruction.call.as_ref().is_some_and(|call| call.exports));
-            Some(super::function_call::FunctionCall { program, inputs, defaults: instance.defaults.clone(), exports })
+            Some(super::function_call::FunctionCall { program, inputs, defaults: instance.defaults.clone(), argument_factors: None, exports })
         } else {
             None
         };
