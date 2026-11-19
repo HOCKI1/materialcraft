@@ -124,6 +124,10 @@ fn gradient_stamp_offsets_apply_to_the_tinted_channels() {
 }
 
 fn cook_with_variables(graph: PatternGraph, variables: &BTreeMap<String, Value>, seed: u32) -> crate::CookResult {
+    cook_at_size(graph, variables, seed, 16)
+}
+
+fn cook_at_size(graph: PatternGraph, variables: &BTreeMap<String, Value>, seed: u32, side: u32) -> crate::CookResult {
     let definition = find("fx_map").unwrap();
 
     // These traversal fixtures measure unattenuated grayscale stamps
@@ -138,8 +142,8 @@ fn cook_with_variables(graph: PatternGraph, variables: &BTreeMap<String, Value>,
     let context = CookContext {
         input_formats: &[],
         format: materialcraft_core::OutputFormat::F32,
-        w: 16,
-        h: 16,
+        w: side,
+        h: side,
         seed,
         tile: true,
         inputs: &[],
@@ -149,6 +153,37 @@ fn cook_with_variables(graph: PatternGraph, variables: &BTreeMap<String, Value>,
     };
 
     (definition.cook)(&context)
+}
+
+#[test]
+fn quarter_turns_keep_stamp_edge_ownership_in_image_space() {
+    // The sample centers on all four rectangle edges distinguish image-space ownership after rotation.
+    let size = [0.625, 0.25];
+    for (angle, size, first, last) in [
+        (0.0, size, [13, 25], [52, 40]),
+        (0.25, size, [25, 13], [40, 52]),
+        (0.5, size, [13, 25], [52, 40]),
+        (0.75, size, [25, 13], [40, 52]),
+        (-0.25, size, [25, 13], [40, 52]),
+        (1.25, size, [25, 13], [40, 52]),
+        (0.0, [-0.625, 0.25], [13, 25], [52, 40]),
+        (0.25, [-0.625, -0.25], [25, 13], [40, 52]),
+    ] {
+        let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
+        graph.nodes[0].parameters = BTreeMap::from([
+            ("patterntype".into(), Value::Int(2)),
+            ("patternsize".into(), Value::Float2(size)),
+            ("patternrotation".into(), Value::Float(angle)),
+            ("frameoffset".into(), Value::Float2([1.0 / 128.0; 2])),
+        ]);
+        let image = cook_at_size(graph, &BTreeMap::new(), 943, 64).unwrap().remove(0);
+        for y in 0..64 {
+            for x in 0..64 {
+                let covered = (first[0]..=last[0]).contains(&x) && (first[1]..=last[1]).contains(&y);
+                assert_eq!(image.get_gray(x, y, false), f32::from(covered), "turn {angle} at ({x},{y})");
+            }
+        }
+    }
 }
 
 #[test]
@@ -521,6 +556,18 @@ fn the_render_region_is_the_part_of_pattern_space_the_image_shows() {
     assert!((image.mean()[0] - 0.25).abs() < 1e-5, "{}", image.mean()[0]);
     assert_eq!(image.get(3, 3, false)[0], 1.0);
     assert_eq!(image.get(12, 12, false)[0], 0.0);
+}
+
+#[test]
+fn reversing_a_render_interval_selects_the_full_extent_of_that_axis() {
+    for (bounds, first_center) in [
+        ([0.8125, 0.1875, 0.25, 0.75], [0.0078125, 0.25390625]),
+        ([0.1875, 0.8125, 0.75, 0.25], [0.19238281, 0.0078125]),
+        ([0.8125, 0.1875, 0.75, 0.25], [0.0078125; 2]),
+    ] {
+        let region = super::region::Region::for_render(bounds).unwrap();
+        assert_eq!(region.point([0, 0], [64, 64]), first_center);
+    }
 }
 
 #[test]

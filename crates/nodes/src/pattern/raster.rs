@@ -33,7 +33,7 @@ pub(super) fn render(context: &CookContext, stamps: &[PatternStamp], max_depth: 
     let pixels = Arc::make_mut(&mut data);
     let mut budget = MAX_SAMPLES;
     let mut copies_left = MAX_STAMP_COPIES;
-    let render_region = Region::new(context.v4("render_region"))?;
+    let render_region = Region::for_render(context.v4("render_region"))?;
     let period = if context.tile { Region::new(context.v4("tiling_region"))?.period() } else { [1.0; 2] };
 
     for stamp in stamps {
@@ -63,7 +63,18 @@ pub(super) fn render(context: &CookContext, stamps: &[PatternStamp], max_depth: 
         let bitmap = stamp.pattern >= 256;
         let tinted_offset = matches!(stamp.pattern, 17 | 18);
 
-        let (sine, cosine) = (stamp.rotation * std::f32::consts::TAU).sin_cos();
+        let quarters = stamp.rotation * 4.0;
+        let cardinal = quarters.fract() == 0.0;
+        let (sine, cosine) = if cardinal {
+            match quarters.rem_euclid(4.0) as u32 {
+                0 => (0.0, 1.0),
+                1 => (1.0, 0.0),
+                2 => (0.0, -1.0),
+                _ => (-1.0, 0.0),
+            }
+        } else {
+            (stamp.rotation * std::f32::consts::TAU).sin_cos()
+        };
         let radius = [
             (stamp.size[0] * cosine).abs() * 0.5 + (stamp.size[1] * sine).abs() * 0.5,
             (stamp.size[0] * sine).abs() * 0.5 + (stamp.size[1] * cosine).abs() * 0.5,
@@ -85,9 +96,14 @@ pub(super) fn render(context: &CookContext, stamps: &[PatternStamp], max_depth: 
                         let delta = [point[0] - center[0], point[1] - center[1]];
                         let local = [(delta[0] * cosine + delta[1] * sine) * 2.0 / stamp.size[0], (-delta[0] * sine + delta[1] * cosine) * 2.0 / stamp.size[1]];
 
-                        // The preceding quadrant owns shared edges, including subpixel ones
-                        // Counting both sides can stamp a pixel four extra times
-                        if local.iter().any(|coordinate| *coordinate <= -1.0 || *coordinate > 1.0) {
+                        // On axis-aligned stamps the preceding image interval owns a shared sample center,
+                        // including when a quarter turn reverses a local axis.
+                        let outside = if cardinal {
+                            delta.iter().zip(radius).any(|(&v, r)| v <= -r || v > r)
+                        } else {
+                            local.iter().any(|coordinate| *coordinate <= -1.0 || *coordinate > 1.0)
+                        };
+                        if outside {
                             continue;
                         }
 

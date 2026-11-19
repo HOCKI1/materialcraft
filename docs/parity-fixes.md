@@ -1758,6 +1758,41 @@ The table below rechecks one control for each of the 149 roots marked Too hard b
 
 Of the 149 controls, three match exactly and 125 have measured pixel differences. Twenty pattern traversals reached the execution budget. One text graph requires an external font. The 20 incomplete traversals produced no comparable pixels. The font case exported 1,024 matching pixels with a cook error on its text branch and stays open.
 
+### Quarter-turn stamps and render bounds
+
+For an axis-aligned rectangle whose edges pass through pixel centers, the sample on the right or bottom edge belongs to the rectangle. Rotation by whole quarter turns and a negative stamp dimension preserve this ownership in image space. At 64², a .625 × .25 rectangle centered at (.5078125,.5078125) and rotated .25 turns covers columns 25 through 40 and rows 13 through 52, inclusive. The CPU cook now uses exact quarter-turn axes and measures these boundaries in image space. A reversed render-region interval selects [0,1] on that axis. Increasing intervals retain their supplied endpoints.
+
+| Original F32 controls | Renders | Previous exact | Current exact / compared | Current maximum absolute error |
+|---|---:|---:|---:|---:|
+| Square and disc | 36 | 257,761 | 258,048/258,048 | 0 |
+| Pyramid and gradient | 36 | 231,067 | 233,454/258,048 | 1.1920929e-07 |
+| Signed dimensions and render bounds | 16 | 64,229 | 65,536/65,536 | 0 |
+| Subregion, square | 8 | 28,684 | 32,768/32,768 | 0 |
+| Subregion, gradient | 8 | 23,990 | 29,042/32,768 | 1.78813934e-07 |
+| Rotated squares | 78 | 4,542,662 | 4,542,719/4,542,720 | 1 |
+
+For the first two rows, render a single untiled stamp with roughness zero, size (.625,.25) and offset (1/128,1/128) from the image center. Use shapes 2, 3, 8 and 10, turns 0, .25, .5, .75, −.25 and 1.25, and sides 32, 64 and 128. With zero-based shape and angle indices, the seed is 577 + 71 × shape index + 17 × angle index + side.
+
+For the third row, use side 64, the same offset, shape 2 and turns 0 or .25. First negate X, Y or both stamp dimensions. Then use positive dimensions and reverse each full render axis in turn or both together. Finally crop only X or only Y to [.25,.75]. The seed is 237 + 13 × configuration index + angle index. For the fourth and fifth rows, use [3/16,13/16] × [1/4,3/4] and [5/16,15/16] × [1/8,7/8]. Reverse neither axis, X, Y or both, in that order. Use shapes 2 and 10 at zero rotation, seed 717 + 13 × configuration index + shape.
+
+For the final row, render the following (width, height, turns, X offset, Y offset) at sides 16, 32, 64, 128, 256 and 512. The seed is 361 + 47 × configuration index + side.
+
+(0.375, 0.625, 0, 0, 0) (0.5, 0.75, 0.125, 0, 0) (0.5, 0.75, -0.125, 0.03125, -0.125) (0.375, 0.625, 0.0625, 0.109375, -0.1875) (0.433, 0.219, 0.071, 0.127, -0.192) (0.755, 0.391, 0.13125, -0.1113, 0.1437) (0.625, 0.25, 0.25, 0.0078125, 0.0078125) (0.75, 0.5, 0.125, 0.001953125, -0.00390625) (0.8193, 0.517, 0.31, 0.0682, -0.1083) (0.75, 0.75, 0.03125, -0.05, 0.081) (0.017578125, 0.013671875, 0.075, 0.123046875, 0.0673828125) (0.355, 0.28, -0.073, 0.412, 0.327) (0.87, 0.22, 0.3125, -0.2725, 0.405).
+
+One oblique square pixel at 512² differs by 1.0. The 256² Arc Pavement root retains four U16 differences at (17,104), (110,104), (145,104) and (238,104), each 65,535 levels. For each pixel, take the contributing square's computed center, dimensions and angle from MaterialCraft, wrap the center into the image, and render it alone in both apps. Shift its center along the outward normal towards that pixel by 0, .0004, .0008, −.0008 and .002 pixels. Both apps return zero at the target at the first two offsets and one at .0008. All 1,310,720 pixels in the twenty F32 renders agree. The native full graph still covers the four target pixels. Its computed stamp parameters and tiling remain to be compared.
+
+| Root | Renders | Exact / compared | Maximum U8 / U16 levels | Maximum F16 / F32 |
+|---|---:|---:|---:|---:|
+| Gradient Linear 1 | 47 | 435,120/435,968 | 1 / 1 | 0.000244140625 / 1.52587891e-05 |
+| Gradient Linear 3 | 23 | 265,072/277,760 | 0 / 2 | 0 / 3.05175781e-05 |
+| Spot Emboss | 25 | 218,368/218,368 | 0 / 0 | 0 / 0 |
+
+All three rows include the four archive renders, the [four-format sweep and independent 32² control](#four-format-inventory-comparison). For both gradients, add eight (tiling, rotation, side) groups [(1,0,16), (3,1,32), (2,0,64), (5,2,128), (1,1,256), (4,3,64), (3,0,32), (1,1,32)]. Use F32, plus U8, U16 and F16 for the second and fourth groups. The seed is 197 + 53 × group index. Gradient Linear 1 additionally uses [(1,0,16), (1,1,64), (1,2,64), (1,3,64), (2,0,32), (3,1,128), (4,2,32), (5,3,64), (7,0,128), (8,1,256), (2,2,16), (3,3,32)], seed 1991 + 47 × group index. Add U8, U16 and F16 to groups 1, 2, 3 and 6 using zero-based indices. The remaining mismatches in Gradient Linear 1 occur at rotation 3. At tiling 4, rotation 3 and side 64 the earliest observed difference is in the U16 pattern image, with 4,000/4,096 exact pixels and a maximum of one level.
+
+For Spot Emboss, the sixteen additional renders use the following (side, seed, light X, light Y, intensity) groups [(16,37,.5,.5,5), (32,907,.25,.75,2), (64,131,.75,.125,1), (128,521,.4375,.5625,4), (64,359,.5,.5,0), (32,977,.875,.875,3), (64,419,.0625,.1875,9)]. The first group uses all default parameters. The other groups use highlight (.875,.625,.25,.75) and shadow (.125,.25,.4375,.625). Use F32 throughout, adding U8, U16 and F16 for zero-based groups 1, 3 and 5. Generate 32² input fields for even groups and 64² for odd groups. With pixel indices x, y and group index j, the U16 height is (16381 × floor(x/4) + 271y + 37xy + 421j) modulo 65536. RGBA8 is (13x+11y+19j, 23y+5x, 9xy+17j, 3x+7y+29j), each channel modulo 256. All 25 Spot Emboss renders are exact, including the previously differing [archived cases and four changed renders](#parquet-1-and-outstanding-inventory-controls).
+
+Twenty-one previously verified roots with a reachable pattern or directional blur filter match all 3,334,656 pixels in 164 equal-resolution renders. The [controlled 128² Position Debug preview](#tinted-stamp-offsets-and-alpha) supplies the equal-resolution comparison for the capped preview.
+
 ### Tinted stamp offsets and alpha
 
 The directional gradient and hemisphere add signed variation to each channel after tint and opacity. The hemisphere applies the offset inside its support disk. Color blend modes 1 and 2 composite the premultiplied source over the background with its signed alpha. Mode 0 adds RGB and accumulates alpha as background alpha plus source alpha times the remaining background transparency. Grayscale modes 1 and 2 take the maximum. A constant RGBA background in a grayscale graph contributes the mean of its three color channels.

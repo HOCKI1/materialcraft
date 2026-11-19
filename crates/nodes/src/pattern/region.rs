@@ -15,6 +15,18 @@ impl Region {
         Ok(Self { start, span })
     }
 
+    pub fn for_render(value: [f32; 4]) -> Result<Self, String> {
+        let mut region = Self::new(value)?;
+        for (start, span) in region.start.iter_mut().zip(&mut region.span) {
+            if *span < 0.0 {
+                // A reversed render interval selects the full axis in pattern space.
+                *start = 0.0;
+                *span = 1.0;
+            }
+        }
+        Ok(region)
+    }
+
     pub fn point(&self, pixel: [u32; 2], size: [u32; 2]) -> [f32; 2] {
         std::array::from_fn(|axis| self.start[axis] + (pixel[axis] as f32 + 0.5) / size[axis] as f32 * self.span[axis])
     }
