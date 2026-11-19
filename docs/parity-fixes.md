@@ -1046,6 +1046,23 @@ For the nine new fields use the seven relevant [procedural irradiance inputs](#m
 
 In the changed 64² F32 render all seven input images matched at their stored precision. The first half-float pixel processor matched 4,093/4,096 pixels. Its red at (28,20) is 7.48046875 in MaterialCraft and 7.4765625 in the reference. The two other processors matched all 4,096 pixels each. The two blends carried the first processor’s three discrepancies to the output. The arithmetic behind those three pixels and the earlier default-case differences remains open.
 
+### Voronoi distortion and shared noise inputs
+
+| Root | Stock tables, exact / compared | Stock maximum F32 error | Shared table, exact / compared | Shared maximum U8 / U16 / F16 / F32 errors |
+|---|---:|---:|---:|---:|
+| 3D Voronoi | 146,688/149,760 | 0.304064572 | 5,632/5,632 | 0 / 0 / 0 / 0 |
+| 3D fractal | 146,688/149,760 | 0.205578864 | 5,475/5,632 | 10 / 2,458 / .03759765625 / .0571730733 |
+| 2D Voronoi | 146,688/149,760 | 0.368969858 | 5,632/5,632 | 0 / 0 / 0 / 0 |
+| 2D fractal | 146,688/149,760 | 0.175076187 | 5,632/5,632 | 0 / 0 / 0 / 0 |
+
+With the two applications’ stock tables, each root matched all 146,688 pixels in the 27 renders with zero distortion intensity. The remaining three 32² F32 renders per root differ at every pixel. They enable distortion. The seven additional renders use the same original noise table in both applications. All pixels match in three roots. The 3D fractal still differs in 157 pixels with this shared input.
+
+The 30 stock cases include the eight original 16² to 256² renders, four changed 64² formats and the independent 32² field. Add ten cases with default settings at 16²/37, four formats at 32²/139, another F32 at 32²/457, distance mode 1 at 32²/257, mode 2 at 16²/347, mode 3 at 32²/521 and a distorted 32²/373 case. For the two 3D graphs use position (u,v,.25+.5H,1), where u and v are normalized pixel centers and H=((37x+41y+7xy) mod 509)/508. Use a 32×16 source for mode 1 and scale every channel by 2.5 then subtract .75 for mode 3. The two 2D graphs have no image inputs. For the changed cases set scale 3, size (.8125,1.125,.6875), offset (.1875,−.375,.0625), disorder .6875 in 3D or (.6875,.375,.8125) in 2D, distance scale 1.125, Minkowski exponent 1.625 and style 0. The fractal levels are 1 to 3, roughness .625, lacunarity 2 and opacity .8125. The distorted case uses distance mode 0, distortion intensity .3125, distortion scale multiplier 1.5, rounded curve .3125 and inversion.
+
+For the other seven stock controls, hold the first 32² field and seed 373 fixed. Start with the undistorted mode-0 settings. Change only intensity, only the scale multiplier, only rounded curve and only inversion to their distorted-case values, then enable both distortion controls together, and finally enable rounded curve and inversion together. Each graph matches all 5,120 pixels in the five controls with zero intensity. Both positive-intensity controls differ at 1,024/1,024 pixels.
+
+Replace the bitmap feeding the distortion calculation with the original 16-row [shuffled table](#basic-and-ridged-3d-perlin). Keep the distorted settings and render 16² F32/97 with intensity .1875 and multiplier .75, 32²/373 in all four formats, 32² F32/607, and 16² F32/461 with the signed input, intensity .5 and multiplier 2. In the 3D fractal’s 32² F32/373 case, reading the three noise terms gives 1,024, 994 and 1,024 exact values. The middle term’s maximum error is .4943066984. It differs only in columns 0 to 3 and rows 6 to 18. The five octave outputs match 996, 996, 995, 995 and 995 of 1,024 pixels. Their combined output matches 997/1,024, maximum .0374994278. The table substitution isolates the asset-dependent differences and leaves this 3D fractal discrepancy open.
+
 ### Eighth raytraced specular passes
 
 | Renderer | Renders | Exact RGBA pixels / compared | Maximum U8 / U16 levels | Maximum F16 / F32 error |
