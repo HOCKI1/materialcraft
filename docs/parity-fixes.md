@@ -1042,6 +1042,54 @@ Every row includes the four original defaults, seed and parameter renders, the 6
 
 The trapezoid pair each has two remaining differences across the archived and new comparisons. The [four-format inventory](#four-format-inventory-comparison) lists the original changed settings and port names.
 
+### Random draws in pattern properties and iterations
+
+A pattern property starts its own random sequence at the visit seed. For each draw use s=(A×s+C) mod 2²⁴, then return floor(s/2)/2²³. Three draws recorded as the R, G and B channels of an original square stamp distinguish the following sequences. Seeds 0 and 1 constrain the missing low bit of each candidate state. Seeds 2, 5, 42, 223, 743 and 65,537 independently reproduce all three channels.
+
+| Property | A | C |
+|---|---:|---:|
+| Opacity | 3,626,811 | 51,137 |
+| Branch offset | 14,154,961 | 50,989 |
+| Pattern offset | 1,823,937 | 50,707 |
+| Pattern size | 5,812,301 | 50,411 |
+| Rotation | 3,470,325 | 50,131 |
+| Variation | 12,382,630 | 50,647 |
+| Iteration count | 9,501,597 | 50,591 |
+| Switch | 14,464,988 | 50,111 |
+
+For offset, size, rotation and variation, assign the three draws to a float4 variable with alpha 1 and return the property's ordinary typed value. Read the variable from the opacity of the child square in the upper-left quadrant of a 16² F32 image. A preceding opacity function can consume three further draws without changing the offset, size or rotation sequences. Use the same assignment on the iteration count and switch, return 1 or false, and read the initial or left child.
+
+The initial iterate output receives the visit seed. Each repetition advances it once with A=8,532,665 and C=14,533. Starting from zero the first four repeated children receive 14,533, 4,831,522, 11,773,527 and 8,285,092. To read each child's seed, draw a square with three independent opacity draws. Set its width to .75/count, height to .5 and horizontal offset to (ordinal+.5)/count−.5. Test the root and initial output and 1, 2, 4, 16 and 64 repetitions in F32 at 64² with seeds 0, 1, 2, 42, 223 and at 128² with seed 743. Repeat the initial, four- and sixteen-child cases at 64² with seed 7 in F32 and 317 in four formats, and at 128² with seed 1,297 in F32. Test quadrant slots 0, 3 and the nested pair 1 then 2, a reset to 317, and a computed count of floor(rand(1))+4, using 32²/11, 64²/107, 64²/65,537 and 64²/1,048,575.
+
+| Original pattern controls | Renders | Exact pixels before | Exact pixels after / compared | Maximum error after |
+|---|---:|---:|---:|---:|
+| Iteration output and counts 1–64 | 42 | 170,496 | 258,048/258,048 | 0 |
+| Iteration format and seed controls | 18 | 69,120 | 110,592/110,592 | 0 |
+| Quadrant placement and property combinations | 48 | 264,865 | 294,912/294,912 | 0 |
+| Nested quadrants, initial output and seed reset | 20 | 41,600 | 66,560/66,560 | 0 |
+| Three recorded draws per property | 72 | 17,408 | 18,432/18,432 | 0 |
+| Count and switch properties, including a computed count | 20 | 11,392 | 17,408/17,408 | 0 |
+
+The following roots use their own procedural fields. The [spot and brick settings](#spot-and-brick-pattern-generators) give the first five matrices. For the other six, add ten renders to the archive and [four-format inventory](#four-format-inventory-comparison). Use defaults at 16²/83, then 32²/139, 64²/223, 64²/743, 128²/293, 32²/419 and 32²/577. Render F32 throughout and all four formats at 64²/223. The two 64² seeds share their parameters. In order of the five changed configurations, Cells 1 uses (distance, disorder) of (3,9.375), (7,37.5), (19,68.75), (1,0) and (31,100). Set disorder to .125, .4375, .6875, 0 and 1 on Clouds 1, Creased and Crystal 1. Set warp intensity to 1.75, 11.5, 37.25, 0 and 63.5 on Creased and both crystals. Clouds 2 exposes no numeric setting.
+
+| Root | Renders | Exact pixels before | Exact pixels after / compared | Maximum U8 / U16 error after (levels) | Maximum F16 / F32 error after |
+|---|---:|---:|---:|---:|---:|
+| Black and white spots 1 | 19 | 108 | 27,157/172,288 | 17 / 5,193 | 0.0673828125 / 0.081654489 |
+| Black and white spots 3 | 19 | 122 | 34,974/172,288 | 1 / 857 | 0.00048828125 / 0.00813311338 |
+| Brick 1 | 19 | 170,632 | 170,632/172,288 | 0 / 1 | 1.52587891e-05 / 1.52587891e-05 |
+| Brick 2 | 19 | 171,992 | 171,992/172,288 | 0 / 1 | 6.10351562e-05 / 1.52662396e-05 |
+| Brick 3 | 19 | 51,048 | 51,064/172,288 | 145 / 38,763 | 0.569335938 / 0.730708778 |
+| Cells 1 | 19 | 143 | 171,491/172,288 | 0 / 3 | 0.00048828125 / 3.67760658e-05 |
+| Clouds 1 | 19 | 113 | 122,064/172,288 | 1 / 11 | 0.00048828125 / 0.000112771988 |
+| Clouds 2 | 18 | 106 | 138,259/155,904 | 1 / 3 | 0.00048828125 / 4.58359718e-05 |
+| Creased | 19 | 108 | 112/172,288 | 139 / 38,215 | 0.544921875 / 0.545176744 |
+| Crystal 1 | 19 | 164 | 146/172,288 | 237 / 64,404 | 0.929046631 / 0.929198672 |
+| Crystal 2 | 19 | 87 | 113/172,288 | 151 / 58,015 | 0.592163086 / 0.821276069 |
+
+Cells 1 matches all 8,192 U8 pixels. At 64²/223 the U16 pattern map matches 4,077/4,096 with maximum error one level. At the same setting the three spot-1 pattern maps match 229/256, 3,731/4,096 and 967/1,024 with maximum one level each. The final additive blend combines 16² and 64² inputs. Starting with the reference's two intermediate images, two successive bilinear doublings reconstruct its 4,096/4,096 output levels exactly. Direct 4× bilinear enlargement reproduces 847/4,096, maximum error 2,867 levels. Bricks 1 and 2 retain their measured [edge-coordinate differences](#brick-edge-distances-and-storage-precision).
+
+For Clouds 1, the three pattern maps at 64²/223 match 1,023/1,024, 254/256 and 4,074/4,096 U16 pixels, all within one level. For Clouds 2 they match 1,022/1,024, 4,080/4,096 and 256/256. The first pattern maps of Creased and both crystals still differ substantially at the same seed. Crystal 1 also loses 18 exact pixels across its root matrix. All eleven roots remain open.
+
 ### Brick edge distances and storage precision
 
 To isolate the one-level differences in the [brick renders](#spot-and-brick-pattern-generators), read the pattern map at F32 before the final transform. Compare the same node at U16 with its normal output wiring. Use the 32²/139, 64²/223 and 128²/293 smooth settings in the linked matrix.

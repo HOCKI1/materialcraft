@@ -10,7 +10,7 @@ pub struct EvaluationState {
     pub(crate) registers: Vec<Option<Value>>,
     pub(crate) variables: BTreeMap<String, Value>,
     pub(crate) assignments: BTreeMap<String, Value>,
-    pub(crate) random: u32,
+    pub(crate) random: crate::random::FunctionRandom,
     pub(super) argument_factors: Option<[f32; 2]>,
     pub(crate) calls: BTreeMap<usize, EvaluationState>,
 }

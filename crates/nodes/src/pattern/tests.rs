@@ -46,10 +46,10 @@ fn wave_frequency_and_radial_falloff_follow_stamp_coordinates() {
 }
 
 fn cook(graph: PatternGraph) -> crate::CookResult {
-    cook_with_variables(graph, &BTreeMap::new())
+    cook_with_variables(graph, &BTreeMap::new(), 7)
 }
 
-fn cook_with_variables(graph: PatternGraph, variables: &BTreeMap<String, Value>) -> crate::CookResult {
+fn cook_with_variables(graph: PatternGraph, variables: &BTreeMap<String, Value>, seed: u32) -> crate::CookResult {
     let definition = find("fx_map").unwrap();
 
     // These traversal fixtures measure unattenuated grayscale stamps
@@ -66,7 +66,7 @@ fn cook_with_variables(graph: PatternGraph, variables: &BTreeMap<String, Value>)
         format: materialcraft_core::OutputFormat::F32,
         w: 16,
         h: 16,
-        seed: 7,
+        seed,
         tile: true,
         inputs: &[],
         params: &parameters,
@@ -90,7 +90,7 @@ fn pattern_functions_keep_host_time_and_quadrant_depth() {
         function.output = Some(function.add("get_float1", &[], Some(Value::Text(name.into()))));
         graph.nodes[1].parameters.insert("opacity".into(), Value::Function(Box::new(function)));
 
-        let image = cook_with_variables(graph, &BTreeMap::from([("$time".into(), Value::Float(0.75))])).unwrap().remove(0);
+        let image = cook_with_variables(graph, &BTreeMap::from([("$time".into(), Value::Float(0.75))]), 7).unwrap().remove(0);
 
         assert!((image.mean()[0] - expected).abs() < 1e-6, "{name}: {}", image.mean()[0]);
     }
@@ -146,6 +146,57 @@ fn iterate_preserves_assignments_from_previous_iterations() {
     let image = cook(graph).unwrap().remove(0);
 
     assert!(image.data().iter().all(|value| *value == 6.0), "expected 1 + 2 + 3, got {:?}", image.mean());
+}
+
+#[test]
+fn an_iterate_keeps_the_initial_seed_and_advances_each_repetition() {
+    for (slot, count, expected) in [(0, 1, 0x3f042a5e), (1, 1, 0x3f1abd9c), (1, 2, 0x3f2b7424)] {
+        let mut graph = PatternGraph::with_root(PatternNodeKind::Iterate);
+        let child = graph.add(PatternNodeKind::Quadrant).unwrap();
+        graph.nodes[0].children[slot] = Some(child);
+        graph.nodes[0].parameters.insert("numberadded".into(), Value::Int(count));
+        let params = &mut graph.nodes[1].parameters;
+        params.insert("patterntype".into(), Value::Int(2));
+        params.insert("blendingmode".into(), Value::Int(2));
+        let mut draw = FunctionGraph::default();
+        let one = draw.add_constant(Value::Float(1.0));
+        draw.output = Some(draw.add("rand", &[one], None));
+        params.insert("opacity".into(), Value::Function(Box::new(draw)));
+        let image = cook(graph).unwrap().remove(0);
+        assert_eq!(image.get(8, 8, false)[0].to_bits(), expected);
+    }
+}
+
+#[test]
+fn quadrant_properties_draw_from_independent_streams() {
+    for (property, setting, expected) in [
+        ("branchoffset", Value::Float2([0.0; 2]), 0x3ee082ec),
+        ("frameoffset", Value::Float2([0.0; 2]), 0x3f11adbc),
+        ("patternsize", Value::Float2([0.25; 2]), 0x3f0db18c),
+        ("patternrotation", Value::Float(0.0), 0x3f30ca04),
+        ("patternsuppl", Value::Float(0.5), 0x3ad62400),
+    ] {
+        let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
+        let child = graph.add(PatternNodeKind::Quadrant).unwrap();
+        graph.nodes[0].children[0] = Some(child);
+        let parent = &mut graph.nodes[0].parameters;
+        parent.insert("patterntype".into(), Value::Int(2));
+        parent.insert("opacity".into(), Value::Float(0.0));
+        let mut write = FunctionGraph::default();
+        let one = write.add_constant(Value::Float(1.0));
+        let draw = write.add("rand", &[one], None);
+        let store = write.add("set", &[draw], Some(Value::Text("measured".into())));
+        let setting = write.add_constant(setting);
+        write.output = Some(write.add("sequence", &[store, setting], None));
+        parent.insert(property.into(), Value::Function(Box::new(write)));
+        let mut read = FunctionGraph::default();
+        read.output = Some(read.add("get_float1", &[], Some(Value::Text("measured".into()))));
+        let leaf = &mut graph.nodes[1].parameters;
+        leaf.insert("patterntype".into(), Value::Int(2));
+        leaf.insert("opacity".into(), Value::Function(Box::new(read)));
+        let image = cook_with_variables(graph, &BTreeMap::new(), 42).unwrap().remove(0);
+        assert_eq!(image.get(4, 4, false)[0].to_bits(), expected, "{property}");
+    }
 }
 
 #[test]
@@ -320,7 +371,7 @@ fn an_iteration_reads_the_variables_the_previous_iteration_set() {
     function.output = Some(function.add("set", &[next], Some(Value::Text("total".into()))));
     graph.nodes[1].parameters.insert("opacity".into(), Value::Function(Box::new(function)));
 
-    let image = cook_with_variables(graph, &BTreeMap::from([("total".into(), Value::Float(0.0))])).unwrap().remove(0);
+    let image = cook_with_variables(graph, &BTreeMap::from([("total".into(), Value::Float(0.0))]), 7).unwrap().remove(0);
 
     // 0.25, 0.5 and 0.75 add up; three separate copies of the variable would add 0.25 three times
     assert!((image.mean()[0] - 1.5).abs() < 1e-5, "{}", image.mean()[0]);

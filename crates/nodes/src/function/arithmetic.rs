@@ -6,7 +6,12 @@ pub(super) fn flush_subnormal(value: f32) -> f32 {
     if value.is_subnormal() { 0.0_f32.copysign(value) } else { value }
 }
 
-pub(crate) fn evaluate(instruction: &super::instruction::Instruction, args: &[Value], random: &mut u32, scope: super::FunctionScope) -> Result<Value, String> {
+pub(crate) fn evaluate(
+    instruction: &super::instruction::Instruction,
+    args: &[Value],
+    random: &mut crate::random::FunctionRandom,
+    scope: super::FunctionScope,
+) -> Result<Value, String> {
     let op = instruction.definition.id;
     let pixel_math = scope == super::FunctionScope::PixelProcessor && !instruction.literal;
     let angle_component = |angle, cosine| super::trigonometry::component(angle, cosine, scope, instruction.literal);
@@ -118,8 +123,7 @@ pub(crate) fn evaluate(instruction: &super::instruction::Instruction, args: &[Va
             }
             "lerp" if pixel_math => (right - left).mul_add(factor, left),
             "lerp" => left + (right - left) * factor,
-            "rand" if matches!(scope, super::FunctionScope::Node | super::FunctionScope::ValueProcessor) => crate::random::node_function(random) * left,
-            "rand" => crate::random::image_function(random) * left,
+            "rand" => random.draw() * left,
             _ => return Err(format!("unknown arithmetic operation `{op}`")),
         };
         *result = if flush_arithmetic { flush_subnormal(value) } else { value };

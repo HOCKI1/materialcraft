@@ -1,4 +1,5 @@
 use super::{EvaluationContext, EvaluationState, evaluation_step::EvaluationStep, instruction::Instruction, operation, value_type};
+use crate::random::FunctionRandom;
 use materialcraft_core::Value;
 
 /// Validated graph with input ids resolved to instruction indices
@@ -42,12 +43,17 @@ impl Program {
     }
 
     pub fn evaluate(&self, context: &EvaluationContext<'_>, state: &mut EvaluationState) -> Result<Value, String> {
-        let mut random = self.random_seed(context);
+        let mut random = self.random_stream(context);
         self.evaluate_with_random(context, state, &mut random)
     }
 
-    /// Pattern parameters share a random stream within each traversal visit.
-    pub(crate) fn evaluate_with_random(&self, context: &EvaluationContext<'_>, state: &mut EvaluationState, random: &mut u32) -> Result<Value, String> {
+    /// Calls within an expression consume its selected random stream.
+    pub(crate) fn evaluate_with_random(
+        &self,
+        context: &EvaluationContext<'_>,
+        state: &mut EvaluationState,
+        random: &mut FunctionRandom,
+    ) -> Result<Value, String> {
         let value = self.run_with_random(context, state, random)?;
         // Callers may clamp undefined intermediates; completed functions must be finite
         if value.as_vec4().is_some_and(|components| components.iter().any(|value| !value.is_finite())) {
@@ -58,7 +64,7 @@ impl Program {
 
     /// Evaluate an integer texture's channel control at its normalized storage boundary.
     pub fn evaluate_normalized_color(&self, context: &EvaluationContext<'_>, state: &mut EvaluationState) -> Result<Value, String> {
-        let mut random = self.random_seed(context);
+        let mut random = self.random_stream(context);
         let channels = match self.run_with_random(context, state, &mut random)? {
             Value::Float(v) => [v, v, v, 1.0],
             Value::Float3([r, g, b]) => [r, g, b, 1.0],
@@ -68,7 +74,7 @@ impl Program {
         Ok(Value::Float4(channels.map(|v| if v.is_nan() { 0.0 } else { v.clamp(0.0, 1.0) })))
     }
 
-    fn run_with_random(&self, context: &EvaluationContext<'_>, state: &mut EvaluationState, random: &mut u32) -> Result<Value, String> {
+    fn run_with_random(&self, context: &EvaluationContext<'_>, state: &mut EvaluationState, random: &mut FunctionRandom) -> Result<Value, String> {
         state.variables.clone_from(context.variables);
         state.random = *random;
         let mut remaining = MAX_EVALUATION_STEPS;
@@ -77,22 +83,26 @@ impl Program {
         result
     }
 
-    fn random_seed(&self, context: &EvaluationContext<'_>) -> u32 {
+    fn random_stream(&self, context: &EvaluationContext<'_>) -> FunctionRandom {
         let seed = context.variables.get("$randomseed").and_then(Value::as_i32).map_or(self.seed, |seed| seed as u32);
         if context.scope == super::FunctionScope::PixelProcessor {
             // Each pixel owns a deterministic stream, independent of worker scheduling
             let x = (context.position[0] * context.size[0]).floor() as u32;
             let y = (context.position[1] * context.size[1]).floor() as u32;
-            crate::random::hash(seed ^ crate::random::hash(x.wrapping_add(0x9e37_79b9)) ^ crate::random::hash(y.wrapping_add(0x85eb_ca6b)))
+            FunctionRandom::image(crate::random::hash(
+                seed ^ crate::random::hash(x.wrapping_add(0x9e37_79b9)) ^ crate::random::hash(y.wrapping_add(0x85eb_ca6b)),
+            ))
+        } else if context.scope == super::FunctionScope::FxMap {
+            FunctionRandom::image(seed)
         } else {
-            seed
+            FunctionRandom::uniform(seed)
         }
     }
 
     // Pixel assignments are local; only the general evaluator exports the complete environment
     pub(super) fn evaluate_pixel(&self, context: &EvaluationContext<'_>, state: &mut EvaluationState) -> Result<Value, String> {
         state.variables.clear();
-        state.random = self.random_seed(context);
+        state.random = self.random_stream(context);
         let mut remaining = MAX_EVALUATION_STEPS;
         self.run(context, state, &mut remaining)
     }

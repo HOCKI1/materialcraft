@@ -10,7 +10,7 @@ pub(crate) fn evaluate(
     instruction: &Instruction,
     arguments: &[Value],
     variables: &mut BTreeMap<String, Value>,
-    random: &mut u32,
+    random: &mut crate::random::FunctionRandom,
     context: &EvaluationContext<'_>,
 ) -> Result<Value, String> {
     let op = instruction.definition.id;

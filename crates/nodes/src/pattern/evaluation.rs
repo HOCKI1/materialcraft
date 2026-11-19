@@ -59,7 +59,7 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
         variables.insert("$number".into(), Value::Float(visit.number as f32));
 
         let mut parameters = BTreeMap::new();
-        let mut random = visit.seed;
+        let mut random = crate::random::FunctionRandom::image(visit.seed);
         for parameter in &definition.params {
             let value = match functions.get(&(node.id, parameter.id)) {
                 Some(program) => {
@@ -73,7 +73,8 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
                         variables: &variables,
                     };
 
-                    let value = program.evaluate_with_random(&evaluation, &mut state, &mut random)?;
+                    let mut property_random = crate::random::FunctionRandom::pattern(visit.seed, parameter.id);
+                    let value = program.evaluate_with_random(&evaluation, &mut state, property_random.as_mut().unwrap_or(&mut random))?;
                     variables.extend(state.assignments().clone());
                     value
                 }
@@ -155,15 +156,16 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
                     let mut first = visit.clone();
                     first.node = *child;
                     first.number = 0;
-                    first.seed = crate::random::hash(visit.seed.wrapping_add(1));
                     children.push(first);
                 }
                 if let Some(Some(child)) = node.children.get(1) {
+                    let mut seed = visit.seed;
                     for number in 0..count {
                         let mut repeated = visit.clone();
                         repeated.node = *child;
                         repeated.number = number as u32;
-                        repeated.seed = crate::random::hash(visit.seed.wrapping_add(number as u32 + 2));
+                        seed = crate::random::iteration_child(seed);
+                        repeated.seed = seed;
                         children.push(repeated);
                     }
                 }

@@ -9,16 +9,53 @@ pub fn hash(mut x: u32) -> u32 {
     x
 }
 
-/// The 24-bit sequence used by scalar node-parameter functions.
-pub(crate) fn node_function(state: &mut u32) -> f32 {
-    *state = state.wrapping_mul(16_294_893).wrapping_add(10_493_233) & 0x00ff_ffff;
-    *state as f32 / 16_777_216.0
+#[derive(Clone, Copy)]
+pub(crate) struct FunctionRandom {
+    state: u32,
+    multiplier: u32,
+    increment: u32,
+    uniform: bool,
 }
 
-/// Scalar draws in pixel and pattern functions use the upper 23 bits of this stream.
-pub(crate) fn image_function(state: &mut u32) -> f32 {
-    *state = state.wrapping_mul(3_626_811).wrapping_add(51_137) & 0x00ff_ffff;
-    (*state >> 1) as f32 / 8_388_608.0
+impl FunctionRandom {
+    pub(crate) fn uniform(state: u32) -> Self {
+        Self { state, multiplier: 16_294_893, increment: 10_493_233, uniform: true }
+    }
+
+    pub(crate) fn image(state: u32) -> Self {
+        Self { state, multiplier: 3_626_811, increment: 51_137, uniform: false }
+    }
+
+    /// Each of these pattern properties starts its own sequence at the traversal seed.
+    pub(crate) fn pattern(state: u32, property: &str) -> Option<Self> {
+        let (multiplier, increment) = match property {
+            "opacity" => return Some(Self::image(state)),
+            "branchoffset" => (14_154_961, 50_989),
+            "frameoffset" => (1_823_937, 50_707),
+            "patternsize" => (5_812_301, 50_411),
+            "patternrotation" => (3_470_325, 50_131),
+            "patternsuppl" => (12_382_630, 50_647),
+            "numberadded" => (9_501_597, 50_591),
+            "switch" => (14_464_988, 50_111),
+            _ => return None,
+        };
+        Some(Self { state, multiplier, increment, uniform: false })
+    }
+
+    pub(crate) fn draw(&mut self) -> f32 {
+        self.state = self.state.wrapping_mul(self.multiplier).wrapping_add(self.increment) & 0x00ff_ffff;
+        if self.uniform { self.state as f32 / 16_777_216.0 } else { (self.state >> 1) as f32 / 8_388_608.0 }
+    }
+}
+
+impl Default for FunctionRandom {
+    fn default() -> Self {
+        Self::image(0)
+    }
+}
+
+pub(crate) fn iteration_child(state: u32) -> u32 {
+    state.wrapping_mul(8_532_665).wrapping_add(14_533) & 0x00ff_ffff
 }
 
 /// Quadrant child streams are independent of parameter-function draws.

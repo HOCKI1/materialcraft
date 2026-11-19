@@ -817,7 +817,8 @@ fn measured_pixel_random_draws_share_one_stream() {
         variables: &variables,
     };
     let program = compile(&graph, 0).unwrap();
-    for (mut state, bits) in [(9_091_073, [1060669180, 1057720276, 1034667712, 1054479120]), (3_342_178, [1058664790, 1044635448, 1061348922, 1062659162])] {
+    for (seed, bits) in [(9_091_073, [1060669180, 1057720276, 1034667712, 1054479120]), (3_342_178, [1058664790, 1044635448, 1061348922, 1062659162])] {
+        let mut state = crate::random::FunctionRandom::image(seed);
         let [a, b, c, d] = bits.map(f32::from_bits);
         assert_eq!(program.evaluate_with_random(&context, &mut EvaluationState::default(), &mut state).unwrap(), Value::Float4([a, b, -2.0 * c, 0.375 * d]));
     }
