@@ -35,7 +35,7 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **313 Parity**, **50 In progress** and **183 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **313 Parity**, **52 In progress** and **181 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
 
 [Grayscale sampler measurements](parity-fixes.md#grayscale-sampling-of-color-inputs) · [Value sampling across 240 typed comparisons](parity-fixes.md#value-processor-texture-filtering)
 
@@ -377,8 +377,8 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [normal_transform.sbs/normal_transform](../assets/sbs/normal_transform.sbs) | 1 | No | [Parity · 18 renders, all 171,264 pixels exact](parity-fixes.md#normal-maps-panoramas-and-primitive-shapes) |
 | [normal_uncombine.sbs/get_intensity_iteration](../assets/sbs/normal_uncombine.sbs) | 2 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [normal_vector_rotation.sbs/normal_vector_rotation](../assets/sbs/normal_vector_rotation.sbs) | 2 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
-| [panorama_gradients.sbs/panorama_gradient_2_points](../assets/sbs/panorama_gradients.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [panorama_gradients.sbs/panorama_gradient_linear](../assets/sbs/panorama_gradients.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [panorama_gradients.sbs/panorama_gradient_2_points](../assets/sbs/panorama_gradients.sbs) | 0 | No | [In progress · 138,704/143,104 pixels, first difference in gradient weight](parity-fixes.md#panorama-gradient-weights) |
+| [panorama_gradients.sbs/panorama_gradient_linear](../assets/sbs/panorama_gradients.sbs) | 0 | No | [In progress · 138,579/143,104 pixels, first difference in gradient weight](parity-fixes.md#panorama-gradient-weights) |
 | [panorama_nadir_extract.sbs/nadir_extract](../assets/sbs/panorama_nadir_extract.sbs) | 1 | No | [Parity · 18 renders, all 174,336 pixels exact](parity-fixes.md#sobel-normals-and-nadir-projection) |
 | [panorama_nadir_patch.sbs/panorama_nadir_patch](../assets/sbs/panorama_nadir_patch.sbs) | 2 | No | [In progress · 17 renders, 172,780/173,312 exact pixels](parity-fixes.md#sobel-normals-and-nadir-projection) |
 | [panorama_physical_sun_sky.sbs/Impl/GetOneParam](../assets/sbs/panorama_physical_sun_sky.sbs) | 1 | Yes | [Parity · 25 exact float3 outputs](parity-fixes.md#color-temperature-range-reductions-sky-parameters-and-polygon-paths) |

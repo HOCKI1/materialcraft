@@ -824,6 +824,27 @@ All 7,680 direct-light density pixels in the [density controls](#volume-density-
 
 Read out named values immediately after initialization and after the first volume step on the 16² thin, 16² dithered, 32² thick and 32² varying-density F32 cases. For environment light the initial ray position, ray direction, noise input, dithering, step size and accumulated depth are each exact at 2,560/2,560. After one step the position and depth each match 1,280/2,560, maximum 1.96305132. Scattered light and transmission match 1,280/2,560, maximum .0574402809. For direct light the initial light color improved from 0/2,560 to 2,560/2,560 exact. Direction, ambient color, noise, step size, first position and first depth are also exact. First-step scattering and transmission match 2,560/2,560, maximum 0. The two light roots remain in progress.
 
+### Panorama gradient weights
+
+| Root | Renders | Exact RGBA pixels / compared | Maximum U8 / U16 / F16 / F32 error |
+|---|---:|---:|---|
+| Two-point panorama gradient | 19 | 138,704/143,104 | 0 / 1 / 0 / 1.78813934e−7 |
+| Linear panorama gradient | 19 | 138,579/143,104 | 0 / 1 / 0 / 5.96046448e−8 |
+
+Both roots generate their own coordinates. Alongside the four archive renders and five [inventory comparisons](#four-format-inventory-comparison), run the ten settings below. For the two-point gradient set colors to (.8125,.1875,.5625) and (.0625,.6875,.375). The second contrast is half the first. For the linear gradient use the first position, the same two colors as top and bottom, and the first contrast. All 5,120 U8 and 5,120 F16 pixels match for each root. The two-point root has 5,116/5,120 exact U16 and 123,348/127,744 exact F32 pixels. The linear root has 5,117/5,120 and 123,222/127,744 respectively.
+
+| Size | Seed | First and second positions | First contrast | Output |
+|---|---:|---|---:|---|
+| 16² | 43 | Graph defaults | Default | F32 |
+| 32² | 157 | (.15625,.34375), (.8125,.71875) | .3125 | U8, U16, F16, F32 |
+| 32² | 347 | Same positions | .3125 | F32 |
+| 64² | 317 | (.125,0), (.875,1) | .3125 | F32 |
+| 32² | 431 | (.984375,.1875), (.015625,.4375) | .8125 | F32 |
+| 16² | 577 | (.5625,.375) twice | .3125 | F32 |
+| 16² | 661 | (.25,.5), (.75,.5) | 0 | F32 |
+
+In both roots, at 32²/157 and 64²/317, the three-component directions for the texel and first point, their dot product and its quotient each match all 5,120 pixels when exported. Both constant linear RGB endpoints of the linear gradient also match. The next function adds one to the quotient and divides by two. Its unclamped output matches only 652/1,024 and 2,496/4,096 F32 pixels, maximum 1.19209290e−7 in both cases. Let D be the stored dot product and R the F32 reciprocal of 1−.3125, bits 3fba2e8c. Rounding D×R+1 once, then multiplying by .5, reconstructs both the unclamped and clamped linear weights at all 5,120 pixels. At (1,0) of the 32² case D has bits 3f01187e and the stored quotient is 3f3bc689. Separate rounding gives 3f5de344 for the weight and the reference gives 3f5de345. The same arithmetic followed by clamping and subtracting from one reconstructs the first two-point weight at all 5,120 pixels. The two-point weighted color sum still differs at 238/1,024 and 384/4,096 pixels in the measured implementation.
+
 ### Two sums sharing the same scalar products
 
 | Comparison | Renders | Exact pixels / compared | Maximum error |
