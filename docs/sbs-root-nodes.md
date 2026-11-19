@@ -181,9 +181,9 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [directionnal_noise.sbs/directionnal_noise](../assets/sbs/directionnal_noise.sbs) | 0 | Yes | [In progress · 97,505/147,712 pixels across 23 renders](parity-fixes.md#square-and-rectangular-pattern-generators) |
 | [dirt_1.sbs/dirt_1](../assets/sbs/dirt_1.sbs) | 0 | Yes | [In progress · 144,472/145,664 pixels across 17 renders](parity-fixes.md#square-and-rectangular-pattern-generators) |
 | [dirt_3.sbs/dirt_3](../assets/sbs/dirt_3.sbs) | 0 | Yes | [In progress · 145,297/145,664 pixels across 17 renders](parity-fixes.md#square-and-rectangular-pattern-generators) |
-| [dirt_5.sbs/dirt_5](../assets/sbs/dirt_5.sbs) | 0 | Yes | [In progress · 129,218/129,280 pixels across 16 renders](parity-fixes.md#square-and-rectangular-pattern-generators) |
+| [dirt_5.sbs/dirt_5](../assets/sbs/dirt_5.sbs) | 0 | Yes | [In progress · 129,218/129,280 pixels across 16 renders, one pixel varies at a fixed seed](parity-fixes.md#repeated-seeds-in-dirt-and-pattern-generators) |
 | [dirt_6.sbs/dirt_6](../assets/sbs/dirt_6.sbs) | 0 | Yes | [In progress · 117,822/129,280 pixels across 16 renders](parity-fixes.md#square-and-rectangular-pattern-generators) |
-| [dirt_gradient.sbs/dirt_gradient](../assets/sbs/dirt_gradient.sbs) | 0 | Yes | [In progress · 538/129,280 pixels across 16 renders](parity-fixes.md#square-and-rectangular-pattern-generators) |
+| [dirt_gradient.sbs/dirt_gradient](../assets/sbs/dirt_gradient.sbs) | 0 | Yes | [In progress · 538/129,280 pixels across 16 renders, intermediate repeats measured](parity-fixes.md#repeated-seeds-in-dirt-and-pattern-generators) |
 | [exposure.sbs/exposure](../assets/sbs/exposure.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [extend_shape.sbs/extend_shape_color](../assets/sbs/extend_shape.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [extend_shape.sbs/extend_shape_grayscale](../assets/sbs/extend_shape.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |

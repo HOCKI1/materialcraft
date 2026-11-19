@@ -114,6 +114,26 @@ The standalone Add Sub filter matches **59,904/59,904 pixels across 36 renders**
 
 To reproduce the filter controls use one graph per input layout, with foreground, background and optionally mask. In binding order use slot v=0,1,2 for foreground, background and mask. For each channel c use L=(53x+17y+7xy+35v+61c+3cy+3) mod 251. Use L/255 normally. For signed cases use (L−83.125)/53.5 for the images and (L−83.125)/101 for the mask. Masks and grayscale images take channel zero. Set image bridges to F32 for the color graphs and U8 for the grayscale graph. For each graph use 16² F32 at opacity 1, then 32² at opacity .5 in all four formats. At 64² F32 with signed inputs use .6875 with alpha blending disabled, then .3125 with it enabled. At 32² F32 and opacity .6137 run ignored, straight, premultiplied and source alpha. Finish with signed inputs at 16² F32 and opacity zero, followed by 64² F32 with unsigned inputs and opacity 1. Each series starts at seed 5113 and advances by 17.
 
+### Repeated seeds in dirt and pattern generators
+
+At 16² F32 and seed 9802, Dirt 5 produces two reference values at pixel (12,4) on repeated evaluations of the same graph. The other 255/256 pixels agree in all eight observations. With the intermediate images included, the output was 0.21309643983840942 three times and 0.21314725279808044 five times. With only the output observed, the counts were seven and one. The maximum difference in both series is 0.0000508129597. The U16 FX-Map at that coordinate alternates between levels 36,829 and 36,830. The directly connected F32 Levels image also alternates. In the original 16² MaterialCraft render the pixel is 0.21309643983840942. The recorded overall root counts still include the comparison against the original reference observation. [Square and rectangular pattern generators](#square-and-rectangular-pattern-generators)
+
+Each series evaluates the seeds S + (0,0,1,0,2,0,0,19,0,0,1,0) in order, keeping the original procedural inputs and reading raw images after each graph evaluation. The table compares the eight visits to S. Each row counts a pixel once if every component has identical stored bits in all eight visits.
+
+| Root | Side | Seed S | Stable final pixels / compared | Maximum variation in final output |
+|---|---:|---:|---:|---:|
+| Dirt 5, intermediate images included | 16 | 9802 | 255/256 | 0.0000508129597 |
+| Dirt 5, output only | 16 | 9802 | 255/256 | 0.0000508129597 |
+| Dirt 5 | 32 | 9803 | 1,024/1,024 | 0 |
+| Dirt 1 | 16 | 9776 | 256/256 | 0 |
+| Dirt gradient | 16 | 9828 | 256/256 | 0 |
+| Crystal 1 | 16 | 9633 | 256/256 | 0 |
+| Crystal 2 | 16 | 9646 | 256/256 | 0 |
+| Alveolus | 16 | 8359 | 256/256 | 0 |
+| Directional noise | 32 | 9764 | 1,024/1,024 | 0 |
+
+Use settings A at 16² and B at 32² from the linked generator table. All observed intermediate pixels also repeat in the 32² Dirt 5 and Directional noise cases and the Dirt 1, Crystal and Alveolus cases. Dirt gradient has three varying intermediate pixels, each at (14,7) in a separate image. The U16 Blend spans 29,406–29,407, the U16 FX-Map spans 11,843–11,844, and the F32 Levels spans 0.3331910967826843–0.3332066237926483. The Dirt gradient final pixel repeats in all eight visits. Its other measured differences with MaterialCraft remain open.
+
 ### Square and rectangular pattern generators
 
 Nineteen roots account for 194 new renders and 368,384 output pixels. Capturing the intermediate filters in the same renders places the first difference at an FX-Map in 18 of the 19 roots. Brick 2 matches all eight new outputs and every intermediate image. Its earlier U16, F16 and F32 differences are reproducible. The combined columns include the archived defaults, original changed controls and the earlier four-format and independent cases compared again with the current evaluator. All counts require equality across every stored component.
