@@ -1067,6 +1067,19 @@ For the signed field use H=((97x+71y+13xy+11s+79c+5xc) mod 1021)/1020 then (3H�
 
 For each stored-format group, use the constant above at 32×17. Use H with 11s replaced by 214 and 79c by 23c at 23×17, 31×17, 47×73 and 41×27. Use (floor(11H)+2)/16 at 17×32, and the signed field with seed 307 at 23×19, 17×49 and 9×7. Read all results through F32 at 32². Residuals remain on input storage boundaries and on float reductions. The F16 input conversion still differs, particularly for negative values.
 
+### Min and Max blend weights
+
+Noise Upscale 2 now matches 695,877/697,344 pixels across all 21 [upscaler cases](#tile-random-cell-fields-and-noise-upscaling). The remaining difference occurs on the 32×17 source. Maximum errors at U8, U16 and F16 are zero and the maximum F32 error is 0.00439214706. Applying the corrected blend to the measured intermediate textures reproduces all 168,960/168,960 pixels across twelve original parameter cases.
+
+For Min and Max in source-alpha, ignore-alpha and premultiplied interpretations, multiply the selected foreground color by its weight, then accumulate the background product with a fused multiply-add. Read the mask and participating foreground alpha through the complement of their transparencies. For example, with foreground 46/255, background 79/255 and opacity .56, Min gives F32 bits 3e730783.
+
+| Independent controls | Renders | Exact pixels before | Exact pixels after / compared | Maximum error after |
+|---|---:|---:|---:|---:|
+| Gray and RGBA, interpretations 0, 1 and 3 | 96 | 92,110 | 135,168/135,168 | 0 |
+| Straight RGBA, interpretation 2 | 24 | 12,244 | 12,244/33,792 | 1 level at U8/U16, .00048828125 at F16, 2.38418579e-7 at F32 |
+
+Run both modes with opacity .56, with and without a mask. Use 16²/191 and 64²/541 at F32, and 32²/307 in all four output formats. For RGBA source j starting at 1 and channel c starting at 0, use ((97x+71y+13xy+11s+57j+79c+5xc) mod 1021)/1020. For a gray source or mask use ((97x+71y+13xy+11(s+79i)) mod 1021)/1020 with zero-based pin index i. The color pin order is foreground, background, mask and the gray pin order is foreground, background, mask. Use U8 input bridges for the gray blend and F32 for the color blend. The straight-color controls remain open.
+
 ### Tile Random, cell fields and noise upscaling
 
 After the [pattern seed](#local-seed-expressions-in-pattern-graphs) and [blend](#filtering-unequal-inputs-to-a-blend) changes, the pattern-package Tile Random matches all **176,384/176,384** pixels across 20 renders. Its [four-format inventory cases](#four-format-inventory-comparison), independent 32² case and four archived cases contribute 132,096 pixels. Eleven new inputs add 44,288. The two 64² F32 circle renders at seeds 251 and 947 contain 507 and 510 distinct stored levels respectively. Counts below include every measured end-to-end case.

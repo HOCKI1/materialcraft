@@ -374,7 +374,7 @@ pub fn blend_px(mode: i32, bg: [f32; 4], fg: [f32; 4], opacity: f32, color_blend
         }
         return out;
     }
-    if ((0..=2).contains(&mode) && color_blending == 0) || (matches!(mode, 3 | 8) && color_blending != 2) {
+    if ((0..=2).contains(&mode) && color_blending == 0) || (matches!(mode, 3 | 5 | 6 | 8) && color_blending != 2) {
         // The color weights use the complement of transparency. Coverage uses the original alpha.
         let alpha = if color_blending == 1 { 1.0 } else { 1.0 - (1.0 - fg[3]) };
         let source_weight = alpha * opacity;

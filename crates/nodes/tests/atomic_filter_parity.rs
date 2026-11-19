@@ -18,6 +18,14 @@ fn cook_format(id: &str, inputs: &[Option<Image>], values: &[(&str, Value)], siz
 }
 
 #[test]
+fn min_blend_accumulates_the_background_weight_on_the_foreground_product() {
+    let foreground = Image::gray(1, 1, |_, _| 46.0 / 255.0);
+    let background = Image::gray(1, 1, |_, _| 79.0 / 255.0);
+    let out = cook("blend", &[Some(foreground), Some(background)], &[("mode", Value::Enum(6)), ("opacity", Value::Float(0.56))], [1, 1], true);
+    assert_eq!(out.get_gray(0, 0, false).to_bits(), 0x3e730783);
+}
+
+#[test]
 fn emboss_applies_each_tint_to_a_one_sided_height_difference() {
     let color = Image::filled(32, 32, Kind::Color, [0.25, 0.5, 0.75, 0.375]);
     let height = Image::gray(32, 32, |x, y| if x == 16 && y == 16 { 1.0 } else { 0.0 });

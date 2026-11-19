@@ -39,7 +39,11 @@ fn blend(context: &CookContext) -> CookResult {
         let (x, y) = (x as i64, y as i64);
         let m = mask.as_ref().map_or(1.0, |m| m.get_gray(x, y, false));
         // These modes read the mask through its transparency before applying global opacity.
-        let m = if ((0..=2).contains(&mode) && color_blending == 0) || matches!(mode, 3 | 7 | 8) { 1.0 - (1.0 - m) } else { m };
+        let m = if ((0..=2).contains(&mode) && color_blending == 0) || matches!(mode, 3 | 7 | 8) || (matches!(mode, 5 | 6) && color_blending != 2) {
+            1.0 - (1.0 - m)
+        } else {
+            m
+        };
         ops::blend_px(mode, background.get(x, y, false), foreground.get(x, y, false), opacity * m, color_blending, blend_alpha, clamp)
     })])
 }
