@@ -483,7 +483,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [quantize_color.sbs/bitonic_sort/graph/initial_iteration](../assets/sbs/quantize_color.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [quantize_color.sbs/bitonic_sort/graph/remap_sorting](../assets/sbs/quantize_color.sbs) | 2 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [quantize_color.sbs/bitonic_sort/graph/remap_sorting_256x1](../assets/sbs/quantize_color.sbs) | 2 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
-| [quantize_color.sbs/color_conversions/convert_Lab_to_RGB](../assets/sbs/quantize_color.sbs) | 1 | Yes | [Parity · 25 renders, all 180,736 RGBA pixels exact](parity-fixes.md#vector-equality-lab-to-rgb-and-sbs-round-trips) |
+| [quantize_color.sbs/color_conversions/convert_Lab_to_RGB](../assets/sbs/quantize_color.sbs) | 1 | Yes | [Parity · 180,736 exact pixels, including after MaterialCraft Save As and external reopen](parity-fixes.md#vector-equality-lab-to-rgb-and-sbs-round-trips) |
 | [quantize_color.sbs/color_conversions/convert_RGB_to_Lab](../assets/sbs/quantize_color.sbs) | 1 | Yes | [Parity · 29 renders, all 212,480 RGBA pixels exact](parity-fixes.md#literal-pixel-divisors-and-rgb-to-lab) |
 | [quantize_color.sbs/create_color_palette_16colors](../assets/sbs/quantize_color.sbs) | 2 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [quantize_color.sbs/get_min_max/GetMaxFromAlpha_v2](../assets/sbs/quantize_color.sbs) | 1 | Yes | [Parity · 33 renders, all 36 output pixels exact](parity-fixes.md#alpha-maximum-and-one-texel-reductions) |
