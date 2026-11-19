@@ -342,6 +342,73 @@ fn directional_warp_repeats_a_far_offset_with_its_phase() {
     }
 }
 
+#[test]
+fn directional_warp_samples_stored_texels_along_positive_image_angles() {
+    use materialcraft_core::OutputFormat;
+
+    let level = |n: i32, denominator: f32| (n as f32 * 255.0 / denominator).round_ties_even() / 255.0;
+    let field = Image::gray(64, 64, |x, y| level(((41 * x + 53 * y + 7 * x * y + 29) % 1021) as i32, 1020.0)).with_integer_sampling(true);
+    let mask = Image::gray(64, 64, |x, y| {
+        let (x, y) = (x as i32, y as i32);
+        level((11 * x - 17 * y + 3 * x * y + 401).rem_euclid(509), 508.0)
+    })
+    .with_integer_sampling(true);
+    let definition = find("directional_warp").unwrap();
+    let inputs = [Some(field), Some(mask)];
+    for (angle, intensity, tiling, interior, corner) in [
+        (0.0, 7.0, 3, 0x3f1e109e, 0x3e741cf4),
+        (0.25, 11.0, 3, 0x3f1eaa9f, 0x3ee6a8e7),
+        (0.125, 17.0, 3, 0x3f2346a3, 0x3d6d90ee),
+        (0.1875, 25.0, 0, 0x3f258da6, 0x3d20a0a1),
+        (-0.3125, 21.5, 1, 0x3f134293, 0x3efbecfc),
+    ] {
+        let params = resolve_params(definition, &BTreeMap::from([("intensity".into(), Value::Float(intensity)), ("angle".into(), Value::Float(angle))]));
+        let vars = BTreeMap::from([("$tiling".into(), Value::Int(tiling))]);
+        let context = CookContext {
+            w: 64,
+            h: 64,
+            seed: 751,
+            tile: tiling != 0,
+            format: OutputFormat::F32,
+            input_formats: &[OutputFormat::U8; 2],
+            inputs: &inputs,
+            params: &params,
+            vars: &vars,
+            resource: &|_| None,
+        };
+        let image = (definition.cook)(&context).unwrap().remove(0);
+        assert_eq!(image.get_gray(7, 13, false).to_bits(), interior, "angle {angle}");
+        assert_eq!(image.get_gray(63, 63, false).to_bits(), corner, "tiling {tiling}");
+    }
+}
+
+#[test]
+fn rectangular_directional_warps_scale_both_offsets_by_the_shorter_side() {
+    let definition = find("directional_warp").unwrap();
+    let params = resolve_params(definition, &BTreeMap::from([("intensity".into(), Value::Float(16.0)), ("angle".into(), Value::Float(0.125))]));
+    for (width, height, shift) in [(32, 16, 0.70703125), (16, 32, 0.70703125), (128, 32, 1.4140625), (32, 128, 1.4140625)] {
+        let inputs = [
+            Some(Image::generate(width, height, Kind::Color, |x, y| [x as f32, y as f32, 0.0, 1.0])),
+            Some(Image::filled(width, height, Kind::Gray, [1.0; 4])),
+        ];
+        let context = CookContext {
+            w: width,
+            h: height,
+            seed: 887,
+            tile: true,
+            format: materialcraft_core::OutputFormat::F32,
+            input_formats: &[],
+            inputs: &inputs,
+            params: &params,
+            vars: &BTreeMap::new(),
+            resource: &|_| None,
+        };
+        let image = (definition.cook)(&context).unwrap().remove(0);
+        let (x, y) = (width / 2, height / 2);
+        assert_eq!(image.get(i64::from(x), i64::from(y), false), [x as f32 + shift, y as f32 + shift, 0.0, 1.0]);
+    }
+}
+
 /// Shrinking a bitmap of large HDR values averages them without overflowing.
 #[test]
 fn bitmap_shrinks_large_hdr_values_without_overflow() {

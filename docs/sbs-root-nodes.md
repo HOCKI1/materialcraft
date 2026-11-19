@@ -35,7 +35,7 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **344 Parity**, **67 In progress** and **135 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **346 Parity**, **67 In progress** and **133 Too hard**. The November 17–19 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons) · [November 19 measurements](parity-fixes.md#2026-11-19-root-comparisons)
 
 [Grayscale sampler measurements](parity-fixes.md#grayscale-sampling-of-color-inputs) · [Value sampling across 240 typed comparisons](parity-fixes.md#value-processor-texture-filtering)
 
@@ -280,8 +280,8 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [moisture_noise.sbs/moisture_noise](../assets/sbs/moisture_noise.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [mosaic.sbs/mosaic](../assets/sbs/mosaic.sbs) | 2 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [mosaic.sbs/mosaic_grayscale](../assets/sbs/mosaic.sbs) | 2 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [multi_directional_warp.sbs/multi_directional_warp_color](../assets/sbs/multi_directional_warp.sbs) | 2 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [multi_directional_warp.sbs/multi_directional_warp_grayscale](../assets/sbs/multi_directional_warp.sbs) | 2 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [multi_directional_warp.sbs/multi_directional_warp_color](../assets/sbs/multi_directional_warp.sbs) | 2 | No | [In progress · 175,329/175,360 exact pixels in 19 renders](parity-fixes.md#directional-warp-orientation-and-input-precision) |
+| [multi_directional_warp.sbs/multi_directional_warp_grayscale](../assets/sbs/multi_directional_warp.sbs) | 2 | No | [In progress · 175,339/175,360 exact pixels in 19 renders](parity-fixes.md#directional-warp-orientation-and-input-precision) |
 | [multiangle_to_albedo.sbs/multiangle_to_albedo](../assets/sbs/multiangle_to_albedo.sbs) | 8 | No | [Parity · 14 cases, including eight distinct input images](parity-fixes.md#linear-gradient-2-and-multiangle-albedo) |
 | [multiangle_to_normal.sbs/angle_to_normal](../assets/sbs/multiangle_to_normal.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [multiangle_to_normal.sbs/angle_weight](../assets/sbs/multiangle_to_normal.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
@@ -361,8 +361,8 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [noise_voronoi.sbs/voronoi_fractal](../assets/sbs/noise_voronoi.sbs) | 0 | No | [In progress · 37 renders, 152,320/155,392 exact pixels with stock and shared tables](parity-fixes.md#voronoi-distortion-and-shared-noise-inputs) |
 | [non_square_transform.sbs/non_square_transform](../assets/sbs/non_square_transform.sbs) | 1 | No | [Parity · 204,032 exact pixels in 23 renders](parity-fixes.md#rotated-transforms-and-fractional-texture-coordinates) |
 | [non_square_transform.sbs/non_square_transform_greyscale](../assets/sbs/non_square_transform.sbs) | 1 | No | [Parity · 204,032 exact pixels in 23 renders](parity-fixes.md#rotated-transforms-and-fractional-texture-coordinates) |
-| [non_uniform_blur.sbs/non_uniform_blur_grayscale_sample](../assets/sbs/non_uniform_blur.sbs) | 2 | Yes | [In progress · 96,971/132,096 exact pixels in 9 renders](parity-fixes.md#other-roots-using-uniform-arc-tangents) |
-| [non_uniform_blur.sbs/non_uniform_blur_sample](../assets/sbs/non_uniform_blur.sbs) | 2 | Yes | [In progress · 50,664/132,096 exact pixels in 9 renders](parity-fixes.md#other-roots-using-uniform-arc-tangents) |
+| [non_uniform_blur.sbs/non_uniform_blur_grayscale_sample](../assets/sbs/non_uniform_blur.sbs) | 2 | Yes | [Parity · 19 cases, 175,360 exact pixels](parity-fixes.md#directional-warp-orientation-and-input-precision) |
+| [non_uniform_blur.sbs/non_uniform_blur_sample](../assets/sbs/non_uniform_blur.sbs) | 2 | Yes | [Parity · 19 cases, 175,360 exact pixels](parity-fixes.md#directional-warp-orientation-and-input-precision) |
 | [non_uniform_rotation.sbs/non_uniform_rotation_color](../assets/sbs/non_uniform_rotation.sbs) | 3 | No | [Parity · 206,336 exact pixels in 26 renders](parity-fixes.md#segment-mapping-and-normal-graph-rechecks) |
 | [non_uniform_rotation.sbs/non_uniform_rotation_grayscale](../assets/sbs/non_uniform_rotation.sbs) | 3 | No | [Parity · 171,264 exact pixels in 18 renders](parity-fixes.md#segment-mapping-and-normal-graph-rechecks) |
 | [normal_color.sbs/normal_color](../assets/sbs/normal_color.sbs) | 0 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |

@@ -57,6 +57,44 @@ The first pass classifies all 546 roots: 166 Parity and 380 Too hard. These meas
 
 - **2026-11-13 - Unconnected output images:** Unconnected output bridges now produce transparent RGBA instead of grayscale. The importer separately retains each output's declared image type so saving an unconnected output preserves the graph interface. Both material templates match all 1,179,648 RGBA8 pixels across six recorded cases. All 2,560 direct grayscale/color declaration probe pixels also match, and both declared image types survive save/reload.
 
+## 2026-11-19 root comparisons
+
+### Directional warp orientation and input precision
+
+Both non-uniform blur sample roots now match **175,360/175,360 pixels each**, maximum error zero. Previously their nine baseline cases matched 96,971/132,096 grayscale and 50,664/132,096 color pixels. Directional warp now samples positive angles toward increasing image Y, scales distances in pixels by the shorter image side divided by 256, and bilinearly filters the image at its stored precision.
+
+| Root | Renders | Exact pixels / compared | Maximum error by storage |
+|---|---:|---:|---|
+| Non-uniform blur grayscale sample | 19 | 175,360/175,360 | 0 in all four formats |
+| Non-uniform blur color sample | 19 | 175,360/175,360 | 0 in all four formats |
+| Multi-directional warp color | 19 | 175,329/175,360 | 1 U8, 257 U16, .00390625 F16, .00392156839 F32 |
+| Multi-directional warp grayscale | 19 | 175,339/175,360 | 1 U8, 257 U16, .00390625 F16, .00392156839 F32 |
+
+Each row includes the archived renders, the four 64² formats, the independent 32² input and ten additional comparisons. For those ten, use an original source with channel c = ((41x+53y+7xy+29+37c+11cx) mod 1021)/1020 and mask M = ((11x−17y+3xy+401) mod 509)/508. Use c=0 for gray. Round both to the nearest byte except for the signed case, which uses 1.75c′−.375 with c′ the source channel value, and M at F32. All color channels including alpha count toward a matching pixel.
+
+| Case | Side, format, seed | Blur parameters (intensity, samples, angle, asymmetry, anisotropy, inner rotation) | Multi-directional parameters (intensity, angle, mode, directions) |
+|---|---|---|---|
+| Default | 16, F32, 137 | Defaults | Defaults |
+| A | 64, all four formats, 251 and again F32 at 827 | (2.5, 6, .1875, .375, .5, .28125) | (7.25, .1875, 0, 4) |
+| B | 128, F32, 353 | (1.75, 4, −.125, .125, .75, .0625) | (3.5, −.125, 5, 2) |
+| C | 32, F32, 479 | (7, 2, .3125, .625, .25, −.125) | (11.75, .3125, 6, 1) |
+| D | 32, signed F32, 557 and 64, byte source with F32 output, 733 | (4, 8, −.0625, .5, .375, .15625) | (4.25, −.0625, 10, 4) |
+
+For a single directional warp, bind the same gray field and mask in U8, U16, F16 and F32. Use signed source values for float storage. For each source format and parameter row j, use a constant .625 mask at 16² F32, then varying masks at 32² F32, 64² U8/U16/F16/F32 and 128² F32. Seeds are 751+11j+d+17i with d the source format (0–3) and i the size/format index (0–6). Test (angle in turns, intensity) of (0,0), (0,7), (.25,11), (.125,17), (−.1875,−5.75) and (.073125,11.25) with both axes tiled, then (.1875,25) with neither tiled and (−.3125,21.5) with only X tiled. The 224 renders match **1,086,456/1,089,536 pixels**. Maximum errors are 255 U8, 65,535 U16, 1.070373535 F16 and 1.415079325 F32. The single-axis graph setting accounts for 3,016 differing pixels.
+
+With a constant unit mask and separate F32 images returning x and y, all **79,872/79,872** pixels match across 30 renders, maximum error zero. Use intensity 16 and angles 0, .25, .125 at 64², 32×16, 16×32, 128×32 and 32×128. The measured diagonal shifts are .70703125 pixels at the two 16-pixel short sides and 1.4140625 at the 32-pixel short sides. For unequal source/map dimensions use (32×16,64²), (128×64,32×16), (64²,16×32), (128²,32²), (16²,128²), U8 or F32 inputs, angle .125 and intensity 17. The seven output requests above, using the varying mask throughout, match **294,268/412,160 pixels** across 70 renders. The corresponding maxima are 255, 65,535, 1.201248169 and 1.202106290.
+
+Six other inventory roots contain the same primitive. Replaying their archived outputs, precision sweeps and independent inputs gave the following results. For Messy Fibers 4 the archive has three renders. Each other row has four. Integer maxima below are stored levels.
+
+| Root | Renders | Exact pixels / compared | Maximum U8 / U16 / F16 / F32 |
+|---|---:|---:|---|
+| creased.sbs/creased | 9 | 80,098/132,096 | 1 / 637 / 0.00048828125 / 0.0001525878906 |
+| fluid.sbs/fluid | 9 | 2,715/132,096 | 7 / 16338 / 0.02526855469 / 0.02534788847 |
+| messy_fibers_4.sbs/messy_fibers_4 | 8 | 56,296/115,712 | 1 / 354 / 0.00439453125 / 0.01023879647 |
+| noise_creased.sbs/creased | 9 | 91,206/132,096 | 1 / 782 / 0.00048828125 / 1.531839371e-05 |
+| noise_fluid.sbs/fluid | 9 | 5,620/132,096 | 5 / 11756 / 0.01708984375 / 0.01704069972 |
+| pavement_1.sbs/pavement_1 | 9 | 59,168/132,096 | 255 / 65535 / 1 / 1 |
+
 ## 2026-11-18 root comparisons
 
 ### Pixel Processor products and sums
