@@ -208,6 +208,48 @@ For the thin-gradient row use a 256² F32 canvas, height 1 and widths 1/8, 1/32 
 
 Arc Pavement previously had a maximum F32 error of .00000987946987. Gradient Linear 1 still has 16 unequal pixels in each of U8, U16 and F16 and 176 in F32. On the 24 profiles per root, Fluid and Noise Fluid give the same counts and maxima as the earlier [pattern-stage comparison](#fibers-and-fluid-pattern-stages). All 3,211,776 pixels from 159 equal-resolution renders of 19 previously matched pattern roots are exact. For the separate file check, save the original test graph, Gradient Linear 1, Fibers and Fluid through the normal save command with input header `1.1.0.202502`. Reopen each save in the reference app and compare to the original in that same app. Across 14 extended-angle controls and nine settings per root, all 134,144 pixels in 41 renders match, with maximum error zero.
 
+### Fur pattern sources and downstream filters
+
+Each root has 21 raw comparisons, totaling 178,432 pixels per root. Each format cell gives exact pixels / maximum error. The denominators are 5,120 U8, 130,048 U16, 5,120 F16 and 38,144 F32. Integer errors are stored levels. Every differing stage-traced case first diverges in the FX-Map.
+
+| Package root | Exact pixels | U8 | U16 | F16 | F32 |
+|---|---:|---:|---:|---:|---:|
+| fur_1 | 164,031 | 5,119 / 1 | 118,988 / 2 | 5,091 / 0.00048828125 | 34,833 / 3.05771828e-05 |
+| fur_2 | 134,013 | 5,119 / 1 | 123,497 / 1 | 5,080 / 0.000244140625 | 317 / 1.06096268e-05 |
+| fur_3 | 145,101 | 5,117 / 1 | 106,705 / 4 | 5,067 / 0.00048828125 | 28,212 / 6.10351562e-05 |
+| fur_4 | 148,992 | 5,120 / 0 | 107,228 / 4 | 5,066 / 0.00048828125 | 31,578 / 6.10351562e-05 |
+| noise_fur_1 | 122,553 | 5,117 / 1 | 112,234 / 3 | 5,027 / 0.00048828125 | 175 / 8.31186771e-05 |
+| noise_fur_2 | 130,666 | 5,119 / 1 | 120,328 / 5 | 5,018 / 0.000244140625 | 201 / 7.84248114e-05 |
+| noise_fur_3 | 132,982 | 5,119 / 1 | 122,585 / 3 | 5,048 / 0.000244140625 | 230 / 5.67138195e-05 |
+
+The 12 stage-traced renders add to the four archived renders, four output-precision renders and one independent seed. In case order the new renders use 16², 32² five times, 64×32, 32×64, 64², 128×64, 64×128 and 128². Their output formats are F32, F32, U8, U16, F16, F32, F32, U16, F32, F32, U16 and F32. Number inventory rows from zero. Use seed `73939 + 7 × row` plus offsets 0, 1, 2, 2, 2, 2, 6, 7, 8, 9, 9 and 11. The first and last cases keep defaults. The other cases use the following tuples in the order A, B, B, B, B, C, C, B, B, B.
+
+| Root | Parameter order | A | B | C |
+|---|---|---|---|---|
+| fur_1 | disorder | 0 | 0.375 | 7.5 |
+| fur_2 | disorder, wave scale, wave rotation | 0, 0, 0 | 0.3125, 0.5625, 0.125 | 0.71875, 0.25, 0.8125 |
+| fur_3 | density, disorder | 0.1875, 0.125 | 0.4375, 0.625 | 0.75, 0.25 |
+| fur_4 | disorder | 0 | 0.3125 | 0.71875 |
+| noise_fur_1 | scale, disorder, expand non-square | 1, 0, on | 2, 0.375, off | 3, 0.6875, on |
+| noise_fur_2 | scale, wave scale, wave rotation, expand non-square | 1, 0, 0, on | 2, 0.5625, 0.125, off | 3, 0.25, 0.8125, on |
+| noise_fur_3 | scale, disorder, wave amount, expand non-square | 1, 0, 0, on | 2, 0.3125, 2.75, off | 3, 0.6875, 5.125, on |
+
+For fur_1, fur_3 and fur_4, wire a U16 input to the consumers of the pattern generator. Across the 12 settings, supply 32767 everywhere for case 0, 52111 on the diagonal over 713 for case 1, and 32768 where `(x + 13y) mod 23 = 0` over 32767 for cases 6–8. Otherwise use `((11x + 31y + 7xy + 93) × 7919) mod 65536`. Three additional captures per root pass MaterialCraft's own generated U16 pattern into both renderers at cases 0, 5 and 8. Across all 45 equal-input renders the roots match 155,136/155,136 pixels. All 210 stage images match 723,968/723,968 pixels. The reference app also reproduces the original local root at all 16,128 pixels fed from the local pattern, maximum error zero.
+
+To isolate the generator, route it directly to the output and render cases 0, 2, 3, 4, 5, 6, 8 and 11 with each layout below. Retain the authored pattern, replace it with a flat square or replace it with a disc. For the single-path layout, follow the shortest path to an explicit drawing quadrant, traversing sibling connection identifiers in ascending order. Start at the first quadrant on that path and retain only its path to the selected drawing quadrant. Each cell gives exact raw pixels out of 26,880.
+
+| Package root | Full, authored | Full, square | Full, disc | Single path, authored | Single path, square | Single path, disc |
+|---|---:|---:|---:|---:|---:|---:|
+| fur_1 | 3,542 | 26,880 | 26,880 | 26,691 | 26,880 | 26,880 |
+| fur_2 | 3,219 | 26,879 | 26,878 | 26,819 | 26,880 | 26,880 |
+| fur_3 | 5,217 | 26,880 | 26,880 | 26,855 | 26,880 | 26,880 |
+| fur_4 | 5,403 | 26,880 | 26,880 | 26,819 | 26,880 | 26,880 |
+| noise_fur_1 | 3,022 | 3,072 | 3,078 | 26,832 | 26,823 | 26,832 |
+| noise_fur_2 | 3,078 | 26,874 | 26,878 | 26,833 | 26,880 | 26,880 |
+| noise_fur_3 | 3,119 | 26,879 | 26,875 | 26,776 | 26,880 | 26,880 |
+
+For noise_fur_1 the single square has the same coverage in both renderers. All 57 covered pixels across the five F32 renders have local bits `3ebaf23a` and reference bits `3ebaf23c`, maximum error 5.96046448e−8. The path has six quadrants, with the white square at depth five, roughness 0.949999988079071 and global opacity 2.500080108642578. Each of the other six single-square probes matches all eight renders. Some complete layouts still differ in coverage, and the authored soft pattern differs on each isolated path. All seven roots remain open.
+
 ### Fibers and Fluid pattern stages
 
 All four roots first differ in their FX-Map. Each row covers 24 full-root renders and compares 5,120 pixels each in U8 and F16, 285,696 in U16 and 128,256 in F32. Cells show exact pixels and the largest absolute error in that storage format.
