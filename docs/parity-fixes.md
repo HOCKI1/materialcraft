@@ -931,6 +931,19 @@ For the standalone dimension check emit (u,v,width,height) using the pixel cente
 
 The core, formats, engine and UI release suites, engine panic hunt, formatting, layers, strict workspace Clippy and ten WebAssembly checks passed. The offscreen toolbar regression selected 1×8, and the saved frame displayed both dimensions in Properties. The full offscreen suite passed 45/47 tests. The material assignment frame and parameter preview cook timed out on isolated reruns of both the changed and cached pre-change UI executables.
 
+### Eighth raytraced specular passes
+
+| Renderer | Renders | Exact RGBA pixels / compared | Maximum U8 / U16 levels | Maximum F16 / F32 error |
+|---|---:|---:|---:|---:|
+| First | 26 | 142,061/142,340 | 0 / 0 | .0009765625 / .000030517578125 |
+| Second | 26 | 142,337/142,340 | 0 / 0 | .000244140625 / 0 |
+
+The four original renders that exceeded the earlier time limit finished for both roots. Set the input images and changed parameters from the [four-format inventory](#four-format-inventory-comparison) for the corresponding specular pass. At 128² with defaults, 256² with defaults, 128² with seed 42, and 128² with changed settings, the first renderer matched 16,344/16,384, 65,355/65,536, 16,344/16,384 and 16,369/16,384 RGBA16F pixels. The second matched 16,383/16,384, 65,535/65,536, 16,383/16,384 and 16,384/16,384. Its three differences occur in these default-setting renders.
+
+Add the four changed 64² output formats and the independent 32² input. For the additional fields use the [normal, position and modular channels](#normal-maps-panoramas-and-primitive-shapes). Order the eight inputs by identifier. Use defaults at 16²/seed 43. At 32²/157 use shape 1, shape scale .8125, plane size (.75,1.25), rotation .0625, rotation direction −.125, displacement .125, UV tiling 1.25 and offset (.1875,−.3125). Test all four storage formats and repeat F32 at seed 751. At 64²/293 and with 16×8 inputs at 16²/599 use shape 2 and rotation .125. At 16²/463 use signed fields, shape 0, rotation .1875 and offset (−.5,.0625). The [small-parent comparison](#small-graph-parents-and-raytrace-positions) supplies the other eight renders per root, which matched a further 260/260 pixels per root.
+
+Read the three pixel processors and two blends at changed 64²/42 and shape-2 64²/293. Every image input matched in the first renderer’s changed case, including all 4,194,304 environment texels. The first processor matched 4,090/4,096 and 4,094/4,096 in the two cases, maximum .00018310546875. The final blend matched 4,095/4,096 in each. Its differing green channel at (1,50) in the changed case reads −.04119873046875 in MaterialCraft and −.041168212890625 in the reference. In the second renderer, all five intermediates matched every pixel in both 64² cases. The three default-case F16 differences in the second renderer still need localization.
+
 ### Position-to-normal outputs in both renderers
 
 | Root | Renders | Exact RGBA pixels / compared | Maximum error |
