@@ -52,10 +52,10 @@ const fn polynomials() -> [Polynomial; 128] {
 
 const POLYNOMIALS: [Polynomial; 128] = polynomials();
 
-fn factor(denominator: f32) -> Option<f32> {
+fn factor(denominator: f32, literal_divisor: bool) -> Option<f32> {
     let bits = denominator.to_bits();
     let exponent = (bits >> 23) & 255;
-    if !(1..=252).contains(&exponent) {
+    if literal_divisor || !(1..=252).contains(&exponent) {
         // At the limits, an intermediate reciprocal can overflow or underflow a finite quotient.
         let reciprocal = denominator.recip();
         return reciprocal.is_normal().then_some(reciprocal);
@@ -72,9 +72,13 @@ fn factor(denominator: f32) -> Option<f32> {
 }
 
 pub(crate) fn divide(numerator: f32, denominator: f32) -> f32 {
-    factor(denominator).map_or_else(|| numerator / denominator, |reciprocal| numerator * reciprocal)
+    divide_by(numerator, denominator, false)
 }
 
-pub(super) fn divide_add(numerator: f32, denominator: f32, addend: f32) -> f32 {
-    factor(denominator).map_or_else(|| numerator / denominator + addend, |reciprocal| numerator.mul_add(reciprocal, addend))
+pub(super) fn divide_by(numerator: f32, denominator: f32, literal_divisor: bool) -> f32 {
+    factor(denominator, literal_divisor).map_or_else(|| numerator / denominator, |reciprocal| numerator * reciprocal)
+}
+
+pub(super) fn divide_add(numerator: f32, denominator: f32, addend: f32, literal_divisor: bool) -> f32 {
+    factor(denominator, literal_divisor).map_or_else(|| numerator / denominator + addend, |reciprocal| numerator.mul_add(reciprocal, addend))
 }

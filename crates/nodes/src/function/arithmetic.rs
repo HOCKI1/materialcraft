@@ -88,7 +88,7 @@ pub(crate) fn evaluate(instruction: &super::instruction::Instruction, args: &[Va
             "add" => left + right,
             "sub" => left - right,
             "mul" | "mulscalar" => left * right,
-            "div" if pixel_math => super::reciprocal::divide(left, right),
+            "div" if pixel_math => super::reciprocal::divide_by(left, right, instruction.literal_divisor),
             "div" => left / right,
             // Floored modulo wraps negative coordinates; remainder keeps their sign
             "mod" => left - right * (left / right).floor(),

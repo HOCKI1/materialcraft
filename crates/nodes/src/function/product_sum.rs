@@ -7,6 +7,7 @@ pub(super) struct ProductSum {
     product_on_right: bool,
     negated: bool,
     operation: &'static str,
+    literal_divisor: bool,
 }
 
 impl ProductSum {
@@ -30,7 +31,8 @@ impl ProductSum {
         let result: [f32; 4] = std::array::from_fn(|i| {
             let factor = if negate_product { -a[i] } else { a[i] };
             let addend = if negate_addend { -c[i] } else { c[i] };
-            let sum = if self.operation == "div" { super::reciprocal::divide_add(factor, b[i], addend) } else { factor.mul_add(b[i], addend) };
+            let sum =
+                if self.operation == "div" { super::reciprocal::divide_add(factor, b[i], addend, self.literal_divisor) } else { factor.mul_add(b[i], addend) };
             blend.map_or(sum, |t| flush_subnormal(sum).mul_add(t[i], c[i]))
         })
         .map(flush_subnormal);
@@ -125,7 +127,16 @@ pub(super) fn identify(instructions: &mut [Instruction]) {
                 let &[a, b] = product.inputs.as_slice() else { return None };
                 let mut inputs = if product_on_right { vec![other, a, b] } else { vec![a, b, other] };
                 inputs.extend(blend);
-                Some((used.count, ProductSum { inputs, product_on_right, negated: source.negated, operation: product.definition.id }))
+                Some((
+                    used.count,
+                    ProductSum {
+                        inputs,
+                        product_on_right,
+                        negated: source.negated,
+                        operation: product.definition.id,
+                        literal_divisor: product.literal_divisor,
+                    },
+                ))
             })
             .min_by_key(|(count, _)| *count)
             .map(|(_, sum)| sum);

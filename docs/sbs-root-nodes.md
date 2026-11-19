@@ -35,7 +35,7 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **307 Parity**, **43 In progress** and **196 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **308 Parity**, **43 In progress** and **195 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
 
 [Grayscale sampler measurements](parity-fixes.md#grayscale-sampling-of-color-inputs) · [Value sampling across 240 typed comparisons](parity-fixes.md#value-processor-texture-filtering)
 
@@ -484,7 +484,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [quantize_color.sbs/bitonic_sort/graph/remap_sorting](../assets/sbs/quantize_color.sbs) | 2 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [quantize_color.sbs/bitonic_sort/graph/remap_sorting_256x1](../assets/sbs/quantize_color.sbs) | 2 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [quantize_color.sbs/color_conversions/convert_Lab_to_RGB](../assets/sbs/quantize_color.sbs) | 1 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [quantize_color.sbs/color_conversions/convert_RGB_to_Lab](../assets/sbs/quantize_color.sbs) | 1 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [quantize_color.sbs/color_conversions/convert_RGB_to_Lab](../assets/sbs/quantize_color.sbs) | 1 | Yes | [Parity · 29 renders, all 212,480 RGBA pixels exact](parity-fixes.md#literal-pixel-divisors-and-rgb-to-lab) |
 | [quantize_color.sbs/create_color_palette_16colors](../assets/sbs/quantize_color.sbs) | 2 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [quantize_color.sbs/get_min_max/GetMaxFromAlpha_v2](../assets/sbs/quantize_color.sbs) | 1 | Yes | [Parity · 33 renders, all 36 output pixels exact](parity-fixes.md#alpha-maximum-and-one-texel-reductions) |
 | [quantize_color.sbs/get_min_max/GetMaxFromAlpha_v3](../assets/sbs/quantize_color.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |

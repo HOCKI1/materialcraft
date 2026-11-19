@@ -605,6 +605,21 @@ The eighth irradiance pass previously timed out. Finishing the original 128² de
 
 For those nine new cases, use u=(x+.5)/N, v=(y+.5)/N and H=((53x+31y+9xy+43) mod 257)/256. Write original F32 channels for position (u,v,H,1), normal (.5+.3(u−.5),.5+.3(v−.5),1,1), environment (.25+u,2v,H²,1), previous (v,H,u,.125+.75u), emissive (.75u,.375H,.5v,1), sample table (u,v,H,1−H), noise (H,H,H,1) and height (v,v,v,1). Use defaults at 16²/seed 37. For the rest set shape scale .8125, UV tiling 1.5 and displacement .125. Run shape 0/pass 1 at 32²/173 and repeat at seed 439. Repeat seed 173 with previous=(.5H,.25v,1−u,1). This changes every one of the 1,024 output pixels and both images match exactly. At 16² use shape 1/pass 3/seed 359 with black environment and emissive, and shape 2/pass 2/seed 251 in all four output formats.
 
+### Literal pixel divisors and RGB to Lab
+
+| Comparison | Renders | Exact stored pixels / compared | Maximum error |
+|---|---:|---:|---:|
+| RGB to Lab | 29 | 212,480/212,480 | 0 |
+| Original quotient and contraction controls | 252 | 741,888/741,888 | 0 |
+
+The RGB-to-Lab root matches 126,976 RGBA16, 12,288 RGBA8, 14,336 RGBA16F and 58,880 RGBA32F pixels. Before the change the root matched 152,444/212,480. All 58,880 full-float pixels had a differing component, at most 1.19209290e−7. The archived defaults, changed parameters and four-format cases are under [color conversion and related controls](#color-conversion-gradient-height-and-histogram-controls).
+
+For each of the two Keep Alpha settings, run a 16² grid (u,v,(x XOR y)/15,1) at seed 31 with u=x/15 and v=y/15. In an original linear RGBA32F field, define Hⱼ=(((31+16j)x+(47−4j)y+(7+6j)xy+101j) mod 1021)/1020. Use H at 64²/163 in four output formats and repeat F32 at seed 587. Use 3H−1.125 at 32²/281 in F16 and F32. At 128²/373 use R,G,B=.04045+(((x+7jy) mod 67)−33)/65536 for j=1,2,3, with alpha H₃. Also pass 16×32 pixels at 32²/499 in F32. The input bridge stores RGBA8 in the measured reference cases.
+
+A runtime numerator divided by a literal denominator uses the float32 reciprocal of that literal. A sampled denominator of the same value uses the [runtime pixel reciprocal](#runtime-reciprocal-and-3d-gradient-contrast). For 255 the two multipliers have bits 3b808081 and 3b808080. For numerator c34928a6, the quotients have bits bf49f299 and bf49f298. Adding offset befff6a8 through a single-use quotient gives bfa4f6f7 and bfa4f6f6. A separately consumed quotient rounds before addition. The regression covers a folded 510/2 denominator as well.
+
+For direct controls, sample R,G,B,A from a linear RGBA32F field. For each of ten denominators (255,100,200,500,.3999999761581421,−3.625,10,1,7,3), put that value in G. Emit R divided by the literal, R/G, the literal quotient plus B, or (200R+127.5) divided by the literal. For 255 add a folded denominator and a graph returning both a quotient and a sum using it. Use 16²/61 and 32²/367 F32 plus 64²/211 in four formats. Start with the upper-left crop of the original signed 128² [four-channel hash field](#3d-linear-gradient), multiply R by 64, and at 32² replace R with ((37x+53y+5xy) mod 2047)/16−19.875. Set the first two pixels to (127.5,G,0,1) and (.375,G,.5,1). All 225,792 F32 pixels in 126 renders match bit for bit, as do the 172,032 pixels in each of U8, U16 and F16.
+
 ### Color conversion, gradient, height and histogram controls
 
 | Root or output group | Recorded renders | Exact pixels / compared | Maximum stored error |

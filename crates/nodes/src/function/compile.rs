@@ -110,6 +110,7 @@ fn compile_nested(graph: &FunctionGraph, seed: u32, depth: usize, remaining: &mu
                             value: Some(value),
                             type_code,
                             literal: true,
+                            literal_divisor: false,
                             pixel_product_sum: None,
                             repeated: Vec::new(),
                             call: None,
@@ -158,7 +159,18 @@ fn compile_nested(graph: &FunctionGraph, seed: u32, depth: usize, remaining: &mu
         let inferred = super::inferred_type::inferred_type(&node.op, value.as_ref(), input_type);
         let type_code = call.as_ref().map_or_else(|| if node.type_code == 0 { inferred } else { node.type_code }, |call| call.program.output_type());
         indices.insert(id, instructions.len());
-        instructions.push(Instruction { id, definition, inputs, value, type_code, literal: false, pixel_product_sum: None, repeated: Vec::new(), call });
+        instructions.push(Instruction {
+            id,
+            definition,
+            inputs,
+            value,
+            type_code,
+            literal: false,
+            literal_divisor: false,
+            pixel_product_sum: None,
+            repeated: Vec::new(),
+            call,
+        });
     }
 
     // Instructions come after their inputs, so walking back from a loop reaches its whole condition and body
@@ -193,6 +205,7 @@ fn mark_literals(program: &mut Program, mut arguments: BTreeSet<&str>) {
     for op in &mut program.instructions {
         let literal = |index: &usize| literals.get(*index) == Some(&true);
         let id = op.definition.id;
+        op.literal_divisor = id == "div" && op.inputs.get(1).is_some_and(literal);
         if let Some(call) = &mut op.call {
             let bound = call.inputs.iter().zip(&op.inputs).filter(|(_, index)| literal(index)).map(|(name, _)| name.as_str()).collect();
             mark_literals(&mut call.program, bound);

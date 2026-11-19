@@ -494,6 +494,35 @@ fn pixel_division_multiplies_by_the_reciprocal() {
 }
 
 #[test]
+fn a_literal_pixel_divisor_folds_before_varying_products_and_sums() {
+    let values = [0xc349_28a6, 0x437f_0000, 0xbeff_f6a8].map(|v| Value::Float(f32::from_bits(v)));
+    let variables = ["numerator", "divisor", "offset"].into_iter().map(str::to_owned).zip(values).collect();
+    let context = EvaluationContext {
+        image_formats: &[],
+        scope: super::FunctionScope::PixelProcessor,
+        position: [0.5; 2],
+        size: [1.0; 2],
+        images: &[],
+        tile: true,
+        variables: &variables,
+    };
+    let mut graph = FunctionGraph::default();
+    let [numerator, runtime, offset] = ["numerator", "divisor", "offset"].map(|name| graph.add("get_float1", &[], Some(Value::Text(name.into()))));
+    let literal = graph.add_constant(Value::Float(255.0));
+    let twice = graph.add_constant(Value::Float(510.0));
+    let two = graph.add_constant(Value::Float(2.0));
+    let folded = graph.add("div", &[twice, two], None);
+    let pixel = |graph: &FunctionGraph| compile(graph, 0).unwrap().evaluate_pixel(&context, &mut EvaluationState::default()).unwrap();
+    for (divisor, quotient_bits, sum_bits) in [(literal, 0xbf49_f299, 0xbfa4_f6f7), (folded, 0xbf49_f299, 0xbfa4_f6f7), (runtime, 0xbf49_f298, 0xbfa4_f6f6)] {
+        let quotient = graph.add("div", &[numerator, divisor], None);
+        graph.output = Some(quotient);
+        assert_eq!(pixel(&graph), Value::Float(f32::from_bits(quotient_bits)));
+        graph.output = Some(graph.add("add", &[quotient, offset], None));
+        assert_eq!(pixel(&graph), Value::Float(f32::from_bits(sum_bits)));
+    }
+}
+
+#[test]
 fn measured_pixel_reciprocals_preserve_runtime_rounding() {
     for (input, expected) in [(0x3ecccccc, 0x40200000), (0x3ecc4ccd, 0x4020643f), (0xc2ff6f11, 0xbc0048a0), (0x038537b1, 0x7b75f93f)] {
         let x = f32::from_bits(input);
