@@ -40,6 +40,7 @@ fn lookup_table(mut gradient: Gradient, smooth: bool, format: OutputFormat, gray
         gradient = Gradient::default();
     }
     gradient.sort();
+    let gray_words = gray && !smooth && matches!(format, OutputFormat::U16 | OutputFormat::Inherit);
     // The first authored stop owns both sides of a shared position.
     gradient.keys.dedup_by(|later, earlier| later.pos == earlier.pos);
     for key in &mut gradient.keys {
@@ -47,11 +48,16 @@ fn lookup_table(mut gradient: Gradient, smooth: bool, format: OutputFormat, gray
         key.pos = if levels.is_some() { (position * 65535.0).round() / 257.0 } else { position * last_index };
         if gray {
             let [r, g, b, _] = key.color;
-            key.color = [(r + g + b) / 3.0; 4];
+            let level = (r + g + b) / 3.0;
+            key.color = [if gray_words { (level.clamp(0.0, 1.0) * 65535.0).round() / 65535.0 } else { level }; 4];
         } else if levels.is_some() {
             // Integer ramp stops store byte colors even when the output uses 16 bits.
             key.color = key.color.map(|v| (v.clamp(0.0, 1.0) * 255.0).round() / 255.0);
         }
+    }
+    if gray_words {
+        // The first stop also owns a position shared after storage at word precision.
+        gradient.keys.dedup_by(|later, earlier| later.pos == earlier.pos);
     }
 
     let mut entries = vec![gradient.keys.last().map_or([0.0; 4], |key| key.color); width];

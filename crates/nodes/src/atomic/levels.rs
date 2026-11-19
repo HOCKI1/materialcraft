@@ -2,7 +2,7 @@ use super::ATOMIC;
 use super::input_resize::{InputResize, resized_input};
 use crate::{CookContext, CookResult, NodeDefinition, node};
 use craft_texture::{Image, Kind};
-use materialcraft_core::OutputFormat;
+use materialcraft_core::{OutputFormat, Value};
 
 pub(super) fn definition() -> NodeDefinition {
     node("levels", "Levels", ATOMIC)
@@ -22,6 +22,11 @@ pub(super) fn definition() -> NodeDefinition {
 fn levels(context: &CookContext) -> CookResult {
     let image = resized_input(context, 0, InputResize::Levels).unwrap_or_else(|| Image::filled(context.w, context.h, Kind::Gray, [0.0; 4]));
     let control = |name| {
+        if image.is_gray()
+            && let Some(Value::Float(level)) = context.value(name)
+        {
+            return [*level; 4];
+        }
         let rgba = context.v4(name);
         if image.is_gray() { [(rgba[0] + rgba[1] + rgba[2]) / 3.0; 4] } else { rgba }
     };

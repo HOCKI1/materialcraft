@@ -1,6 +1,6 @@
 use crate::{ResolvedBaseParameters, parameter_function::ChannelMode};
 use materialcraft_core::{Node, OutputFormat, Package, Value, ValueType};
-use materialcraft_nodes::{NodeDefinition, ParameterDescriptor, clamp_params, resolve_params};
+use materialcraft_nodes::{NodeDefinition, ParameterDescriptor, accepts_scalar_function, clamp_params, resolve_params};
 use std::collections::BTreeMap;
 
 pub(crate) fn resolve_parameters(
@@ -44,7 +44,9 @@ pub(crate) fn resolve_parameters(
         let current = parameters.get(parameter).ok_or_else(|| format!("unknown function parameter `{parameter}`"))?;
         let expected = ValueType::of(current).ok_or_else(|| format!("parameter `{parameter}` cannot have a function"))?;
         let channels = match (node.def.as_str(), parameter.as_str(), base.format) {
-            ("levels", "in_low" | "in_high" | "out_low" | "out_high", OutputFormat::U8 | OutputFormat::U16 | OutputFormat::Inherit) => ChannelMode::Normalized,
+            ("levels", name, format) if accepts_scalar_function("levels", name) => {
+                ChannelMode::Levels { normalized: name != "in_mid" && matches!(format, OutputFormat::U8 | OutputFormat::U16 | OutputFormat::Inherit) }
+            }
             ("fx_map", "background", _) if matches!(current, Value::Float4(_)) => ChannelMode::Broadcast,
             _ => ChannelMode::Opaque,
         };
@@ -58,7 +60,11 @@ pub(crate) fn resolve_parameters(
                 dynamic.insert(parameter);
             }
         }
-        let value = current.coerce_json(&serde_json::to_value(value).unwrap_or_default()).ok_or_else(|| format!("invalid function value for `{parameter}`"))?;
+        let value = if matches!((&channels, &value), (ChannelMode::Levels { .. }, Value::Float(_))) {
+            value
+        } else {
+            current.coerce_json(&serde_json::to_value(value).unwrap_or_default()).ok_or_else(|| format!("invalid function value for `{parameter}`"))?
+        };
         parameters.insert(parameter.clone(), value);
     }
 
@@ -77,11 +83,51 @@ pub(crate) fn resolve_parameters(
     Ok((parameters, fixed))
 }
 
+pub(crate) fn inspection_parameters(node: &Node, parameters: &mut BTreeMap<String, Value>) {
+    parameters.retain(|name, value| {
+        if let Value::Float(level) = value
+            && node.def == "levels"
+            && accepts_scalar_function("levels", name)
+        {
+            *value = Value::Float4([*level, *level, *level, 1.0]);
+        }
+        ValueType::of(value).is_some()
+    });
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{Cache, Options, cook};
     use materialcraft_core::{FunctionGraph, Graph, Package, Value, ValueType};
     use std::sync::Mutex;
+
+    #[test]
+    fn gray_levels_keep_scalar_endpoints_distinct_from_equal_rgb_controls() {
+        use craft_texture::Image;
+        use materialcraft_core::OutputFormat;
+
+        let mut graph = Graph::new("Endpoint precision");
+        graph.size = [2, 2];
+        graph.format = OutputFormat::F32;
+        let source = graph.add_node("input_grayscale", [0.0; 2]);
+        let levels = graph.add_node("levels", [0.0; 2]);
+        graph.connect(source, "output", levels, "input").unwrap();
+        let mut package = Package::new("Endpoint precision");
+        package.graphs.push(graph);
+        let mut options = Options::new(&|_| None);
+        options.inputs.insert("input".into(), Image::gray(4, 4, |_, _| 1.0));
+        let cache = Mutex::new(Cache::default());
+
+        let scalar = f32::from_bits(0x3ec0c0c2);
+        let rgba = [scalar, scalar, scalar, 1.0];
+        let vector_result = f32::from_bits(0x3ec0c0c3);
+        for (value, expected) in [(Value::Float4(rgba), vector_result), (Value::Float(scalar), scalar), (Value::Float4(rgba), vector_result)] {
+            package.graphs[0].node_mut(levels).unwrap().functions.insert("out_high".into(), FunctionGraph::constant(value));
+            let cooked = cook(&package, 0, &options, &cache);
+            assert_eq!(cooked.nodes[&levels].parameters["out_high"], Value::Float4(rgba));
+            assert_eq!(cooked.image(levels, 0).unwrap().get_gray(0, 0, false).to_bits(), expected.to_bits());
+        }
+    }
 
     #[test]
     fn missing_direct_level_link_keeps_the_property_value() {

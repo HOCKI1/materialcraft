@@ -235,6 +235,34 @@ fn grayscale_gradient_averages_stops_before_interpolating() {
 }
 
 #[test]
+fn linear_gray_word_gradient_stores_stops_before_interpolation() {
+    let input = Image::gray(256, 1, |x, _| x as f32 / 255.0);
+    for (count, columns, expected) in [
+        (3, [68, 77, 86, 143, 214, 234], [23502, 25044, 26586, 29657, 11152, 5939]),
+        (64, [2, 62, 102, 144, 181, 211], [22648, 10313, 21474, 34965, 12604, 63000]),
+    ] {
+        let keys = (0..count)
+            .map(|i| {
+                let value = ((71 * i + 23 * i * i + 51) % 283) as f32 / 282.0;
+                GradientKey::new(i as f32 / (count - 1) as f32, [value, value, value, 1.0])
+            })
+            .collect();
+        let params = [("gradient", Value::Gradient(Gradient { keys })), ("color_mode", Value::Bool(false))];
+        let output = cook_format("gradient_map", &[Some(input.clone())], &params, [256, 1], false, OutputFormat::U16);
+        assert_eq!(columns.map(|x| (output.get_gray(x, 0, false) * 65535.0).round() as u32), expected);
+    }
+}
+
+#[test]
+fn gray_word_gradient_interpolates_nearby_stops_in_table_space() {
+    let input = Image::gray(1, 1, |_, _| 128.0 / 255.0);
+    let keys = [(0.0, 0.0), (0.5, 1.0), (0.504219, 0.0), (1.0, 1.0)].map(|(position, level)| GradientKey::new(position, [level, level, level, 1.0])).to_vec();
+    let params = [("gradient", Value::Gradient(Gradient { keys })), ("color_mode", Value::Bool(false))];
+    let output = cook_format("gradient_map", &[Some(input)], &params, [1, 1], false, OutputFormat::U16);
+    assert_eq!((output.get_gray(0, 0, false) * 65535.0).round() as u32, 35142);
+}
+
+#[test]
 fn gradient_filter_preserves_linear_and_biased_smooth_segments() {
     let input = Image::gray(1, 1, |_, _| f32::from_bits(0x3e414c15));
     let keys = vec![

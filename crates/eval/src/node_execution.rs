@@ -2,7 +2,7 @@ use crate::{Cache, Cooked, NodeOutput, NodeResult, Options, identifier, now_ms};
 use crate::{
     cache_key::{graph_tree_hash_with_registry, hash_of, image_key, variable_key},
     graph_instance::cook_instance,
-    parameter::resolve_parameters,
+    parameter::{inspection_parameters, resolve_parameters},
     prepared_graph::PreparedGraph,
     value_execution::evaluate_value,
 };
@@ -231,7 +231,7 @@ pub(crate) fn cook_node(
         (variable_key(node, &parameters, &bindings), &instance_literals),
     ));
     if let Some(outputs) = lock(cache).get(key) {
-        parameters.retain(|_, value| materialcraft_core::ValueType::of(value).is_some());
+        inspection_parameters(node, &mut parameters);
         let base = outputs.bases.as_deref().and_then(|ports| ports.first()).copied().unwrap_or(base);
         return NodeResult { base, base_values, parameters, outputs: outputs.values, output_bases: outputs.bases, error: None, ms: 0.0, key, cached: true };
     }
@@ -313,7 +313,7 @@ pub(crate) fn cook_node(
     };
 
     // Cooked values serve parameter controls; authoring graphs stay in the document
-    parameters.retain(|_, value| materialcraft_core::ValueType::of(value).is_some());
+    inspection_parameters(node, &mut parameters);
     match result {
         Ok(outputs) if outputs.len() == output_ports.len().max(1) || output_ports.is_empty() => {
             let outputs = Arc::new(outputs);

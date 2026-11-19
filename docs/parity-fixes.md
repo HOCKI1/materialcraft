@@ -156,6 +156,50 @@ For the threshold series, take the 128² U16 field from j=0 at the 32² setting.
 
 For the two signed series, generate a 32² U16 image with level ((17x+113y+59xy+19)×7919) mod 65536. Reduce to 8² U8, F16 and F32. At seed 15709 test box intensities 0, 2⁻¹⁰, 3.2, 16, −2⁻¹⁰ and −3.2. At U8 the row-zero pixels at columns 2 and 5 are 145 and 139 at zero and 146 and 140 at ±3.2. At seed 15709, repeat both filter types at 0, 2⁻¹⁰, 3.2, −3.2, 64 and −64, with an eighth turn for directional blur. The +64 directional F32 result matches 62/64 pixels, maximum 2.98023224e−8. The independent directional angles retain the F32 differences shown above.
 
+### Stored grayscale stops and scalar Levels controls
+
+Three fractal sum roots match **436,992/436,992 output pixels across 54 renders**, maximum error zero. Each root contributes 119,808 U16, 5,120 U8, 5,120 F16 and 15,616 F32 pixels. Use the nine inventory renders and the nine seed, size and parameter profiles recorded with the [box blur measurements](#box-blur-and-signed-pixel-sizes). The comparisons include defaults, changed roughness and opacity, restricted octave ranges and both rectangular orientations. All reachable stage images in the nine instrumented renders per root also match.
+
+| Package and root | Exact before / compared | Exact after / compared | Instrumented images | Exact stage pixels |
+|---|---:|---:|---:|---:|
+| `fractal_sum_base.sbs/fractal_sum_base` | 142,777/145,664 | 145,664/145,664 | 1,188 | 1,007,841,792 |
+| `noise_fractal_sum_base.sbs/fractal_sum_base` | 143,104/145,664 | 145,664/145,664 | 1,008 | 1,310,976 |
+| `noise_fractal_sum_base.sbs/fractal_sum_base_2` | 143,120/145,664 | 145,664/145,664 | 1,008 | 1,310,976 |
+
+On these roots, a linear grayscale Gradient Map stores the arithmetic mean of its RGB stop channels as a normalized U16 word before interpolation. Clamp the mean to [0,1] and round to the nearest stored level. The first stop at a shared stored position owns that position. Interpolate in the existing 256-entry table's index space and sample the stored table with eight-bit weights. An original four-stop ramp at positions 0, .5, .504218996 and 1 with grayscale values 0, 1, 0 and 1 gives 35,142 at input 128/255. This sample distinguished two calculations that both matched 203,520 pixels in the first fifteen affected root stages.
+
+For a three-stop linear ramp at 0, .5 and 1, give stop j an RGB level of ((71j+23j²+51) mod 283)/282. For input columns 68, 77, 86, 143, 214 and 234 divided by 255, the U16 outputs are 23,502, 25,044, 26,586, 29,657, 11,152 and 5,939. Use 64 evenly spaced stops with the same levels at j=0…63. Columns 2, 62, 102, 144, 181 and 211 give 22,648, 10,313, 21,474, 34,965, 12,604 and 63,000.
+
+A grayscale Levels control fed by a scalar function uses the scalar directly. At a white input, a scalar output-high with F32 bits 0x3ec0c0c2 yields exactly those bits. An explicit four-component control with that value in RGB and alpha one yields 0x3ec0c0c3. The mean of three equal components rounds once more. A direct scalar input link has the same behavior as a scalar literal. An explicitly repeated four-channel swizzle has the same grayscale behavior as the vector control. The property inspector retains its four displayed components. Changing the function type with a warm cache reproduces both results.
+
+The standalone Levels comparison matched **20,480/20,480 pixels in 80 renders**. Use scalar bit patterns 0x3ec0c0c2 and 0x3bc0c0c2. For each, set output-high to a literal RGBA property, a scalar function constant, an RGBA function constant, an explicit four-lane scalar repeat or a direct link to a scalar graph input. Set the alpha of the two RGBA constants to one. Use 16² gray and color F32 inputs, all four output formats and seed 24389 or 24390 respectively. Set H=((83x+131y+521xy+31) mod 389)/388 and replace rows zero and one with 1 and .5. For RGBA shift each row of H right by 0, 3, 5 and 7 columns with wraparound. In four reduced fractal graphs with a white 8² input, all 1,536/1,536 F32 pixels across 24 weight settings match. The prior scalar implementation matched 1,216. The full storage ramps and explicit-swizzle controls also retain 528,384/528,384 exact pixels in 24 renders.
+
+Ordinary saves of the three current-header root graphs reopened in the reference app. They reproduced **40,704/40,704 pixels in 27 renders**. Twenty standalone Levels files and thirteen standalone gradient files also reproduced all **978,944 pixels in 158 reopened renders**.
+
+| Standalone Gradient Map series | Renders | Exact pixels / compared | Maximum U8 / U16 levels | Maximum F16 / F32 error |
+|---|---:|---:|---:|---:|
+| Gray and mixed-color stops | 72 | 851,059/884,736 | 1 / 1 | 0 / 2.22027302e-06 |
+| Shared positions, signed stops and endpoints | 42 | 514,547/516,096 | 175 / 1 | 0 / 1.1920929e-07 |
+| Steep and shallow segments | 72 | 880,464/884,736 | 1 / 1 | 0.00048828125 / 3.15904617e-06 |
+| Byte tables with exhaustive inputs | 24 | 835,309/835,584 | 1 / — | — / — |
+
+For the first series use 2, 3, 7, 64, 19 and 11 stops, each in both gray and mixed RGB. Channel c at stop j is ((71j+23j²+31c+11jc+51) mod 283)/282. For gray use channel zero for all three RGB components. The positions are j/(N−1), except the 11-stop series uses (j+.175×(j mod 3))/(N−.65). For N=19 use smooth interpolation with the stored midpoint field ((j mod 5)−2)×.15625. Use linear interpolation for the others. Render the F32 input x/255 at 256×16 U16 and (x+256y)/65535 at 256² U16. Use the [signed modular grayscale field](#gradient-warp-displacement-and-sampling) at 32² in all four output formats with seed 23473+17k, where k starts at zero and gray precedes mixed RGB. For the linear cases alone, 703,484/706,560 U16 pixels match, maximum one level.
+
+For the byte-table controls, repeat the two 256-wide ramps for all twelve stop sets at U8 output. For the seven limit cases use these (position, gray level) pairs. Apply the same six renders and a common 32² field with seed 23473.
+
+| Case | Stops |
+|---:|---|
+| 0 | (0,−.25), (.351,1.25), (.697,−.25), (1,.75) |
+| 1 | (.125,.3125), (.5,.875), (.5,.1875), (.875,.625) |
+| 2 and 3 | As in case 1, with the middle positions a−.0000001 and a+.0000001 for a=.5 or 128/255 |
+| 4 | (.3,.15125) |
+| 5 | (.25,.67), (.75,.125) |
+| 6 | (0,1), (1,0) |
+
+For the twelve steep and shallow cases use four positions (0,x,x+d,1) with values (0,1,0,1). Use (x,d)=(.5,.004218996), (.5,1/255), (.5,2/255), (.25,.004218996), (1/3,.004218996), then (.5,.004218996) twice with values (.1,.9,.2,.9) and (.2,.85,.3,.85). Finish with (.4675,1.1/255), (.375,1.7/255), (.75,.004218996), (.5,.0001) and (.5,.1). Apply the six renders from the limit cases. Across the 36 U16 outputs, 846,214/847,872 pixels match with maximum error one level. Smooth tables, HDR stops at U8, and some independent linear table entries retain the differences in the table above.
+
+White Noise retained all 229,376 U16 pixels in five earlier renders. Eight more original-seed renders matched 24,832/24,832 pixels. Use 16² F32 at seed zero, 32² in all four formats at seed 11231, 64×32 U16 at 7159, 32×64 F32 at 9677 and 128² F32 at 17233. The root has no exposed controls. The release replay of 30 previously verified roots with reachable gradient or scalar-control paths retained 5,057,536/5,057,536 exact pixels across 256 renders, maximum zero.
+
 ### Tone curve sampling and saved handles
 
 The `noise_upscale` root matched **142,592/142,592 output pixels across 17 renders**, maximum error zero. The eight instrumented renders also matched all 62,976 pixels across 48 images. Before the change the same root matched 2,687 output pixels, with maximum errors of 15 U8 levels, 3,791 U16 levels, .228057861 F16 and .228064887 F32. The curve is the first differing filter on the independent input.
@@ -208,7 +252,7 @@ For the 135 blur controls, use an F32 center impulse at 16², 32², 32×64 and 6
 
 Repeat the same nine images at intensity one for five connected size controls. Use input/filter sizes (−2,3)/(−64,8), (−2,3)/(64,−8) and (0,4)/(8,−4), relative to the input. Repeat the last two with an absolute filter size. For the 48 relief comparisons set intensity one and angle .125 turns. Use input/filter (−2,3)/(1,1) and (0,4)/(1,1) relative, (1,1)/(−2,3) and (1,1)/(0,4) absolute, then (−2,3)/(−1,2) and (−2,3)/(1,−2) relative. Use the [relief fields](#emboss-lighting-and-physical-pixel-size): X ramp at 16² and 32², Y ramp, impulse, step, small field, hash with quarter gray and hash with three-quarter gray at 32², seeds 97, 126, 184, 213, 242, 271, 300 and 329.
 
-Three fractal sum roots improved on the same 18 renders each. The first differences in the new measurements include five U16 gradient maps with matching inputs. The second and third roots also have isolated one-level errors in Levels. All four current-header root saves reproduced their original outputs when both files were rendered by the reference.
+Three fractal sum roots improved on the same 18 renders each. Their [subsequent gradient and scalar-control measurements](#stored-grayscale-stops-and-scalar-levels-controls) reached exact output on all 54. The first differences in the new measurements include five U16 gradient maps with matching inputs. The second and third roots also have isolated one-level errors in Levels. All four current-header root saves reproduced their original outputs when both files were rendered by the reference.
 
 | Remaining root | Exact pixels before | Exact pixels after / compared | Maximum U8 / U16 levels | Maximum F16 / F32 error |
 |---|---:|---:|---:|---:|
