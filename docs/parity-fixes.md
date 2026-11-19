@@ -1042,6 +1042,29 @@ Every row includes the four original defaults, seed and parameter renders, the 6
 
 The trapezoid pair each has two remaining differences across the archived and new comparisons. The [four-format inventory](#four-format-inventory-comparison) lists the original changed settings and port names.
 
+### Tile Random, cell fields and noise upscaling
+
+After the [pattern seed](#local-seed-expressions-in-pattern-graphs) and [blend](#filtering-unequal-inputs-to-a-blend) changes, the pattern-package Tile Random matches all **176,384/176,384** pixels across 20 renders. Its [four-format inventory cases](#four-format-inventory-comparison), independent 32² case and four archived cases contribute 132,096 pixels. Eleven new inputs add 44,288. The two 64² F32 circle renders at seeds 251 and 947 contain 507 and 510 distinct stored levels respectively. Counts below include every measured end-to-end case.
+
+| Root | Renders | Exact pixels / compared | Maximum U8 / U16 error (levels) | Maximum F16 / F32 error |
+|---|---:|---:|---:|---:|
+| Dirt 5 | 19 | 156,858/156,928 | 0 / 4 | 6.10351562e-05 / 5.0842762e-05 |
+| Cells 1, second package | 20 | 158,598/173,312 | 1 / 0 | 0 / 1.96695328e-06 |
+| Cells 4 | 21 | 174,284/174,336 | 0 / 53,506 | 0 / 0.491874591 |
+| Cells 4, second package | 21 | 174,310/174,336 | 223 / 0 | 0 / 0.667963699 |
+| Noise Upscale 1 | 21 | 695,768/697,344 | 0 / 0 | 0 / 0.00784313679 |
+| Noise Upscale 2 | 21 | 678,381/697,344 | 0 / 1 | 0 / 0.00439214706 |
+| Noise Upscale 3 | 21 | 693,752/697,344 | 0 / 0 | 0 / 0.00769269466 |
+| Tile Random, pattern package | 20 | 176,384/176,384 | 0 / 0 | 0 / 0 |
+
+For Tile Random use H=((73x+37y+11xy+k) mod 1021)/1020 in the pattern and background pins, with k=29 and 72. Start at defaults at 16²/137. At 64²/251 choose pattern 3 and (5,3) tiles, and render all four formats. At 128²/353 use pattern 2 and (9,7). At 32²/479 use a 32×16 U16 source, pattern 3 and (3,7), disabling non-square expansion. At 32²/557 use 2.5H−.875, pattern 2, (1,3), independent size randomness .125 and .625 and position randomness .1875. Use constant .375 with pattern 3 and (3,1) at 32²/733. At 64²/827 select image pattern 0, (4,5) and filter 0. Repeat the 64² circle field at seed 947. The changed settings share pattern-specific value .3125, rotation randomness .375, shape rotation .125, interstice .1875 and split threshold .625.
+
+For the seven other roots use the same H with k=19 on the first pin and 132 on the second. Renders use defaults at 16²/71, four formats at 64²/181, F32 at 128²/269, a 32×16 U16 input at 32²/383, a signed 32² field at seed 487, a constant .375 field at 32²/617, the 64² field at seed 701, and a 32² impulse at (floor(w/3),floor(h/2)) with seed 883. For roots with image inputs add a 32×17 U16 field at 32²/977. Use unsigned H on the signed case's mask. Dirt 5 has no input pins or exposed numeric controls. At 64²/181 its first differing pattern map matches 4,094/4,096 U16 pixels within one level.
+
+For the cell roots use (scale, disorder)=(5,.6875) on the 64² fields, (13,.6875) on the 128² and rectangular fields, (1,.125) for the flat input and (9,.125) for the signed and impulse inputs. Disable non-square expansion on rectangular inputs. Select disorder speed .625 where exposed. Cells 1 uses angle .0625, angle randomness .1875, anisotropy .25 at .125 turns, size (.875,1.125), scale .8125, luminance randomness .375 and offset (.1875,−.3125). Select pattern 4 on the large and rectangular cases and 3 on the others. For Cells 4 use color source 1 except on the flat case, and pseudo-random seed 17 on the two 64² modular fields and 37 on the others.
+
+Set the two offset pairs on the first and second upscalers to (.1875,−.4375) and (−.3125,.125) on the 64² fields, (−.5625,.3125) and (.6875,−.1875) on the large and rectangular cases, and (0,0) and (.5,−.5) on the other changed cases. The third upscaler has source and mask inputs only. The first and third match all pixels in 20 of 21 renders. Both first differ on the 32×17 U16 source at their U8 image inputs. The source matches 702/1,024 within two levels, and the third upscaler's mask matches 679/1,024 within one. For the second upscaler the final Min blend also differs on power-of-two inputs. At 64²/181 both of its 128² U8 inputs match but 2,126 final F32 pixels differ by at most 5.96046448e-8.
+
 ### Emboss lighting and physical pixel size
 
 An original height impulse at (16,16), intensity 1, light angle zero and a .5 gray base gives .625 at the impulse and .375 immediately to its right. The pixel to its left equals .5. For a general height H use dx=H(x,y)−H(x−1,y), dy=H(x,y)−H(x,y−1). A tiled axis wraps and an untiled axis clamps. Scale intensity by min(width,height)/256. Multiply cosine and sine of the angle in turns by the respective physical pixel sizes, then by that scale. Use F32 radians. Round the x product and accumulate the y product with one fused multiply-add. A right-angle rotation retains the small computed cosine.

@@ -35,7 +35,7 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **319 Parity**, **60 In progress** and **167 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **320 Parity**, **65 In progress** and **161 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
 
 [Grayscale sampler measurements](parity-fixes.md#grayscale-sampling-of-color-inputs) · [Value sampling across 240 typed comparisons](parity-fixes.md#value-processor-texture-filtering)
 
@@ -181,7 +181,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [directionnal_noise.sbs/directionnal_noise](../assets/sbs/directionnal_noise.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [dirt_1.sbs/dirt_1](../assets/sbs/dirt_1.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [dirt_3.sbs/dirt_3](../assets/sbs/dirt_3.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [dirt_5.sbs/dirt_5](../assets/sbs/dirt_5.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [dirt_5.sbs/dirt_5](../assets/sbs/dirt_5.sbs) | 0 | Yes | [In progress · 19 renders, 156,858/156,928 exact pixels](parity-fixes.md#tile-random-cell-fields-and-noise-upscaling) |
 | [dirt_6.sbs/dirt_6](../assets/sbs/dirt_6.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [dirt_gradient.sbs/dirt_gradient](../assets/sbs/dirt_gradient.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [exposure.sbs/exposure](../assets/sbs/exposure.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
@@ -292,9 +292,9 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [noise_bnw_spots_3.sbs/bnw_spots_3](../assets/sbs/noise_bnw_spots_3.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [noise_bnw_spots_3_v2.sbs/bnw_spots_3](../assets/sbs/noise_bnw_spots_3_v2.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [noise_cells_1.sbs/cells_1](../assets/sbs/noise_cells_1.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [noise_cells_1_v2.sbs/cells_1](../assets/sbs/noise_cells_1_v2.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [noise_cells_4.sbs/cells_4](../assets/sbs/noise_cells_4.sbs) | 1 | Yes | [In progress · 19,151/173,312 pixels, first difference at the scatter map](parity-fixes.md#distance-output-channels-axis-wrapping-and-cutoffs) |
-| [noise_cells_4_v2.sbs/cells_4](../assets/sbs/noise_cells_4_v2.sbs) | 1 | No | [In progress · 15,949/173,312 pixels, first difference at the scatter map](parity-fixes.md#distance-output-channels-axis-wrapping-and-cutoffs) |
+| [noise_cells_1_v2.sbs/cells_1](../assets/sbs/noise_cells_1_v2.sbs) | 0 | No | [In progress · 20 renders, 158,598/173,312 exact pixels](parity-fixes.md#tile-random-cell-fields-and-noise-upscaling) |
+| [noise_cells_4.sbs/cells_4](../assets/sbs/noise_cells_4.sbs) | 1 | Yes | [In progress · 21 renders, 174,284/174,336 exact pixels](parity-fixes.md#tile-random-cell-fields-and-noise-upscaling) |
+| [noise_cells_4_v2.sbs/cells_4](../assets/sbs/noise_cells_4_v2.sbs) | 1 | No | [In progress · 21 renders, 174,310/174,336 exact pixels](parity-fixes.md#tile-random-cell-fields-and-noise-upscaling) |
 | [noise_clouds_1.sbs/clouds_1](../assets/sbs/noise_clouds_1.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [noise_clouds_1_v2.sbs/clouds_1](../assets/sbs/noise_clouds_1_v2.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [noise_clouds_2.sbs/clouds_2](../assets/sbs/noise_clouds_2.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
@@ -352,9 +352,9 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [noise_perlin_noise.sbs/perlin_noise](../assets/sbs/noise_perlin_noise.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [noise_perlin_noise_v2.sbs/perlin_noise](../assets/sbs/noise_perlin_noise_v2.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [noise_plasma.sbs/plasma](../assets/sbs/noise_plasma.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [noise_upscale_1.sbs/noise_upscale_1](../assets/sbs/noise_upscale_1.sbs) | 1 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [noise_upscale_2.sbs/noise_upscale_2](../assets/sbs/noise_upscale_2.sbs) | 1 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [noise_upscale_3.sbs/noise_upscale_3](../assets/sbs/noise_upscale_3.sbs) | 2 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [noise_upscale_1.sbs/noise_upscale_1](../assets/sbs/noise_upscale_1.sbs) | 1 | No | [In progress · 21 renders, 695,768/697,344 exact pixels](parity-fixes.md#tile-random-cell-fields-and-noise-upscaling) |
+| [noise_upscale_2.sbs/noise_upscale_2](../assets/sbs/noise_upscale_2.sbs) | 1 | No | [In progress · 21 renders, 678,381/697,344 exact pixels](parity-fixes.md#tile-random-cell-fields-and-noise-upscaling) |
+| [noise_upscale_3.sbs/noise_upscale_3](../assets/sbs/noise_upscale_3.sbs) | 2 | No | [In progress · 21 renders, 693,752/697,344 exact pixels](parity-fixes.md#tile-random-cell-fields-and-noise-upscaling) |
 | [noise_voronoi.sbs/3d_voronoi](../assets/sbs/noise_voronoi.sbs) | 1 | No | [In progress · 37 renders, 152,320/155,392 exact pixels with stock and shared tables](parity-fixes.md#voronoi-distortion-and-shared-noise-inputs) |
 | [noise_voronoi.sbs/3d_voronoi_fractal](../assets/sbs/noise_voronoi.sbs) | 1 | No | [In progress · 37 renders, 152,163/155,392 exact pixels with stock and shared tables](parity-fixes.md#voronoi-distortion-and-shared-noise-inputs) |
 | [noise_voronoi.sbs/voronoi](../assets/sbs/noise_voronoi.sbs) | 0 | No | [In progress · 37 renders, 152,320/155,392 exact pixels with stock and shared tables](parity-fixes.md#voronoi-distortion-and-shared-noise-inputs) |
@@ -426,7 +426,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [pattern_stripes.sbs/stripes](../assets/sbs/pattern_stripes.sbs) | 0 | No | [In progress · 43 hard stripe edges differ in four formats](parity-fixes.md#facet-masks-and-stripe-boundaries) |
 | [pattern_tile_generator.sbs/tile_generator](../assets/sbs/pattern_tile_generator.sbs) | 7 | No | [In progress · 217,222/226,048 pixels, stamp placement and waveform rounding differ](parity-fixes.md#beveled-square-gradient-and-wave-stamps) |
 | [pattern_tile_generator.sbs/tile_generator_color](../assets/sbs/pattern_tile_generator.sbs) | 7 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [pattern_tile_random.sbs/tile_random](../assets/sbs/pattern_tile_random.sbs) | 2 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [pattern_tile_random.sbs/tile_random](../assets/sbs/pattern_tile_random.sbs) | 2 | No | [Parity · 20 renders, 176,384/176,384 exact pixels](parity-fixes.md#tile-random-cell-fields-and-noise-upscaling) |
 | [pattern_tile_random.sbs/tile_random_color](../assets/sbs/pattern_tile_random.sbs) | 2 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [pattern_tile_random_2.sbs/functions/debug_find_cell](../assets/sbs/pattern_tile_random_2.sbs) | 0 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [pattern_tile_random_2.sbs/tile_random_2](../assets/sbs/pattern_tile_random_2.sbs) | 5 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
