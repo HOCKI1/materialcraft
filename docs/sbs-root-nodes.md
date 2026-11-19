@@ -446,7 +446,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [pbr_render.sbs/ibl_specular_contrib_anisotropic/panoramic_lod](../assets/sbs/pbr_render.sbs) | 1 | Yes | [Parity · 18 cases, 186,624 exact pixels](parity-fixes.md#stored-precision-in-transform-mip-levels) |
 | [pbr_render.sbs/position_to_normal](../assets/sbs/pbr_render.sbs) | 2 | Yes | [Parity · 30 renders, all 515,328 RGBA pixels exact](parity-fixes.md#position-to-normal-outputs-in-both-renderers) |
 | [pbr_render.sbs/raytrace_position](../assets/sbs/pbr_render.sbs) | 4 | Yes | [Parity · 26 renders, all 142,340 RGBA pixels exact](parity-fixes.md#small-graph-parents-and-raytrace-positions) |
-| [pbr_render.sbs/raytraced_irradiance_pass_8](../assets/sbs/pbr_render.sbs) | 10 | Yes | [In progress · 120,223/120,320 pixels and 17/17 pass indices](parity-fixes.md#first-renderer-eighth-irradiance-pass) |
+| [pbr_render.sbs/raytraced_irradiance_pass_8](../assets/sbs/pbr_render.sbs) | 10 | Yes | [In progress · 124,769/124,928 pixels and 26/26 wired or default pass indices](parity-fixes.md#irradiance-with-a-connected-pass-index) |
 | [pbr_render.sbs/raytraced_specular_pass_8](../assets/sbs/pbr_render.sbs) | 9 | Yes | [In progress · 142,061/142,340 pixels, all U8 and U16 exact](parity-fixes.md#eighth-raytraced-specular-passes) |
 | [pbr_render2.sbs/PBR_render_mapping_color](../assets/sbs/pbr_render2.sbs) | 2 | No | [Parity · 13 cases, 163,840 exact pixels](parity-fixes.md#height-distance-texture-mapping-skew-and-weave) |
 | [pbr_render2.sbs/PBR_render_mapping_grayscale](../assets/sbs/pbr_render2.sbs) | 2 | No | [Parity · 13 cases, 163,840 exact pixels](parity-fixes.md#height-distance-texture-mapping-skew-and-weave) |

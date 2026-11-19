@@ -1081,6 +1081,20 @@ For the standalone dimension check emit (u,v,width,height) using the pixel cente
 
 The core, formats, engine and UI release suites, engine panic hunt, formatting, layers, strict workspace Clippy and ten WebAssembly checks passed. The offscreen toolbar regression selected 1×8, and the saved frame displayed both dimensions in Properties. The full offscreen suite passed 45/47 tests. The material assignment frame and parameter preview cook timed out on isolated reruns of both the changed and cached pre-change UI executables.
 
+### Irradiance with a connected pass index
+
+| Comparison | Exact pixels or typed values / compared | Maximum error |
+|---|---:|---:|
+| First renderer, eighth pass, original 17 image observations | 120,232/120,320 | 1 U16 level, .015625 F16, .00390625 F32 |
+| Nine image observations with the index wired | 4,537/4,608 | .001953125 F16 |
+| Next index, 17 default and nine wired observations | 26/26 float values | 0 |
+
+After the [vector product rounding change](#vector-products-in-the-direct-light-pass), the default 128², seed-42 128² and default 256² renders match 16,370/16,384, 16,370/16,384 and 65,481/65,536. In the changed 64² F32 case the first half-float processor now matches 4,094/4,096. The other two processors match all their pixels. Both blends carry the two differences through to the output. The first differing red at (28,20) is still 7.48046875 against 7.4765625. All nine [changed-shape and input cases](#first-renderer-eighth-irradiance-pass) retain exact images and index values.
+
+For the wired cases, connect a scalar Value Processor returning the exposed start value to the root’s pass-index input. Connect its two outputs directly to the wrapper outputs. Use the seven original image fields from the preceding pass comparison, selecting its first matching size. Keep the wrapped graph’s exposed settings at their defaults. Run 16² with start −1 at seed 11 and 0 at seed 27, 32² with .5 at seed 43, 16² with 3 at seed 61 and 32² with 7.25 at seeds 211 and 401. Repeat the start-3 case with each of the four wrapper format requests. The measured inner output is RGBA16F on all nine renders. Both applications return 0, 1, 1.5, 4 and 8.25 for the five distinct inputs. The two first images match 256/256 each, the .5 case matches 991/1,024, the four start-3 cases match 255/256 each and both 7.25 cases match 1,007/1,024.
+
+Across all 26 observations the image totals are 4,352/4,352 U8, 4,351/4,352 U16, 107,108/107,264 F16 and 8,958/8,960 F32. The largest errors by format are zero, one level, .015625 and .00390625. The image output remains in progress.
+
 ### First renderer eighth irradiance pass
 
 | Stored output | Observations | Exact / compared | Maximum error |
