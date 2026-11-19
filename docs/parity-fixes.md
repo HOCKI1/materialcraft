@@ -827,6 +827,27 @@ For a square side N, fill R with an impulse at (N/2,N/2), G with the column x=N/
 
 Wider kernels still differ. For an F32 impulse blurred at 128² and intensity 4, the five horizontal stripe samples centered on the impulse are .12451171875, .25048828125, .25, .25048828125 and .12451171875. Both outer texels differ from a uniformly weighted window with fractional ends.
 
+### Small graph parents and raytrace positions
+
+| Comparison | Renders | Exact stored pixels / compared | Maximum error |
+|---|---:|---:|---:|
+| First PBR renderer, raytrace position | 26 | 142,340/142,340 | 0 |
+| Second PBR renderer, raytrace position | 26 | 142,340/142,340 | 0 |
+| Pixel centers and dimensions, runtime parent sizes | 44 | 9,552/9,552 | 0 |
+| Saved parent sizes, including a 1×1 canvas in four formats | 12 | 693/693 | 0 |
+
+The two raytrace-position roots each matched 142,080/142,080 RGBA pixels across their 18 renders at sizes 16² through 256². An earlier 8² request produced 16² in MaterialCraft. The parent-size command, package reader, writer and cook now preserve each axis down to a single texel. A width or height in pixels rounds up to the next power of two. An explicit log2 size sets the exponent directly.
+
+For each raytrace position, wire the original offset grayscale field to Height and the levels range field to both Opacity and Blue Noise. Run native defaults at 128² and 256² with seed zero and at 128² with seed 42. For the changed 128² case set shape 1, shape scale .7, position (.1,−.2,.3), plane size (.7,1.3), displacement .2, UV tiling 2, sphere UV scale (2,3), plane and cylinder UV scales (2,1), cylinder length 1.5, radius .7, UV offset (.125,.25), rotation .125, direction .2 and rotation around that direction .3. Repeat the changed case at 64²/seed 42 in four storage formats and include the independent 32²/seed 113 F32 case. The [input-field definitions and independent cases](#four-format-inventory-comparison) give the pixel formulas.
+
+For the modular cases use original grayscale inputs H=((37x+41y+7xy+53j) mod 509)/508, where j is 0 for Blue Noise, 1 for Height and 2 for Opacity. Store linear RGB (H,H,H), alpha 1. Run defaults at 16²/43. At 32²/157 use shape 1, scale .8125, position (.0625,−.125,.1875), plane size (.75,1.25), displacement .125, UV tiling 1.25, cylinder length 1.5, radius .625 and UV offset (.1875,−.3125). Run all four storage formats and repeat F32 at seed 751. Use shape 2 at 64²/293 and again with 16×8 inputs at 16²/599. At 16²/463 apply 2.5H−.75, set shape 0 and UV offset (−.5,.0625).
+
+Eight more renders of each raytrace root use the 8² modular inputs. Request 8² F32 with defaults at seed 43 and 2² F32 with defaults at seed 499. Apply the changed shape-1 settings above at 4²/571 in all four formats, 8² F16/749 and 8² F32/827. Each root matched 260/260 pixels in these small renders. Across the complete matrix each matched 5,136 U8, 5,136 U16, 5,200 F16 and 126,868 F32 pixels.
+
+For the standalone dimension check emit (u,v,width,height) using the pixel center and the function's reported size. Request (1,8), (8,1), (2,2), (2,8), (4,4), (4,16), (8,8), (3,5), (6,9), (17,31) and (32,32) in U8, U16, F16 and F32. Use seeds 108 through 398 in steps of 29. The three non-power-of-two requests give 4×8, 8×16 and 32×32. A separately saved 1×1 graph gives (.5,.5,1,1) in each format at seed 79. For the eight saved F32 packages, use independent parent exponents (0,0), (0,3), (2,0), (1,1), (2,3), (3,3), (4,2), (5,4) and a constant scalar pixel function with output bits 3fc5672a. A transient 1×1 request on the original coordinate graph with the default parent setting produced a 2048² reference output. Those four dimension mismatches are excluded from the exact-pixel counts above.
+
+The core, formats, engine and UI release suites, engine panic hunt, formatting, layers, strict workspace Clippy and ten WebAssembly checks passed. The offscreen toolbar regression selected 1×8, and the saved frame displayed both dimensions in Properties. The full offscreen suite passed 45/47 tests. The material assignment frame and parameter preview cook timed out on isolated reruns of both the changed and cached pre-change UI executables.
+
 ### Position-to-normal outputs in both renderers
 
 | Root | Renders | Exact RGBA pixels / compared | Maximum error |

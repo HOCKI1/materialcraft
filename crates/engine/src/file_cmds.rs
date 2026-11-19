@@ -3,7 +3,7 @@ pub use crate::linked_resource::reader as linked_files;
 
 use serde_json::{Value as J, json};
 
-use materialcraft_core::{Package, Resource, ResourceBytes};
+use materialcraft_core::{Graph, Package, Resource, ResourceBytes};
 use materialcraft_formats::{Depth, encode, output_name};
 
 use crate::commands::{CommandSpec, always, bad, has_graph, has_package, strp, u64p};
@@ -69,8 +69,7 @@ fn new_graph(session: &mut Session, parameters: &J) -> Result<J> {
     } else {
         TEMPLATES.iter().find(|entry| entry.0 == template_id).map_or("Graph", |entry| entry.1)
     };
-    let size = u64p(parameters, "size").unwrap_or(1024).clamp(16, 8192);
-    let log2 = 63 - size.leading_zeros();
+    let log2 = Graph::parent_size_log2(u64p(parameters, "size").unwrap_or(1024));
     let base = strp(parameters, "name").map(str::to_string).unwrap_or_else(|| label.replace(' ', "_"));
     let folder = strp(parameters, "folder").unwrap_or("");
     crate::folder_path::require(&session.pkg, folder)?;

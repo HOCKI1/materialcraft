@@ -63,11 +63,16 @@ pub struct Graph {
     pub next_id: u64,
 }
 
-/// Smallest and largest graph size, as log2 (16 px .. 8192 px)
-pub const MIN_SIZE_LOG2: u32 = 4;
+/// Bounds for each default parent dimension, as log2 (1 px .. 8192 px)
+pub const MIN_SIZE_LOG2: u32 = 0;
 pub const MAX_SIZE_LOG2: u32 = 13;
 
 impl Graph {
+    /// Round a requested parent dimension up to a supported power of two.
+    pub fn parent_size_log2(pixels: u64) -> u32 {
+        pixels.clamp(1 << MIN_SIZE_LOG2, 1 << MAX_SIZE_LOG2).next_power_of_two().ilog2()
+    }
+
     /// Display text never changes the identifier used by SBS references
     pub fn display_name(&self) -> &str {
         if self.attributes.label.is_empty() { &self.name } else { &self.attributes.label }

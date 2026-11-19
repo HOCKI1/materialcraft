@@ -2,7 +2,7 @@
 
 use serde_json::{Value as J, json};
 
-use materialcraft_core::{MAX_SIZE_LOG2, MIN_SIZE_LOG2, NodeId, OutputFormat, Value};
+use materialcraft_core::{Graph, MAX_SIZE_LOG2, NodeId, OutputFormat, Value};
 
 use crate::commands::{CommandSpec, always, bad, boolp, has_graph, has_selection, i64p, ids_param, strp, u64p};
 use crate::{Result, Session, cmd};
@@ -12,7 +12,15 @@ pub(crate) fn specs() -> Vec<CommandSpec> {
         cmd!("graph.open", "Open graph", [], None, "{graph: index or name}", always, open),
         cmd!("graph.delete", "Delete graph", [], None, "{graph?}", has_graph, delete),
         cmd!("graph.duplicate", "Duplicate graph", [], None, "{graph?}", has_graph, duplicate),
-        cmd!("graph.size", "Graph size", [], None, "{graph?, document?, width, height} in pixels (powers of two, 16..8192) or {log2: [w, h]}", always, size),
+        cmd!(
+            "graph.size",
+            "Graph size",
+            [],
+            None,
+            "{graph?, document?, width, height} in pixels (rounded up to powers of two, 1..8192) or {log2: [w, h]}",
+            always,
+            size
+        ),
         cmd!("graph.seed", "Random seed", [], None, "{seed, graph?, document?}", always, |s, p| {
             let seed = i64p(p, "seed").ok_or_else(|| bad("graph.seed", "`seed` is required"))?.clamp(0, i32::MAX as i64) as i32;
             let target = crate::GraphTarget::resolve(s, p)?;
@@ -118,15 +126,14 @@ fn duplicate(s: &mut Session, p: &J) -> Result<J> {
 
 fn size(s: &mut Session, p: &J) -> Result<J> {
     let target = crate::GraphTarget::resolve(s, p)?;
-    let log = |px: u64| 63 - px.clamp(1, 1 << 20).leading_zeros();
     let (w, h) = if let Some(a) = p.get("log2").and_then(J::as_array) {
-        (a.first().and_then(J::as_u64).unwrap_or(10) as u32, a.get(1).and_then(J::as_u64).unwrap_or(10) as u32)
+        let exponent = |axis: usize| a.get(axis).and_then(J::as_u64).unwrap_or(10).min(u64::from(MAX_SIZE_LOG2)) as u32;
+        (exponent(0), exponent(1))
     } else {
         let w = u64p(p, "width").ok_or_else(|| bad("graph.size", "`width` is required"))?;
-        (log(w), log(u64p(p, "height").unwrap_or(w)))
+        (Graph::parent_size_log2(w), Graph::parent_size_log2(u64p(p, "height").unwrap_or(w)))
     };
 
-    let (w, h) = (w.clamp(MIN_SIZE_LOG2, MAX_SIZE_LOG2), h.clamp(MIN_SIZE_LOG2, MAX_SIZE_LOG2));
     target.edit(s, "Graph size", |package| {
         package.graph_mut(target.graph)?.size = [w, h];
         Ok(json!({"width": 1u32 << w, "height": 1u32 << h}))

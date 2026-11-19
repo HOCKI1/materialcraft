@@ -5,6 +5,20 @@ use materialcraft_engine::{
 };
 use serde_json::json;
 
+#[test]
+fn graph_parent_dimensions_round_up_and_include_a_single_texel() {
+    let mut session = Session::new(Package::new("Small"));
+    execute(&mut session, "file.new", &json!({"template": "empty", "size": 3})).unwrap();
+    assert_eq!(session.graph().unwrap().size_px(), [4, 4]);
+    for (requested, expected) in [([1, 1], [1, 1]), ([1, 8], [1, 8]), ([3, 5], [4, 8]), ([6, 9], [8, 16]), ([17, 31], [32, 32]), ([0, u64::MAX], [1, 8192])] {
+        let result = execute(&mut session, "graph.size", &json!({"width": requested[0], "height": requested[1]})).unwrap();
+        assert_eq!(result, json!({"width": expected[0], "height": expected[1]}));
+        assert_eq!(session.graph().unwrap().size_px(), expected);
+    }
+    execute(&mut session, "graph.size", &json!({"log2": [0, 1u64 << 32]})).unwrap();
+    assert_eq!(session.graph().unwrap().size_px(), [1, 8192]);
+}
+
 #[path = "graph_property/history_preferences.rs"]
 mod history_preferences;
 

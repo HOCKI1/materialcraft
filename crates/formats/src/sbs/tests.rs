@@ -26,6 +26,22 @@ fn absolute_graph_output_size_survives_parent_size_changes_and_save() {
 }
 
 #[test]
+fn small_default_parent_sizes_round_trip_per_axis() {
+    for (width, height) in [(0, 0), (0, 3), (2, 0), (1, 1), (2, 3), (3, 3), (4, 2), (5, 4)] {
+        let xml = format!(
+            r#"<package><content><graph><identifier v="Small"/>
+            <options><option><name v="defaultParentSize"/><value v="{width}x{height}"/></option></options>
+            </graph></content></package>"#
+        );
+        let package = read_sbs(xml.as_bytes(), "small.sbs", &no_linked_files).unwrap().pkg;
+        assert_eq!(package.graphs[0].size, [width, height]);
+        let saved = write_sbs(&package).unwrap();
+        let loaded = read_sbs(&saved, "small.sbs", &no_linked_files).unwrap().pkg;
+        assert_eq!(loaded.graphs[0].size_px(), [1 << width, 1 << height]);
+    }
+}
+
+#[test]
 fn shuffle_roundtrip_preserves_signed_channel_selectors() {
     for selector in [-2_i32, -1, 8, 9, 16, 255] {
         let xml = format!(

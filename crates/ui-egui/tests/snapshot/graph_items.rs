@@ -2,6 +2,25 @@ use super::{By, MaterialCraftApp, Queryable, UiState, harness, save, settle};
 use egui::{Event, Key, Modifiers, PointerButton, accesskit::Role, vec2};
 use serde_json::json;
 
+#[test]
+#[ignore = "requires an offscreen GPU; run explicitly with --ignored"]
+fn toolbar_can_select_small_rectangular_parents() {
+    let app = MaterialCraftApp::headless(materialcraft_engine::new_session(), UiState::default());
+    let mut harness = harness(app, 1600.0, 960.0);
+    settle(&mut harness, 4);
+    for (axis, pixels) in [("Parent width", "1"), ("Parent height", "8")] {
+        harness.get(By::new().role(Role::ComboBox).label(axis)).click();
+        settle(&mut harness, 2);
+        harness.get_by_label(pixels).click();
+        settle(&mut harness, 3);
+    }
+    assert_eq!(harness.state().session.graph().unwrap().size_px(), [1, 8]);
+    if let Some(directory) = std::env::var_os("MC_SNAPSHOT_DIR").map(std::path::PathBuf::from) {
+        std::fs::create_dir_all(&directory).unwrap();
+        save(&mut harness, &directory, "small-rectangular-parent");
+    }
+}
+
 /// A Library pin can be dropped, renamed, reselected and deleted on every canvas.
 #[test]
 #[ignore = "requires an offscreen GPU; run explicitly with --ignored"]
