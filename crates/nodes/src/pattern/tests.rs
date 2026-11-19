@@ -508,6 +508,97 @@ fn image_indices_outside_the_supported_range_return_an_error() {
     assert!(cook(graph).unwrap_err().contains("unsupported pattern"));
 }
 
+fn render_bitmap(
+    input: craft_texture::Image,
+    format: materialcraft_core::OutputFormat,
+    size: u32,
+    stamp: &[(&str, Value)],
+    controls: &[(&str, Value)],
+) -> craft_texture::Image {
+    let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
+    graph.nodes[0].parameters.insert("patterntype".into(), Value::Int(1));
+    graph.nodes[0].parameters.extend(stamp.iter().map(|(k, v)| ((*k).into(), v.clone())));
+    let definition = find("fx_map").unwrap();
+    let mut params = BTreeMap::from([("pattern".into(), Value::PatternGraph(Box::new(graph)))]);
+    params.extend(controls.iter().map(|(k, v)| ((*k).into(), v.clone())));
+    let context = CookContext {
+        w: size,
+        h: size,
+        seed: 0,
+        format: materialcraft_core::OutputFormat::F32,
+        tile: false,
+        input_formats: &[materialcraft_core::OutputFormat::F32, format],
+        inputs: &[None, Some(input)],
+        params: &resolve_params(definition, &params),
+        resource: &|_| None,
+        vars: &BTreeMap::new(),
+    };
+    (definition.cook)(&context).unwrap().remove(0)
+}
+
+#[test]
+fn bitmap_stamp_filters_use_the_selected_source_level() {
+    use materialcraft_core::OutputFormat;
+
+    let input = craft_texture::Image::gray(64, 64, |x, y| ((47 * x + 31 * y + 7 * x * y + 13) % 256) as f32 / 255.0).with_integer_sampling(true);
+    for (mode, expected) in
+        [(None, [0x3f4ea0cf, 0x3ecc32cc]), (Some(0), [0x3f4ea0cf, 0x3ecc32cc]), (Some(1), [0x3f5e5ade, 0x3e2cf0ac]), (Some(2), [0x3f62e2e3, 0x3e109090])]
+    {
+        let mut stamp = vec![("patternsize", Value::Float2([0.375; 2]))];
+        if let Some(mode) = mode {
+            stamp.push(("imagefiltering", Value::Int(mode)));
+        }
+        let image = render_bitmap(input.clone(), OutputFormat::U8, 64, &stamp, &[("color_mode", Value::Bool(false))]);
+        for (x, bits) in [32, 33].into_iter().zip(expected) {
+            assert_eq!(image.get_gray(x, 32, false).to_bits(), bits, "filter {mode:?}, x {x}");
+        }
+    }
+    for (angle, expected) in [(0.0625, 0x3f2f57af), (0.125, 0x3f0b1f8b)] {
+        let stamp =
+            [("patternsize", Value::Float2([0.17, 1.0])), ("frameoffset", Value::Float2([0.07125, -0.0390625])), ("patternrotation", Value::Float(angle))];
+        let image = render_bitmap(input.clone(), OutputFormat::U8, 64, &stamp, &[("color_mode", Value::Bool(false))]);
+        assert_eq!(image.get_gray(36, 29, false).to_bits(), expected, "angle {angle}");
+    }
+}
+
+#[test]
+fn bitmap_stamp_requires_an_input_matching_the_output_kind() {
+    use craft_texture::{Image, Kind};
+    use materialcraft_core::OutputFormat;
+
+    let background = [0.125, 0.5, 0.875, 0.75];
+    for (kind, color_output) in [(Kind::Color, false), (Kind::Gray, true)] {
+        let controls = [("color_mode", Value::Bool(color_output)), ("background", Value::Color(background))];
+        let image = render_bitmap(Image::filled(4, 4, kind, [1.0; 4]), OutputFormat::F32, 4, &[], &controls);
+        let expected = if color_output { background } else { [0.5, 0.5, 0.5, 1.0] };
+        assert_eq!(image.get(2, 2, false), expected);
+    }
+}
+
+#[test]
+fn bitmap_stamp_tint_and_coverage_compose_straight_and_premultiplied_colors() {
+    use craft_texture::{Image, Kind};
+    use materialcraft_core::OutputFormat;
+
+    let source = [0x3f12d2d3, 0xbe67e7e8, 0x3ef57575, 0x3f97b7b8].map(f32::from_bits);
+    let controls = [("color_mode", Value::Bool(true)), ("background", Value::Color([0.25, 0.375, 0.625, 0.8125])), ("opacity", Value::Float(0.375))];
+    for (blend, premultiplied, expected) in [
+        (0, false, [0x3ebd2e9e, 0x3eb3eba3, 0x3f42183a, 0x3f5d55a6]),
+        (1, false, [0x3e999f8f, 0x3e7d2a19, 0x3f15a567, 0x3f5d55a6]),
+        (2, false, [0x3e999f8f, 0x3e7d2a19, 0x3f15a567, 0x3f5d55a6]),
+        (0, true, [0x3eb39e1e, 0x3eb5cf0f, 0x3f3cc3c4, 0x3f5d55a6]),
+    ] {
+        let stamp = [
+            ("opacity", Value::Float4([0.75, 0.375, 1.0, 0.625])),
+            ("blendingmode", Value::Int(blend)),
+            ("imagepremul", Value::Bool(premultiplied)),
+            ("imagefiltering", Value::Int(2)),
+        ];
+        let image = render_bitmap(Image::filled(1, 1, Kind::Color, source), OutputFormat::F32, 1, &stamp, &controls);
+        assert_eq!(image.get(0, 0, false).map(f32::to_bits), expected, "blend {blend}, premultiplied {premultiplied}");
+    }
+}
+
 fn roughness_sample(roughness: f32, depth: usize, blend: i32, color: bool, repeat: bool) -> crate::CookResult {
     let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
     for index in 0..depth {

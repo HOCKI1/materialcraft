@@ -1,3 +1,4 @@
+mod bitmap;
 mod catalog;
 mod evaluation;
 mod pattern_stamp;

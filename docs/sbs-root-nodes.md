@@ -35,7 +35,7 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **348 Parity**, **65 In progress** and **133 Too hard**. The November 17–19 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons) · [November 19 measurements](parity-fixes.md#2026-11-19-root-comparisons)
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **347 Parity**, **69 In progress** and **130 Too hard**. The November 17–19 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons) · [November 19 measurements](parity-fixes.md#2026-11-19-root-comparisons)
 
 [Grayscale sampler measurements](parity-fixes.md#grayscale-sampling-of-color-inputs) · [Value sampling across 240 typed comparisons](parity-fixes.md#value-processor-texture-filtering)
 
@@ -253,8 +253,8 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [linear_srgb_conversion.sbs/convert_to_linear_grayscale](../assets/sbs/linear_srgb_conversion.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [linear_srgb_conversion.sbs/convert_to_srgb](../assets/sbs/linear_srgb_conversion.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [linear_srgb_conversion.sbs/convert_to_srgb_grayscale](../assets/sbs/linear_srgb_conversion.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
-| [make_it_tile_patch.sbs/make_it_tile_patch](../assets/sbs/make_it_tile_patch.sbs) | 1 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [make_it_tile_patch_grayscale.sbs/make_it_tile_patch_grayscale](../assets/sbs/make_it_tile_patch_grayscale.sbs) | 1 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [make_it_tile_patch.sbs/make_it_tile_patch](../assets/sbs/make_it_tile_patch.sbs) | 1 | No | [In progress · 98,161/132,096 exact pixels across nine renders](parity-fixes.md#bitmap-stamp-filtering-and-compositing) |
+| [make_it_tile_patch_grayscale.sbs/make_it_tile_patch_grayscale](../assets/sbs/make_it_tile_patch_grayscale.sbs) | 1 | No | [In progress · 117,553/132,096 exact pixels across nine renders](parity-fixes.md#bitmap-stamp-filtering-and-compositing) |
 | [material_switch.sbs/material_switch](../assets/sbs/material_switch.sbs) | 24 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [material_transforms.sbs/material_transforms](../assets/sbs/material_transforms.sbs) | 5 | Yes | [Parity · 856,320 exact pixels across every output](parity-fixes.md#material-bundles-and-the-eighth-irradiance-pass) |
 | [me_water_level.sbs/scratches_2](../assets/sbs/me_water_level.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
@@ -405,7 +405,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [paths_tools.sbs/vertex_processor](../assets/sbs/paths_tools.sbs) | 9 | No | [Parity · 18 renders, all 57,600 pixels exact](parity-fixes.md#marked-variable-reads-in-path-and-mipmap-graphs) |
 | [paths_tools.sbs/vertex_processor_simple](../assets/sbs/paths_tools.sbs) | 5 | No | [Parity · 18 renders, all 57,600 pixels exact](parity-fixes.md#marked-variable-reads-in-path-and-mipmap-graphs) |
 | [pattern_alveolus.sbs/alveolus](../assets/sbs/pattern_alveolus.sbs) | 0 | No | [In progress · 170,440/171,264 pixels across 18 renders](parity-fixes.md#radial-stamp-profiles-and-pattern-generators) |
-| [pattern_arc_pavement.sbs/arc_pavement](../assets/sbs/pattern_arc_pavement.sbs) | 1 | No | [In progress · 202,429/211,200 cook pixels, 24 exact saved-file renders, runtime socket probes](parity-fixes.md#runtime-selection-across-disconnected-image-sockets) |
+| [pattern_arc_pavement.sbs/arc_pavement](../assets/sbs/pattern_arc_pavement.sbs) | 1 | No | [In progress · 206,904/211,200 exact pixels, remaining F32 stamp profiles](parity-fixes.md#bitmap-stamp-filtering-and-compositing) |
 | [pattern_brick_1.sbs/brick_1](../assets/sbs/pattern_brick_1.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [pattern_brick_2.sbs/brick_2](../assets/sbs/pattern_brick_2.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [pattern_brick_generator.sbs/resources/Tile](../assets/sbs/pattern_brick_generator.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
@@ -426,8 +426,8 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [pattern_stripes.sbs/stripes](../assets/sbs/pattern_stripes.sbs) | 0 | No | [In progress · 215,036/215,040 exact pixels in 18 renders](parity-fixes.md#other-roots-using-uniform-arc-tangents) |
 | [pattern_tile_generator.sbs/tile_generator](../assets/sbs/pattern_tile_generator.sbs) | 7 | No | [In progress · 217,222/226,048 pixels, stamp placement and waveform rounding differ](parity-fixes.md#beveled-square-gradient-and-wave-stamps) |
 | [pattern_tile_generator.sbs/tile_generator_color](../assets/sbs/pattern_tile_generator.sbs) | 7 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [pattern_tile_random.sbs/tile_random](../assets/sbs/pattern_tile_random.sbs) | 2 | No | [Parity · 20 renders, 176,384/176,384 exact pixels](parity-fixes.md#tile-random-cell-fields-and-noise-upscaling) |
-| [pattern_tile_random.sbs/tile_random_color](../assets/sbs/pattern_tile_random.sbs) | 2 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [pattern_tile_random.sbs/tile_random](../assets/sbs/pattern_tile_random.sbs) | 2 | No | [In progress · 238,215/243,968 exact pixels across 32 renders](parity-fixes.md#tile-random-image-and-soft-patterns) |
+| [pattern_tile_random.sbs/tile_random_color](../assets/sbs/pattern_tile_random.sbs) | 2 | No | [In progress · 268,903/276,736 exact pixels across 40 renders](parity-fixes.md#tile-random-image-and-soft-patterns) |
 | [pattern_tile_random_2.sbs/functions/debug_find_cell](../assets/sbs/pattern_tile_random_2.sbs) | 0 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [pattern_tile_random_2.sbs/tile_random_2](../assets/sbs/pattern_tile_random_2.sbs) | 5 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [pattern_tile_sampler.sbs/arrow](../assets/sbs/pattern_tile_sampler.sbs) | 0 | Yes | [Parity · seven 512×512 runs, four formats](parity-fixes.md#transform-edges-and-floating-point-filtering) |

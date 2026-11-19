@@ -108,10 +108,7 @@ fn reduce_mip(mut input: Image, levels: u32, mut source_format: OutputFormat, fo
         }
 
         // Both final filters read the same mip chain. Each reduction samples at the preceding level's precision.
-        input = Image::generate(input.width().div_ceil(2), input.height().div_ceil(2), input.kind(), |x, y| {
-            crate::texture_sampler::mip_texel(&input, x, y, source_format)
-        });
-        input = crate::output_precision::apply(input, format);
+        input = crate::texture_sampler::reduce_level(&input, source_format, format);
         source_format = format;
     }
 

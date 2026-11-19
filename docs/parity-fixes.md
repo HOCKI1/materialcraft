@@ -59,9 +59,82 @@ The first pass classifies all 546 roots: 166 Parity and 380 Too hard. These meas
 
 ## 2026-11-19 root comparisons
 
+### Bitmap stamp filtering and compositing
+
+A quadrant with an image pattern uses automatic bilinear mip filtering when `imagefiltering` is omitted or zero. Mode 1 selects the original level with bilinear filtering. Mode 2 selects the nearest texel. Filter taps outside the bitmap use transparent black. Intermediate reductions store each level at the source precision, which matters even when the final output is F32. A grayscale stamp needs a grayscale image and a color stamp needs a color image. Wiring the opposite kind leaves the background intact.
+
+For an original 64² image, set the byte at `(x,y)` to `(47x + 31y + 7xy + 13) mod 256`. For the signed F32 input, divide that field by 255, multiply by 1.75 and subtract 0.375. Keep the input at 64² and render the quadrant at 32², 64² and 128². A centered stamp of size (0.375, 0.375) produces F32 bits `3f4ea0cf`, `3f5e5ade` and `3f62e2e3` at pixel (32,32) of the 64² output for modes 0, 1 and 2. To distinguish horizontal and diagonal mip selection, use size (0.17, 1), offset (0.07125, −0.0390625) and rotations of 0.0625 and 0.125 turns. The selected levels are 2 and 3 at 64². Bilinear modes use the measured four-tap weights in [stored texture filtering](#multi-directional-warp-and-intermediate-storage).
+
+| Original procedural control | Renders | Previous exact pixels | Exact / compared | Maximum U8 / U16 / F16 / F32 error |
+|---|---:|---:|---:|---|
+| Hash, ramp, checker and flat stamps from 16² to 128² | 150 | 496,615 | 683,609/695,040 | 221 / 56,797 / 0.866622925 / 1 |
+| Fixed 64² byte and signed F32 inputs, eight stamp transforms | 192 | 902,752 | 1,221,604/1,228,800 | — / 65,535 / — / 1.66078436 |
+| Twelve anisotropic transforms, three modes and the omitted setting | 144 | 752,204 | 1,029,747/1,032,192 | — / — / — / 0.996078432 |
+| Tint, opacity, three blend modes and premultiplication | 90 | 49,150 | 92,132/92,160 | 0 / 0 / 0 / 5.96046448e-08 |
+| Matching and crossed grayscale and color sockets | 60 | 29,249 | 60,864/61,440 | 0 / 1 / 0 / 5.96046448e-08 |
+| Four image pins with fixed selectors | 30 | 5,632 | 7,680/7,680 | — / — / — / 0 |
+
+The automatic mip estimate selected the observed level in 81 angle and scale combinations, 128 additional independently chosen transforms, and 24 rectangular cases with sides of 32, 64 and 128. The corresponding F32 bit comparisons give 331,582/331,776 (maximum 0.00355535746), 523,951/524,288 (maximum 0.00379943848), 73,702/73,728 (maximum 0.000717163086) respectively. Oblique sample positions still have pixel-level differences. To isolate the nearest-filter error, replace the stamp with a horizontal gradation, then rotate it by a quarter turn and swap its dimensions to measure the other coordinate. Sampling the original bitmap with the two measured coordinates and a zero border reproduces **408,576/408,576 F32 pixels** in 57 renders of 19 geometries, maximum error zero.
+
+For the tint tests, the 32² input channel `c` is `1.5 × (((47x + 31y + 7xy + 13 + 69c + 3xc) mod 256) / 255) − 0.25`. Use opacity 0.375, tint (0.75, 0.375, 1, 0.625) and background (0.25, 0.375, 0.625, 0.8125). Grayscale applies the mean RGB tint. Color mode 0 adds the premultiplied RGB contribution and accumulates alpha. Modes 1 and 2 composite over the background. Signed alpha and premultiplied input are covered. All 28 remaining differences in the 90-render tint matrix are F32 alpha, each 0.0000000596046448. The fixed four-pin renders now match the raw F32 samples as well as the slot selections.
+
+| Root | Renders | Exact / compared | Maximum U8 / U16 / F16 / F32 error |
+|---|---:|---:|---|
+| Make It Tile Patch | 9 | 98,161/132,096 | 2 / 318 / 0.00476074219 / 0.00485236943 |
+| Make It Tile Patch Grayscale | 9 | 117,553/132,096 | 2 / 150 / 0.00228881836 / 0.00228885561 |
+| Arc Pavement | 27 | 206,904/211,200 | 0 / 0 / 0 / 9.87946987e-06 |
+
+For both patch roots, retain the [four-format parameter matrix](#four-format-inventory-comparison), the independent 32² render and the four original 128²/256² controls. The changed case uses mask size 0.8, precision 0.7, warping 0.1, pattern width/height 120/160, disorder 0.25, size variation 0.15, two octaves and rotation 0.125. Arc Pavement previously matched 202,429/211,200 pixels in the [same cases](#uniform-arc-tangents-and-pavement-rotations). All 123,904 U16 pixels, 8,192 U8 pixels and 8,192 F16 pixels now match. The soft, bell, pyramid and capsule patterns at seed 547 and three image choices at seed 607 account for the 4,296 remaining F32 differences.
+
+Both patch graphs first differ in a fixed 32² U16 mask. One Gaussian stamp, size (1.4, 1.4) and opacity 1.00343001, matches 1,020/1,024 pixels. The four differences are one level each at (24,7), (11,11), (7,24) and (24,24). The color graph also has an independent U8 directional blur difference upstream. At the default 128² graph size, this blur matches 4,087/4,096 pixels, maximum one level.
+
+Six independently authored files with format header `1.1.0.202502` passed through ordinary `file.saveAs` and reopened in the reference app. Four files covered omitted and explicit filtering, and two covered tinted color with and without premultiplication. Comparing original and saved output in that app gives **96,256/96,256 exact pixels in 22 renders**, maximum zero. See the [earlier file handoff](#image-selection-in-saved-pattern-graphs) for the older-header restriction.
+
+The two Alveolus roots use procedural Gaussian stamps. In each root, all eight stage comparisons place the first differing pixel in the FX-Map. On the default 128² and 256² renders its half-width U16 output matches 8,096/8,192 and 32,548/32,768 pixels respectively, maximum one stored level. Isolate the two stamps at (0.25, 0.25) and (0.75, 0.75), local size (3, 1.5), opacity 0.995 and maximum blending. Independently storing the reference F32 result as U16 reproduces the observed U16 values. The coordinate calculation remains open for both roots.
+
+### Tile Random image and soft patterns
+
+The pattern-package Tile Random and Tile Random Color render the background by itself when the pattern selector is zero. At 64²/827 all 4,096 color output pixels match the original background. Use selector 1 for an image stamp. At 64²/2273, switching from filter 0 to 1 or from 1 to 2 changes 1,187 reference pixels in both roots. Both background and image pins contain procedural fields.
+
+| Root | Renders | Exact / compared | Maximum U8 / U16 / F16 / F32 error |
+|---|---:|---:|---|
+| Tile Random | 32 | 238,215/243,968 | 165 / 60,395 / 0.0498046875 / 1 |
+| Tile Random Color | 40 | 268,903/276,736 | 163 / 59,666 / 0.0478515625 / 0.90265286 |
+
+The original 20 grayscale renders still match 176,384/176,384 pixels. The color root matches 209,152/209,152 across the same settings, eight additional selector-zero controls, and its archive and inventory cases together. The twelve additional renders per root expose the outstanding differences.
+
+For grayscale use H=((73x+37y+11xy+k) mod 1021)/1020, with k=29 on the pattern pin and 72 on the background. For RGBA add 43c+3cx inside the modulus, with c=0,1,2,3, k=29 on the background and 72 on the pattern. Use (4,5) tiles, pattern-specific value .3125, rotation randomness .375, shape rotation .125, interstice .1875 and split threshold .625. Render all three image filters at 64²/2273 F32, plus nearest at 128²/2311 U16, bilinear at 64²/2333 U8, and automatic mips at 32²/2357 F16. Render at 64²/2371 with filter 1 and blend mode 1, and at 32²/2393 with filter 2, blend mode 1 and signed inputs 2.5H−.875. For the two color cases use tint (.75,.375,1,.625), tint randomness (.25,.125,.375,.25) and background (.25,.375,.625,.8125). At 64²/2203 use bell (5), Gaussian (6) and pyramid (8). At 128²/2221 use brick (9). Maximum F32 errors for the three soft patterns are 2.14576721e−6 across the two roots. The U16 brick cases differ by one level at 70 grayscale and 216 color pixels.
+
+A coordinate-coded color stamp isolates the effect of rotation on image sampling. Store R=x+1, G=y+1, B=128 and A=255 in a 64² U8 image and wire transparent black to the background. At 64²/2273 with the settings above and nearest filtering, both cooks draw the same 1,187 pixels. Of those, 594 sample a different quarter-turn of the image. Removing only the random pattern rotation gives 4,096/4,096 exact F32 pixels, maximum zero. With zero interstice and zero size randomness, all four fixed pattern rotations match for (1,1), (1,2) and (2,1) tiles. With (4,5) tiles and fixed rotation zero, 1,560 pixels differ by one source texel horizontally. Across the 30 rotation controls the result is 108,653/122,880 exact F32 pixels, maximum component error 0.247058838.
+
+### Connected bitmap pattern roots
+
+Repeat the four original root settings and the [five inventory cases](#four-format-inventory-comparison) after the [bitmap filtering change](#bitmap-stamp-filtering-and-compositing). The table counts complete pixels across all output channels and gives maximum stored-component errors. A dash marks formats with no completed comparisons. The three dirt roots exceeded the pattern execution budget in all five additional cases. Their counts cover the four completed original renders. Arc Pavement, the two patch roots and the two pattern-package Tile Random roots have their wider results above.
+
+| Package / graph | Completed renders | Exact / compared | Maximum U8 / U16 / F16 / F32 error |
+|---|---:|---:|---|
+| `noise_dirt_1.sbs/dirt_1` | 4 | 94,914/98,304 | — / 538 / — / — |
+| `noise_dirt_1_v2.sbs/dirt_1` | 4 | 98,263/98,304 | 1 / — / — / — |
+| `noise_dirt_2.sbs/dirt_2` | 4 | 97,737/98,304 | — / 21 / — / — |
+| `paths_tools.sbs/paths_trace` | 9 | 18,297/18,432 | 120 / 30,822 / 0.62109375 / 1.22619528 |
+| `pattern_splatter_circular.sbs/splatter_circular` | 9 | 130,917/132,096 | 223 / 57,311 / 0.874511719 / 0.921568625 |
+| `pattern_splatter_circular.sbs/splatter_circular_color` | 9 | 130,678/132,096 | 254 / 65,535 / 0.996078491 / 0.996078431 |
+| `pattern_tile_generator.sbs/tile_generator` | 9 | 130,546/132,096 | 0 / 1 / 0 / 0 |
+| `pattern_tile_generator.sbs/tile_generator_color` | 9 | 128,338/132,096 | 0 / 1 / 0 / 0 |
+| `pattern_weave_2.sbs/weave_2` | 9 | 130,222/132,096 | 1 / 59 / 0.0009765625 / 0.000900268555 |
+| `radial_blur.sbs/radial_blur_grayscale` | 9 | 109,921/132,096 | 1 / 14 / 0.00048828125 / 0.000137329102 |
+| `splatter.sbs/splatter` | 9 | 132,084/132,096 | 0 / 91 / 0 / 1.52587891e-05 |
+| `splatter_circular.sbs/splatter_circular` | 9 | 130,443/132,096 | 222 / 57,311 / 1 / 1.00000006 |
+| `splatter_circular.sbs/splatter_circular_color` | 9 | 130,794/132,096 | 247 / 65,535 / 0.96862793 / 0.996078431 |
+| `splatter_color.sbs/splatter_color` | 9 | 132,066/132,096 | 0 / 59 / 0.000122070312 / 0.000137329102 |
+| `tile_generator.sbs/tile_generator` | 9 | 129,318/132,096 | 0 / 1 / 0.00048828125 / 4.88758087e-06 |
+| `tile_generator_color.sbs/tile_generator_color` | 9 | 127,043/132,096 | 0 / 1 / 0.0009765625 / 4.88758087e-06 |
+| `tile_random.sbs/tile_random` | 9 | 105,004/132,096 | 223 / 57,311 / 1 / 1.00000006 |
+| `tile_random.sbs/tile_random_color` | 9 | 105,004/132,096 | 250 / 65,535 / 1 / 1.00000006 |
+
 ### Multi-directional warp and intermediate storage
 
-The color and grayscale multi-directional warps each match **175,360/175,360 pixels** across the 19 [root cases](#directional-warp-orientation-and-input-precision), maximum error zero. Each root contributes 122,880 U8, 8,192 U16, 8,192 F16 and 36,096 F32 pixels. The two non-uniform blur sample roots retain the same exact counts. These measurements bring the inventory to 348 roots at measured parity.
+The color and grayscale multi-directional warps each match **175,360/175,360 pixels** across the 19 [root cases](#directional-warp-orientation-and-input-precision), maximum error zero. Each root contributes 122,880 U8, 8,192 U16, 8,192 F16 and 36,096 F32 pixels. The two non-uniform blur sample roots retain the same exact counts.
 
 For each multi-directional root, inspect the four original renders, the 64² changed F32 render, A in U8 and F32, B in F32 and signed D in F32. Compare the 27 raw graph images per render, including the input and output nodes. Across both roots all **7,796,736/7,796,736 pixels in 486 images** match, maximum zero. This includes 4,620,288 pixels in 288 individual directional warps. Before the change, one grayscale warp at angle .625 and intensity 4 differed by one byte at four 64² pixels. This propagated into all four output formats.
 
@@ -1411,7 +1484,7 @@ Run both modes with opacity .56, with and without a mask. Use 16²/191 and 64²/
 
 ### Tile Random, cell fields and noise upscaling
 
-After the [pattern seed](#local-seed-expressions-in-pattern-graphs) and [blend](#filtering-unequal-inputs-to-a-blend) changes, the pattern-package Tile Random matches all **176,384/176,384** pixels across 20 renders. Its [four-format inventory cases](#four-format-inventory-comparison), independent 32² case and four archived cases contribute 132,096 pixels. Eleven new inputs add 44,288. The two 64² F32 circle renders at seeds 251 and 947 contain 507 and 510 distinct stored levels respectively. Counts below include every measured end-to-end case.
+After the [pattern seed](#local-seed-expressions-in-pattern-graphs) and [blend](#filtering-unequal-inputs-to-a-blend) changes, the pattern-package Tile Random matches all **176,384/176,384** pixels across 20 renders. Its [four-format inventory cases](#four-format-inventory-comparison), independent 32² case and four archived cases contribute 132,096 pixels. Eleven new inputs add 44,288. The two 64² F32 circle renders at seeds 251 and 947 contain 507 and 510 distinct stored levels respectively. Counts below cover the end-to-end cases in this matrix.
 
 | Root | Renders | Exact pixels / compared | Maximum U8 / U16 error (levels) | Maximum F16 / F32 error |
 |---|---:|---:|---:|---:|
@@ -1424,7 +1497,7 @@ After the [pattern seed](#local-seed-expressions-in-pattern-graphs) and [blend](
 | Noise Upscale 3 | 21 | 693,752/697,344 | 0 / 0 | 0 / 0.00769269466 |
 | Tile Random, pattern package | 20 | 176,384/176,384 | 0 / 0 | 0 / 0 |
 
-For Tile Random use H=((73x+37y+11xy+k) mod 1021)/1020 in the pattern and background pins, with k=29 and 72. Start at defaults at 16²/137. At 64²/251 choose pattern 3 and (5,3) tiles, and render all four formats. At 128²/353 use pattern 2 and (9,7). At 32²/479 use a 32×16 U16 source, pattern 3 and (3,7), disabling non-square expansion. At 32²/557 use 2.5H−.875, pattern 2, (1,3), independent size randomness .125 and .625 and position randomness .1875. Use constant .375 with pattern 3 and (3,1) at 32²/733. At 64²/827 select image pattern 0, (4,5) and filter 0. Repeat the 64² circle field at seed 947. The changed settings share pattern-specific value .3125, rotation randomness .375, shape rotation .125, interstice .1875 and split threshold .625.
+For Tile Random use H=((73x+37y+11xy+k) mod 1021)/1020 in the pattern and background pins, with k=29 and 72. Start at defaults at 16²/137. At 64²/251 choose pattern 3 and (5,3) tiles, and render all four formats. At 128²/353 use pattern 2 and (9,7). At 32²/479 use a 32×16 U16 source, pattern 3 and (3,7), disabling non-square expansion. At 32²/557 use 2.5H−.875, pattern 2, (1,3), independent size randomness .125 and .625 and position randomness .1875. Use constant .375 with pattern 3 and (3,1) at 32²/733. At 64²/827 select pattern 0 (no stamp), (4,5) and filter 0. The [image-stamp comparison](#tile-random-image-and-soft-patterns) covers the image selector and all three filters. Repeat the 64² circle field at seed 947. The changed settings share pattern-specific value .3125, rotation randomness .375, shape rotation .125, interstice .1875 and split threshold .625.
 
 For the seven other roots use the same H with k=19 on the first pin and 132 on the second. Renders use defaults at 16²/71, four formats at 64²/181, F32 at 128²/269, a 32×16 U16 input at 32²/383, a signed 32² field at seed 487, a constant .375 field at 32²/617, the 64² field at seed 701, and a 32² impulse at (floor(w/3),floor(h/2)) with seed 883. For roots with image inputs add a 32×17 U16 field at 32²/977. Use unsigned H on the signed case's mask. Dirt 5 has no input pins or exposed numeric controls. At 64²/181 its first differing pattern map matches 4,094/4,096 U16 pixels within one level.
 

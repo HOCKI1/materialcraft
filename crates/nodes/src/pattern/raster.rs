@@ -1,7 +1,8 @@
 use craft_texture::{Image, Kind, Limits};
+use materialcraft_core::OutputFormat;
 use std::sync::Arc;
 
-use super::{pattern_stamp::PatternStamp, region::Region, shape};
+use super::{bitmap, pattern_stamp::PatternStamp, region::Region, shape};
 use crate::CookContext;
 
 const MAX_SAMPLES: u64 = 256_000_000;
@@ -34,7 +35,10 @@ pub(super) fn render(context: &CookContext, stamps: &[PatternStamp], max_depth: 
     let mut budget = MAX_SAMPLES;
     let mut copies_left = MAX_STAMP_COPIES;
     let render_region = Region::for_render(context.v4("render_region"))?;
+    let span = render_region.period();
+    let pixel_size = [span[0] / width as f32, span[1] / height as f32];
     let period = if context.tile { Region::new(context.v4("tiling_region"))?.period() } else { [1.0; 2] };
+    let mut mipmaps = bitmap::Mipmaps::new();
 
     for stamp in stamps {
         if !stamp.center.iter().chain(&stamp.size).chain(&stamp.color).chain([&stamp.rotation, &stamp.variation]).all(|value| value.is_finite()) {
@@ -60,7 +64,6 @@ pub(super) fn render(context: &CookContext, stamps: &[PatternStamp], max_depth: 
 
         // Scalar luminosity weights both RGB and alpha, unlike straight RGBA tint
         let source_alpha = if stamp.scalar_color { stamp.color[0] } else { stamp.color[3] };
-        let bitmap = stamp.pattern >= 256;
         let tinted_offset = matches!(stamp.pattern, 17 | 18);
 
         let quarters = stamp.rotation * 4.0;
@@ -75,6 +78,17 @@ pub(super) fn render(context: &CookContext, stamps: &[PatternStamp], max_depth: 
         } else {
             (stamp.rotation * std::f32::consts::TAU).sin_cos()
         };
+        let texture = if stamp.pattern >= 256 {
+            let index = (stamp.pattern - 256) as usize + 1;
+            let Some(input) = context.input(index).filter(|image| image.kind() == kind) else { continue };
+            let format = context.input_formats.get(index).copied().unwrap_or(if input.integer_sampling() { OutputFormat::U16 } else { OutputFormat::F32 });
+            let level = if stamp.filtering == 0 { bitmap::mip_level(input, stamp.size, pixel_size, sine, cosine) } else { 0 };
+            Some((mipmaps.image(index, input, format, level)?, format))
+        } else {
+            None
+        };
+        let gray_tint = (stamp.color[0] + stamp.color[1] + stamp.color[2]) / 3.0 * opacity;
+        let channel_tint = stamp.color.map(|tint| tint * (stamp.color[3] * opacity));
         let radius = [
             (stamp.size[0] * cosine).abs() * 0.5 + (stamp.size[1] * sine).abs() * 0.5,
             (stamp.size[0] * sine).abs() * 0.5 + (stamp.size[1] * cosine).abs() * 0.5,
@@ -107,43 +121,36 @@ pub(super) fn render(context: &CookContext, stamps: &[PatternStamp], max_depth: 
                             continue;
                         }
 
-                        let (pattern, offset) = if bitmap {
-                            let index = (stamp.pattern - 256) as usize + 1;
-                            let sample = match context.input(index) {
-                                Some(input) => {
-                                    let uv = local.map(|coordinate| coordinate * 0.5 + 0.5);
-                                    if stamp.filtering == 0 {
-                                        input.get((uv[0] * input.width() as f32) as i64, (uv[1] * input.height() as f32) as i64, false)
-                                    } else {
-                                        input.sample(uv[0], uv[1], false)
-                                    }
-                                }
-                                None => [0.0; 4],
-                            };
-                            (sample, 0.0)
+                        let (foreground, stamp_alpha) = if let Some((input, format)) = &texture {
+                            let sample = bitmap::sample(input, local, *format, stamp.filtering == 2);
+                            if kind == Kind::Gray {
+                                ([(sample[0] - 1.0).mul_add(gray_tint, gray_tint); 4], 1.0)
+                            } else {
+                                let coverage = sample[3] * (source_alpha * opacity);
+                                let image_alpha = if stamp.premultiplied { 1.0 } else { 1.0 - (1.0 - sample[3]) };
+                                let mut color = std::array::from_fn(|i| (sample[i] * image_alpha) * channel_tint[i]);
+                                color[3] = coverage;
+                                (color, coverage)
+                            }
                         } else {
                             let (coverage, offset) = shape::profile(stamp.pattern, local[0], local[1], stamp.variation)?;
-                            ([coverage; 4], offset)
+                            let alpha = if tinted_offset { coverage.mul_add(source_alpha * opacity, offset) } else { coverage * source_alpha * opacity };
+                            let color = std::array::from_fn(|i| {
+                                let tint_alpha = if kind == Kind::Color && i < 3 { stamp.color[3] } else { 1.0 };
+                                let tint = if i == 3 { source_alpha } else { stamp.color[i] };
+                                if tinted_offset { coverage.mul_add(tint * tint_alpha * opacity, offset) } else { coverage * tint * tint_alpha * opacity }
+                            });
+                            (color, alpha)
                         };
 
                         let pixel = (y as usize * width as usize + x as usize) * channels;
                         let target = pixels.get_mut(pixel..pixel + channels).ok_or("invalid pattern pixel")?;
-                        let stamp_alpha = if tinted_offset { pattern[3].mul_add(source_alpha * opacity, offset) } else { pattern[3] * source_alpha * opacity };
                         for (channel, target) in target.iter_mut().enumerate() {
-                            let image_alpha = if bitmap && !stamp.premultiplied && channel < 3 { pattern[3] } else { 1.0 };
-                            let alpha = image_alpha * if kind == Kind::Color && channel < 3 { stamp.color[3] } else { 1.0 };
-                            let tint = if channel == 3 { source_alpha } else { stamp.color[channel] };
-                            let value = if tinted_offset {
-                                pattern[channel].mul_add(tint * alpha * opacity, offset)
-                            } else {
-                                pattern[channel] * tint * alpha * opacity
-                            };
+                            let value = foreground[channel];
                             *target = match (kind, stamp.blend) {
                                 (Kind::Gray, 1 | 2) => target.max(value),
-                                (Kind::Color, 0) if !bitmap && channel == 3 => value.mul_add(1.0 - *target, *target),
-                                (Kind::Color, 1 | 2) if !bitmap => target.mul_add(1.0 - stamp_alpha, value),
-                                (Kind::Color, 1) => value + *target * (1.0 - stamp_alpha.clamp(0.0, 1.0)),
-                                (Kind::Color, 2) => target.max(value),
+                                (Kind::Color, 0) if channel == 3 => value.mul_add(1.0 - *target, *target),
+                                (Kind::Color, 1 | 2) => target.mul_add(1.0 - stamp_alpha, value),
                                 _ => *target + value,
                             };
                             if !target.is_finite() {

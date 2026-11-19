@@ -55,11 +55,14 @@ pub(crate) fn sample(image: &Image, uv: [f32; 2], tiling: [bool; 2], format: Out
     filter_taps(image, taps(image, uv, tiling), tiling, format, matte)
 }
 
-/// Reduce a 2×2 source footprint with equal weights and clamped edges.
-pub(crate) fn mip_texel(image: &Image, x: u32, y: u32, format: OutputFormat) -> [f32; 4] {
-    let (x, y) = (i64::from(x) * 2, i64::from(y) * 2);
-    let taps = [(x, y, 64), (x + 1, y, 64), (x, y + 1, 64), (x + 1, y + 1, 64)];
-    filter_taps(image, taps, [false; 2], format, None)
+/// Average each clamped 2×2 footprint at source precision, then store the reduced level.
+pub(crate) fn reduce_level(image: &Image, source: OutputFormat, destination: OutputFormat) -> Image {
+    let level = Image::generate(image.width().div_ceil(2), image.height().div_ceil(2), image.kind(), |x, y| {
+        let (x, y) = (i64::from(x) * 2, i64::from(y) * 2);
+        let taps = [(x, y, 64), (x + 1, y, 64), (x, y + 1, 64), (x + 1, y + 1, 64)];
+        filter_taps(image, taps, [false; 2], source, None)
+    });
+    crate::output_precision::apply(level, destination)
 }
 
 fn filter_taps(image: &Image, taps: [(i64, i64, u32); 4], tiling: [bool; 2], format: OutputFormat, matte: Option<[f32; 4]>) -> [f32; 4] {

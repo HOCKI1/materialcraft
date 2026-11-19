@@ -17,7 +17,7 @@ pub fn definitions() -> &'static [NodeDefinition] {
                 .angle("patternrotation", "Pattern rotation", 0.0)
                 .float("patternsuppl", "Pattern variation", 0.0, 0.0, 1.0)
                 .int("blendingmode", "Blending", 0, 0, 2)
-                .int("imagefiltering", "Image filtering", 1, 0, 1)
+                .int("imagefiltering", "Image filtering", 0, 0, 2)
                 .boolean("imagepremul", "Premultiplied image", false)
                 .int("imageindex", "Image input", 0, 0, crate::MAX_IMAGE_INPUTS as i32 - 1)
                 .int("randomseed", "Random seed", 0, 0, 10000)
