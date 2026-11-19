@@ -845,6 +845,21 @@ Both roots generate their own coordinates. Alongside the four archive renders an
 
 In both roots, at 32²/157 and 64²/317, the three-component directions for the texel and first point, their dot product and its quotient each match all 5,120 pixels when exported. Both constant linear RGB endpoints of the linear gradient also match. The next function adds one to the quotient and divides by two. Its unclamped output matches only 652/1,024 and 2,496/4,096 F32 pixels, maximum 1.19209290e−7 in both cases. Let D be the stored dot product and R the F32 reciprocal of 1−.3125, bits 3fba2e8c. Rounding D×R+1 once, then multiplying by .5, reconstructs both the unclamped and clamped linear weights at all 5,120 pixels. At (1,0) of the 32² case D has bits 3f01187e and the stored quotient is 3f3bc689. Separate rounding gives 3f5de344 for the weight and the reference gives 3f5de345. The same arithmetic followed by clamping and subtracting from one reconstructs the first two-point weight at all 5,120 pixels. The two-point weighted color sum still differs at 238/1,024 and 384/4,096 pixels in the measured implementation.
 
+### Constants returned from pixel functions
+
+| Comparison | Renders | Exact pixels / compared | Maximum error |
+|---|---:|---:|---:|
+| Second color-selection root | 23 | 179,456/179,456 | 0 |
+| Nine intermediate rotation values at 32² | 9 | 9,216/9,216 | 0 |
+| Returned and inlined arithmetic with pure results | 84 | 247,296/247,296 | 0 |
+| Literal and sampled division controls | 252 | 741,888/741,888 | 0 |
+
+The second color-selection root matches all 123,904 U8, 9,216 U16, 9,216 F16 and 37,120 F32 pixels in the [selection matrix](#scalar-arithmetic-across-a-call-argument). The 26 outstanding pixels used the perceptual distance. Its rotation helper multiplies the measured exponential by 60, then by π/180. π is returned by a zero-argument function. Dividing that constant by 180 gives bits 3c8efa35. The same numeric numerator read from a runtime variable gives 3c8efa36. Recognizing a pure constant result at the call boundary brings the radians from 17/1,024 to 1,024/1,024 and the complete perceptual distance from 998/1,024 to 1,024/1,024. The other intermediate comparisons are described under [shared scalar products](#two-sums-sharing-the-same-scalar-products).
+
+For the 84 independent renders, use the [signed field, six sizes/formats and seeds](#vector-products-in-the-direct-light-pass). Return a scalar V and store (R×(V/180), V/180, sin(V), sqrt(V)). Use π, 1.125×2.375+.4375, an explicitly passed π, an explicitly passed abs(G)+.625, π from a function with an unused varying argument, π through a second zero-argument call and π forwarded through a second single-argument call. Repeat each expression inline. Before the change the same graphs matched 194,555/247,296 pixels. Both the called and inlined varying case still match all 35,328 pixels.
+
+Two additional controls return an assignment of π or sequence an assignment of the varying argument before returning π. Inlined and called versions together match 32,768/70,656 in 24 renders, maximum 5.96046448e−8 in F16 and 8.74227766e−8 in F32. All U8 and U16 pixels match. These results were the same on both measured revisions.
+
 ### Two sums sharing the same scalar products
 
 | Comparison | Renders | Exact pixels / compared | Maximum error |

@@ -1174,6 +1174,44 @@ fn exposed_choices_are_integers_inside_functions() {
 }
 
 #[test]
+fn a_constant_return_keeps_literal_precision_in_the_caller() {
+    let variables = BTreeMap::from([("angle".into(), Value::Float(std::f32::consts::PI))]);
+    let context = EvaluationContext {
+        scope: super::FunctionScope::PixelProcessor,
+        position: [0.5; 2],
+        size: [1.0; 2],
+        images: &[],
+        image_formats: &[],
+        tile: true,
+        variables: &variables,
+    };
+    for (literal, expected) in [(true, 0x3c8efa35), (false, 0x3c8efa36)] {
+        let mut inner = FunctionGraph::default();
+        inner.output = Some(if literal {
+            inner.add_constant(Value::Float(std::f32::consts::PI))
+        } else {
+            inner.add("get_float1", &[], Some(Value::Text("angle".into())))
+        });
+        let mut graph = FunctionGraph::default();
+        let result = graph.add("instance", &[], None);
+        let call = graph.nodes.last_mut().unwrap();
+        call.instance = Some(materialcraft_core::GraphInstance {
+            label: String::new(),
+            package: String::new(),
+            graph: "angle_value".into(),
+            inputs: Vec::new(),
+            outputs: Vec::new(),
+            defaults: BTreeMap::new(),
+        });
+        call.source = Some(Ok(std::sync::Arc::new(inner)));
+        let divisor = graph.add_constant(Value::Float(180.0));
+        graph.output = Some(graph.add("div", &[result, divisor], None));
+        let value = compile(&graph, 0).unwrap().evaluate_pixel(&context, &mut EvaluationState::default()).unwrap();
+        assert_eq!(value, Value::Float(f32::from_bits(expected)));
+    }
+}
+
+#[test]
 fn nested_pixel_products_keep_the_callers_literal_arguments() {
     let mut inner = FunctionGraph::default();
     let names = ["a", "b", "c", "d"];

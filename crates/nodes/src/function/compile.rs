@@ -210,6 +210,7 @@ fn mark_literals(program: &mut Program, mut arguments: BTreeSet<&str>) -> super:
         if let Some(call) = &mut op.call {
             let bound = call.inputs.iter().zip(&op.inputs).filter(|(_, index)| literal(index)).map(|(name, _)| name.as_str()).collect();
             let lanes = mark_literals(&mut call.program, bound);
+            op.literal = call.program.output_is_literal();
             // Returned products read the call's evaluated registers after its assignments have run.
             if lanes.iter().any(Option::is_some) {
                 returned.insert(index, lanes);
