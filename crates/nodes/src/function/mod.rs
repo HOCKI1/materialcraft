@@ -48,6 +48,7 @@ pub use catalog::{FUNCTIONS, default_value, definition};
 pub use compile::compile;
 pub use evaluation_context::EvaluationContext;
 pub use evaluation_state::EvaluationState;
+pub(crate) use fixed_point::truncate_float;
 pub use function_definition::FunctionDefinition;
 pub use function_scope::FunctionScope;
 pub use node_interface::{graph_ports, input_identifiers, node_label};

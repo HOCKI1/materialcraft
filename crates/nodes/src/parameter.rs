@@ -48,9 +48,11 @@ pub fn clamp_params(definition: &NodeDefinition, params: &mut BTreeMap<String, V
             continue;
         }
 
-        // HDR endpoints and affine coordinates can exceed the slider range. Neither controls an allocation.
-        let unbounded =
-            matches!((definition.id, parameter.id), ("levels", "in_low" | "in_high" | "out_low" | "out_high") | ("transformation", "matrix" | "offset"));
+        // HDR endpoints, affine coordinates and warp displacements can exceed the slider range without increasing allocations.
+        let unbounded = matches!(
+            (definition.id, parameter.id),
+            ("levels", "in_low" | "in_high" | "out_low" | "out_high") | ("transformation", "matrix" | "offset") | ("directional_warp", "intensity")
+        );
         let ranged = parameter.min < parameter.max && !unbounded;
         let span = parameter.max - parameter.min;
         let (lo, hi) = if ranged { (parameter.min - HARD_SPAN * span, parameter.max + HARD_SPAN * span) } else { (f32::MIN, f32::MAX) };

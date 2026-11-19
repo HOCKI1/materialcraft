@@ -22,11 +22,15 @@ fn directional_warp(context: &CookContext) -> CookResult {
     let (map, map_format) = warp_input(context, 1, target, tiling);
     let map = map.to_gray();
     let same_size = [map.width(), map.height()] == target;
-    let (sine, cosine) = (context.f("angle") * std::f32::consts::TAU).sin_cos();
+    let radians = context.f("angle") * std::f32::consts::TAU;
+    // The horizontal phase includes a quarter turn rounded in radians before evaluating the sine.
+    let component = |phase: f32| crate::function::truncate_float(f64::from(phase).sin());
+    let direction = [component(radians + std::f32::consts::FRAC_PI_2), component(radians)];
     const BASE_RESOLUTION: f32 = 256.0;
     let [width, height] = target.map(|side| side as f32);
-    let distance = context.f("intensity") * width.min(height) / BASE_RESOLUTION;
-    let step = [cosine * distance / width, sine * distance / height];
+    let strength = context.f("intensity") / BASE_RESOLUTION;
+    let shorter = width.min(height);
+    let step = [direction[0] * strength * (shorter / width), direction[1] * strength * (shorter / height)];
     Ok(vec![Image::generate(context.w, context.h, image.kind(), |x, y| {
         let (u, v) = ((x as f32 + 0.5) / width, (y as f32 + 0.5) / height);
         let amount =
@@ -46,6 +50,12 @@ fn warp_input(context: &CookContext, index: usize, target: [u32; 2], tiling: [bo
     if size.into_iter().zip(target).all(|(side, output)| (output..=output.saturating_mul(2)).contains(&side)) {
         return (image, format);
     }
+    let storage = match (format, context.format) {
+        (OutputFormat::F32, _) | (_, OutputFormat::F32) => OutputFormat::F32,
+        (OutputFormat::F16, _) | (_, OutputFormat::F16) => OutputFormat::F16,
+        (OutputFormat::U8, OutputFormat::U8) => OutputFormat::U8,
+        _ => OutputFormat::U16,
+    };
     while size != target {
         // Hold an axis within one level of the output until both axes can take their final step together.
         let next = std::array::from_fn(|i| {
@@ -59,8 +69,8 @@ fn warp_input(context: &CookContext, index: usize, target: [u32; 2], tiling: [bo
         });
         size = if next == size { target } else { next };
         image = crate::texture_sampler::resize_input_level(&image, size[0], size[1], format, tiling);
-        image = crate::output_precision::apply(image, context.format);
-        format = context.format;
+        image = crate::output_precision::apply(image, storage);
+        format = storage;
     }
     (image, format)
 }

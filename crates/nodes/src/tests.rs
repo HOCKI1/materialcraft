@@ -422,6 +422,81 @@ fn directional_warp_filters_unequal_image_and_mask_sizes() {
 }
 
 #[test]
+fn directional_warp_preserves_the_wider_format_while_resizing_each_input() {
+    use materialcraft_core::OutputFormat::{F16, F32, U8, U16};
+
+    let definition = find("directional_warp").unwrap();
+    let params = resolve_params(definition, &BTreeMap::from([("intensity".into(), Value::Float(17.0)), ("angle".into(), Value::Float(0.125))]));
+    for (source_format, mask_format, output, expected) in [
+        (F32, F32, U8, [0, 172, 114, 0, 1]),
+        (F16, U16, U16, [0, 44159, 29248, 0, 250]),
+        (U16, U8, F16, [12326, 14539, 14209, 12653, 13043]),
+        (U8, F32, U16, [8408, 39305, 30722, 11126, 14133]),
+    ] {
+        let input_value = |v: f64, format| match format {
+            U8 => (v * 255.0).round_ties_even() as f32 / 255.0,
+            U16 => (v * 65535.0).round_ties_even() as f32 / 65535.0,
+            F16 => half::f16::from_f64(v).to_f32(),
+            _ => v as f32,
+        };
+        let image = Image::gray(16, 32, |x, y| {
+            let value = f64::from((41 * x + 53 * y + 7 * x * y + 29) % 1021) / 1020.0;
+            input_value(if matches!(source_format, F16 | F32) { value * 1.75 - 0.375 } else { value }, source_format)
+        })
+        .with_integer_sampling(matches!(source_format, U8 | U16));
+        let mask = Image::gray(32, 16, |x, y| {
+            let (x, y) = (x as i32, y as i32);
+            input_value(f64::from((11 * x - 17 * y + 3 * x * y + 401).rem_euclid(509)) / 508.0, mask_format)
+        })
+        .with_integer_sampling(matches!(mask_format, U8 | U16));
+        let context = CookContext {
+            w: 64,
+            h: 64,
+            seed: 1,
+            tile: true,
+            format: output,
+            input_formats: &[source_format, mask_format],
+            inputs: &[Some(image), Some(mask)],
+            params: &params,
+            vars: &BTreeMap::new(),
+            resource: &|_| None,
+        };
+        let result = crate::output_precision::apply((definition.cook)(&context).unwrap().remove(0), output);
+        let stored = [(0, 0), (7, 13), (14, 5), (32, 32), (63, 63)].map(|(x, y)| {
+            let v = result.get_gray(x, y, false);
+            if output == F16 { half::f16::from_f32(v).to_bits() } else { (v * if output == U8 { 255.0 } else { 65535.0 }).round() as u16 }
+        });
+        assert_eq!(stored, expected, "{source_format:?}/{mask_format:?} into {output:?}");
+    }
+}
+
+#[test]
+fn directional_warp_keeps_large_authored_displacements_and_their_direction() {
+    use materialcraft_core::OutputFormat;
+
+    let definition = find("directional_warp").unwrap();
+    let inputs = [Some(Image::generate(64, 64, Kind::Color, |x, y| [x as f32, y as f32, 0.0, 1.0])), Some(Image::filled(64, 64, Kind::Gray, [1.0; 4]))];
+    for (angle, expected) in [(0.125, [7.59375, 7.59375]), (0.5, [32.03125, 31.953125]), (0.625, [56.53125, 56.34375])] {
+        let params = resolve_params(definition, &BTreeMap::from([("intensity".into(), Value::Float(2_097_152.0)), ("angle".into(), Value::Float(angle))]));
+        assert_eq!(params["intensity"], Value::Float(2_097_152.0));
+        let context = CookContext {
+            w: 64,
+            h: 64,
+            seed: 887,
+            tile: true,
+            format: OutputFormat::F32,
+            input_formats: &[OutputFormat::F32; 2],
+            inputs: &inputs,
+            params: &params,
+            vars: &BTreeMap::new(),
+            resource: &|_| None,
+        };
+        let pixel = (definition.cook)(&context).unwrap().remove(0).get(32, 32, false);
+        assert_eq!(pixel[..2], expected, "angle {angle}");
+    }
+}
+
+#[test]
 fn rectangular_directional_warps_scale_both_offsets_by_the_shorter_side() {
     let definition = find("directional_warp").unwrap();
     let params = resolve_params(definition, &BTreeMap::from([("intensity".into(), Value::Float(16.0)), ("angle".into(), Value::Float(0.125))]));

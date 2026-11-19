@@ -59,6 +59,27 @@ The first pass classifies all 546 roots: 166 Parity and 380 Too hard. These meas
 
 ## 2026-11-19 root comparisons
 
+### Multi-directional warp and intermediate storage
+
+The color and grayscale multi-directional warps each match **175,360/175,360 pixels** across the 19 [root cases](#directional-warp-orientation-and-input-precision), maximum error zero. Each root contributes 122,880 U8, 8,192 U16, 8,192 F16 and 36,096 F32 pixels. The two non-uniform blur sample roots retain the same exact counts. These measurements bring the inventory to 348 roots at measured parity.
+
+For each multi-directional root, inspect the four original renders, the 64² changed F32 render, A in U8 and F32, B in F32 and signed D in F32. Compare the 27 raw graph images per render, including the input and output nodes. Across both roots all **7,796,736/7,796,736 pixels in 486 images** match, maximum zero. This includes 4,620,288 pixels in 288 individual directional warps. Before the change, one grayscale warp at angle .625 and intensity 4 differed by one byte at four 64² pixels. This propagated into all four output formats.
+
+Compute horizontal direction from the sine of the angle in radians plus a quarter turn. Round the radian sum to single precision before evaluating the sine. The measured root cases agree when narrowing each sine toward zero and fusing the displacement with the pixel center. A constant warp intensity can exceed the previous hard slider limit of 1,088. Its magnitude changes sampling coordinates and leaves the tap count fixed.
+
+| Direct warp measurements | Renders | Exact pixels / compared | Maximum error |
+|---|---:|---:|---|
+| All source, map and output format combinations | 64 | 262,144/262,144 | 0 |
+| Unequal dimensions with inherited warp size | 70 | 412,160/412,160 | 0 |
+| Unequal dimensions with explicit warp size | 70 | 340,480/340,480 | 0 |
+| Sixty size controls and thirty X/Y position ramps | 90 | 953,472/953,472 | 0 |
+| Eight direction and wrapping configurations | 224 | 1,089,513/1,089,536 | 1 U8, 48 U16, .00241088867 F16, .005859375 F32 |
+| Amplified X/Y position ramps | 72 | 274,432/294,912 | 1.96875 F32 |
+
+For the 64 format combinations, use the [orientation source and mask](#directional-warp-orientation-and-input-precision) at 16×32 and 32×16 respectively. Round integer fields to the nearest stored level. Use 1.75H−.375 for floating source images and M for floating masks, rounding the F16 file to half precision. Render at 64² with intensity 17, angle .125, both axes tiled and seed 961. Independently cross the source, mask and output in U8, U16, F16 and F32. At each resampling step use the wider of that input's format and the output, in the order U8, U16, F16, F32. With F32 source and map, output bytes at (0,0), (7,13), (14,5), (32,32), (63,63) are 0, 172, 114, 0 and 1.
+
+The [large-displacement inputs](#directional-warp-tiling-and-unequal-input-sizes) now use all three authored intensities. The remaining five amplified Y ramps differ at −.3125, .9375 and 2.073125 turns. The ordinary 224-render matrix retains 14 differing pixels at angle zero and nine at −.3125. These primitive results delimit the root measurements above.
+
 ### Directional warp tiling and unequal input sizes
 
 A graph with horizontal-only tiling previously clamped both axes when the warp angle and intensity were constants. At (0,0) in the 64² byte-field probe the F32 value was .02745098. Passing both graph tiling flags through the evaluator gives the measured .532509327. All 28 horizontal-only renders now match. The full [single-warp matrix](#directional-warp-orientation-and-input-precision) matches 1,089,472/1,089,536 pixels across 224 renders. The maxima are 1 U8, 288 U16, .00439453125 F16 and .0048828125 F32.

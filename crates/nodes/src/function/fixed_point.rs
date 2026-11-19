@@ -28,7 +28,7 @@ impl Quadratic {
     }
 }
 
-pub(super) fn truncate_float(value: f64) -> f32 {
+pub(crate) fn truncate_float(value: f64) -> f32 {
     let nearest = value as f32;
     if f64::from(nearest).abs() > value.abs() { f32::from_bits(nearest.to_bits().saturating_sub(1)) } else { nearest }
 }
