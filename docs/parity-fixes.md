@@ -156,6 +156,35 @@ For the threshold series, take the 128² U16 field from j=0 at the 32² setting.
 
 For the two signed series, generate a 32² U16 image with level ((17x+113y+59xy+19)×7919) mod 65536. Reduce to 8² U8, F16 and F32. At seed 15709 test box intensities 0, 2⁻¹⁰, 3.2, 16, −2⁻¹⁰ and −3.2. At U8 the row-zero pixels at columns 2 and 5 are 145 and 139 at zero and 146 and 140 at ±3.2. At seed 15709, repeat both filter types at 0, 2⁻¹⁰, 3.2, −3.2, 64 and −64, with an eighth turn for directional blur. The +64 directional F32 result matches 62/64 pixels, maximum 2.98023224e−8. The independent directional angles retain the F32 differences shown above.
 
+### Box blur and signed pixel sizes
+
+The `noise_blend` root matched **142,592/142,592 pixels across 17 renders**, maximum error zero. With the same inputs it previously matched 2,550 pixels. The eight additional renders include every reachable filter and input bridge. All 73,472 pixels in those 56 intermediate and final images matched. The root totals are 119,808 U8, 5,120 U16, 5,120 F16 and 12,544 F32 pixels.
+
+Use the [four-format inventory comparison](#four-format-inventory-comparison) for the first nine renders. For the other eight, generate both inputs using the [modular field and storage formats used for Mosaic](#gradient-warp-displacement-and-sampling). Use channel zero, with seed 14578 for `input` and 31 more for `previous`. Add 0, 1, 2, 2, 2, 2, 6 and 7. For the 16² U16 input use graph defaults. At 32² with F32 inputs set roughness, global opacity, minimum level, maximum level, level and contrast to (.375,.5,0,3,0,.625). Next set (.6,.8,1,3,2,.8) at 32² with U16 inputs and all four output formats. Finish with (.25,.875,1,4,3,.375) using 128×64 F32 inputs at 64² and 32×64 U8 inputs at 32². All other outputs are F32.
+
+Box Blur multiplies the radius intensity×min(W,H)/256 by the resolved pixel size on each axis. An axis whose radius is at most half a pixel copies its samples. The horizontal pass still stores its result at output precision before an active vertical pass. On a 32² unit impulse at intensity one with pixel size (1,64), the center is 1/16, with endpoints of 1/32 eight pixels above and below. With (64,1) the same values run horizontally. With (64,64) the center is 1/256. At a relative pixel size, multiply the two signed components by the corresponding input or parent components before using the filter. For example, (−2,3) followed by (−64,8) resolves to (128,24). A signed or zero component also survives an ordinary save.
+
+| Comparison | Renders | Exact pixels / compared | Maximum error |
+|---|---:|---:|---:|
+| Independent X and Y blur radii | 135 | 203,520/203,520 | 0 |
+| Signed sizes on connected Blur and Emboss nodes | 93 | 112,384/112,384 | 0 |
+| Current-header saves of the four roots, reopened in the reference | 35 | 51,200/51,200 | 0 |
+| Six standalone saves with authored or inherited sizes, reopened in the reference | 52 | 69,120/69,120 | 0 |
+
+For the 135 blur controls, use an F32 center impulse at 16², 32², 32×64 and 64×32, and the signed modular field at 32² in U8/U16/F16/F32 and 64² F32. The seeds in render order are 19373, 19374, four copies of 19375, 19379, 19380 and 19381. Cross these with (pixel width, pixel height, intensity) of (1,1,1), (64,64,1), (1,64,1), (64,1,1), (0,16,4), (16,0,4), (.5,1.5,16), (1.5,.5,16), (−2,3,16), (3,−2,16), (2,4,8), (4,2,8), (16,32,1.25), (1,1,64) and (1,1,32). Tile both axes except for X only, Y only and neither on settings nine through eleven.
+
+Repeat the same nine images at intensity one for five connected size controls. Use input/filter sizes (−2,3)/(−64,8), (−2,3)/(64,−8) and (0,4)/(8,−4), relative to the input. Repeat the last two with an absolute filter size. For the 48 relief comparisons set intensity one and angle .125 turns. Use input/filter (−2,3)/(1,1) and (0,4)/(1,1) relative, (1,1)/(−2,3) and (1,1)/(0,4) absolute, then (−2,3)/(−1,2) and (−2,3)/(1,−2) relative. Use the [relief fields](#emboss-lighting-and-physical-pixel-size): X ramp at 16² and 32², Y ramp, impulse, step, small field, hash with quarter gray and hash with three-quarter gray at 32², seeds 97, 126, 184, 213, 242, 271, 300 and 329.
+
+Three fractal sum roots improved on the same 18 renders each. The first differences in the new measurements include five U16 gradient maps with matching inputs. The second and third roots also have isolated one-level errors in Levels. All four current-header root saves reproduced their original outputs when both files were rendered by the reference.
+
+| Remaining root | Exact pixels before | Exact pixels after / compared | Maximum U8 / U16 levels | Maximum F16 / F32 error |
+|---|---:|---:|---:|---:|
+| `fractal_sum_base.sbs/fractal_sum_base` | 253 | 142,777/145,664 | 0 / 2 | 0.000244140625 / 3.05175781e-05 |
+| `noise_fractal_sum_base.sbs/fractal_sum_base` | 238 | 143,104/145,664 | 0 / 2 | 0 / 1.52587891e-05 |
+| `noise_fractal_sum_base.sbs/fractal_sum_base_2` | 311 | 143,120/145,664 | 0 / 2 | 0 / 1.52587891e-05 |
+
+In addition to the nine inventory renders, use seed 19661+7i for root indices 154, 273 and 274. Add 0, 1, 2, 2, 2, 2, 6, 7 and 8. Use 16² F32 defaults, then 32² F32 with roughness .3125, global opacity .875 and levels 1–3. At 32² use (.6875,.625,2,6) for those controls in all four output formats. Use (.5,.75,1,8) at 64×32 and 32×64 F32, then repeat (.3125,.875,1,3) at 64² F32. These three roots have no image inputs.
+
 ### Gradient warp displacement and sampling
 
 Both Mosaic roots and all three Slope Blur roots match the reference in **88 renders and 722,176 output pixels**, maximum error zero. The new intermediate comparisons also match all **3,461,888 pixels across 2,369 images**, including the input bridges. Each Mosaic contains 16 gradient warps and each Slope Blur contains 32. Before the fix the color Mosaic matched 1,024/142,592 pixels and the gray Mosaic matched 2,695/142,592 on the same inputs.

@@ -171,7 +171,7 @@ pub(crate) fn cook_node(
         Ok(parameters) => parameters,
         Err(error) => return fail(error, 0),
     };
-    if node.def == "emboss" {
+    if matches!(node.def.as_str(), "blur" | "emboss") {
         variables.to_mut().insert("$pixelsize".into(), Value::Float2(base.pixel_size));
     }
     let variables = &variables;

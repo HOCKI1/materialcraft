@@ -477,6 +477,62 @@ fn same_size_resources_key_differently() {
 }
 
 #[test]
+fn box_blur_uses_the_resolved_pixel_size_on_each_axis() {
+    use materialcraft_core::{BaseParameter, FunctionGraph, OutputFormat, ParameterInheritance};
+
+    let mut graph = Graph::new("Blur footprint");
+    graph.size = [5, 5];
+    graph.format = OutputFormat::F32;
+    let source = graph.add_node("input_grayscale", [0.0; 2]);
+    let blur = graph.add_node("blur", [0.0; 2]);
+    let node = graph.node_mut(blur).unwrap();
+    node.params.insert("intensity".into(), Value::Float(1.0));
+    node.base.pixel_size_mode = ParameterInheritance::Absolute;
+    graph.connect(source, "output", blur, "input").unwrap();
+    let mut package = Package::new("Blur footprint");
+    package.graphs.push(graph);
+    let mut options = Options::new(&no_res);
+    options.inputs.insert("input".into(), Image::gray(32, 32, |x, y| f32::from(x == 16 && y == 16)));
+    let cache = Mutex::new(Cache::default());
+    for (size, expected) in
+        [([64.0, 64.0], [1.0 / 256.0, 1.0 / 512.0, 1.0 / 512.0]), ([1.0, 64.0], [1.0 / 16.0, 0.0, 1.0 / 32.0]), ([64.0, 1.0], [1.0 / 16.0, 1.0 / 32.0, 0.0])]
+    {
+        let base = &mut package.graphs[0].node_mut(blur).unwrap().base;
+        base.functions.insert(BaseParameter::PixelSize, FunctionGraph::constant(Value::Float2(size)));
+        let result = cook(&package, 0, &options, &cache);
+        let image = result.image(blur, 0).unwrap();
+        assert_eq!([(16, 16), (8, 16), (16, 8)].map(|(x, y)| image.get_gray(x, y, false)), expected, "pixel size {size:?}");
+    }
+}
+
+#[test]
+fn box_blur_multiplies_signed_pixel_sizes_before_limiting_its_radius() {
+    use materialcraft_core::{BaseParameter, OutputFormat, ParameterInheritance};
+
+    let mut graph = Graph::new("Inherited footprint");
+    graph.size = [5, 5];
+    graph.format = OutputFormat::F32;
+    let input = graph.add_node("input_grayscale", [0.0; 2]);
+    let blur = graph.add_node("blur", [0.0; 2]);
+    graph.node_mut(input).unwrap().base.pixel_size_mode = ParameterInheritance::Absolute;
+    graph.node_mut(blur).unwrap().base.pixel_size_mode = ParameterInheritance::RelativeToInput;
+    graph.node_mut(blur).unwrap().params.insert("intensity".into(), Value::Float(1.0));
+    graph.connect(input, "output", blur, "input").unwrap();
+    let mut package = Package::new("Inherited footprint");
+    package.graphs.push(graph);
+    let mut options = Options::new(&no_res);
+    options.inputs.insert("input".into(), Image::gray(32, 32, |x, y| f32::from(x == 16 && y == 16)));
+    let cache = Mutex::new(Cache::default());
+    for (parent, factor, expected) in [([-2.0, 3.0], [-64.0, 8.0], 1.0 / 192.0), ([-2.0, 3.0], [64.0, -8.0], 1.0), ([0.0, 4.0], [8.0, -4.0], 1.0)] {
+        for (node, size) in [(input, parent), (blur, factor)] {
+            BaseParameter::PixelSize.set_value(&mut package.graphs[0].node_mut(node).unwrap().base, &Value::Float2(size)).unwrap();
+        }
+        let result = cook(&package, 0, &options, &cache);
+        assert_eq!(result.image(blur, 0).unwrap().get_gray(16, 16, false), expected);
+    }
+}
+
+#[test]
 fn emboss_uses_the_resolved_pixel_size_on_each_axis() {
     use materialcraft_core::{OutputFormat, ParameterInheritance};
 

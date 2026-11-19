@@ -56,7 +56,7 @@ impl ResolvedBaseParameters {
             format: BaseParameter::Format.inheritance(base).resolve(base.format, input.map(|base| base.format), parent.format),
             tiling: base.tiling_mode.resolve(base.tiling, input.map(|base| base.tiling), parent.tiling),
             pixel_ratio: base.pixel_ratio_mode.resolve(base.pixel_ratio, input.map(|base| base.pixel_ratio), parent.pixel_ratio),
-            pixel_size: std::array::from_fn(|axis| (inherited_pixel_size[axis] * base.pixel_size[axis]).clamp(f32::MIN_POSITIVE, 8192.0)),
+            pixel_size: std::array::from_fn(|axis| (inherited_pixel_size[axis] * base.pixel_size[axis]).clamp(-8192.0, 8192.0)),
         }
     }
 

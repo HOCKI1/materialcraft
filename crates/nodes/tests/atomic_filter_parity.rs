@@ -342,6 +342,36 @@ fn blur_uses_fractional_box_coverage() {
 }
 
 #[test]
+fn box_blur_stores_the_horizontal_pass_with_unequal_pixel_sizes() {
+    let input = Image::gray(32, 32, |x, y| {
+        let code = (131 * x + 367 * y + 29 * x * y + 19375) % 2053;
+        1.5 * (code as f32 / 2052.0) - 0.25
+    });
+    let inputs = [Some(input)];
+    let blur = find("blur").unwrap();
+    let params = resolve_params(blur, &BTreeMap::from([("intensity".into(), Value::Float(1.0))]));
+    for (size, expected) in [([1.0, 64.0], [154, 126, 141, 120]), ([64.0, 1.0], [124, 122, 135, 129])] {
+        let vars = BTreeMap::from([("$pixelsize".into(), Value::Float2(size))]);
+        let context = CookContext {
+            w: 32,
+            h: 32,
+            seed: 0,
+            tile: true,
+            format: OutputFormat::U8,
+            input_formats: &[OutputFormat::F32],
+            inputs: &inputs,
+            params: &params,
+            resource: &|_| None,
+            vars: &vars,
+        };
+        let image = (blur.cook)(&context).unwrap().remove(0);
+        let stored = materialcraft_nodes::output_precision::apply(image, OutputFormat::U8);
+        let codes = [(0, 0), (5, 0), (13, 17), (31, 31)].map(|(x, y)| (stored.get_gray(x, y, false) * 255.0).round() as u32);
+        assert_eq!(codes, expected, "pixel size {size:?}");
+    }
+}
+
+#[test]
 fn three_texel_blurs_keep_tap_order_and_intermediate_storage() {
     let field = Image::gray(64, 64, |x, y| {
         let level = (97 * x + 43 * y + 7 * x * y) % 1024;
