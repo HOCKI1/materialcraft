@@ -5,6 +5,7 @@ pub(crate) enum EvaluationStep {
     Store(usize),
     Apply { instruction: usize, base: usize },
     Branch(usize),
+    Discard,
     Sequence(usize),
     LoopStart(usize),
     LoopCondition { instruction: usize, iteration: u32, last: Value },

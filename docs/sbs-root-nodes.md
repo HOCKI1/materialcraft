@@ -35,7 +35,7 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **341 Parity**, **56 In progress** and **149 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **342 Parity**, **55 In progress** and **149 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
 
 [Grayscale sampler measurements](parity-fixes.md#grayscale-sampling-of-color-inputs) · [Value sampling across 240 typed comparisons](parity-fixes.md#value-processor-texture-filtering)
 
@@ -594,6 +594,6 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [weave_4.sbs/weave_4](../assets/sbs/weave_4.sbs) | 0 | Yes | [In progress · 170,018/171,264 exact pixels in 18 renders](parity-fixes.md#plane-light-splatter-symmetry-and-waveform-comparisons) |
 | [white_noise.sbs/white_noise](../assets/sbs/white_noise.sbs) | 0 | Yes | [Parity: 3 cases](parity-fixes.md#verified-cases) |
 | [white_noise.sbs/white_noise_fast](../assets/sbs/white_noise.sbs) | 0 | Yes | [Parity · 18 renders, 127,488 exact pixels](parity-fixes.md#per-pixel-random-initialization) |
-| [white_noise_v2.sbs/white_noise_v2](../assets/sbs/white_noise_v2.sbs) | 0 | No | [In progress · 19 renders, 104,036/143,872 exact pixels](parity-fixes.md#per-pixel-random-initialization) |
+| [white_noise_v2.sbs/white_noise_v2](../assets/sbs/white_noise_v2.sbs) | 0 | No | [Parity · 76 renders, 183,808 exact pixels](parity-fixes.md#conditional-pixel-draws-and-white-noise-v2) |
 | [wood_fibers_1.sbs/wood_fibers_1](../assets/sbs/wood_fibers_1.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [wood_fibers_2.sbs/wood_fibers_2](../assets/sbs/wood_fibers_2.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |

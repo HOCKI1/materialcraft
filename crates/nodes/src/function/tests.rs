@@ -794,6 +794,32 @@ fn measured_pixel_reciprocals_preserve_runtime_rounding() {
 }
 
 #[test]
+fn pixel_branch_shared_draws_precede_the_selected_arm() {
+    let mut graph = FunctionGraph::default();
+    let test = graph.add("get_bool", &[], Some(Value::Text("first".into())));
+    let one = graph.add_constant(Value::Float(1.0));
+    let [a, b, next] = std::array::from_fn(|_| graph.add("rand", &[one], None));
+    let left = graph.add("vector2", &[a, a], None);
+    let right = graph.add("vector2", &[b, a], None);
+    let branch = graph.add("ifelse", &[test, left, right], None);
+    let tail = graph.add("vector2", &[next, next], None);
+    graph.output = Some(graph.add("vector4", &[branch, tail], None));
+    let values = BTreeMap::from([("first".into(), Value::Bool(false))]);
+    let context = EvaluationContext {
+        scope: super::FunctionScope::PixelProcessor,
+        position: [24.5 / 32.0, 0.5 / 32.0],
+        size: [32.0; 2],
+        images: &[],
+        image_formats: &[],
+        tile: true,
+        variables: &values,
+    };
+    let program = compile(&graph, 137).unwrap();
+    let result = program.evaluate(&context, &mut EvaluationState::default()).unwrap();
+    assert_eq!(result, Value::Float4([0x3e87_bb00, 0x3f59_6540, 0x3f22_ab7c, 0x3f22_ab7c].map(f32::from_bits)));
+}
+
+#[test]
 fn packed_random_ranges_preserve_the_unrounded_draw_in_each_lane() {
     let mut graph = FunctionGraph::default();
     let [a, b, c, d] = [0.999, -1.731053, 0.001, 0.352111].map(|x| graph.add_constant(Value::Float(x)));

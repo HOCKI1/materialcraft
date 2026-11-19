@@ -208,6 +208,17 @@ impl Program {
                     let slot = if value_type::boolean(&condition)? { 1 } else { 2 };
 
                     state.steps.push(Enter(self.input(index, slot)?));
+                    if context.scope == super::FunctionScope::PixelProcessor {
+                        for &draw in self.instruction(index)?.control_registers.iter().rev() {
+                            if state.registers.get(draw).is_some_and(Option::is_none) {
+                                state.steps.push(Discard);
+                                state.steps.push(Enter(draw));
+                            }
+                        }
+                    }
+                }
+                Discard => {
+                    state.values.pop().ok_or("missing shared branch draw")?;
                 }
                 Sequence(index) => {
                     state.values.pop().ok_or("missing sequence result")?;
@@ -254,7 +265,7 @@ impl Program {
     fn clear_loop_results(&self, index: usize, state: &mut EvaluationState) -> Result<(), String> {
         // Outgoing wires share a node value across reads, branches and effects
         // Only the active loop condition and body run again
-        for repeated in &self.instruction(index)?.repeated {
+        for repeated in &self.instruction(index)?.control_registers {
             if let Some(register) = state.registers.get_mut(*repeated) {
                 *register = None;
             }

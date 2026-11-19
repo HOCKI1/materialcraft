@@ -113,7 +113,7 @@ fn compile_nested(graph: &FunctionGraph, seed: u32, depth: usize, remaining: &mu
                             literal_divisor: false,
                             pixel_product_sum: None,
                             pixel_interval: None,
-                            repeated: Vec::new(),
+                            control_registers: Vec::new(),
                             call: None,
                         });
                         instructions.len() - 1
@@ -169,7 +169,7 @@ fn compile_nested(graph: &FunctionGraph, seed: u32, depth: usize, remaining: &mu
             literal_divisor: false,
             pixel_product_sum: None,
             pixel_interval: None,
-            repeated: Vec::new(),
+            control_registers: Vec::new(),
             call,
         };
         let mut inputs = inputs;
@@ -192,7 +192,7 @@ fn compile_nested(graph: &FunctionGraph, seed: u32, depth: usize, remaining: &mu
         if instructions.get(index).is_some_and(|instruction| instruction.definition.id == "while") {
             let repeated = loop_members(&instructions, index);
             if let Some(instruction) = instructions.get_mut(index) {
-                instruction.repeated = repeated;
+                instruction.control_registers = repeated;
             }
         }
     }
@@ -243,6 +243,7 @@ fn mark_literals(program: &mut Program, mut arguments: BTreeSet<&str>) -> super:
         }
     }
     super::product_sum::identify(&mut program.instructions);
+    super::branch_random::identify(program);
     super::returned_product::identify(program, returned)
 }
 

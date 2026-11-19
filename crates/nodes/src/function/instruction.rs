@@ -14,8 +14,8 @@ pub(crate) struct Instruction {
     pub(super) pixel_product_sum: Option<super::product_sum::ProductSum>,
     /// Registers for max(lower, min(value, upper)) with literal scalar bounds.
     pub(super) pixel_interval: Option<Box<PixelInterval>>,
-    /// For a loop: the instructions of its condition and body, evaluated again on every iteration
-    pub repeated: Vec<usize>,
+    /// A loop refreshes its condition and body. A pixel branch first samples its shared draws.
+    pub control_registers: Vec<usize>,
     pub call: Option<super::function_call::FunctionCall>,
 }
 

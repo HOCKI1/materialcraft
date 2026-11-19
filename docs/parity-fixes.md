@@ -1042,6 +1042,37 @@ Every row includes the four original defaults, seed and parameter renders, the 6
 
 The trapezoid pair each has two remaining differences across the archived and new comparisons. The [four-format inventory](#four-format-inventory-comparison) lists the original changed settings and port names.
 
+### Conditional pixel draws and White Noise v2
+
+White Noise v2 matches **183,808/183,808 pixels in 76 renders**, with maximum error zero. The original 19 renders improved from 104,036/143,872 to 143,872/143,872. Across the full matrix, all 122,880 U8, 8,192 U16, 11,264 F16 and 41,472 F32 values match. This generator has no input image.
+
+| Root controls | Renders | Exact pixels / compared | Maximum error |
+|---|---:|---:|---:|
+| Defaults and previous disorder, speed and format variations | 19 | 143,872/143,872 | 0 |
+| Uniform and Gaussian at three seeds | 33 | 8,448/8,448 | 0 |
+| Uniform, Gaussian and Triangle at four additional seeds | 24 | 31,488/31,488 | 0 |
+
+Use the [original settings](#per-pixel-random-initialization) for the first row. For the second row use 16² F32 at seeds 0, 1 and 137. At each seed use uniform with disorder and speed zero. For Gaussian use (disorder,speed) of (0,0), (.25,0), and speed 1 with disorder 0, .25, .5, .75, 1, 1.25, 1.5 and 2. For each distribution in the third row, render 16² F32 at seed 509 with (−.25,.6875), 32² in all four formats at seed 317 with (.125,.6875), 64² F32 at seed 709 with (.875,1.5), and 32² F16 and F32 at seed 1021 with (1.5,.25).
+
+Ten intermediate scalar outputs each matched 1,024/1,024 F32 pixels when selected individually. They covered the unit draw shared by both generators, radial and angular inputs, angle conversion, cosine, logarithm, squared radius, unnormalized and normalized Gaussian values, and the Gaussian result. Use 16² at seed zero with (disorder,speed) of (0,0) and (.25,1), seed one with (.5,1) and seed 137 with (.75,1). In the complete graph with disorder and speed zero, the Gaussian branch uses the third unit draw for its radius and the first for its angle. Evaluating the Gaussian expression on its own changes that order.
+
+For an original conditional pixel expression, evaluate its condition first. A scalar draw shared between both arms or also used outside the conditional consumes its sample before draws private to the selected arm. Multiple shared draws follow first use in the true arm, then the false arm. Nested conditionals and draws supplying another draw's range use the same cached samples.
+
+| Original condition and return value | Exact pixels before | Exact RGBA pixels after / compared |
+|---|---:|---:|
+| (T ? A : B, C, A, B) | 2 | 9,472/9,472 |
+| (T ? A : B−A, C, A, B) | 2 | 9,472/9,472 |
+| (T ? (A,A) : (B,A), C, C) | 4,736 | 9,472/9,472 |
+| (T ? A : A−B, C, A, B) | 4,738 | 9,472/9,472 |
+| (S ? (A,A) : (D,A), C, C) | 4,736 | 9,472/9,472 |
+| (T ? A : (S ? B−A : B+A), C, A, B) | 2 | 9,472/9,472 |
+| (T ? A : (S ? B−A : D), C, A, B) | 2 | 9,472/9,472 |
+| (T ? A−B : B−A, C, A, B) | 4,736 | 9,472/9,472 |
+| (T ? B−A : A−B, C, A, B) | 4,736 | 9,472/9,472 |
+| (T ? E : B−E, C, A, B) | 3 | 9,472/9,472 |
+
+A, B, C and D are separate unit-range scalar draw nodes. E is a draw with range A. Repeated letters reuse the same node. T is normalized texel-center x < .5 and S is B < .5. Render each expression at 16² F32/seed 0, 32² F32/17, 32² in four formats/137 and 64² F32/613. All 94,720 pixels match every channel, with maximum error zero. For the third row the F32 words at (24,0) of the 32²/137 render are 3e87bb00, 3f596540, 3f22ab7c and 3f22ab7c. The [standalone vector-typed draw](#scaled-random-draws-and-offsets) remains open.
+
 ### Packed random draws in flood-fill color
 
 | Root | Renders | Exact pixels before | Exact RGBA pixels after / compared | Maximum error after |
@@ -1134,7 +1165,7 @@ For Worley, Dissolve, the four diffusion passes, six flood-fill outputs and both
 | Flood Fill 2 color/grayscale filtering | 1 | 0 | 1 |
 | White Noise v2 distribution, disorder, speed | 1,.375,.625 | 0,.8125,1.25 | 1,.1875,.375 |
 
-For Worley also set size (.75,1.25,1.5), Minkowski number .6875, border width .1875 and roundness .3125. Set optional diffusion controls where exposed. For Flood Fill 2 color use HSL adjustment (.125,−.1875,.25) and random range (.375,.625,.1875). For its grayscale equivalent use luminance adjustment −.1875 and random range .625. The random flood-fill outputs and fast white noise have no additional exposed numeric changes in these controls. Each residual flood-fill difference is at most one U16 level or .0000152587891 in F32. Uniform noise selects the measured per-texel stream. The Gaussian distribution in White Noise v2 still diverges.
+For Worley also set size (.75,1.25,1.5), Minkowski number .6875, border width .1875 and roundness .3125. Set optional diffusion controls where exposed. For Flood Fill 2 color use HSL adjustment (.125,−.1875,.25) and random range (.375,.625,.1875). For its grayscale equivalent use luminance adjustment −.1875 and random range .625. The random flood-fill outputs and fast white noise have no additional exposed numeric changes in these controls. Each residual flood-fill difference is at most one U16 level or .0000152587891 in F32. Uniform noise selects the measured per-texel stream. The later [conditional draw comparison](#conditional-pixel-draws-and-white-noise-v2) resolves the Gaussian differences in White Noise v2.
 
 ### Float bitmap reduction and half output
 
