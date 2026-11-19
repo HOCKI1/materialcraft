@@ -35,7 +35,7 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **316 Parity**, **54 In progress** and **176 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **318 Parity**, **52 In progress** and **176 Too hard**. The November 17 and 18 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons)
 
 [Grayscale sampler measurements](parity-fixes.md#grayscale-sampling-of-color-inputs) · [Value sampling across 240 typed comparisons](parity-fixes.md#value-processor-texture-filtering)
 
@@ -116,8 +116,8 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 | [brick_generator.sbs/resources/Tile](../assets/sbs/brick_generator.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [cartesian_polar_transformation.sbs/cartesian_to_polar](../assets/sbs/cartesian_polar_transformation.sbs) | 1 | No | [Parity · 171,264 exact pixels in 18 renders](parity-fixes.md#segment-mapping-and-normal-graph-rechecks) |
 | [cartesian_polar_transformation.sbs/cartesian_to_polar_grayscale](../assets/sbs/cartesian_polar_transformation.sbs) | 1 | No | [Parity · 171,264 exact pixels in 18 renders](parity-fixes.md#segment-mapping-and-normal-graph-rechecks) |
-| [cartesian_polar_transformation.sbs/polar_to_cartesian](../assets/sbs/cartesian_polar_transformation.sbs) | 1 | No | [In progress · 171,242/171,264 exact pixels](parity-fixes.md#segment-mapping-and-normal-graph-rechecks) |
-| [cartesian_polar_transformation.sbs/polar_to_cartesian_grayscale](../assets/sbs/cartesian_polar_transformation.sbs) | 1 | No | [In progress · 171,251/171,264 exact pixels](parity-fixes.md#segment-mapping-and-normal-graph-rechecks) |
+| [cartesian_polar_transformation.sbs/polar_to_cartesian](../assets/sbs/cartesian_polar_transformation.sbs) | 1 | No | [Parity · 28 renders, all 306,688 pixels exact](parity-fixes.md#reverse-polar-sampling-in-color-and-grayscale) |
+| [cartesian_polar_transformation.sbs/polar_to_cartesian_grayscale](../assets/sbs/cartesian_polar_transformation.sbs) | 1 | No | [Parity · 28 renders, all 306,688 pixels exact](parity-fixes.md#reverse-polar-sampling-in-color-and-grayscale) |
 | [cells_1.sbs/cells_1](../assets/sbs/cells_1.sbs) | 0 | Yes | [Too hard: noise field](parity-fixes.md#remaining-differences) |
 | [channel_mixer.sbs/channel_mixer](../assets/sbs/channel_mixer.sbs) | 1 | No | [Parity · 18 cases, 171,264 exact pixels](parity-fixes.md#large-transform-offsets-and-additive-blends) |
 | [checker_1.sbs/checker_1](../assets/sbs/checker_1.sbs) | 0 | Yes | [Parity · eight cases, four formats](parity-fixes.md#transform-edges-and-floating-point-filtering) |

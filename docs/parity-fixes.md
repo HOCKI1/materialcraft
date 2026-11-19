@@ -824,6 +824,12 @@ All 7,680 direct-light density pixels in the [density controls](#volume-density-
 
 Read out named values immediately after initialization and after the first volume step on the 16² thin, 16² dithered, 32² thick and 32² varying-density F32 cases. For environment light the initial ray position, ray direction, noise input, dithering, step size and accumulated depth are each exact at 2,560/2,560. After one step the position and depth each match 1,280/2,560, maximum 1.96305132. Scattered light and transmission match 1,280/2,560, maximum .0574402809. For direct light the initial light color improved from 0/2,560 to 2,560/2,560 exact. Direction, ambient color, noise, step size, first position and first depth are also exact. First-step scattering and transmission match 2,560/2,560, maximum 0. The two light roots remain in progress.
 
+### Reverse polar sampling in color and grayscale
+
+The color and grayscale roots each match **306,688/306,688 pixels in 28 renders**, maximum error zero. Each matrix includes 126,976 U8, 12,288 U16, 12,288 F16 and 155,136 F32 pixels. Both use the same coordinate function and a bilinear image read. The coordinate function packs the radius-times-cosine and radius-times-sine products into two lanes before adding (.5,.5). In 19 color-field controls the build with scalar product forwarding matched 174,522/174,592 pixels, maximum .00390630960. The build with [independent vector product rounding](#vector-products-in-the-direct-light-pass) and the current build each match all 174,592.
+
+The first 18 renders include the four archive cases, five inventory comparisons and nine [modular, signed and rectangular fields](#segment-mapping-and-normal-graph-rechecks). Add ten original coordinate and stripe inputs. Fill color channels with (x,y,x mod 2,y mod 2) for integer pixel indices, or just x for grayscale. Run F32 at 16²/seed 89, 128²/131 and 601, 256²/331 and 64²/509 with a 64×32 source. At 128²/233 replace the four channels with x mod 2, y mod 2, floor(x/2) mod 2 and floor(y/2) mod 2. At 64²/421 apply .1875v−2.125 to the coordinate field and render all four formats. Both roots expose only their input image.
+
 ### Scalar products used by sums inside a called function
 
 | Measured output | Renders | Exact pixels / compared | Maximum error |
