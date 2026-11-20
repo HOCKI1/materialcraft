@@ -35,7 +35,7 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **365 Parity**, **87 In progress** and **94 Too hard**. The November 17–19 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons) · [November 19 measurements](parity-fixes.md#2026-11-19-root-comparisons)
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **367 Parity**, **85 In progress** and **94 Too hard**. The November 17–19 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons) · [November 19 measurements](parity-fixes.md#2026-11-19-root-comparisons)
 
 [Pattern tiling axes and copy bounds across 215 renders](parity-fixes.md#tiling-axes-and-pattern-copy-bounds) · [Grayscale sampler measurements](parity-fixes.md#grayscale-sampling-of-color-inputs) · [Value sampling across 240 typed comparisons](parity-fixes.md#value-processor-texture-filtering) · [Five saved graphs reopened in the reference](parity-fixes.md#saved-filter-graphs-and-scalar-levels-controls)
 
@@ -579,8 +579,8 @@ Pattern center culling matched all 356,352 pixels across 204 renders. Background
 | [tile_random.sbs/tile_random_color](../assets/sbs/tile_random.sbs) | 2 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [tile_sampler.sbs/arrow](../assets/sbs/tile_sampler.sbs) | 0 | Yes | [Parity · seven 512×512 runs, four formats](parity-fixes.md#transform-edges-and-floating-point-filtering) |
 | [tileable_material_to_mesh_material.sbs/tileable_material_to_mesh_material](../assets/sbs/tileable_material_to_mesh_material.sbs) | 5 | No | [Parity · both outputs, 358,912 exact pixels in 42 renders](parity-fixes.md#diffuse-and-specular-outputs-of-the-mesh-material-graph) |
-| [trapezoid_transform.sbs/trapezoid_transform](../assets/sbs/trapezoid_transform.sbs) | 1 | No | [In progress · 171,262/171,264 pixels in 18 renders](parity-fixes.md#quad-swirl-trapezoid-and-vector-morph-comparisons) |
-| [trapezoid_transform.sbs/trapezoid_transform_grayscale](../assets/sbs/trapezoid_transform.sbs) | 1 | No | [In progress · 171,262/171,264 pixels in 18 renders](parity-fixes.md#quad-swirl-trapezoid-and-vector-morph-comparisons) |
+| [trapezoid_transform.sbs/trapezoid_transform](../assets/sbs/trapezoid_transform.sbs) | 1 | No | [Parity · 848,384 exact pixels in 68 renders across four formats](parity-fixes.md#trapezoid-coordinates-under-fixed-clipping) |
+| [trapezoid_transform.sbs/trapezoid_transform_grayscale](../assets/sbs/trapezoid_transform.sbs) | 1 | No | [Parity · 848,384 exact pixels in 68 renders across four formats](parity-fixes.md#trapezoid-coordinates-under-fixed-clipping) |
 | [uv_mapper.sbs/uv_mapper_color_sub](../assets/sbs/uv_mapper.sbs) | 2 | Yes | [Parity · 13 cases, 163,840 exact pixels](parity-fixes.md#height-distance-texture-mapping-skew-and-weave) |
 | [uv_mapper.sbs/uv_mapper_grayscale_sub](../assets/sbs/uv_mapper.sbs) | 2 | Yes | [Parity · 13 cases, 163,840 exact pixels](parity-fixes.md#height-distance-texture-mapping-skew-and-weave) |
 | [value_get_size.sbs/get_size_color](../assets/sbs/value_get_size.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |

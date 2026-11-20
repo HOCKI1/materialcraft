@@ -26,6 +26,7 @@ mod node_interface;
 mod node_types;
 mod operation;
 mod output;
+mod pixel_condition;
 mod processor;
 mod product_sum;
 mod program;

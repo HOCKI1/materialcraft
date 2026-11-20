@@ -183,7 +183,7 @@ fn pass_into_sums(call: &mut super::function_call::FunctionCall, inputs: &[usize
     }
 }
 
-pub(super) fn identify(instructions: &mut [Instruction]) {
+pub(super) fn identify(instructions: &mut [Instruction], live_readers: Option<&[bool]>) {
     // A sign change can be applied to a factor inside the fused operation. Follow inputs in
     // compilation order so even a long chain of negations takes a single bounded pass.
     let mut operands: Vec<Option<ProductOperand>> = Vec::with_capacity(instructions.len());
@@ -202,8 +202,8 @@ pub(super) fn identify(instructions: &mut [Instruction]) {
     let operand = |index: usize| operands.get(index).copied().flatten();
     let mut usage = vec![ProductUsage::default(); instructions.len()];
     let has_loop = instructions.iter().any(|op| op.definition.id == "while");
-    for op in instructions.iter() {
-        if op.definition.id == "neg" {
+    for (index, op) in instructions.iter().enumerate() {
+        if op.definition.id == "neg" || live_readers.is_some_and(|readers| readers.get(index) == Some(&false)) {
             continue;
         }
         let sum = match (op.definition.id, op.inputs.as_slice()) {

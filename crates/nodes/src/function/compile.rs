@@ -8,9 +8,18 @@ pub fn compile(graph: &FunctionGraph, seed: u32) -> Result<Program, String> {
 
 /// Compile with the named inputs fixed by an enclosing graph instance.
 pub fn compile_with_literal_inputs(graph: &FunctionGraph, seed: u32, literal_inputs: &[String]) -> Result<Program, String> {
+    compile_program(graph, seed, literal_inputs, None)
+}
+
+pub(super) fn compile_program(
+    graph: &FunctionGraph,
+    seed: u32,
+    literal_inputs: &[String],
+    pixel: Option<&super::EvaluationContext<'_>>,
+) -> Result<Program, String> {
     let mut remaining = super::MAX_EXPANDED_NODES;
     let mut program = compile_nested(graph, seed, 0, &mut remaining)?;
-    mark_literals(&mut program, literal_inputs.iter().map(String::as_str).collect());
+    mark_literals(&mut program, literal_inputs.iter().map(String::as_str).collect(), pixel);
     Ok(program)
 }
 
@@ -207,7 +216,7 @@ fn compile_nested(graph: &FunctionGraph, seed: u32, depth: usize, remaining: &mu
     Ok(Program { instructions, output, seed })
 }
 
-fn mark_literals(program: &mut Program, mut arguments: BTreeSet<&str>) -> super::returned_product::Lanes {
+fn mark_literals(program: &mut Program, mut arguments: BTreeSet<&str>, pixel: Option<&super::EvaluationContext<'_>>) -> super::returned_product::Lanes {
     // A write in the callee can replace a literal argument before its next read.
     for op in &program.instructions {
         if op.call.as_ref().is_some_and(|call| call.exports) {
@@ -228,7 +237,7 @@ fn mark_literals(program: &mut Program, mut arguments: BTreeSet<&str>) -> super:
         op.literal_divisor = id == "div" && op.inputs.get(1).is_some_and(literal);
         if let Some(call) = &mut op.call {
             let bound = call.inputs.iter().zip(&op.inputs).filter(|(_, index)| literal(index)).map(|(name, _)| name.as_str()).collect();
-            let lanes = mark_literals(&mut call.program, bound);
+            let lanes = mark_literals(&mut call.program, bound, None);
             op.literal = call.program.output_is_literal();
             // Returned products read the call's evaluated registers after its assignments have run.
             if lanes.iter().any(Option::is_some) {
@@ -247,7 +256,8 @@ fn mark_literals(program: &mut Program, mut arguments: BTreeSet<&str>) -> super:
             op.pixel_interval = pixel_interval(op, previous).map(Box::new);
         }
     }
-    super::product_sum::identify(&mut program.instructions);
+    let readers = pixel.and_then(|context| super::pixel_condition::live_readers(program, context));
+    super::product_sum::identify(&mut program.instructions, readers.as_deref());
     super::branch_random::identify(program);
     super::returned_product::identify(program, returned)
 }

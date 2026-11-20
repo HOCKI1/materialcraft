@@ -1,4 +1,4 @@
-use super::{EvaluationContext, EvaluationState, compile_with_literal_inputs};
+use super::{EvaluationContext, EvaluationState};
 use crate::{CookContext, CookResult};
 use craft_texture::{Image, Kind, Limits};
 use materialcraft_core::Value;
@@ -31,25 +31,25 @@ fn pixel(value: Value, gray: bool) -> Result<[f32; 4], String> {
 
 pub(crate) fn pixel_processor(context: &CookContext) -> CookResult {
     let graph = context.function("function").ok_or("missing pixel function")?;
-    let program = compile_with_literal_inputs(graph, context.seed, context.vars.literal_inputs())?;
-    let variables = context.vars.graph_values();
     let gray = !context.b("color_mode");
     let kind = if gray { Kind::Gray } else { Kind::Color };
 
     let (width, height) = craft_texture::clamp_size(context.w, context.h);
+    let frame = EvaluationContext {
+        image_formats: context.input_formats,
+        scope: super::FunctionScope::PixelProcessor,
+        position: [0.0; 2],
+        size: [width as f32, height as f32],
+        images: context.inputs,
+        tile: context.tile,
+        variables: context.vars.graph_values(),
+    };
+    let program = super::compile::compile_program(graph, context.seed, context.vars.literal_inputs(), Some(&frame))?;
     let channels = kind.channels();
     let mut data = vec![0.0; width as usize * height as usize * channels];
     data.par_chunks_mut(width as usize * channels).enumerate().try_for_each_init(EvaluationState::default, |state, (y, row)| -> Result<(), String> {
         for (x, target) in row.chunks_exact_mut(channels).enumerate() {
-            let evaluation = EvaluationContext {
-                image_formats: context.input_formats,
-                scope: super::FunctionScope::PixelProcessor,
-                position: [(x as f32 + 0.5) / width as f32, (y as f32 + 0.5) / height as f32],
-                size: [width as f32, height as f32],
-                images: context.inputs,
-                tile: context.tile,
-                variables,
-            };
+            let evaluation = EvaluationContext { position: [(x as f32 + 0.5) / width as f32, (y as f32 + 0.5) / height as f32], ..frame };
 
             let result = pixel(program.evaluate_pixel(&evaluation, state)?, gray)?;
             target.copy_from_slice(result.get(..channels).ok_or("invalid output channels")?);

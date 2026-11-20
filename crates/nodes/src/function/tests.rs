@@ -358,6 +358,66 @@ fn pattern_angles_and_uniform_cartesian_use_the_same_components() {
 }
 
 #[test]
+fn fixed_pixel_clipping_preserves_the_live_quotient_precision() {
+    let rounded = 0x3b9a_ff00;
+    let contracted = 0x3b9a_ff02;
+    let definition = crate::find("pixel_processor").unwrap();
+    for (control, tiling, expected) in [
+        ("tiling", 0, rounded),
+        ("tiling", 1, contracted),
+        ("tiling", 2, rounded),
+        ("tiling", 3, contracted),
+        ("literal", 0, contracted),
+        ("parameter", 3, rounded),
+    ] {
+        let variables = BTreeMap::from([
+            ("numerator".into(), Value::Float(f32::from_bits(0xbeb2_0000))),
+            ("width".into(), Value::Float(f32::from_bits(0x3f33_b333))),
+            ("clip".into(), Value::Bool(false)),
+            ("$tiling".into(), Value::Int(tiling)),
+        ]);
+        let mut graph = FunctionGraph::default();
+        let [n, d] = ["numerator", "width"].map(|name| graph.add("get_float1", &[], Some(Value::Text(name.into()))));
+        let q = graph.add("div", &[n, d], None);
+        let half = graph.add_constant(Value::Float(0.5));
+        let coordinate = graph.add("add", &[q, half], None);
+        let magnitude = graph.add("abs", &[q], None);
+        let outside = graph.add("gt", &[magnitude, half], None);
+        let clip = match control {
+            "tiling" => {
+                let mask = graph.add("get_integer1", &[], Some(Value::Text("$tiling".into())));
+                let two = graph.add_constant(Value::Int(2));
+                let zero = graph.add_constant(Value::Int(0));
+                let horizontal = graph.add("mod", &[mask, two], None);
+                graph.add("eq", &[horizontal, zero], None)
+            }
+            "literal" => graph.add_constant(Value::Bool(false)),
+            _ => graph.add("get_bool", &[], Some(Value::Text("clip".into()))),
+        };
+        let condition = graph.add("and", &[outside, clip], None);
+        graph.output = Some(graph.add("ifelse", &[condition, half, coordinate], None));
+        let params = crate::resolve_params(
+            definition,
+            &BTreeMap::from([("function".into(), Value::Function(Box::new(graph))), ("color_mode".into(), Value::Bool(false))]),
+        );
+        let context = crate::CookContext {
+            w: 1,
+            h: 1,
+            seed: 0,
+            tile: true,
+            format: materialcraft_core::OutputFormat::F32,
+            inputs: &[],
+            input_formats: &[],
+            resource: &|_| None,
+            params: &params,
+            vars: &variables,
+        };
+        let image = (definition.cook)(&context).unwrap().remove(0);
+        assert_eq!(image.get_gray(0, 0, false).to_bits(), expected, "{control}, tiling {tiling}");
+    }
+}
+
+#[test]
 fn pixel_quotient_sums_and_second_interpolation_operands_contract() {
     let values = [0x4044_ca77, 0x4077_425b, 0xbf00_bb3e, 0x4029_426b].map(|v| Value::Float(f32::from_bits(v)));
     let variables = ["a", "b", "c", "t"].into_iter().map(str::to_owned).zip(values).collect();
