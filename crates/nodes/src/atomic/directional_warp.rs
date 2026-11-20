@@ -1,5 +1,5 @@
 use super::ATOMIC;
-use super::input_resize::warp_input;
+use super::input_resize::sampled_input;
 use crate::{CookContext, CookResult, NodeDefinition, node};
 use craft_texture::Image;
 
@@ -18,8 +18,8 @@ pub(super) fn definition() -> NodeDefinition {
 fn directional_warp(context: &CookContext) -> CookResult {
     let target = [context.w, context.h].map(|side| side.clamp(1, craft_texture::MAX_SIDE));
     let tiling = context.tiling_axes();
-    let (image, format) = warp_input(context, 0);
-    let (map, map_format) = warp_input(context, 1);
+    let (image, format) = sampled_input(context, 0);
+    let (map, map_format) = sampled_input(context, 1);
     let map = map.to_gray();
     let same_size = [map.width(), map.height()] == target;
     let radians = context.f("angle") * std::f32::consts::TAU;

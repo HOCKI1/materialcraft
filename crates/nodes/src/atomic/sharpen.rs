@@ -1,7 +1,7 @@
 use super::ATOMIC;
-use super::input_resize::{self, InputResize};
+use super::input_resize::sampled_input;
 use crate::{CookContext, CookResult, NodeDefinition, node};
-use craft_texture::{Image, Kind};
+use craft_texture::Image;
 
 pub(super) fn definition() -> NodeDefinition {
     node("sharpen", "Sharpen", ATOMIC)
@@ -14,7 +14,9 @@ pub(super) fn definition() -> NodeDefinition {
 }
 
 fn sharpen(context: &CookContext) -> CookResult {
-    let input = input_resize::resized_input(context, 0, InputResize::Filter).unwrap_or_else(|| Image::filled(context.w, context.h, Kind::Gray, [0.0; 4]));
+    let (input, format) = sampled_input(context, 0);
+    let (width, height) = craft_texture::clamp_size(context.w, context.h);
+    let same_size = (width, height) == (input.width(), input.height());
     let intensity = context.f("intensity");
     let tile = context.tiling_axes();
     let short_side = context.w.min(context.h) as f32;
@@ -23,12 +25,17 @@ fn sharpen(context: &CookContext) -> CookResult {
     let center_weight = 1.0 + 2.0 * (horizontal + vertical);
 
     Ok(vec![Image::generate(context.w, context.h, input.kind(), |x, y| {
-        let (x, y) = (i64::from(x), i64::from(y));
-        let center = input.get(x, y, false);
-        let left = input.get_axes(x - 1, y, tile);
-        let right = input.get_axes(x + 1, y, tile);
-        let top = input.get_axes(x, y - 1, tile);
-        let bottom = input.get_axes(x, y + 1, tile);
+        let offsets = [(0, 0), (-1, 0), (1, 0), (0, -1), (0, 1)];
+        let [center, left, right, top, bottom] = if same_size {
+            offsets.map(|(dx, dy)| input.get_axes(i64::from(x) + dx, i64::from(y) + dy, tile))
+        } else {
+            let u = (x as f32 + 0.5) / width as f32;
+            let v = (y as f32 + 0.5) / height as f32;
+            offsets.map(|(dx, dy)| {
+                let uv = [u + dx as f32 / input.width() as f32, v + dy as f32 / input.height() as f32];
+                crate::texture_sampler::sample(&input, uv, tile, format, None)
+            })
+        };
         std::array::from_fn(|channel| {
             let [center, left, right, top, bottom] = [center[channel], left[channel], right[channel], top[channel], bottom[channel]];
             let sum = center.mul_add(center_weight, -horizontal * left);

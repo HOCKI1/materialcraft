@@ -67,6 +67,8 @@ Reading inherited variables directly reduced cook time on six Dirt 1 and BNW Spo
 
 [Four-format results by root and output](parity-fixes.md#four-format-inventory-comparison) cover 375 roots. The same table includes the independent 32² measurements for 352 roots.
 
+Reduced Sharpen now matches 16,704/16,704 pixels on the held-out signed field and 158,688/158,688 on six further fields. Four requested 1² cases still differ in output extent. [Filter measurements](parity-fixes.md#sharpen-at-reduced-output-sizes)
+
 ## Complete inventory
 
 | SBS package / graph path | Input pins | Hidden in library | Parity status |

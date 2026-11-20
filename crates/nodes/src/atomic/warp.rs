@@ -1,5 +1,5 @@
 use super::ATOMIC;
-use super::input_resize::warp_input;
+use super::input_resize::sampled_input;
 use crate::{CookContext, CookResult, NodeDefinition, node, texture_sampler};
 use craft_texture::Image;
 
@@ -17,8 +17,8 @@ pub(super) fn definition() -> NodeDefinition {
 
 fn warp(context: &CookContext) -> CookResult {
     let (width, height) = craft_texture::clamp_size(context.w, context.h);
-    let (image, format) = warp_input(context, 0);
-    let (map, map_format) = warp_input(context, 1);
+    let (image, format) = sampled_input(context, 0);
+    let (map, map_format) = sampled_input(context, 1);
     let map = map.to_gray();
     let same_size = (map.width(), map.height()) == (width, height);
     let (w, h) = (width as f32, height as f32);

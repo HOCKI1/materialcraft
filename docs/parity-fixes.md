@@ -388,6 +388,18 @@ The two 4×4 reference outputs in the [deep traversal experiment](#bounded-trave
 
 A MaterialCraft-saved U16 input graph and an independently saved RGBA32F graph reopened in the reference. The first six cases of each reproduced all 1,620 stored pixels byte for byte.
 
+### Sharpen at reduced output sizes
+
+When the source is up to twice the output size on either axis and at least as large on both, Sharpen reads the center and four neighbors from the stored source. Neighbor offsets span one source texel. The stencil weights still use the output aspect ratio. A unit-strength white impulse at (8,8) in a black 16² F32 image isolates the spacing. At 8² the center, upper and left values are (.75, −.25, −.25). At 8×16 they are (1.5, −.25, −.5), and at 16×8 they are (1.5, −.5, −.25). The regression failed before the change. The four impulse renders, including 4², match 336/336 F32 pixels.
+
+| Matrix | Renders | Exact pixels / compared | Maximum error |
+|---|---:|---:|---:|
+| Parent-size cases from the preceding section | 108 requested | 38,832/38,832 in 104 comparable outputs | 0 |
+| Independent signed field from the preceding section | 80 | 16,704/16,704 | 0 |
+| Independent 32×16 fields with mixed axis sizes | 180 | 158,688/158,688 | 0 |
+
+The four requested 1² outputs still differ in extent. For the new fields, use level Q=(131x+6571y+409xy+83(c+3)(x+9y)+9973((x+7y+3c) mod 9)+45821) mod 65536 in channel c. Use gray U16, F16 and F32, and RGBA U8, U16 and F32. Store floor(Q/257) for U8, Q for U16, and (Q−31007)/15019+.03125 for floating point. At strengths 0 and .8125 render F32 at 16×8, 8×4, 4×2, 16², 32×8, 8×16, 16×32, 64×8, 64×4, 4×32, 32×16, 64×32 and 128×64. Seed is 147151+11j+s for zero-based extent j and strength index s. Repeat 16×8 at strength .8125, seed 147269, in U8, U16, F16 and F32. All 108 same-size controls and both independently supplied dirt inputs also remain exact.
+
 ## 2026-11-19 root comparisons
 
 ### Texture sampling in pattern functions

@@ -605,6 +605,17 @@ fn sharpen_resizes_stored_levels_before_computing_contrast() {
 }
 
 #[test]
+fn reduced_sharpen_reads_neighbors_one_source_texel_apart() {
+    let input = [Some(Image::gray(16, 16, |x, y| f32::from(x == 8 && y == 8)))];
+    for (size, center, above, left) in [([8, 8], 0.75, -0.25, -0.25), ([8, 16], 1.5, -0.25, -0.5), ([16, 8], 1.5, -0.5, -0.25)] {
+        let image = cook("sharpen", &input, &[("intensity", Value::Float(1.0))], size, true);
+        let x = i64::from(size[0] / 2);
+        let y = i64::from(size[1] / 2);
+        assert_eq!([image.get_gray(x, y, false), image.get_gray(x, y - 1, false), image.get_gray(x - 1, y, false)], [center, above, left]);
+    }
+}
+
+#[test]
 fn empty_raster_preserves_transparent_rgb_and_rejects_mismatched_background_kind() {
     for id in ["text", "svg"] {
         let pixel = [0.25, 0.5, 0.75, 0.0];
