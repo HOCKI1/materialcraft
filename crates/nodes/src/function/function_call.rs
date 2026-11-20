@@ -31,7 +31,7 @@ impl CallBindings<'_> {
         }
         let mut frame = Some(self);
         while let Some(current) = frame {
-            if current.caller_assignments.contains_key(name) && current.parent.is_none_or(|parent| !parent.call.defaults.contains_key(name)) {
+            if current.caller_assignments.contains_key(name) {
                 return true;
             }
             frame = current.parent;

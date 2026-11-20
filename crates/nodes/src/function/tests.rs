@@ -1821,6 +1821,85 @@ fn a_loop_evaluates_its_condition_and_body_again_on_every_iteration() {
 }
 
 #[test]
+fn writing_a_function_argument_keeps_its_wire_and_a_nested_free_assignment() {
+    fn call(body: FunctionGraph, argument: &str, wire: Option<f32>) -> FunctionGraph {
+        let mut graph = FunctionGraph::default();
+        let input = wire.map(|value| graph.add_constant(Value::Float(value)));
+        let result = graph.add("instance", &[], None);
+        let node = graph.nodes.last_mut().unwrap();
+        node.instance = Some(materialcraft_core::GraphInstance {
+            label: String::new(),
+            package: String::new(),
+            graph: "assign_scalar".into(),
+            inputs: vec![materialcraft_core::GraphPort { identifier: argument.into(), type_code: 256 }],
+            outputs: vec![materialcraft_core::GraphPort { identifier: "output".into(), type_code: 256 }],
+            defaults: BTreeMap::from([(argument.into(), Value::Float(0.0))]),
+        });
+        node.inputs = vec![input];
+        node.source = Some(Ok(std::sync::Arc::new(body)));
+        graph.output = Some(result);
+        graph
+    }
+
+    let mut write = FunctionGraph::default();
+    let value = write.add_constant(Value::Float(0.4375));
+    write.output = Some(write.add("set", &[value], Some(Value::Text("amount".into()))));
+    let direct = call(write.clone(), "amount", Some(0.625));
+    assert_eq!(evaluate(&direct, &BTreeMap::new()), Ok(Value::Float(0.0)));
+
+    let mut effect = FunctionGraph::default();
+    let value = effect.add_constant(Value::Float(0.4375));
+    let operand = effect.add("set", &[value], Some(Value::Text("effect".into())));
+    effect.output = Some(effect.add("set", &[operand], Some(Value::Text("amount".into()))));
+    let mut direct = call(effect, "amount", Some(0.625));
+    let entered = direct.output.unwrap();
+    let read = direct.add("get_float1", &[], Some(Value::Text("effect".into())));
+    direct.output = Some(direct.add("sequence", &[entered, read], None));
+    assert_eq!(evaluate(&direct, &BTreeMap::new()), Ok(Value::Float(0.0)));
+
+    let mut parent = call(write, "unused", None);
+    let write = parent.output.unwrap();
+    let argument = parent.add("get_float1", &[], Some(Value::Text("amount".into())));
+    parent.output = Some(parent.add("sequence", &[write, argument], None));
+    let mut outer = call(parent, "amount", Some(0.625));
+    let returned = outer.output.unwrap();
+    let shared = outer.add("get_float1", &[], Some(Value::Text("amount".into())));
+    outer.output = Some(outer.add("vector2", &[returned, shared], None));
+    assert_eq!(evaluate(&outer, &BTreeMap::new()), Ok(Value::Float2([0.625, 0.4375])));
+}
+
+#[test]
+fn a_partially_wired_call_reads_typed_zero_from_its_other_numeric_argument() {
+    let mut body = FunctionGraph::default();
+    body.output = Some(body.add("get_float3", &[], Some(Value::Text("position".into()))));
+    let mut graph = FunctionGraph::default();
+    let size = graph.add_constant(Value::Float(0.0));
+    let position = graph.add_constant(Value::Float3([-0.25, 0.5, 0.75]));
+    let call = graph.add("instance", &[], None);
+    graph.output = Some(call);
+    let node = graph.nodes.last_mut().unwrap();
+    node.instance = Some(materialcraft_core::GraphInstance {
+        label: String::new(),
+        package: String::new(),
+        graph: "read_position".into(),
+        inputs: vec![
+            materialcraft_core::GraphPort { identifier: "size".into(), type_code: 256 },
+            materialcraft_core::GraphPort { identifier: "position".into(), type_code: 1024 },
+        ],
+        outputs: vec![materialcraft_core::GraphPort { identifier: "output".into(), type_code: 1024 }],
+        defaults: BTreeMap::from([("size".into(), Value::Float(0.5)), ("position".into(), Value::Float3([1.0; 3]))]),
+    });
+    node.source = Some(Ok(std::sync::Arc::new(body)));
+    node.inputs = vec![Some(size), None];
+    let variables = BTreeMap::from([("position".into(), Value::Float3([0.875; 3]))]);
+    assert_eq!(evaluate(&graph, &variables), Ok(Value::Float3([0.0; 3])));
+    graph.nodes.last_mut().unwrap().inputs[1] = Some(position);
+    assert_eq!(evaluate(&graph, &variables), Ok(Value::Float3([-0.25, 0.5, 0.75])));
+    graph.nodes.last_mut().unwrap().inputs = vec![None, None];
+    assert_eq!(evaluate(&graph, &variables), Ok(Value::Float3([1.0; 3])));
+}
+
+#[test]
 fn defined_arguments_follow_wires_through_nested_calls() {
     fn caller(body: FunctionGraph, wired: bool) -> FunctionGraph {
         let mut graph = FunctionGraph::default();

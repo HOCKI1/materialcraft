@@ -1,5 +1,5 @@
 use super::{Program, catalog, instruction::Instruction};
-use materialcraft_core::FunctionGraph;
+use materialcraft_core::{FunctionGraph, ValueType};
 use std::collections::{BTreeMap, BTreeSet};
 
 pub fn compile(graph: &FunctionGraph, seed: u32) -> Result<Program, String> {
@@ -154,10 +154,23 @@ fn compile_nested(graph: &FunctionGraph, seed: u32, depth: usize, remaining: &mu
                     return Err(format!("{}: input `{}` has the wrong type", instance.graph, port.identifier));
                 }
             }
-            let inputs = ports.iter().filter(|(_, input)| input.is_some()).map(|(name, _)| (*name).to_string()).collect();
+            let inputs: Vec<_> = ports.iter().filter(|(_, input)| input.is_some()).map(|(name, _)| (*name).to_string()).collect();
+            let mut defaults = instance.defaults.clone();
+            if !inputs.is_empty() {
+                // Once a call supplies arguments, an omitted numeric argument reads its typed zero.
+                for (name, input) in &ports {
+                    if input.is_none()
+                        && let Some(value) = defaults.get_mut(*name)
+                        && let Some(kind) = ValueType::of(value)
+                        && kind != ValueType::String
+                    {
+                        *value = kind.default_value();
+                    }
+                }
+            }
             let exports =
                 program.instructions.iter().any(|instruction| instruction.definition.id == "set" || instruction.call.as_ref().is_some_and(|call| call.exports));
-            Some(super::function_call::FunctionCall { program, inputs, defaults: instance.defaults.clone(), argument_factors: None, exports })
+            Some(super::function_call::FunctionCall { program, inputs, defaults, argument_factors: None, exports })
         } else {
             None
         };

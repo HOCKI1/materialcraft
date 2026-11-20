@@ -159,6 +159,12 @@ impl Program {
                     state.steps.push(Store(index));
 
                     match instruction.definition.id {
+                        "set" if matches!(&instruction.value, Some(Value::Text(name)) if bindings.is_some_and(|scope| scope.call.defaults.contains_key(name))) =>
+                        {
+                            // A formal is read-only. Even side effects in the unused operand are skipped.
+                            let kind = materialcraft_core::ValueType::from_code(instruction.type_code).ok_or("unknown function assignment type")?;
+                            state.values.push(kind.default_value());
+                        }
                         "ifelse" => {
                             state.steps.push(Branch(index));
                             state.steps.push(Enter(self.input(index, 0)?));
@@ -213,10 +219,13 @@ impl Program {
                         let result = call.program.run(context, storage, remaining_steps, Some(&child));
                         state.random = storage.random;
                         if call.exports && result.is_ok() {
-                            // Set publishes into the caller's scope; arguments and defaults stay local
-                            storage.assignments.retain(|name, _| !call.defaults.contains_key(name));
-                            state.variables.extend(storage.assignments.clone());
-                            state.assignments.extend(storage.assignments.clone());
+                            // A free assignment can pass through a caller with a formal of the same name.
+                            for (name, value) in &storage.assignments {
+                                if bindings.is_none_or(|scope| !scope.call.defaults.contains_key(name)) {
+                                    state.variables.insert(name.clone(), value.clone());
+                                }
+                                state.assignments.insert(name.clone(), value.clone());
+                            }
                         }
 
                         result
