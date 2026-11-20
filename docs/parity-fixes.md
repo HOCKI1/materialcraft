@@ -358,6 +358,36 @@ To isolate the pattern stages, connect the identified stage directly to the outp
 
 The 120 authored single-branch renders matched 70,015/72,664 pixels. The 120 disc controls matched 72,249/72,664. A disc still differing leaves placement, coverage or evaluation upstream of the original shape open. At indices 441, 466, 522 and 523 the native runtime rejected the isolated packages. Whole-root and connected-stage counts are available for all four. Sphere displacement and K-means first differ in their pixel processors. Wood fibers 2 still needs a bounded whole-graph cook.
 
+### Signed Sharpen stencils and stored inputs
+
+Sharpen preserves negative lobes in floating-point output and uses the input's working storage when resizing. Its four-neighbor stencil starts with the weighted left texel. It adds the center, right, top and bottom terms in that order, fusing the product and addition at each step. With horizontal weight H and vertical weight V, the center weight is 1+2(H+V). H and V scale intensity by the shorter output side divided by the respective axis length. The two earlier sign and resizing regressions and two further accumulation checks failed on the preceding implementations. All 256 release node tests, formatting, strict workspace Clippy, dependency layers and WebAssembly passed.
+
+| Original probe | Renders | Exact / compared | Maximum error |
+|---|---:|---:|---|
+| Impulse, signed ramp and constant, U16 and F32 sources | 16 | 5,632/5,632 | 0 in all four output formats |
+| Grayscale and RGBA with output size inherited from the input | 108 | 10,512/10,512 | 0 in all four output formats |
+| Output size set by parent | 108 | 38,549/38,832 comparable | 0 / 0 / 0 / 1.87000686 in U8 / U16 / F16 / F32 |
+| Independent signed field with five nonzero strengths and changed sizes | 80 | 16,417/16,704 | 4.39762998 F32 |
+| Dirt 4 and its second version, shared 2² sources | 8 | 136/136 | 0 F32 |
+
+For the impulse matrix, place a single white texel at (8,8) in a black 16² image. Render at intensity one in all four formats and at 32² F32. At 16² the floating-point output is 5 at the center, −1 at its four axial neighbors and zero at the diagonals. In U8 and U16 the center is white and the neighbors black. Add the 16² signed field (((x+3y) mod 17)−5)/8 at intensities .375 and 0, and a flat .28125 at intensity 1. Use F32 inputs or clip and round to U16, and seeds 138559+11j in the order F32, F16, U8, U16, enlarged F32, two ramps and flat.
+
+For the input-size and parent-size matrices, use source extents 2², 8×4 and 16². Test grayscale and four-channel inputs in U16 and F32. In channel c use level Q=(7919x+21473y+1103xy+2927c+139m+58997) mod 65536 for m=0 or 2. For m=1 use 59841−223c where (x+y+c) mod 3=0, and 3431+125c elsewhere. Write Q for U16 or Q/19001−.8125 for F32. Use the following cases with seed 134381+19j+i, where i is 1 for U16 and 3 for F32. The parent-size matrix has four additional size discrepancies at a requested 1². The reference returned 8×4. The pixel totals exclude those four outputs.
+
+| Requested extent relative to source | Strength | Field m | Stored output |
+|---|---:|---:|---|
+| Same | 1 | 0 | F32 |
+| Double both axes | 1, then 0 | 0 | F32 |
+| Double both axes | .375 | 1 | F32, U8, U16, F16 |
+| Four times width, twice height | 1.25 | 2 | F32 |
+| Half both axes | 1 | 2 | F32 |
+
+For the independent field use Q=(269x+1723y+257xy+9587c+7919((x+3y+5c) mod 13)+7537) mod 65536 at 8×4 or 16². Write Q for U16 or (Q−31007)/15019+.03125(x mod 3) for F32. Use F32 output. At the source extent use strengths 0, 1, .375, .8125, 1.34375 and 2.71875, then double both axes at 0 and .8125, and halve both axes at 0 and 1.34375. Use seed 142867+19j. The 287 differing pixels were in the reduced nonzero-strength cases. At 16² on an independent x/15 F32 ramp, strength one gives bits 3d888887, 3e4ccccf, 3eeeeef1 and 3f5ddddc at columns 1, 3, 7 and 13. Three finite ramp controls match 768/768 pixels. A separate constant 2×10³⁸ input produces positive infinity in all 256 reference pixels. MaterialCraft preserves that finite HDR plateau.
+
+The two 4×4 reference outputs in the [deep traversal experiment](#bounded-traversal-of-deep-patterns) reproduce exactly when Sharpen alone receives the measured sources. Use U16 levels (30680,17968 / 0,24181) for dirt_4 and U8 levels (89,103 / 90,43) for its second version, in row order. Test 4² at strengths 1 and 0, 2² at 1, and 8×4 at .375. Use seeds 103307+13i at inventory indices i=266 and 267. All 136 F32 pixels match, including both whole-reference 4² outputs. Their full pattern traversal remains open. Dirt 6 improved from 117,826 to 125,252/129,280 exact pixels across 16 whole renders. Its U8 / U16 / F16 / F32 maxima are 0 / 8 / .000244140625 / .0000927746296.
+
+A MaterialCraft-saved U16 input graph and an independently saved RGBA32F graph reopened in the reference. The first six cases of each reproduced all 1,620 stored pixels byte for byte.
+
 ## 2026-11-19 root comparisons
 
 ### Texture sampling in pattern functions

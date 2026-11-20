@@ -327,10 +327,25 @@ fn sharpen_preserves_float_order_on_ramps() {
 
     let output = cook("sharpen", &[Some(input)], &[("intensity", Value::Float(1.0))], [16, 16], true);
 
-    // Float32 ramps distinguish the Laplacian's arithmetic order
-    for (x, bits) in [(1, 0x3d88_8889), (3, 0x3e4c_cccb), (7, 0x3eee_eeed), (13, 0x3f5d_ddde)] {
+    for (x, bits) in [(1, 0x3d88_8887), (3, 0x3e4c_cccf), (7, 0x3eee_eef1), (13, 0x3f5d_dddc)] {
         assert_eq!(output.get_gray(x, 7, false).to_bits(), bits, "column {x}");
     }
+}
+
+#[test]
+fn sharpen_accumulates_all_four_weighted_neighbors_in_order() {
+    let input = Image::gray(16, 16, |x, y| {
+        f32::from_bits(match (x, y) {
+            (9, 8) => 0x3d9a_e7d9,
+            (8, 8) => 0xbf0b_3f1e,
+            (10, 8) => 0x3f49_f914,
+            (9, 7) => 0xbfe3_2f70,
+            (9, 9) => 0x3ff6_8c6b,
+            _ => 0,
+        })
+    });
+    let output = cook("sharpen", &[Some(input)], &[("intensity", Value::Float(0.8125))], [16, 16], true);
+    assert_eq!(output.get_gray(9, 8, false).to_bits(), 0xba0c_0f80);
 }
 
 #[test]
@@ -566,13 +581,27 @@ fn directional_blur_uses_full_radius_and_fractional_endpoints() {
 }
 
 #[test]
-fn sharpen_has_center_gain_and_clamps_negative_lobes() {
+fn sharpen_preserves_the_signed_lobes_of_an_impulse_in_float_outputs() {
     let input = Image::gray(16, 16, |x, y| f32::from(x == 8 && y == 8));
+    let inputs = [Some(input)];
+    for format in [OutputFormat::F16, OutputFormat::F32] {
+        let output = cook_format("sharpen", &inputs, &[("intensity", Value::Float(1.0))], [16, 16], true, format);
+        assert_eq!(output.get_gray(8, 8, false), 5.0);
+        for (x, y) in [(7, 8), (9, 8), (8, 7), (8, 9)] {
+            assert_eq!(output.get_gray(x, y, false), -1.0);
+        }
+        assert_eq!(output.get_gray(7, 7, false), 0.0);
+    }
+}
 
-    let output = cook("sharpen", &[Some(input)], &[("intensity", Value::Float(1.0))], [16, 16], true);
-
-    assert_eq!(output.get_gray(8, 8, false), 5.0);
-    assert!(output.data().iter().all(|value| *value >= 0.0));
+#[test]
+fn sharpen_resizes_stored_levels_before_computing_contrast() {
+    let levels = [58997, 1380, 14934, 23956];
+    let input = Image::gray(2, 2, |x, y| levels[(2 * y + x) as usize] as f32 / 65535.0).with_integer_sampling(true);
+    let output = cook("sharpen", &[Some(input)], &[("intensity", Value::Float(0.0))], [4, 4], true);
+    for (x, y, bits) in [(0, 0, 0x3f136e93), (3, 0, 0x3e86de87), (0, 3, 0x3ebbd0bc), (3, 3, 0x3e9dfa9e)] {
+        assert_eq!(output.get_gray(x, y, false).to_bits(), bits);
+    }
 }
 
 #[test]
