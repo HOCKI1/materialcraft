@@ -28,11 +28,29 @@ impl Footprint {
         // For axis-aligned stamps the preceding interval owns a sample on the shared edge.
         let outside = if self.sine == 0.0 || self.cosine == 0.0 {
             // Subtract the radius from the center before testing the open edge at pixel precision.
-            (0..2).any(|axis| point[axis] <= center[axis] - self.radius[axis] || delta[axis] > self.radius[axis])
+            (0..2).any(|axis| !self.contains_axis(axis, point[axis], center[axis]))
         } else {
             local.iter().any(|v| *v <= -1.0 || *v > 1.0)
         };
         (!outside).then_some(local)
+    }
+
+    fn contains_axis(&self, axis: usize, point: f32, center: f32) -> bool {
+        point > center - self.radius[axis] && point - center <= self.radius[axis]
+    }
+
+    pub fn clip_aligned(&self, region: &Region, center: [f32; 2], size: [u32; 2], bounds: [[u32; 2]; 2]) -> [[u32; 2]; 2] {
+        std::array::from_fn(|axis| {
+            let [mut start, mut end] = bounds[axis];
+            let contains = |pixel| self.contains_axis(axis, region.pixel_center(axis, pixel, size[axis]), center[axis]);
+            while start < end && !contains(start) {
+                start += 1;
+            }
+            while start < end && !contains(end - 1) {
+                end -= 1;
+            }
+            [start, end]
+        })
     }
 }
 

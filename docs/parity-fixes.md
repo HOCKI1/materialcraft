@@ -534,6 +534,52 @@ For each root’s 25 follow-up renders, the 5,120 U8, 553,728 U16, 78,336 F16 an
 
 In a single-worker release run, four interleaved measurements of the 128² default, 256² default and 512² filled cases gave median whole-graph cook times of 46, 259 and 1,138 ms for Alveolus (previously 45, 247 and 1,068 ms). Pattern Alveolus took 45, 253 and 1,083 ms (previously 43, 238 and 1,045 ms).
 
+### Fractional edges of axis-aligned pattern stamps
+
+Changing only the height of a horizontal ramp changes its left-to-right coordinate step. For a 64² grayscale F32 quadrant, use shape 10, center (.5,.5), size (.375,.23046875), zero rotation and zero roughness. At pixel (21,32) the reference returns `3d800004`. The previous calculation returned `3d800000`. A second control uses size (.23828125,.375), center (.5,.501953125) and a quarter turn. Pixel (20,34) reads `3f27de6c`. The five raw sample assertions fail on the previous cooker and pass with the change.
+
+For each unrotated image axis let C be the center in pixels, S the positive pixel extent and L = C − S/2. Snap the near vertex to N = floor(L + .5) and the far vertex to H = floor(L + 2S + .5) + 1. Use (H − N)/2 for each padded extent in the earlier area calculation. Multiply N − C and H − C by the runtime pixel quotient 2/S and store each result in F32. Truncate their difference to F32 before halving it for the gradient product. Anchor the stored coordinate at the preceding four-pixel boundary of max(N,0). Exact quarter turns exchange the axes. Coverage uses the open lower and closed upper edges in the original coordinate space. This preserves the measured ownership of shared edges. [Gradient product and area reciprocal](#pixel-coordinates-for-whole-pixel-pattern-stamps) · [Earlier horizontal and vertical sweeps](#horizontal-stamp-bounds-at-fractional-heights)
+
+| Original grayscale F32 control | Renders | Exact pixels | Maximum absolute error |
+|---|---:|---:|---:|
+| Width, height and horizontal phase at zero rotation | 143 | 2,342,912/2,342,912 | 0 |
+| Eighth-pixel shifts at fractional heights | 208 | 851,968/851,968 | 0 |
+| Transposed extents at both quarter turns | 168 | 688,128/688,128 | 0 |
+| New rectangles and their quarter-turned transposes | 150 | 1,167,360/1,167,360 | 0 |
+| Whole-canvas ramps with zero and half turns | 72 | 2,032,128/2,032,128 | 0 |
+| Aligned paraboloids, Gaussians and ramps in three render regions | 144 | 884,736/884,736 | 0 |
+| Oblique cases from the same render-region matrix | 18 | 95,504/110,592 | 1.01327896e-6 |
+
+For the 150 new rectangles, use a NumPy PCG64 generator with seed 121967. For j from 0 through 74 cycle dimensions through 64², 128×64, 64×128, 32×64 and 128². Draw two integers in [21,220) and divide by four for pixel extents. Draw two more in [−128,129) and add each sixteenth-pixel offset to the canvas center. For j < 18, after consuming these draws, replace the width by the repeating sequence 15.25, 16.5, 24 and the height by 24. Use center offsets floor(j/3)/8 and .25. From j = 60 onward replace center X by the sequence 0, 1.125, canvas width − 1.75. Render the horizontal ramp, then transpose the canvas and center with the same normalized size and a quarter turn. Use seed 241459 + 43j + orientation index. [Size and slope controls](#horizontal-stamp-slope-and-height) · [Three render regions](#pattern-coordinates-under-a-change-of-render-region)
+
+| Intact root | Renders | Exact pixels before | Exact pixels after / compared | Maximum U8 / U16 / F16 / F32 error after |
+|---|---:|---:|---:|---|
+| 59 · brick_1 | 68 | 422,109 | 427,520/427,520 | 0 / 0 / 0 / 0 |
+| 60 · brick_2 | 61 | 406,666 | 408,652/409,088 | 0 / 1 / 0 / 1.52587891e-05 |
+| 61 · brick_3 | 68 | 424,082 | 424,442/427,520 | 0 / 3 / 0 / 4.57763672e-05 |
+| 62 · brick_generator | 74 | 149,415 | 149,508/150,528 | 175 / 45055 / 0.6875 / 1 |
+| 117 · crystal_1 | 17 | 144,060 | 144,947/145,664 | 0 / 14 / 0.000244140625 / 0.000106841326 |
+| 127 · directionnal_noise | 23 | 145,077 | 146,315/147,712 | 1 / 3 / 0.00048828125 / 3.36766243e-05 |
+| 129 · dirt_3 | 17 | 145,359 | 145,559/145,664 | 0 / 1 / 1.52587891e-05 / 1.52736902e-05 |
+| 131 · dirt_6 | 16 | 125,252 | 125,236/129,280 | 0 / 8 / 0.000244140625 / 9.27746296e-05 |
+| 132 · dirt_gradient | 16 | 128,396 | 128,959/129,280 | 0 / 2 / 0.000244140625 / 1.98483467e-05 |
+| 355 · pattern_brick_1 | 53 | — | 355,574/365,824 | 0 / 1 / 0 / 3.40938568e-05 |
+| 356 · pattern_brick_2 | 53 | — | 344,464/365,824 | 1 / 1 / 3.81469727e-06 / 1 |
+| 357 · pattern_brick_generator | 74 | 149,402 | 149,418/150,528 | 175 / 45055 / 0.6875 / 1 |
+
+BNW Spots 1 retains 197,288/204,288 exact pixels and BNW Spots 3 retains 180,719/185,856. Cells 1 retains 144,995/145,664. Across U8, U16, F16 and F32 the respective maximum errors are 1 / 3 / .00048828125 / .0000431537628, 1 / 2 / .00048828125 / .0000305175781 and 0 / 3 / .00048828125 / .0000367760658. Dirt 6 has 16 fewer matching U16 pixels in its 16-render matrix. Its maximum U16 error remains eight levels. Both Alveolus roots, Gradient Linear 3 and all 17 earlier verified roots retain every measured pixel. The 17-root check covers 3,139,328 pixels in 167 renders. In four interleaved single-worker release runs, median 512² cook time went from 1,076 to 1,061 ms for Alveolus and from 1,050 to 1,032 ms for Pattern Alveolus.
+
+For four brick roots, compare 31 additional intact renders and the same 31 after an ordinary MaterialCraft save reopened in each app. The first is an unmodified 64² U16 graph with seed 252103 + inventory index. For each subsequent tuple (width, height, tiling, smoothness, interstice), set the corresponding graph parameters. Use (32,32,1,.25,.125), (16,64,2,.375,.0625), (64,32,3,.6875,.09375), (32,128,4,.15625,.234375), (128,64,2,.53125,.1015625), (256,128,3,.8125,.15625), (128,256,1,.328125,.2109375), (256,256,2,.7265625,.03125), (512,256,3,.4375,.1171875) and (256,512,1,.5859375,.1796875). Render F32, U16, F16 and U8 for the first five tuples and F32 and U16 for the remaining five. Use seed 253309 + 37 × zero-based tuple index + inventory index + zero-based format index.
+
+| Root | Exact between apps before save | Exact between apps after save | Exact before versus after save in each app | Maximum U8 / U16 / F16 / F32 error between apps |
+|---|---:|---:|---:|---|
+| brick_1 | 855,936/856,064 | 855,936/856,064 | 856,064/856,064 | 0 / 1 / 0 / 1.52587891e-05 |
+| brick_2 | 854,464/856,064 | 854,464/856,064 | 856,064/856,064 | 0 / 1 / 0 / 1.52597204e-05 |
+| pattern_brick_1 | 765,834/856,064 | 765,834/856,064 | 856,064/856,064 | 0 / 1 / 0 / 3.39746475e-06 |
+| pattern_brick_2 | 742,708/856,064 | 742,708/856,064 | 856,064/856,064 | 0 / 1 / 0.000122070312 / 7.27176666e-06 |
+
+The 256² Brick 1 case retains 64 different positions in both U16 and F32. At (112,24) the stored U16 word is 15,562 in MaterialCraft and 15,563 in the reference. Brick 2 also retains differences at the generator. With the earlier 128² case at tiling 2, seed 199591, smoothness 195/1021 and interstice 27/128, its 64² generator matches 4,076/4,096 U16 pixels, maximum error one. For each application, summing its six original beveled-square stamps in traversal order reproduces its own generator at 4,096/4,096 pixels. At generator pixel (39,19) the stamp centered at (.425,.375) returns F32 `3f53f660` locally and `3f53f64d` in the reference. Its U16 output reads 54,262 and 54,261 respectively. An independent horizontal coordinate ramp at that geometry differs, while all 32,768 vertical-control pixels over the eight visible copies match. These roots remain in progress.
+
 ### Gradient Linear 3 and its reopened file
 
 Gradient Linear 3 matches 277,760/277,760 pixels across the earlier 23 renders and 569,856/569,856 across 27 additional renders. The maximum error is zero in U8, U16, F16 and F32. The reference app and MaterialCraft both reopened the ordinary MaterialCraft save. All 569,856 reopened pixels also match between apps and match their respective originals.

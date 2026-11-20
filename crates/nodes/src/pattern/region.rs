@@ -30,7 +30,11 @@ impl Region {
     }
 
     pub fn point(&self, pixel: [u32; 2], size: [u32; 2]) -> [f32; 2] {
-        std::array::from_fn(|axis| self.start[axis] + (pixel[axis] as f32 + 0.5) / size[axis] as f32 * self.span[axis])
+        std::array::from_fn(|axis| self.pixel_center(axis, pixel[axis], size[axis]))
+    }
+
+    pub fn pixel_center(&self, axis: usize, pixel: u32, size: u32) -> f32 {
+        self.start[axis] + (pixel as f32 + 0.5) / size as f32 * self.span[axis]
     }
 
     pub fn pixel_interval(&self, axis: usize, center: f32, radius: f32, pixels: u32) -> [f64; 2] {

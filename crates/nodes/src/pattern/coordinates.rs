@@ -1,7 +1,7 @@
 use super::{footprint::Footprint, region::Region};
-use crate::function::truncate_float;
+use crate::function::{pixel_divide, truncate_float};
 
-/// The two signed coordinate gradients for a stamp whose edges land on whole pixels.
+/// The two signed coordinate gradients for an axis-aligned analytic stamp.
 pub(super) struct PixelPlanes {
     axes: [Axis; 2],
     swap: bool,
@@ -24,39 +24,43 @@ impl PixelPlanes {
         };
         let bounds: [[f64; 2]; 2] = std::array::from_fn(|axis| region.pixel_interval(axis, center[axis], frame.radius[axis], dimensions[axis]));
         let extents = bounds.map(|[left, right]| right - left);
-        let padded = extents.map(|extent| (extent + 0.5) as f32);
-        // Fractional edges and extents too large to retain the half pixel use the ordinary footprint calculation.
-        if bounds.iter().flatten().any(|edge| edge.fract() != 0.0)
-            || extents.iter().zip(padded).any(|(&extent, pad)| !(1.0..8_388_608.0).contains(&extent) || f64::from(pad) != extent + 0.5)
-        {
+        // Smaller stamps and extents too large to resolve half pixels use the ordinary footprint.
+        if extents.iter().any(|extent| !(1.0..8_388_608.0).contains(extent)) {
             return None;
         }
+        // Snap the vertices of a right triangle spanning twice the stamp's bounding rectangle.
+        let near = bounds.map(|[left, _]| (left + 0.5).floor());
+        let far: [f64; 2] = std::array::from_fn(|i| (bounds[i][0] + 2.0 * extents[i] + 0.5).floor() + 1.0);
+        let padded: [f32; 2] = std::array::from_fn(|i| ((far[i] - near[i]) * 0.5) as f32);
         let reciprocal = area_reciprocal(truncate_float(f64::from(padded[0]) * f64::from(padded[1])));
         let axes = std::array::from_fn(|axis| {
             let basis = truncate_float(f64::from(padded[1 - axis]) * f64::from(reciprocal));
-            let span = (2.0 + extents[axis].recip()) as f32;
+            let center = (bounds[axis][0] + bounds[axis][1]) * 0.5;
+            let scale = f64::from(pixel_divide(2.0, extents[axis] as f32));
+            let low = ((near[axis] - center) * scale) as f32;
+            let high = ((far[axis] - center) * scale) as f32;
+            let span = truncate_float(f64::from(high) - f64::from(low)) * 0.5;
             let step = f64::from(gradient_product(basis, span));
-            let left = bounds[axis][0];
-            let origin = (left.max(0.0) * 0.25).floor() * 4.0;
-            let base = truncate_float((origin - left).mul_add(step, -1.0));
+            let origin = (near[axis].max(0.0) * 0.25).floor() * 4.0;
+            let base = truncate_float((origin - near[axis]).mul_add(step, f64::from(low)));
             let sign = f64::from(signs[axis]);
             Axis { base: ((0.5 - origin) * step + f64::from(base)) * sign, step: step * sign }
         });
         Some(Self { axes, swap })
     }
 
-    pub fn sample(&self, x: u32, y: u32) -> [f32; 2] {
-        let mut p = [self.axes[0].sample(x), self.axes[1].sample(y)];
-        if self.swap {
-            p.swap(0, 1);
+    pub fn row(&self, y: u32) -> impl Fn(u32) -> [f32; 2] + '_ {
+        let v = self.axes[1].sample(y);
+        move |x| {
+            let u = self.axes[0].sample(x);
+            if self.swap { [v, u] } else { [u, v] }
         }
-        p
     }
 }
 
 impl Axis {
     fn sample(&self, pixel: u32) -> f32 {
-        let value = f64::from(pixel).mul_add(self.step, self.base);
+        let value = f64::from(pixel) * self.step + self.base;
         let stored = truncate_float(value);
         if value < 0.0 && f64::from(stored) == value { stored.next_up() } else { stored }
     }

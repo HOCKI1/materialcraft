@@ -270,6 +270,27 @@ fn stamp_gradients_keep_the_phase_of_extended_turns() {
 }
 
 #[test]
+fn fractional_stamp_edges_set_both_coordinate_gradients() {
+    for (size, shift, turn, x, y, expected) in [
+        ([0.375, 0.23046875], [0.0, 0.0], 0.0, 21, 32, 0x3d80_0004),
+        ([0.375, 0.23828125], [0.0, 0.00390625], 0.0, 35, 32, 0x3f25_5554),
+        ([0.625, 0.234375], [0.0078125, 0.0], 0.0, 37, 32, 0x3f1f_ffff),
+        ([0.23828125, 0.375], [0.0, 0.001953125], 0.25, 20, 34, 0x3f27_de6c),
+        ([0.2578125, 0.375], [0.0, 0.001953125], 0.25, 20, 33, 0x3f15_5554),
+    ] {
+        let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
+        graph.nodes[0].parameters = BTreeMap::from([
+            ("patterntype".into(), Value::Int(10)),
+            ("patternsize".into(), Value::Float2(size)),
+            ("frameoffset".into(), Value::Float2(shift)),
+            ("patternrotation".into(), Value::Float(turn)),
+        ]);
+        let image = cook_at_size(graph, &BTreeMap::new(), 428, 64).unwrap().remove(0);
+        assert_eq!(image.get_gray(x, y, false).to_bits(), expected, "size {size:?}, turn {turn}, pixel ({x},{y})");
+    }
+}
+
+#[test]
 fn gaussian_stamp_coordinates_follow_the_pixel_footprint() {
     let definition = find("fx_map").unwrap();
     let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);

@@ -105,7 +105,8 @@ pub(super) fn render(context: &CookContext, stamps: &[PatternStamp], max_depth: 
         for repeat_y in repeats[1][0]..=repeats[1][1] {
             for repeat_x in repeats[0][0]..=repeats[0][1] {
                 let center = [center[0] + repeat_x as f32 * period[0], center[1] + repeat_y as f32 * period[1]];
-                let [[left, right], [top, bottom]] = render_region.bounds(center, radius, [width, height]);
+                let bounds = render_region.bounds(center, radius, [width, height]);
+                let [[left, right], [top, bottom]] = bounds;
                 let samples = u64::from(right.saturating_sub(left)) * u64::from(bottom.saturating_sub(top));
                 if samples == 0 {
                     continue;
@@ -113,10 +114,13 @@ pub(super) fn render(context: &CookContext, stamps: &[PatternStamp], max_depth: 
                 budget = budget.checked_sub(samples).ok_or("pattern rendering exceeded its pixel budget")?;
                 // Sampled bitmaps keep the texture coordinates used by point and mip filtering.
                 let planes = if texture.is_none() { PixelPlanes::new(&frame, &render_region, center, stamp.size, [width, height]) } else { None };
+                let [[left, right], [top, bottom]] =
+                    if planes.is_some() { frame.clip_aligned(&render_region, center, [width, height], bounds) } else { bounds };
                 for y in top..bottom {
+                    let row = planes.as_ref().map(|planes| planes.row(y));
                     for x in left..right {
-                        let local = if let Some(planes) = &planes {
-                            planes.sample(x, y)
+                        let local = if let Some(row) = &row {
+                            row(x)
                         } else {
                             let point = render_region.point([x, y], [width, height]);
                             let Some(local) = frame.local(point, center, stamp.size) else { continue };
