@@ -341,9 +341,12 @@ To isolate the pattern stages, connect the identified stage directly to the outp
 | 382 · 1298573810 | 1035222495 → 1035222491 | 1,183/1,216 | 0 / 0 / 0 / 5.36441803e-07 | 1,216/1,216 | 0 / 0 / 0 / 0 |
 | 383 · 1047650292 | 1027784760 → 1027785067 → 1027785022 | 152/152 | 0 / 0 / 0 / 0 | 152/152 | 0 / 0 / 0 / 0 |
 | 418 · 1051010199 | 1051010310 → 1051010203 | 3,649/4,864 | 0 / 1 / 0 / 8.34465027e-07 | 4,864/4,864 | 0 / 0 / 0 / 0 |
+| 441 · 1310833960 | 1312497559 → 1312497566 | 4,864/4,864 | 0 / 0 / 0 / 0 | 4,864/4,864 | 0 / 0 / 0 / 0 |
+| 441 · 1312489342 | 1312497441 → 1312497447 | 4,864/4,864 | 0 / 0 / 0 / 0 | 4,864/4,864 | 0 / 0 / 0 / 0 |
 | 463 · 1028634246 | 4087623626 → 4087677897 → 1028225479 → 1028225487 → 1028634317 → 4087677903 | 4,863/4,864 | 0 / 0 / 0 / 1.14087015e-08 | 4,864/4,864 | 0 / 0 / 0 / 0 |
 | 464 · 1028227090 | 4087623626 → 4087677895 → 1025020977 → 1025023617 → 1028227170 → 1028227669 → 1028227391 | 4,864/4,864 | 0 / 0 / 0 / 0 | 4,864/4,864 | 0 / 0 / 0 / 0 |
 | 465 · 1047058056 | 4087623626 → 4087677895 → 4087677897 → 1047057855 → 1047057852 → 1027434391 → 4087677903 | 4,861/4,864 | 0 / 0 / 3.05175781e-05 / 2.4959445e-06 | 4,864/4,864 | 0 / 0 / 0 / 0 |
+| 466 · 1041346098 | 4094898783 | 4,626/4,864 | 0 / 1 / 0 / 1.49011612e-07 | 4,864/4,864 | 0 / 0 / 0 / 0 |
 | 488 · 1028307162 | 1033746299 → 1033745600 | 4,864/4,864 | 0 / 0 / 0 / 0 | 4,864/4,864 | 0 / 0 / 0 / 0 |
 | 489 · 1048865333 | 1048865351 → 1181069015 | 4,843/4,864 | 0 / 65535 / 0 / 0 | 4,603/4,864 | 255 / 65535 / 1 / 1 |
 | 490 · 1048865333 | 1048865351 → 1181069015 | 4,834/4,864 | 0 / 53713 / 0 / 0 | 4,710/4,864 | 209 / 53713 / 0.819335938 / 0.819607973 |
@@ -351,12 +354,16 @@ To isolate the pattern stages, connect the identified stage directly to the outp
 | 509 · 1065612277 | 1048629866 → 1048629846 | 1,290/1,408 | 0 / 1 / 9.53674316e-07 / 2.68220901e-06 | 1,408/1,408 | 0 / 0 / 0 / 0 |
 | 520 · 1238191865 | 1032256671 → 1032256560 | 4,777/4,864 | 0 / 0 / 0 / 2.95042992e-06 | 4,864/4,864 | 0 / 0 / 0 / 0 |
 | 521 · 1067616990 | 1032256671 → 1032256560 | 4,777/4,864 | 0 / 0 / 0 / 2.95042992e-06 | 4,864/4,864 | 0 / 0 / 0 / 0 |
+| 522 · 1126353318 | 1127323343 → 1126890304 → 1126797479 → 1126797467 → 1126797473 → 1126891504 → 1126892423 → 1126797483 | 4,864/4,864 | 0 / 0 / 0 / 0 | 4,864/4,864 | 0 / 0 / 0 / 0 |
+| 523 · 1126353318 | 1127323343 → 1126890304 → 1126797479 → 1126797467 → 1126797473 → 1126891504 → 1126892423 → 1126797483 | 4,864/4,864 | 0 / 0 / 0 / 0 | 4,864/4,864 | 0 / 0 / 0 / 0 |
 | 534 · 1094664716 | 1028056080 → 1028056090 → 1028376477 → 1028376473 → 1028055564 | 2,430/2,432 | 0 / 0 / 0 / 5.96046448e-08 | 2,432/2,432 | 0 / 0 / 0 / 0 |
 | 537 · 1064675946 | 4087961384 → 4087966788 → 4087966766 → 4087966772 | 1,390/1,408 | 0 / 1 / 0 / 9.53674316e-07 | 1,408/1,408 | 0 / 0 / 0 / 0 |
 | 538 · 1035222092 | 1028306906 → 1028306857 → 4089929701 → 1035222497 → 1035222495 → 1035222491 | 1,405/1,408 | 0 / 0 / 2.38418579e-07 / 4.07162588e-08 | 1,408/1,408 | 0 / 0 / 0 / 0 |
 | 544 · 1035311965 | 1029866950 → 1030039276 | 3,938/4,864 | 0 / 1 / 0 / 8.94069672e-07 | 4,864/4,864 | 0 / 0 / 0 / 0 |
 
-The 120 authored single-branch renders matched 70,015/72,664 pixels. The 120 disc controls matched 72,249/72,664. A disc still differing leaves placement, coverage or evaluation upstream of the original shape open. At indices 441, 466, 522 and 523 the native runtime rejected the isolated packages. Whole-root and connected-stage counts are available for all four. Sphere displacement and K-means first differ in their pixel processors. Wood fibers 2 still needs a bounded whole-graph cook.
+Ten isolated packages at indices 441, 466, 522 and 523 opened in the reference after saving them with MaterialCraft. All 48,640 local pixels in these 60 renders were bit-identical before and after the save. Nine packages matched all 4,864 reference pixels each. The authored shape at index 466 differed at 234 F32 pixels and four U16 pixels. Its disc matched in all four formats.
+
+Across all 25 stages, 150 authored single-branch renders matched 94,097/96,984 pixels, and 150 disc controls matched 96,569/96,984. A differing disc leaves placement, coverage or evaluation upstream of the original shape open. Sphere displacement and K-means first differ in their pixel processors. Wood fibers 2 still needs a bounded whole-graph cook.
 
 ### Signed Sharpen stencils and stored inputs
 
