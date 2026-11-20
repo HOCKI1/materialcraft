@@ -35,7 +35,7 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **388 Parity**, **158 In progress** and **0 Too hard**. The November 17–20 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons) · [November 19 measurements](parity-fixes.md#2026-11-19-root-comparisons) · [November 20 measurements](parity-fixes.md#2026-11-20-root-comparisons)
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **389 Parity**, **157 In progress** and **0 Too hard**. The November 17–20 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons) · [November 19 measurements](parity-fixes.md#2026-11-19-root-comparisons) · [November 20 measurements](parity-fixes.md#2026-11-20-root-comparisons)
 
 [Pattern tiling axes and copy bounds across 215 renders](parity-fixes.md#tiling-axes-and-pattern-copy-bounds) · [Grayscale sampler measurements](parity-fixes.md#grayscale-sampling-of-color-inputs) · [Value sampling across 240 typed comparisons](parity-fixes.md#value-processor-texture-filtering) · [Five saved graphs reopened in the reference](parity-fixes.md#saved-filter-graphs-and-scalar-levels-controls)
 
@@ -86,6 +86,8 @@ Seven of 40 intact roots gained exact pixels after correcting rotated stamp boun
 Cells 1 reached measured parity across 89 distinct settings, including 512² and reopened files. The first 256² Crystal 2 comparison identified five differing positions. [Pixel counts, parameters and remaining differences](parity-fixes.md#interpolation-across-pairs-of-pixels-in-cells-1)
 
 Crystal 2 now matches all 5,104,128 pixels across 99 distinct settings through 512². Six other roots gained matching pixels when subdividing pattern quadrants. [Root counts, reproducible inputs and repeat variability](parity-fixes.md#sibling-positions-in-subdivided-pattern-quadrants)
+
+BNW Spots 3 matches all 3,159,552 final pixels across 118 distinct settings. Both apps reopened its saved graph and reproduced all 2,399,232 pixels in the 40-setting file check. Two U16 differences remain inside one pattern stage. [Draw order, root measurements and remaining differences](parity-fixes.md#draw-order-at-six-quadrant-subdivisions)
 
 ## Complete inventory
 
@@ -148,8 +150,8 @@ Crystal 2 now matches all 5,104,128 pixels across 99 distinct settings through 5
 | [blend_switch.sbs/switch_grayscale](../assets/sbs/blend_switch.sbs) | 2 | No | [Parity: 6 cases](parity-fixes.md#verified-cases) |
 | [blur_hq.sbs/blur_hq](../assets/sbs/blur_hq.sbs) | 1 | No | [Parity · 18 renders, 171,264 exact pixels across four formats](parity-fixes.md#integer-and-oblique-directional-blur) |
 | [blur_hq.sbs/blur_hq_grayscale](../assets/sbs/blur_hq.sbs) | 1 | No | [Parity · 18 renders, 171,264 exact pixels across four formats](parity-fixes.md#integer-and-oblique-directional-blur) |
-| [bnw_spots_1.sbs/bnw_spots_1](../assets/sbs/bnw_spots_1.sbs) | 0 | Yes | [In progress · 204,103/204,288 pixels across 34 renders](parity-fixes.md#sibling-positions-in-subdivided-pattern-quadrants) · [64,000/64,000 downstream pixels](parity-fixes.md#isolating-the-generators-in-spots-bricks-and-cells) · [Circular stamp and opacity controls](parity-fixes.md#circular-stamp-coverage-and-zero-stamp-opacity) |
-| [bnw_spots_3.sbs/bnw_spots_3](../assets/sbs/bnw_spots_3.sbs) | 0 | Yes | [In progress · 185,643/185,856 pixels across 27 renders](parity-fixes.md#sibling-positions-in-subdivided-pattern-quadrants) · [27,136/27,136 downstream pixels](parity-fixes.md#isolating-the-generators-in-spots-bricks-and-cells) · [Circular stamp and opacity controls](parity-fixes.md#circular-stamp-coverage-and-zero-stamp-opacity) |
+| [bnw_spots_1.sbs/bnw_spots_1](../assets/sbs/bnw_spots_1.sbs) | 0 | Yes | [In progress · 3,177,789/3,177,984 pixels across 125 settings](parity-fixes.md#draw-order-at-six-quadrant-subdivisions) · [64,000/64,000 downstream pixels](parity-fixes.md#isolating-the-generators-in-spots-bricks-and-cells) · [Circular stamp and opacity controls](parity-fixes.md#circular-stamp-coverage-and-zero-stamp-opacity) |
+| [bnw_spots_3.sbs/bnw_spots_3](../assets/sbs/bnw_spots_3.sbs) | 0 | Yes | [Parity · 118 settings, 3,159,552/3,159,552 final pixels](parity-fixes.md#draw-order-at-six-quadrant-subdivisions) · [27,136/27,136 downstream pixels](parity-fixes.md#isolating-the-generators-in-spots-bricks-and-cells) · [Circular stamp and opacity controls](parity-fixes.md#circular-stamp-coverage-and-zero-stamp-opacity) |
 | [brick_1.sbs/brick_1](../assets/sbs/brick_1.sbs) | 0 | Yes | [Parity · 131 renders, 3,194,368/3,194,368 pixels](parity-fixes.md#fractional-stamp-vertices-and-the-last-covered-pixel) · [64,000/64,000 downstream pixels](parity-fixes.md#isolating-the-generators-in-spots-bricks-and-cells) · [Earlier generator settings](parity-fixes.md#square-and-rectangular-pattern-generators) |
 | [brick_2.sbs/brick_2](../assets/sbs/brick_2.sbs) | 0 | Yes | [Parity · 124 renders, 3,175,936/3,175,936 pixels](parity-fixes.md#fractional-stamp-vertices-and-the-last-covered-pixel) · [27,136/27,136 downstream pixels](parity-fixes.md#isolating-the-generators-in-spots-bricks-and-cells) · [Earlier generator settings](parity-fixes.md#square-and-rectangular-pattern-generators) |
 | [brick_3.sbs/brick_3](../assets/sbs/brick_3.sbs) | 0 | Yes | [Parity · 100 renders, 1,295,872/1,295,872 pixels](parity-fixes.md#wrapped-stamp-centers-in-brick-3) · [64,000/64,000 downstream pixels](parity-fixes.md#isolating-the-generators-in-spots-bricks-and-cells) · [Depth opacity measurements](parity-fixes.md#stored-opacity-across-pattern-depths) |
@@ -169,8 +171,8 @@ Crystal 2 now matches all 5,104,128 pixels across 99 distinct settings through 5
 | [clone_patch.sbs/transform_from_center](../assets/sbs/clone_patch.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [clone_patch.sbs/transform_to_center](../assets/sbs/clone_patch.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [clone_patch.sbs/transform_to_center_grayscale](../assets/sbs/clone_patch.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
-| [clouds_1.sbs/clouds_1](../assets/sbs/clouds_1.sbs) | 0 | Yes | [In progress · 145,652/145,664 pixels across 17 renders](parity-fixes.md#sibling-positions-in-subdivided-pattern-quadrants) |
-| [clouds_2.sbs/clouds_2](../assets/sbs/clouds_2.sbs) | 0 | Yes | [In progress · 129,258/129,280 pixels across 16 renders](parity-fixes.md#sibling-positions-in-subdivided-pattern-quadrants) |
+| [clouds_1.sbs/clouds_1](../assets/sbs/clouds_1.sbs) | 0 | Yes | [In progress · 707,562/707,584 pixels on 32 new renders, reference repeats vary](parity-fixes.md#draw-order-at-six-quadrant-subdivisions) |
+| [clouds_2.sbs/clouds_2](../assets/sbs/clouds_2.sbs) | 0 | Yes | [In progress · 707,570/707,584 pixels on 32 new renders, reference repeats vary](parity-fixes.md#draw-order-at-six-quadrant-subdivisions) |
 | [color_space_conversion.sbs/acescg_to_linear_srgb](../assets/sbs/color_space_conversion.sbs) | 1 | No | [Parity · eight cases in four formats](parity-fixes.md#color-conversion-checker-and-clone) |
 | [color_space_conversion.sbs/acescg_to_srgb](../assets/sbs/color_space_conversion.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [color_space_conversion.sbs/linear_srgb_to_acescg](../assets/sbs/color_space_conversion.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
@@ -218,12 +220,12 @@ Crystal 2 now matches all 5,104,128 pixels across 99 distinct settings through 5
 | [diffusion.sbs/impl/pass_gray](../assets/sbs/diffusion.sbs) | 3 | Yes | [Parity · 19 renders, 143,872 exact pixels](parity-fixes.md#per-pixel-random-initialization) |
 | [diffusion.sbs/impl/pass_normal](../assets/sbs/diffusion.sbs) | 2 | Yes | [Parity · 19 renders, 143,872 exact pixels](parity-fixes.md#per-pixel-random-initialization) |
 | [directional_distance.sbs/directional_distance](../assets/sbs/directional_distance.sbs) | 3 | No | [Parity · 32 renders, both outputs exact across 342,528 pixels](parity-fixes.md#distance-output-channels-axis-wrapping-and-cutoffs) |
-| [directionnal_noise.sbs/directionnal_noise](../assets/sbs/directionnal_noise.sbs) | 0 | Yes | [In progress · 147,600/147,712 pixels across 23 renders](parity-fixes.md#sibling-positions-in-subdivided-pattern-quadrants) |
+| [directionnal_noise.sbs/directionnal_noise](../assets/sbs/directionnal_noise.sbs) | 0 | Yes | [In progress · 147,653/147,712 pixels across 23 renders](parity-fixes.md#draw-order-at-six-quadrant-subdivisions) |
 | [dirt_1.sbs/dirt_1](../assets/sbs/dirt_1.sbs) | 0 | Yes | [In progress · 145,661/145,664 exact pixels, overlapping disc additions isolated](parity-fixes.md#overlapping-disc-additions-in-dirt-1) |
 | [dirt_3.sbs/dirt_3](../assets/sbs/dirt_3.sbs) | 0 | Yes | [In progress · two differences across 32 additional renders](parity-fixes.md#bounds-and-pixel-coordinates-of-rotated-pattern-stamps) |
 | [dirt_5.sbs/dirt_5](../assets/sbs/dirt_5.sbs) | 0 | Yes | [In progress · 129,226/129,280 exact pixels in 16 renders](parity-fixes.md#stored-opacity-across-pattern-depths) |
 | [dirt_6.sbs/dirt_6](../assets/sbs/dirt_6.sbs) | 0 | Yes | [In progress · 129,249/129,280 pixels across 16 renders](parity-fixes.md#drawing-axis-aligned-stamps-smaller-than-one-pixel) |
-| [dirt_gradient.sbs/dirt_gradient](../assets/sbs/dirt_gradient.sbs) | 0 | Yes | [In progress · 129,176/129,280 pixels across 16 renders](parity-fixes.md#sibling-positions-in-subdivided-pattern-quadrants) |
+| [dirt_gradient.sbs/dirt_gradient](../assets/sbs/dirt_gradient.sbs) | 0 | Yes | [In progress · 129,236/129,280 pixels across 16 renders](parity-fixes.md#draw-order-at-six-quadrant-subdivisions) |
 | [exposure.sbs/exposure](../assets/sbs/exposure.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [extend_shape.sbs/extend_shape_color](../assets/sbs/extend_shape.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [extend_shape.sbs/extend_shape_grayscale](../assets/sbs/extend_shape.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |

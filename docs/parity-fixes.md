@@ -534,6 +534,41 @@ For each root’s 25 follow-up renders, the 5,120 U8, 553,728 U16, 78,336 F16 an
 
 In a single-worker release run, four interleaved measurements of the 128² default, 256² default and 512² filled cases gave median whole-graph cook times of 46, 259 and 1,138 ms for Alveolus (previously 45, 247 and 1,068 ms). Pattern Alveolus took 45, 253 and 1,083 ms (previously 43, 238 and 1,045 ms).
 
+### Draw order at six quadrant subdivisions
+
+BNW Spots 3 matched every final output in 118 distinct combinations of dimensions, seed, disorder and format. The preceding 27-render comparison gained 213 exact pixels. BNW Spots 1 gained 71 exact pixels in its 34-render comparison and still has differences at higher resolutions.
+
+| Root and distinct settings | U8 exact · max | U16 exact · max | F16 exact · max | F32 exact · max |
+|---|---:|---:|---:|---:|
+| BNW Spots 3, 118 | 647,936/647,936 · 0 | 943,360/943,360 · 0 | 647,936/647,936 · 0 | 920,320/920,320 · 0 |
+| BNW Spots 1, 125 | 649,984/649,984 · 0 | 949,396/949,504 · 2 | 649,980/649,984 · 0.00048828125 | 928,429/928,512 · 2.16364861e−5 |
+
+For the 40 new settings per graph, use dimensions (16²,16×64,64×16,32×128,128×32,64²,128×256,256×128,256²,256×512,512×256,512²) and disorder (default,1,0,.953125,.0625,.71875,.328125,.53125,default,.96875,.1015625,.5). At zero-based indices 0 and 8 use seed 0, at index 1 use 42, and elsewhere use 378211+31j+11i for index j and inventory row i (57 or 58). Render U16 and F32 throughout and add U8 and F16 at indices 0,2,4,6,7,8,10,11. The totals also include the earlier settings, counting duplicates once. Both apps reopened the BNW Spots 3 save and matched the original and each other on all 2,399,232 pixels. On BNW Spots 1, the reference's original and reopened renders agreed on 2,399,216/2,399,232 pixels, with a maximum difference of two U16 levels. [Earlier settings and repeat measurements](#sibling-positions-in-subdivided-pattern-quadrants)
+
+A black-background F32 probe isolates the order of addition. Connect four branches to a grayscale quadrant, subdivide each to depth five or six, and put a paraboloid of size (.75,.75) on its leaves. Use zero roughness and rotation. Offset each branch's first leaf onto the center of pixel (15,15) at 32². With gains (1,2⁻²⁴,−1,0), the measured value is zero at depth five and 2⁻²⁴ at depth six. The previous implementation returned zero in both cases. Across 49 gain combinations at each depth from one through six, all 301,056 F32 pixels now match. A white-background probe distinguished all 24 branch permutations. It measured slot order 0,1,2,3 through depth five and 3,2,1,0 at six. The same change occurred with only four leaf draws. Two connected branches with two draws each at depth six gave order 2,3,0,1. MaterialCraft preserves evaluation and random-seed order and passes the completed child streams to the rasterizer in their measured order.
+
+Two individual U16 samples still differ inside BNW Spots 3. At 16², disorder .15625 and seed 8866, its 256² pattern stage (UID 1083436013) gives 44,702 at (118,0) and 29,396 at (236,1) in the reference. MaterialCraft gives 44,703 and 29,397. All 524,286 other pixels of that stage across eight renders match, and both differences disappear before the final output. BNW Spots 1's previously differing 32² generator pixel at (13,25), seed 0 and 128² requested, now stores 4,031. Its deeper stage remains variable. Six forced reference evaluations of the same 128×64 setting, disorder 1 and seed 372177, produced two distinct U16 images and six distinct F32 images. [Original stage and single-stamp tests](#sibling-positions-in-subdivided-pattern-quadrants)
+
+Giving the root its own square with a grayscale gain of −.625 over white reproduced 90,112/90,112 F32 pixels across 88 full and sparse renders. These include additive and maximum child blends. All 152 earlier stamp-control sets retained their raw results. Six of 40 intact roots gained exact pixels. The other 34 retained their exact counts and maxima.
+
+| Earlier matrix | Renders | Previous exact | Current exact / compared | Maximum error, U8 / U16 / F16 / F32 |
+|---|---:|---:|---:|---|
+| BNW Spots 1 | 34 | 204,103 | 204,174/204,288 | 0 / 2 / .00048828125 / 2.16066837e−5 |
+| BNW Spots 3 | 27 | 185,643 | 185,856/185,856 | 0 / 0 / 0 / 0 |
+| Clouds 1 | 17 | 145,652 | 145,655/145,664 | 0 / 4 / 0 / 5.49852848e−5 |
+| Clouds 2 | 16 | 129,258 | 129,277/129,280 | 0 / 1 / 0 / 0 |
+| Directional Noise | 23 | 147,600 | 147,653/147,712 | 0 / 2 / 0 / 0 |
+| Dirt Gradient | 16 | 129,176 | 129,236/129,280 | 0 / 2 / 0 / 1.83582306e−5 |
+
+| New Clouds renders | U8 exact · max | U16 exact · max | F16 exact · max | F32 exact · max |
+|---|---:|---:|---:|---:|
+| Clouds 1 | 154,112/154,112 · 0 | 199,670/199,680 · 4 | 154,112/154,112 · 0 | 199,668/199,680 · .000110566616 |
+| Clouds 2 | 154,112/154,112 · 0 | 199,671/199,680 · 2 | 154,111/154,112 · .000244140625 | 199,676/199,680 · 2.28881836e−5 |
+
+Use dimensions (16×32,32×16,32×64,64²,128×32,64×128,256×64,128×256,256²,512×128). Clouds 1 uses disorder (default,.03125,.53125,default,.875,1,.3984375,.921875,default,.671875). Clouds 2 has no exposed parameter. Use seed 0 at indices 0 and 8, seed 42 at index 1 and 382031+41j+i elsewhere, with i=78 or 79. Render U16 and F32 throughout and add U8 and F16 at indices 0,2,3,6,8,9. In the reference, original and reopened files agreed on 707,558/707,584 pixels for Clouds 1 and 707,569/707,584 for Clouds 2. Repeating the original 256² default six times also produced four distinct U16 pattern images for Clouds 1 (UID 1084449121) and five for Clouds 2 (UID 1067067866). At (23,188) Clouds 1 returned both 1,556 and 1,557. At (146,119) Clouds 2 returned both 1,373 and 1,374. Each stage produced six distinct F32 images.
+
+Both new regressions failed on the preceding implementation. All 299 release node tests, formatting, strict workspace Clippy, dependency layers and WebAssembly passed. Four alternating single-worker release measurements gave median cook times of 196.0 to 194.1 ms for BNW Spots 1 at 64² and 174.0 to 176.5 ms for BNW Spots 3. The 16² stress graphs took 33.2 to 33.4 ms at depth seven and 524.6 to 547.3 ms at depth nine.
+
 ### Sibling positions in subdivided pattern quadrants
 
 Crystal 2 matched all 5,104,128 pixels across 99 distinct combinations of dimensions, seed, warp intensity and output format. The five positions that differed at 256² now agree at every measured stage, including the U16 pattern and levels outputs and the final warp. Six other intact roots gained exact pixels.

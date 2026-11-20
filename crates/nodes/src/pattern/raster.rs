@@ -11,7 +11,7 @@ const MAX_SAMPLES: u64 = 256_000_000;
 const MAX_STAMP_COPIES: u64 = 1_048_576;
 const MIN_STAMP_SIZE: f32 = 1e-8;
 
-pub(super) fn render(context: &CookContext, stamps: &[PatternStamp], max_depth: u32) -> Result<Image, String> {
+pub(super) fn render(context: &CookContext, groups: [&[PatternStamp]; 5], max_depth: u32) -> Result<Image, String> {
     let (width, height) = craft_texture::clamp_size(context.w, context.h);
     let kind = if context.b("color_mode") { Kind::Color } else { Kind::Gray };
     let background = if context.input(0).is_some_and(|image| image.kind() != kind) {
@@ -25,7 +25,7 @@ pub(super) fn render(context: &CookContext, stamps: &[PatternStamp], max_depth: 
             Image::filled(width, height, kind, color.map(flush_subnormal))
         })
     };
-    if stamps.is_empty() {
+    if groups.iter().all(|group| group.is_empty()) {
         return Ok(background);
     }
 
@@ -52,7 +52,7 @@ pub(super) fn render(context: &CookContext, stamps: &[PatternStamp], max_depth: 
     let tile_region = Region::new(tiling)?;
     let mut mipmaps = bitmap::Mipmaps::new();
 
-    for stamp in stamps {
+    for stamp in groups.into_iter().flatten() {
         if !stamp.center.iter().chain(&stamp.size).chain(&stamp.color).chain([&stamp.rotation, &stamp.variation]).all(|value| value.is_finite()) {
             return Err("pattern parameters must be finite".into());
         }

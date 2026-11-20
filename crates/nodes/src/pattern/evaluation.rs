@@ -43,6 +43,8 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
     }
 
     let mut stamps = Vec::new();
+    let mut root_children_pending = 0;
+    let mut branch_starts = [None; 4];
 
     let mut variables = PatternVariables::new(context.vars.graph_values());
     let mut max_depth = 0;
@@ -55,6 +57,11 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
     let mut empty_switches = BTreeSet::new();
     let grayscale = !context.b("color_mode");
     while let Some(mut visit) = pending.pop() {
+        // Returning below the previous stack size starts the next child of the root.
+        if pending.len() < root_children_pending {
+            root_children_pending = pending.len();
+            branch_starts[root_children_pending] = Some(stamps.len());
+        }
         variables.resume(pending.len());
         max_depth = max_depth.max(visit.depth);
         if empty_switches.contains(&visit.node) {
@@ -263,8 +270,23 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
         }
 
         variables.keep_for_children(pending.len(), declared);
+        if grayscale && node.kind == PatternNodeKind::Quadrant && Some(node.id) == graph.root {
+            root_children_pending = children.len();
+        }
         pending.extend(children.drain(..).rev());
     }
 
-    Ok(vec![raster::render(context, &stamps, max_depth)?])
+    let mut groups = [&[][..]; 5];
+    let mut prefix = stamps.as_slice();
+    if max_depth == 6 {
+        // At six subdivisions the root draws first, then its child streams composite
+        // in reverse slot order. Within a stream the original draw order is retained.
+        for (group, start) in groups[1..].iter_mut().zip(branch_starts.into_iter().flatten()) {
+            let (earlier, branch) = prefix.split_at(start);
+            *group = branch;
+            prefix = earlier;
+        }
+    }
+    groups[0] = prefix;
+    Ok(vec![raster::render(context, groups, max_depth)?])
 }

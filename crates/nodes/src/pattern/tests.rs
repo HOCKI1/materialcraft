@@ -279,6 +279,62 @@ fn cook_at_dimensions(graph: PatternGraph, variables: &BTreeMap<String, Value>, 
     cook_in_regions(graph, variables, seed, [width, height], [[0.0, 1.0, 0.0, 1.0]; 2], 0.0)
 }
 
+#[test]
+fn six_quadrant_levels_composite_overlapping_subtrees_in_reverse_slot_order() {
+    let small = f32::EPSILON * 0.5;
+    for (depth, expected) in [(5, 0.0_f32), (6, small)] {
+        let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
+        for (slot, weight) in [1.0, small, -1.0, 0.0].into_iter().enumerate() {
+            let mut leaf = graph.add(PatternNodeKind::Quadrant).unwrap();
+            graph.nodes[0].children[slot] = Some(leaf);
+            for _ in 1..depth {
+                let child = graph.add(PatternNodeKind::Quadrant).unwrap();
+                graph.nodes[(leaf - 1) as usize].children.fill(Some(child));
+                leaf = child;
+            }
+            // Center the first leaf of each subtree on the same pixel. All other leaves miss it.
+            let first = [slot & 1, slot >> 1].map(|half| half as f32 * 0.5 + 0.5 / (1 << depth) as f32);
+            graph.nodes[(leaf - 1) as usize].parameters = BTreeMap::from([
+                ("patterntype".into(), Value::Int(4)),
+                ("patternsize".into(), Value::Float2([0.75; 2])),
+                ("frameoffset".into(), Value::Float2(first.map(|v| 15.5 / 32.0 - v))),
+                ("opacity".into(), Value::Float(weight)),
+                ("blendingmode".into(), Value::Int(0)),
+            ]);
+        }
+        let image = cook_at_size(graph, &BTreeMap::new(), 377014, 32).unwrap().remove(0);
+        assert_eq!(image.get_gray(15, 15, false).to_bits(), expected.to_bits(), "{depth} levels");
+    }
+}
+
+#[test]
+fn sparse_quadrant_streams_preserve_the_order_of_their_own_draws() {
+    let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
+    let weights = [-1.409_263_6, 0.452_831_5, f32::EPSILON * 0.5, 0.124_022_64];
+    for (group, slot) in [0, 2].into_iter().enumerate() {
+        let parent = graph.add(PatternNodeKind::Quadrant).unwrap();
+        graph.nodes[0].children[slot] = Some(parent);
+        for subslot in 0..2 {
+            let mut leaf = parent;
+            for child_slot in [subslot, 0, 0, 0, 0] {
+                let child = graph.add(PatternNodeKind::Quadrant).unwrap();
+                graph.nodes[(leaf - 1) as usize].children[child_slot] = Some(child);
+                leaf = child;
+            }
+            let center = [subslot as f32 * 0.25 + 0.5 / 64.0, group as f32 * 0.5 + 0.5 / 64.0];
+            graph.nodes[(leaf - 1) as usize].parameters = BTreeMap::from([
+                ("patterntype".into(), Value::Int(4)),
+                ("patternsize".into(), Value::Float2([0.75; 2])),
+                ("frameoffset".into(), Value::Float2(center.map(|v| 15.5 / 32.0 - v))),
+                ("opacity".into(), Value::Float(weights[group * 2 + subslot])),
+                ("blendingmode".into(), Value::Int(0)),
+            ]);
+        }
+    }
+    let image = cook_in_regions(graph, &BTreeMap::new(), 379595, [32; 2], [[0.0, 1.0, 0.0, 1.0]; 2], 1.0).unwrap().remove(0);
+    assert_eq!(image.get_gray(15, 15, false).to_bits(), 0x3e2b_9cd8);
+}
+
 fn cook_in_regions(
     graph: PatternGraph,
     variables: &BTreeMap<String, Value>,
