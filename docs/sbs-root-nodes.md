@@ -35,7 +35,7 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **367 Parity**, **85 In progress** and **94 Too hard**. The November 17–19 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons) · [November 19 measurements](parity-fixes.md#2026-11-19-root-comparisons)
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **367 Parity**, **91 In progress** and **88 Too hard**. The November 17–19 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons) · [November 19 measurements](parity-fixes.md#2026-11-19-root-comparisons)
 
 [Pattern tiling axes and copy bounds across 215 renders](parity-fixes.md#tiling-axes-and-pattern-copy-bounds) · [Grayscale sampler measurements](parity-fixes.md#grayscale-sampling-of-color-inputs) · [Value sampling across 240 typed comparisons](parity-fixes.md#value-processor-texture-filtering) · [Five saved graphs reopened in the reference](parity-fixes.md#saved-filter-graphs-and-scalar-levels-controls)
 
@@ -259,7 +259,7 @@ Pattern center culling matched all 356,352 pixels across 204 renders. Background
 | [make_it_tile_patch_grayscale.sbs/make_it_tile_patch_grayscale](../assets/sbs/make_it_tile_patch_grayscale.sbs) | 1 | No | [In progress · 132,092/132,096 exact pixels in 9 renders](parity-fixes.md#gradient-warp-displacement-and-sampling) |
 | [material_switch.sbs/material_switch](../assets/sbs/material_switch.sbs) | 24 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [material_transforms.sbs/material_transforms](../assets/sbs/material_transforms.sbs) | 5 | Yes | [Parity · 856,320 exact pixels across every output](parity-fixes.md#material-bundles-and-the-eighth-irradiance-pass) |
-| [me_water_level.sbs/scratches_2](../assets/sbs/me_water_level.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [me_water_level.sbs/scratches_2](../assets/sbs/me_water_level.sbs) | 0 | Yes | [In progress · 138,019/178,432 pixels in 21 renders](parity-fixes.md#scratches-messy-fibers-microscope-and-moisture) |
 | [mean_of_least_variance.sbs/mlv_color_iteration](../assets/sbs/mean_of_least_variance.sbs) | 1 | Yes | [Parity · 171,264 exact pixels across 18 renders](parity-fixes.md#color-conversion-gradient-height-and-histogram-controls) |
 | [mean_of_least_variance.sbs/mlv_grayscale_iteration](../assets/sbs/mean_of_least_variance.sbs) | 1 | Yes | [Parity · 171,264 exact pixels across 18 renders](parity-fixes.md#color-conversion-gradient-height-and-histogram-controls) |
 | [median_filter.sbs/median_filter_color](../assets/sbs/median_filter.sbs) | 1 | No | [Parity · 171,264 exact pixels across 18 renders](parity-fixes.md#color-conversion-gradient-height-and-histogram-controls) |
@@ -273,13 +273,13 @@ Pattern center culling matched all 356,352 pixels across 204 renders. Background
 | [mesh_adaptive_material_blender.sbs/mesh_material_blender_4_inputs](../assets/sbs/mesh_adaptive_material_blender.sbs) | 13 | Yes | [Parity · 513,792 exact pixels across every output](parity-fixes.md#material-bundles-and-the-eighth-irradiance-pass) |
 | [mesh_adaptive_material_blender.sbs/mesh_material_blender_8_inputs](../assets/sbs/mesh_adaptive_material_blender.sbs) | 25 | Yes | [Parity · 513,792 exact pixels across every output](parity-fixes.md#material-bundles-and-the-eighth-irradiance-pass) |
 | [mesh_data_combiner.sbs/mesh_data_combiner](../assets/sbs/mesh_data_combiner.sbs) | 11 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
-| [messy_fibers_1.sbs/messy_fibers_1](../assets/sbs/messy_fibers_1.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [messy_fibers_2.sbs/messy_fibers_2](../assets/sbs/messy_fibers_2.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [messy_fibers_1.sbs/messy_fibers_1](../assets/sbs/messy_fibers_1.sbs) | 0 | Yes | [In progress · 122,750/178,432 pixels in 21 renders](parity-fixes.md#scratches-messy-fibers-microscope-and-moisture) |
+| [messy_fibers_2.sbs/messy_fibers_2](../assets/sbs/messy_fibers_2.sbs) | 0 | Yes | [In progress · 96,050/178,432 pixels in 21 renders](parity-fixes.md#scratches-messy-fibers-microscope-and-moisture) |
 | [messy_fibers_3.sbs/messy_fibers_3](../assets/sbs/messy_fibers_3.sbs) | 0 | Yes | [In progress · 126,928/132,096 pixels across 9 renders](parity-fixes.md#directional-and-additive-stamp-profiles) |
-| [messy_fibers_4.sbs/messy_fibers_4](../assets/sbs/messy_fibers_4.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [microscope_view.sbs/microscope_view](../assets/sbs/microscope_view.sbs) | 0 | Yes | [Too hard · 131,217/132,096 exact pixels in 9 renders](parity-fixes.md#gradient-warp-displacement-and-sampling) |
+| [messy_fibers_4.sbs/messy_fibers_4](../assets/sbs/messy_fibers_4.sbs) | 0 | Yes | [In progress · 119,106/162,048 pixels in 20 renders](parity-fixes.md#scratches-messy-fibers-microscope-and-moisture) |
+| [microscope_view.sbs/microscope_view](../assets/sbs/microscope_view.sbs) | 0 | Yes | [In progress · 177,304/178,432 pixels in 21 renders](parity-fixes.md#scratches-messy-fibers-microscope-and-moisture) |
 | [min_max.sbs/min_max](../assets/sbs/min_max.sbs) | 1 | No | [Parity · both scalar outputs exact in 25 cases](parity-fixes.md#color-temperature-range-reductions-sky-parameters-and-polygon-paths) |
-| [moisture_noise.sbs/moisture_noise](../assets/sbs/moisture_noise.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [moisture_noise.sbs/moisture_noise](../assets/sbs/moisture_noise.sbs) | 0 | Yes | [In progress · 178,192/178,432 pixels in 21 renders](parity-fixes.md#scratches-messy-fibers-microscope-and-moisture) |
 | [mosaic.sbs/mosaic](../assets/sbs/mosaic.sbs) | 2 | No | [Parity · 17 renders, 142,592 exact pixels](parity-fixes.md#gradient-warp-displacement-and-sampling) |
 | [mosaic.sbs/mosaic_grayscale](../assets/sbs/mosaic.sbs) | 2 | No | [Parity · 17 renders, 142,592 exact pixels](parity-fixes.md#gradient-warp-displacement-and-sampling) |
 | [multi_directional_warp.sbs/multi_directional_warp_color](../assets/sbs/multi_directional_warp.sbs) | 2 | No | [Parity · 19 cases, 175,360 exact pixels and intermediate stages confirmed](parity-fixes.md#multi-directional-warp-and-intermediate-storage) |

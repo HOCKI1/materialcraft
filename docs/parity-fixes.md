@@ -249,6 +249,53 @@ The 105 branch-isolation renders use the live absolute-value check, the original
 
 The three other inventory roots containing the same direct combination of pure pixel arithmetic and Boolean operations retained their recorded results. Curvature v2, Shape Splatter to Mask and Summed Area Table Iteration match 246,044/246,044 pixels in 14 renders. Both transformed roots also reproduce all 270,848/270,848 source pixels when their current-header MaterialCraft saves are opened in the reference app. The two saves retaining the older `0.1.3` header are refused at package load. Saved-file evidence covers header `1.1.0.202502`. [Format-header comparison](#integer-defaults-in-saved-graph-interfaces)
 
+### Scratches, Messy Fibers, Microscope and Moisture
+
+MaterialCraft at `7283a5b` produced the following whole-root counts. Each F32 or F16 error is an absolute component difference. U8 and U16 errors use stored levels. The Scratches output is RGBA. The other five outputs are grayscale.
+
+| Package root | Renders | Exact pixels / compared | U8 exact / maximum | U16 exact / maximum | F16 exact / maximum | F32 exact / maximum |
+|---|---:|---:|---:|---:|---:|---:|
+| me_water_level.sbs/scratches_2 | 21 | 138,019/178,432 | 119,761/119,808 · 1 | 12,842/15,360 · 2 | 5,070/5,120 · 0.00048828125 | 346/38,144 · 2.24113464e-05 |
+| messy_fibers_1.sbs/messy_fibers_1 | 21 | 122,750/178,432 | 5,117/5,120 · 1 | 94,328/130,048 · 4 | 5,072/5,120 · 0.00048828125 | 18,233/38,144 · 6.13927841e-05 |
+| messy_fibers_2.sbs/messy_fibers_2 | 21 | 96,050/178,432 | 5,117/5,120 · 1 | 85,685/130,048 · 5 | 5,000/5,120 · 0.00048828125 | 248/38,144 · 6.47902489e-05 |
+| messy_fibers_4.sbs/messy_fibers_4 | 20 | 119,106/162,048 | 5,114/5,120 · 1 | 82,167/113,664 · 200 | 5,043/5,120 · 0.00048828125 | 26,782/38,144 · 0.00244146585 |
+| microscope_view.sbs/microscope_view | 21 | 177,304/178,432 | 5,120/5,120 · 0 | 129,145/130,048 · 66 | 5,112/5,120 · 0.000244140625 | 37,927/38,144 · 0.00115966797 |
+| moisture_noise.sbs/moisture_noise | 21 | 178,192/178,432 | 5,120/5,120 · 0 | 129,875/130,048 · 6 | 5,117/5,120 · 0.00048828125 | 38,080/38,144 · 7.80820847e-05 |
+
+Each row includes the previous defaults, seed changes, available parameter changes and stored-format comparisons. The twelve additional stage captures used seed 95383 + 7i + k with zero-based inventory indices i = 206, 220, 221, 223, 224 and 226 respectively. Use 16²/default/k=0, 32²/A/k=1, 32²/B/k=2 in U8, U16, F16 and F32, 64×32/C/k=6 in F32, 32×64/C/k=7 in U16, 64²/B/k=8 and 128×64/B/k=9 in F32, 64×128/B/k=9 in U16 and 128²/default/k=11 in F32. Other single-format cases use F32.
+
+- For Scratches and Moisture use (width, height, disorder) = (100,100,0), (36,74,12.75), (81,23,57.5).
+- For Messy Fibers 1 use (rotation variation, links, disorder, emboss intensity, emboss angle) = (0,1,0,0,0), (132,13,10.75,1.375,37), (283,29,44.25,−.875,163). For Messy Fibers 2 use (lines, disorder) = (1,0), (7,17.125), (27,53.75). Messy Fibers 4 has no exposed controls.
+- For Microscope use (warp intensity, disorder) = (0,0), (2.5,15.75), (11.125,46.25).
+
+The earliest unequal stages in every comparable differing stage capture were pattern generators. Substitute a distinct original U16 image for each live generator in the four graphs with downstream filters. At zero-based case j=0 give source h the constant 8191(h+1). At j=1 use 52111−83h on (x+h) mod width = y mod width and 713+39h elsewhere. For j=6,7,8 use 32776+h where (3x+13y+7h) mod 23 is zero and 32767+h elsewhere. For the other settings use [7919(11x+31y+7xy+93+47h+(h+1)x)] mod 65536. Preserve each source’s original dimensions, including the half-width, quarter-height images in Messy Fibers 4.
+
+| Matching-input graph | Output exact / compared | All observed stages, including output and input bridges | Maximum error |
+|---|---:|---:|---:|
+| messy_fibers_1.sbs/messy_fibers_1 | 46,336/46,336 | 139,008/139,008 | 0 |
+| messy_fibers_4.sbs/messy_fibers_4 | 46,336/46,336 | 382,272/382,272 | 0 |
+| microscope_view.sbs/microscope_view | 46,336/46,336 | 185,344/185,344 | 0 |
+| moisture_noise.sbs/moisture_noise | 46,336/46,336 | 231,680/231,680 | 0 |
+
+The four matching-input roots give 185,344/185,344 exact output pixels across 48 renders. They cover Emboss, two directional warps, transformation, blending, ordinary warp and Levels. The moisture package also contains a disconnected source and filter. The stage counts cover the nodes reachable from its output.
+
+For each live source in the original graph, route it directly to the output. Keep the shortest connected path to a drawing quadrant, using ascending output slot to break ties. Keep the authored shape, then substitute a square or disc. The last control retains all drawing branches with a square at every authored draw site. Use the 16² default, all four 32²/B formats, 64×32/C F32, 64²/B F32 and 64×128/B U16. The maxima columns use U8 / U16 / F16 / F32 in that order.
+
+| Root and pattern source UID | Isolated square | Isolated disc | Isolated authored profile | Authored maxima | Full square layout | Layout maxima |
+|---|---:|---:|---:|---|---:|---|
+| scratches_2 · 1028227090 · shape 6 | 18,688/18,688 | 18,688/18,688 | 18,687/18,688 | 0 / 0 / 0 / 6.55651093e-07 | 18,688/18,688 | 0 / 0 / 0 / 0 |
+| messy_fibers_1 · 1028375992 · shape 11 | 18,688/18,688 | 18,688/18,688 | 17,447/18,688 | 0 / 2 / 0.000244140625 / 2.40802765e-05 | 18,688/18,688 | 0 / 0 / 0 / 0 |
+| messy_fibers_2 · 1028631746 · shape 11 | 18,688/18,688 | 18,688/18,688 | 18,522/18,688 | 1 / 1 / 0.000122070312 / 5.27501106e-06 | 18,688/18,688 | 0 / 0 / 0 / 0 |
+| messy_fibers_4 · 1047483128 · shape 11 | 18,688/18,688 | 18,688/18,688 | 17,878/18,688 | 0 / 1 / 3.05175781e-05 / 3.55839729e-05 | 18,688/18,688 | 0 / 0 / 0 / 0 |
+| messy_fibers_4 · 1047551360 · shape 6 | 2,336/2,336 | 2,336/2,336 | 1,845/2,336 | 0 / 0 / 0 / 1.63912773e-07 | 2,336/2,336 | 0 / 0 / 0 / 0 |
+| messy_fibers_4 · 1047551723 · shape 6 | 2,336/2,336 | 2,336/2,336 | 1,743/2,336 | 0 / 1 / 1.90734863e-06 / 2.23517418e-07 | 2,336/2,336 | 0 / 0 / 0 / 0 |
+| messy_fibers_4 · 1047551778 · shape 11 | 18,688/18,688 | 18,688/18,688 | 17,792/18,688 | 0 / 2 / 3.81469727e-06 / 2.4408102e-05 | 18,688/18,688 | 0 / 0 / 0 / 0 |
+| microscope_view · 1028199215 · shape 6 | 18,688/18,688 | 18,688/18,688 | 18,642/18,688 | 0 / 0 / 0 / 3.7252903e-08 | 13,369/18,688 | 0 / 0 / 0 / 3.33786011e-06 |
+| moisture_noise · 1152046381 · shape 4 | 18,688/18,688 | 18,688/18,688 | 18,669/18,688 | 0 / 0 / 0 / 5.96046448e-08 | 18,625/18,688 | 0 / 0 / 0 / 5.96046448e-08 |
+| moisture_noise · 1152046384 · shape 4 | 18,688/18,688 | 18,688/18,688 | 18,664/18,688 | 0 / 0 / 0 / 2.09547579e-08 | 18,613/18,688 | 0 / 0 / 0 / 1.49011612e-08 |
+
+All isolated squares and discs here have maximum error zero. In Scratches, Messy Fibers 1, 2 and 4 the complete square controls also agree. The authored soft and wave profiles still differ. Microscope and Moisture also have differences with all original branches drawing squares. All six whole roots remain in progress.
+
 ### Gaussian pattern sources and repeat limits
 
 At commit `793e0b7`, each root received 21 reference renders. The first table gives exact pixels / compared pixels / maximum error in each stored format. Integer errors are stored levels. The two Spots packages with a scale control exceeded the local traversal limit in two cases each. Their pixel denominators include the 19 cases that emitted comparable images. The reference app completed all four of the omitted renders.
@@ -276,6 +323,8 @@ Isolate the shortest reachable path to a drawing quadrant. Select sibling connec
 | noise_gaussian_spots_2_v2 | 17,664 / 0 | 17,664 / 0 | 17,663 / 5.40167093e-08 | 14,329 / 0.161732554 |
 
 All 176,640 isolated square and disc pixels agree. The complete square layout and the original soft stamp must be considered separately. The isolated soft stamp in noise_gaussian_spots_2 is exact across these eight renders, while the complete square layout has a differing pixel. The large rectangular cases and the full soft generators remain open.
+
+A separate 24-render scale sweep used 2 through 7, C for the other controls, and seed 93281 + 7i. For noise_gaussian_spots_2 the 16² F32 target completed scales 2–6 and the 64×32 U16 target completed scales 2–4. For the v2 root the corresponding completed scales were 2–4 and 2–3. The remaining eleven local cases reached the traversal budget. The reference app produced all 24 outputs. Across the 13 comparable outputs 8,115/12,288 pixels matched. The maximum was 4 stored U16 levels and 5.22732735e-05 F32.
 
 ### Pattern tint, coverage and grayscale conversion
 
