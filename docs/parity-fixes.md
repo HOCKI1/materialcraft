@@ -427,6 +427,18 @@ Using one worker per fresh process, the 4² defaults for directional 3, its seco
 
 The three independent patterns in Wood Fibers 2 already differ before Levels and Blend. Across the ten additional renders, stage 1070386767 matched 4,690/5,248 U16 pixels (maximum three levels), stage 1083954697 matched 40,412/40,960 (one level) and stage 1083954764 matched 162,125/163,840 (one level). The final output matched 9,591/10,496. The 128² default and seed 42 each completed, with 13,485 and 15,779 of 16,384 final U16 pixels exact.
 
+### Individual Wood Fibers 2 stamps
+
+Disconnect all inputs to each of the three original Wood Fibers 2 pattern stages. Keep only the indicated quadrant slots from the root to the first stamp and clear its children. Render the original shape, then replace just the shape with a disc and a square. Use the default controls and request 16² F32 at seed 117104, 32² in U8, U16, F16 and F32 at seed 117106, and 16×32 U16 at seed 117111. The stage retains its own output size. Each table cell covers six outputs.
+
+| Stage | Slots in order | Shape | Authored exact / compared | Maximum U8 / U16 / F16 / F32 | Disc exact / compared | Square exact / compared |
+|---|---|---:|---:|---|---:|---:|
+| 1070386767 | 0,0,0,3,3,0,0 | 11 | 2,432/2,432 | 0 / 0 / 0 / 0 | 2,432/2,432 | 2,432/2,432 |
+| 1083954697 | Root stamp | 6 | 16,469/24,576 | 0 / 1 / .00006103515625 / 2.38418579e-07 | 24,576/24,576 | 24,576/24,576 |
+| 1083954764 | 0,0,0,3,3 | 11 | 97,600/98,304 | 0 / 0 / 5.96046448e-08 / 3.35276127e-08 | 98,304/98,304 | 98,304/98,304 |
+
+All 18 outputs from the first stage were black on this path. To exercise it visibly, take seven successive slots of 0, 1, 2 or 3, then alternate 0,3 starting at 0 and 1,2 starting at 1. Repeat the six cases above and add F32 at 64², 128² and 256² with seeds 160033, 160052 and 160071. The original shape produced visible samples in 30 of its 54 renders and matched 272,289/272,640 pixels. Its 351 differences are all F32, maximum 5.05358912e-07. Discs and squares each matched 272,640/272,640 pixels, maximum zero, with visible samples in 33 and 34 renders respectively. These single-branch comparisons isolate differences in all three sources. The [whole root and its 256² traversal limit](#discarding-pattern-stamps-that-miss-every-output-sample) remain open.
+
 ### Pattern coordinates under a change of render region
 
 Four original single-stamp probes isolate the remaining Alveolus coordinate differences. The same physical points can be rendered inside the unit square or inside a larger region at twice the width and height. Across 540 renders, MaterialCraft matched 2,237,142/2,654,208 reference pixels. The largest difference was one storage level for U8 and U16, .00048828125 for F16 and 1.13248825e-06 for F32.
