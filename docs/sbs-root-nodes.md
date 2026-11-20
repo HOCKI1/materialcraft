@@ -35,7 +35,7 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **370 Parity**, **144 In progress** and **32 Too hard**. The November 17–20 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons) · [November 19 measurements](parity-fixes.md#2026-11-19-root-comparisons) · [November 20 measurements](parity-fixes.md#2026-11-20-root-comparisons)
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **375 Parity**, **145 In progress** and **26 Too hard**. The November 17–20 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons) · [November 19 measurements](parity-fixes.md#2026-11-19-root-comparisons) · [November 20 measurements](parity-fixes.md#2026-11-20-root-comparisons)
 
 [Pattern tiling axes and copy bounds across 215 renders](parity-fixes.md#tiling-axes-and-pattern-copy-bounds) · [Grayscale sampler measurements](parity-fixes.md#grayscale-sampling-of-color-inputs) · [Value sampling across 240 typed comparisons](parity-fixes.md#value-processor-texture-filtering) · [Five saved graphs reopened in the reference](parity-fixes.md#saved-filter-graphs-and-scalar-levels-controls)
 
@@ -551,7 +551,7 @@ Reading inherited variables directly reduced cook time on six Dirt 1 and BNW Spo
 | [shape_splatter_v2.sbs/mipmap_tools/Mipmap_N_from_O_color](../assets/sbs/shape_splatter_v2.sbs) | 1 | Yes | [Parity · 18 renders, all 287,232 pixels exact](parity-fixes.md#marked-variable-reads-in-path-and-mipmap-graphs) |
 | [shape_splatter_v2.sbs/poisson_disc/poisson_disc_iteration](../assets/sbs/shape_splatter_v2.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [shape_splatter_v2.sbs/scanline_to_z_order](../assets/sbs/shape_splatter_v2.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
-| [shape_splatter_v2.sbs/shape_splatter_compute_normal](../assets/sbs/shape_splatter_v2.sbs) | 10 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [shape_splatter_v2.sbs/shape_splatter_compute_normal](../assets/sbs/shape_splatter_v2.sbs) | 10 | Yes | [In progress · 666/142,592 pixels, first difference in the normal processor](parity-fixes.md#clamped-texture-reads-in-spline-graphs) |
 | [shape_splatter_v2_companion.sbs/shape_splatter_to_mask](../assets/sbs/shape_splatter_v2_companion.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [skew.sbs/skew](../assets/sbs/skew.sbs) | 1 | No | [Parity · 13 cases, 163,840 exact pixels](parity-fixes.md#height-distance-texture-mapping-skew-and-weave) |
 | [skew.sbs/skew_grayscale](../assets/sbs/skew.sbs) | 1 | No | [Parity · 13 cases, 163,840 exact pixels](parity-fixes.md#height-distance-texture-mapping-skew-and-weave) |
@@ -570,15 +570,15 @@ Reading inherited variables directly reduced cook time on six Dirt 1 and BNW Spo
 | [spline_tools.sbs/internal_tools/compute_bridge_distance](../assets/sbs/spline_tools.sbs) | 3 | Yes | [Parity · 54,528/54,528 pixels](parity-fixes.md#wired-spline-helpers-and-shape-mapping) |
 | [spline_tools.sbs/internal_tools/compute_spline_distance_iteration](../assets/sbs/spline_tools.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [spline_tools.sbs/internal_tools/compute_spline_length_init](../assets/sbs/spline_tools.sbs) | 2 | Yes | [Parity · 43,776/43,776 pixels](parity-fixes.md#wired-spline-helpers-and-shape-mapping) |
-| [spline_tools.sbs/internal_tools/compute_spline_tangents](../assets/sbs/spline_tools.sbs) | 3 | Yes | [In progress · 43,296/43,776 pixels](parity-fixes.md#wired-spline-helpers-and-shape-mapping) |
+| [spline_tools.sbs/internal_tools/compute_spline_tangents](../assets/sbs/spline_tools.sbs) | 3 | Yes | [Parity · 43,776 exact pixels in 27 renders](parity-fixes.md#clamped-texture-reads-in-spline-graphs) |
 | [spline_tools.sbs/internal_tools/get_spline_point_data](../assets/sbs/spline_tools.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
-| [spline_tools.sbs/internal_tools/modify_spline_property_sub](../assets/sbs/spline_tools.sbs) | 4 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [spline_tools.sbs/internal_tools/modify_spline_property_sub](../assets/sbs/spline_tools.sbs) | 4 | Yes | [Parity · 28,928 exact pixels in 19 renders](parity-fixes.md#clamped-texture-reads-in-spline-graphs) |
 | [spline_tools.sbs/internal_tools/normalize_spline_distance](../assets/sbs/spline_tools.sbs) | 1 | Yes | [Parity · 16 cases, 52,480 exact pixels](parity-fixes.md#tile-edge-masks-and-normalized-spline-distances) |
-| [spline_tools.sbs/internal_tools/points_preview](../assets/sbs/spline_tools.sbs) | 3 | Yes | [Too hard: value-input case not verified](parity-fixes.md#remaining-differences) |
-| [spline_tools.sbs/internal_tools/resample_spline_data](../assets/sbs/spline_tools.sbs) | 3 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [spline_tools.sbs/internal_tools/points_preview](../assets/sbs/spline_tools.sbs) | 3 | Yes | [In progress · 27,904 exact output pixels, text errors and wired cases open](parity-fixes.md#clamped-texture-reads-in-spline-graphs) |
+| [spline_tools.sbs/internal_tools/resample_spline_data](../assets/sbs/spline_tools.sbs) | 3 | Yes | [Parity · 29,952 exact pixels in 19 renders](parity-fixes.md#clamped-texture-reads-in-spline-graphs) |
 | [spline_tools.sbs/internal_tools/scatter_splines_on_splines_preprocess](../assets/sbs/spline_tools.sbs) | 5 | Yes | [In progress · nonzero counts and images exact, zero count timed out](parity-fixes.md#spline-preprocessing-with-wired-counts) |
-| [spline_tools.sbs/internal_tools/select_spline_sub](../assets/sbs/spline_tools.sbs) | 3 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [spline_tools.sbs/internal_tools/spline_warp_sub](../assets/sbs/spline_tools.sbs) | 6 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [spline_tools.sbs/internal_tools/select_spline_sub](../assets/sbs/spline_tools.sbs) | 3 | Yes | [Parity · 622,592 exact pixels in 19 renders](parity-fixes.md#clamped-texture-reads-in-spline-graphs) |
+| [spline_tools.sbs/internal_tools/spline_warp_sub](../assets/sbs/spline_tools.sbs) | 6 | Yes | [Parity · 28,928 exact pixels in 19 renders](parity-fixes.md#clamped-texture-reads-in-spline-graphs) |
 | [spot_emboss.sbs/spot_emboss](../assets/sbs/spot_emboss.sbs) | 2 | No | [Parity · 218,368 exact cook pixels and six exact saved-file renders](parity-fixes.md#image-selection-in-saved-pattern-graphs) |
 | [starburst.sbs/starburst](../assets/sbs/starburst.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [stripes.sbs/stripes](../assets/sbs/stripes.sbs) | 0 | Yes | [In progress · 215,012/215,040 exact pixels in 18 renders](parity-fixes.md#other-roots-using-uniform-arc-tangents) |

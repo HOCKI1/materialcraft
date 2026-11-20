@@ -7,7 +7,7 @@ pub fn resize_input_level(image: &Image, width: u32, height: u32, format: Output
 }
 
 /// Value and pattern functions filter stored channel levels using full-precision texel fractions.
-pub(crate) fn sample_uniform(image: &Image, uv: [f32; 2], format: OutputFormat, bilinear: bool) -> [f32; 4] {
+pub(crate) fn sample_uniform(image: &Image, uv: [f32; 2], format: OutputFormat, bilinear: bool, repeat: bool) -> [f32; 4] {
     if !uv.iter().all(|v| v.is_finite()) {
         return [0.0, 0.0, 0.0, 1.0];
     }
@@ -15,6 +15,12 @@ pub(crate) fn sample_uniform(image: &Image, uv: [f32; 2], format: OutputFormat, 
     let axis = |v: f32, size: u32| {
         let extent = size as f32;
         let scaled = v * extent;
+        if !repeat {
+            // Clamp the tap indices. Even four reads of one corner retain their original filter weights.
+            let texel = if scaled.is_finite() { scaled - offset } else { scaled.signum() * extent };
+            let first = texel.floor();
+            return (first.clamp(-1.0, extent) as i64, texel - first);
+        }
         // At extreme magnitudes the UV is a whole number of repeats. Keep neighboring indices bounded.
         let texel = if scaled.is_finite() { scaled - offset } else { -offset };
         let first = texel.floor();
@@ -30,7 +36,7 @@ pub(crate) fn sample_uniform(image: &Image, uv: [f32; 2], format: OutputFormat, 
         _ => None,
     };
     let fetch = |x, y| {
-        let pixel = image.get(x, y, true);
+        let pixel = image.get(x, y, repeat);
         levels.map_or(pixel, |maximum| pixel.map(|v| (v * maximum).round()))
     };
     let a = fetch(x, y);
@@ -58,11 +64,12 @@ pub(crate) fn sample(image: &Image, uv: [f32; 2], tiling: [bool; 2], format: Out
 }
 
 /// A filtered pixel read flushes F32 subnormals at the texels and again at the filter result.
-pub(crate) fn sample_pixel(image: &Image, uv: [f32; 2], format: OutputFormat) -> [f32; 4] {
+pub(crate) fn sample_pixel(image: &Image, uv: [f32; 2], format: OutputFormat, repeat: bool) -> [f32; 4] {
+    let tiling = [repeat; 2];
     if format != OutputFormat::F32 || !uv.iter().all(|v| v.is_finite()) {
-        return sample(image, uv, [true; 2], format, None);
+        return sample(image, uv, tiling, format, None);
     }
-    filter_taps(image, taps(image, uv, [true; 2]), [true; 2], format, None, |pixel| pixel.map(crate::function::flush_subnormal))
+    filter_taps(image, taps(image, uv, tiling), tiling, format, None, |pixel| pixel.map(crate::function::flush_subnormal))
 }
 
 /// Average each clamped 2×2 footprint at source precision, then store the reduced level.

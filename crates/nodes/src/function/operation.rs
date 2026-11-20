@@ -133,21 +133,25 @@ pub(crate) fn evaluate(
 
             let setting = instruction.value.as_ref().map(integers).transpose()?.unwrap_or([0, 0, 0, 0]);
             let index = usize::try_from(setting[0]).map_err(|_| "negative image index")?;
-            // Pixel samplers repeat both texture axes independently of the processor's output tiling.
-            let repeat = context.scope == super::FunctionScope::PixelProcessor || context.tile;
+            let (bilinear, repeat) = match (context.scope, setting[1]) {
+                (super::FunctionScope::Node, mode) => (mode != 0, context.tile),
+                (_, 2) => (false, false),
+                (_, 3) => (true, false),
+                (_, mode) => (mode != 0, true),
+            };
             let image = context.images.get(index).and_then(Option::as_ref);
             let uniform_sampler = matches!(context.scope, super::FunctionScope::ValueProcessor | super::FunctionScope::FxMap);
             let pixel = match image {
                 Some(image) if uniform_sampler => {
                     let format = context.image_formats.get(index).copied().unwrap_or(materialcraft_core::OutputFormat::F32);
-                    crate::texture_sampler::sample_uniform(image, [position[0], position[1]], format, setting[1] != 0)
+                    crate::texture_sampler::sample_uniform(image, [position[0], position[1]], format, bilinear, repeat)
                 }
-                Some(image) if setting[1] == 0 => {
+                Some(image) if !bilinear => {
                     image.get((position[0] * image.width() as f32).floor() as i64, (position[1] * image.height() as f32).floor() as i64, repeat)
                 }
                 Some(image) if context.scope == super::FunctionScope::PixelProcessor => {
                     let format = context.image_formats.get(index).copied().unwrap_or(materialcraft_core::OutputFormat::F32);
-                    crate::texture_sampler::sample_pixel(image, [position[0], position[1]], format)
+                    crate::texture_sampler::sample_pixel(image, [position[0], position[1]], format, repeat)
                 }
                 Some(image) => image.sample_stored(position[0], position[1], context.tile),
                 None => [0.0; 4],

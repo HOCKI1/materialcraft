@@ -189,6 +189,47 @@ Depth ten produces 1,398,101 visits and 1,048,576 stamps. Raising only the visit
 
 For a separate partition test, isolate the deepest pattern of each directional graph and the sole pattern of each dirt graph. At the first quadrant whose four outputs point to the same child, keep just one connected slot. Repeat with each of the four slots, retaining its original slot number. Render 4², 8², and 8×4 F32, using seeds 103307 + 13 × the zero-based inventory index + 0, 1 and 2 respectively. Use the first two distinct default/changed settings from the linked family measurements. All 48 partitioned renders complete with the standard guard. They match 160/1,120 pixels, with maximum F32 error .0000105798244. These are separate quadrant images. Full-root parity remains open for all four graphs.
 
+### Clamped texture reads in spline graphs
+
+The sampling mode stored with an image slot controls both filtering and edge addressing. Modes 0 and 1 repeat the image, with nearest and bilinear filtering respectively. Modes 2 and 3 clamp to its edges with the same two filters. Previously the two clamped modes both used bilinear repeat. At a spline boundary this mixed the opposite end of the tangent field into the first sample.
+
+| Whole root | Renders | Previously exact | Exact / compared | Pixels in U8 / U16 / F16 / F32 | Maximum channel error |
+|---|---:|---:|---:|---|---:|
+| compute_spline_tangents | 27 | 43,296 | 43,776/43,776 | 7,168 / 7,168 / 7,168 / 22,272 | 0 |
+| modify_spline_property_sub | 19 | 24,317 | 28,928/28,928 | 5,120 / 5,632 / 7,168 / 11,008 | 0 |
+| resample_spline_data | 19 | 29,816 | 29,952/29,952 | 5,120 / 5,632 / 7,168 / 12,032 | 0 |
+| select_spline_sub | 19 | 583,680 | 622,592/622,592 | 65,536 / 98,304 / 98,304 / 360,448 | 0 |
+| spline_warp_sub | 19 | 28,448 | 28,928/28,928 | 5,120 / 5,632 / 7,168 / 11,008 | 0 |
+
+All five roots match 754,176/754,176 pixels. The tangent root includes the 18 independently wired line, circle and signed-curve outputs in the [spline helper controls](#wired-spline-helpers-and-shape-mapping). Three other roots use the same sampler modes in their graph definitions. The grayscale grid atlas and the sorting iteration in each of the quantization and shape-splatter packages still match all 344,064 pixels in their 12 archived renders.
+
+For the four other spline roots, add ten cases to the nine archived and changed-precision controls per root. Use sizes, formats and A/B/C settings from the [shared lookup matrix](#shared-lookups-and-environment-shadow-pass). The base seed is 109121 + 17 × the zero-based inventory index. Add 0, 1, 2, 2, 2, 2, 6, 7, 8 and 9 in case order.
+
+For field A/B/C let m be 0/1/2. Defaults use m=0. At each of the first two rows j=0,1, use angle 2π((x+.5)/width+m/16+j/8), center (.34375+.28125j,.59375−.1875j) and radii (.1875,.1875), (.25,.09375) or (.15625,.28125). Fill the coordinate map with (cx+rx cos angle, cy+ry sin angle, 1, −1) and the data map with (−sin angle, cos angle, 0, 1). Other rows are zero. At normalized pixel centers u,v, the UV input is (u,v,1−u,1). The vector map is (.5+.25 cos(2π(u+v)), .5+.375 sin(2πu), .5, 1). Use u for the attenuation curve. Other scalar fields have H=((11x+7y+5xy+13m) mod 251)/250. Their color equivalents use (H,1−H,.125+.75H,1). Supply the fields as linear F32.
+
+| Root and controls in order | A | B | C |
+|---|---|---|---|
+| Modify property, sampling mode / property / opacity / blending mode | 0 / 0 / 1 / 0 | 1 / 1 / .6875 / 1 | 1 / 2 / .3125 / 2 |
+| Select, spline index / output / selection mode / range start and end / normalized start and end | 0 / 0 / 0 / 0…1 / 0…1 | 1 / 1 / 1 / 0…1 / .1875….8125 | 0 / 1 / 0 / 1…2 / .3125….6875 |
+| Warp, intensity / center / sampling mode / vector map / attenuation curve / start and end attenuation / intensity map tiling | 0 / .5 / 0 / off / off / 0 and 0 / 1 | .1875 / .375 / 1 / on / on / .15625 and .21875 / 2 | .34375 / .6875 / 0 / on / on / .25 and .09375 / 3 |
+
+Resample uses its published defaults. In the original pixel probe, fill an 8×4 image with Q=(79x+53y+29xy+17c+11xc+3) mod 251 in channel c. Store Q for U8, 251Q for U16, or (Q−91.75)/71.375 for F16 and F32. In a Pixel Processor read color or luminosity at UV×gain+offset. Broadcast the luminosity to four channels. Test all four sampling modes in each source format.
+
+| Output and extent | UV gain | UV offset |
+|---|---|---|
+| 16² F32 | (1,1) | (0,0) |
+| 32×16 F32 | (2,2) | (−.5,−.5) |
+| 16×32 F32 | (−1.75,2.5) | (1.34375,−.6875) |
+| 32×16 U8, U16, F16 | (2,2) | (−.5,−.5) |
+| 8×4 F32, five separate reads | (0,0) | (0,0), (1,1), (−.125,.25), (.3359375,.40625), (1.3125,−.375) |
+| 32² F32 | (.8125,−.6875) | (.1875,.875) |
+
+Start at seed 109847 + 17 × the input storage index (U8, U16, F16, F32), adding one per row or repeated read. The 384 pixel-processor renders improved from 76,755 to 128,000/128,000 exact pixels. The maximum became zero in every output format. Repeat modes 2 and 3 in the [uniform texture controls](#texture-sampling-in-pattern-functions). Use the same 13 positions and add controls running mode 0 or 1 at coordinates clamped to [1/64,63/64]. Across 416 pattern renders, 262,144 pixels previously matched and all 425,984 now match. The 104 typed Float4 values improved from 64 to 104 exact, maximum error zero. Uniform bilinear reads clamp each tap index and retain the original fractional weights. At (1.0311,−.65315) on the F32 source, the unclamped fractions produce green bits `bed93e38`, one bit different from clamping the coordinate before interpolation.
+
+Six original sampler packages saved by MaterialCraft reopened in the reference. Across six reads per package, all 15,040 pixels and all 12 Float4 values matched the respective original packages, maximum error zero. The two pixel graphs used modes 2 and 3 on F32 color and U16 luminosity. Each uniform scope used nearest and filtered clamp on the U8 color source.
+
+Two further roots with these modes remain open. The shape-splatter normal processor matches 666/142,592 pixels over 19 renders. Maximum finite U8 / U16 / F16 / F32 errors are 255 / 65,462 / .998570919 / .998893440. Some outputs contain nonfinite channels. The point preview returned 27,904/27,904 equal final pixels in 15 comparable cases, but the text stage reports an external-font error. In the three separate count/offset wrappers the counts are 4, 8 and 12 and the offsets are 0, 1 and 2. The error prevents a whole-root comparison in those wrappers.
+
 ## 2026-11-19 root comparisons
 
 ### Texture sampling in pattern functions
