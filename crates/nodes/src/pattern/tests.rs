@@ -438,6 +438,36 @@ fn subpixel_rotated_stamp_interpolates_its_ramp_and_paraboloid() {
 }
 
 #[test]
+fn sparse_quadrants_report_their_accumulated_child_positions() {
+    let variables = BTreeMap::from([("$tiling".into(), Value::Int(0))]);
+    for (slot, center, axis, bits) in [
+        (1, [-0.953_548_5, -0.769_640_9], 0, 0xbf54_1bc0),
+        (2, [0.400_343_98, 0.941_799_6], 0, 0x3e8c_f9e4),
+        (2, [0.111_769_885, -0.181_289_99], 1, 0xbd66_9050),
+    ] {
+        let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
+        let parent = graph.add(PatternNodeKind::Quadrant).unwrap();
+        let leaf = graph.add(PatternNodeKind::Quadrant).unwrap();
+        graph.nodes[0].parameters.insert("branchoffset".into(), Value::Float2([-0.25; 2]));
+        graph.nodes[0].children[0] = Some(parent);
+        graph.nodes[1].parameters.insert("branchoffset".into(), Value::Float2(center));
+        graph.nodes[1].children[slot] = Some(leaf);
+
+        let mut color = FunctionGraph::default();
+        let position = color.add("get_float2", &[], Some(Value::Text("$pos".into())));
+        color.output = Some(color.add("swizzle1", &[position], Some(Value::Int(axis))));
+        graph.nodes[2].parameters = BTreeMap::from([
+            ("patterntype".into(), Value::Int(2)),
+            ("patternsize".into(), Value::Float2([4.0; 2])),
+            ("frameoffset".into(), Value::Float2(center.map(|v| 0.5 - v))),
+            ("opacity".into(), Value::Function(Box::new(color))),
+        ]);
+        let image = cook_at_dimensions(graph, &variables, 365809, 16, 16).unwrap().remove(0);
+        assert_eq!(image.get_gray(7, 7, false).to_bits(), bits);
+    }
+}
+
+#[test]
 fn rotated_paraboloid_interpolates_across_neighboring_pixel_pairs() {
     let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
     graph.nodes[0].parameters = BTreeMap::from([

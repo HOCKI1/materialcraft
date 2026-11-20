@@ -197,7 +197,7 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
                 }
 
                 let mut child_random = visit.seed;
-                for (slot, child) in node.children.iter().enumerate() {
+                for (child, center) in node.children.iter().zip(visit.quadrant_centers()) {
                     let child_seed = crate::random::quadrant_child(&mut child_random, visit.depth.saturating_add(1));
                     if let Some(child) = child {
                         let mut child_visit = visit.clone();
@@ -205,10 +205,7 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
                         child_visit.depth = visit.depth.saturating_add(1);
                         child_visit.extent *= 0.5;
                         child_visit.seed = child_seed;
-                        child_visit.center = [
-                            visit.center[0] + (if slot & 1 == 0 { -0.25 } else { 0.25 }) * visit.extent,
-                            visit.center[1] + (if slot & 2 == 0 { -0.25 } else { 0.25 }) * visit.extent,
-                        ];
+                        child_visit.center = center;
                         children.push(child_visit);
                     }
                 }

@@ -534,6 +534,54 @@ For each root’s 25 follow-up renders, the 5,120 U8, 553,728 U16, 78,336 F16 an
 
 In a single-worker release run, four interleaved measurements of the 128² default, 256² default and 512² filled cases gave median whole-graph cook times of 46, 259 and 1,138 ms for Alveolus (previously 45, 247 and 1,068 ms). Pattern Alveolus took 45, 253 and 1,083 ms (previously 43, 238 and 1,045 ms).
 
+### Sibling positions in subdivided pattern quadrants
+
+Crystal 2 matched all 5,104,128 pixels across 99 distinct combinations of dimensions, seed, warp intensity and output format. The five positions that differed at 256² now agree at every measured stage, including the U16 pattern and levels outputs and the final warp. Six other intact roots gained exact pixels.
+
+The first differing value in two BNW Spots 1 branches was the child position. Their exposed branch offsets matched. A sparse graph reproduces this with three quadrant nodes. Connect slot 0 of the root to the parent and offset the root by (−.25,−.25). Set the parent's offset to the position in the table. Connect its indicated slot to a square, set the square size to (4,4), the frame offset to (.5,.5) minus the parent position, and its grayscale opacity to the indicated component of `$pos`. With tiling off, seed 365809 and a 16² F32 output, read pixel (7,7).
+
+| Child slot | Parent position | Component | Previous F32 | Reference and current F32 |
+|---:|---|---|---:|---:|
+| 1 | (−.95354849, −.76964092) | x | −.828548491 | −.828548431 |
+| 2 | (.400343984, .941799581) | x | .275343984 | .275344014 |
+| 2 | (.111769885, −.181289986) | y | −.0562899858 | −.0562899709 |
+
+The upper-left position subtracts a quarter of the parent extent from each coordinate. Take a stored half-extent step right for the upper-right x. Take one half-extent step down for the bottom row and step left from that stored right x for the lower-left child. Step right again for the last child. Each operation rounds to F32. Disconnected slots still contribute their coordinate steps. The regression failed on the preceding build with `bf541bc1` in the first case. The measured result is `bf541bc0`.
+
+| Original sparse probes | Renders | Previous exact | Current exact / compared | Maximum F32 error before / after |
+|---|---:|---:|---:|---:|
+| Each child slot and coordinate at the root | 55 | 13,696 | 14,080/14,080 | 5.96046448e−8 / 0 |
+| Each slot one subdivision deeper | 59 | 14,592 | 15,104/15,104 | 5.96046448e−8 / 0 |
+| Seven successive subdivisions | 120 | 29,696 | 30,720/30,720 | 1.19209290e−7 / 0 |
+| Five graphs across U8, U16, F16 and F32 | 60 | 29,504 | 30,720/30,720 | 1.19209290e−7 / 0 |
+
+For the deep probes connect one child per level. Use slot sequences 2310233, 1100311 and 0123213. At each leaf read x and y separately from `$pos`. Each path used 20 sequences of seven pairs of offsets, including all zeros and independent signed offsets. For the 18 random sequences draw x then y from a PCG64 stream seeded 358469 in path order. Draw each sequence uniformly over ±(1,.2,2,.03,5,.5,.125,8,1,4,1,.01,.01,.25,3,.5,1,2) respectively and store in F32. All 30,720 pixels in the five four-format graphs also survived a MaterialCraft save and reopen in both apps.
+
+| Intact root and earlier matrix | Renders | Previous exact | Current exact / compared | Maximum error U8 / U16 / F16 / F32 |
+|---|---:|---:|---:|---|
+| BNW Spots 1 | 34 | 201,559 | 204,103/204,288 | 0 / 2 / 0.00048828125 / 2.16364861e−05 |
+| BNW Spots 3 | 27 | 184,346 | 185,643/185,856 | 0 / 1 / 0.00048828125 / 1.53183937e−05 |
+| Clouds 1 | 17 | 145,634 | 145,652/145,664 | 0 / 4 / 0 / 5.49852848e−05 |
+| Clouds 2 | 16 | 129,223 | 129,258/129,280 | 0 / 2 / 0 / 0 |
+| Directional Noise | 23 | 147,080 | 147,600/147,712 | 0 / 2 / 0 / 0 |
+| Dirt Gradient | 16 | 129,046 | 129,176/129,280 | 0 / 2 / 0 / 1.83582306e−05 |
+
+The other 34 intact roots retained their earlier counts and maxima. All 152 existing stamp-control sets retained their raw comparison results. Cells 1 retained all 2,975,232 pixels in its 89-setting matrix.
+
+| New or expanded root matrix | Renders | U8 exact · max | U16 exact · max | F16 exact · max | F32 exact · max |
+|---|---:|---:|---:|---:|---:|
+| Crystal 2, union of distinct settings | 99 | 964,096/964,096 · 0 | 1,632,256/1,632,256 · 0 | 964,096/964,096 · 0 | 1,543,680/1,543,680 · 0 |
+| BNW Spots 1, larger settings | 32 | 94,720/94,720 · 0 | 169,388/169,472 · 2 | 94,720/94,720 · 0 | 169,396/169,472 · 2.16364861e−05 |
+| BNW Spots 3, larger settings | 32 | 94,720/94,720 · 0 | 169,169/169,472 · 1 | 94,712/94,720 · 0.00048828125 | 169,128/169,472 · 1.53183937e−05 |
+
+For Crystal 2 repeat the [previous 40 settings and earlier root matrices](#interpolation-across-pairs-of-pixels-in-cells-1). The next ten (width×height, intensity, seed) triples are (128²,61.75,365075), (256²,60.5,365075), (256²,61.75,365076), (256²,63.75,42), (128×256,61.75,365075), (256×128,.0625,368003), (256×512,47.25,368131), (512×256,22.5,368173), (512²,61.75,365075) and (64×128,7.125,0). Use U16 and F32 throughout. Add U8 and F16 at zero-based indices 0,2,4,5,7,8. The two saved matrices reproduced 2,214,912/2,214,912 and 2,703,360/2,703,360 pixels within each app.
+
+For the 32 larger spots renders choose (16×32,32²,64×32,32×64,64×128,128×64,128²,256×128,128×256,256²) with disorder (default,.03125,.5625,.875,0,1,.7421875,.5,.203125,.96875). Use seeds 0 and 42 at indices 0 and 1. At index j≥2 use 366001+103i+61j with root index i=57 or 58. Render U16 and F32 at every size. Add U8 and F16 at indices 0,2,3,4,6,9. In the [earlier eight BNW Spots 1 settings](#isolating-the-generators-in-spots-bricks-and-cells), all nine recorded stages now agree. All 113,664 pixels also match on the separate 24-render BNW Spots 1 matrix. On the larger matrix MaterialCraft reopened both saved roots with 528,384/528,384 identical pixels per file. The reference reproduced the BNW Spots 3 save exactly. For BNW Spots 1 it reproduced 528,375/528,384 on the first comparison. Alternating the 128×64 U16 and 256² F16 settings eight times for each file produced both observed outputs on **each** file. The U16 variants differed at eight pixels by up to two levels and the F16 variants at one by .000244140625.
+
+A reproducible BNW Spots 1 discrepancy remains with defaults, seed 0 and a 128² output. At (13,25) its 32² pattern generator stores U16 4,031 in the reference and 4,030 in MaterialCraft. Render its four contributing paraboloids individually in F32, at full gain .061428577 and with both tiling axes enabled. Their values agree at that pixel (.0110335825,.00197766931,.00639200816,.0420982391). The complete standalone renders match 4,096/4,096 pixels. Six forced reference re-cooks of the generator each gave .06150150299. Another setting at 128×64, disorder 1 and seed 372177 gave both 12,725 and 12,726 for the U16 stage at (32,22). Both spots roots remain open.
+
+Four alternating single-worker release measurements at 64² gave medians of 296.9 to 285.5 ms for BNW Spots 1 and 251.1 to 245.4 ms for BNW Spots 3. The depth-seven and depth-nine four-way stress graphs at 16² went from 49.3 to 49.6 ms and from 781.8 to 779.8 ms. All 297 release node tests, formatting, strict workspace Clippy, dependency layers and WebAssembly checks passed.
+
 ### Interpolation across pairs of pixels in Cells 1
 
 The last differing Cells 1 sample came from a white paraboloid at (1,52) on a 64×128 image. Given the same three vertices, an independently drawn triangle reproduced the reference’s two signed F32 coordinates, .3740799427 and .2336531430. The previous CPU result was .3740799129 for the first coordinate. The pattern output stored `3f4e334f` in the reference and `3f4e3350` in MaterialCraft. Reuse the [single stamp, resolution and seed](#bounds-and-pixel-coordinates-of-rotated-pattern-stamps). Its pixels (1,48), (1,52) and (5,52) now store `3ecb3c42`, `3f4e334f` and `3ee8375a` in both apps.
