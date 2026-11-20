@@ -270,6 +270,50 @@ fn stamp_gradients_keep_the_phase_of_extended_turns() {
 }
 
 #[test]
+fn gaussian_stamp_coordinates_follow_the_pixel_footprint() {
+    let definition = find("fx_map").unwrap();
+    let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
+    graph.nodes[0].parameters = BTreeMap::from([
+        ("patterntype".into(), Value::Int(6)),
+        ("blendingmode".into(), Value::Int(1)),
+        ("patternsize".into(), Value::Float2([3.0, 1.5])),
+        ("frameoffset".into(), Value::Float2([-0.25; 2])),
+    ]);
+    let params = resolve_params(
+        definition,
+        &BTreeMap::from([
+            ("pattern".into(), Value::PatternGraph(Box::new(graph))),
+            ("color_mode".into(), Value::Bool(false)),
+            ("roughness".into(), Value::Float(0.0)),
+            ("opacity".into(), Value::Float(0.995)),
+        ]),
+    );
+    for (w, h, x, y, expected) in [
+        (16, 16, 7, 1, 0x3ef8_8006),
+        (16, 32, 0, 14, 0x3eb2_37e3),
+        (32, 32, 0, 14, 0x3eac_19c4),
+        (8, 64, 0, 30, 0x3e9b_8a3c),
+        (64, 128, 2, 62, 0x3e85_65a0),
+        (128, 256, 0, 126, 0x3e69_16dd),
+    ] {
+        let context = CookContext {
+            w,
+            h,
+            seed: 223,
+            format: materialcraft_core::OutputFormat::F32,
+            input_formats: &[],
+            tile: false,
+            inputs: &[],
+            params: &params,
+            resource: &|_| None,
+            vars: &BTreeMap::new(),
+        };
+        let image = (definition.cook)(&context).unwrap().remove(0);
+        assert_eq!(image.get_gray(x, y, false).to_bits(), expected, "{w}x{h} at ({x},{y})");
+    }
+}
+
+#[test]
 fn oblique_square_keeps_the_last_sample_inside_its_edge() {
     let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
     graph.nodes[0].parameters = BTreeMap::from([

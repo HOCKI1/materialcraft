@@ -510,6 +510,30 @@ Draw an unrotated, white, single stamp on black with maximum blending and no til
 
 Every reference Gaussian pixel outside its paired disc was zero in both sweeps, 29,406/29,406 and 127,365/127,365. The probes leave equality at exactly r² = 1 unresolved. The implementation applies the cutoff only above one. Differences in the interior remain. On the earlier whole-root matrices, Alveolus still matches 332,280/334,336 pixels and the pattern variant 201,876/203,264. Their maximum U8/U16/F16/F32 errors are 0/1,000/0/3.05175781e−5 and 0/2/0/1.52587891e−5 respectively. The two brick-generator Tile helpers each retain 114,688/114,688 LUM16 pixels across four renders. The boundary regression failed before the fix. All 262 release node tests, formatting, strict workspace Clippy, layers and WebAssembly passed.
 
+### Pixel coordinates for whole-pixel pattern stamps
+
+The two Alveolus roots use the same Gaussian stamp at different resolutions. In the 32×16 unfilled Alveolus case, the 16² generator pixel at (15,9) previously stored 31,807 in U16. The reference stores 31,808. It moves two output pixels, at (7,9) and (23,9). An original 16² Gaussian at center (.25,.25), size (3,1.5), maximum blend, opacity .995 and zero rotation distinguishes the coordinate step before storage. At (7,1) its F32 bits are `3ef88006`. The earlier three-guard-bit product gives `3ef88001`. At physical stamp size 48×24 the measured steps are `3d2aaaa9` horizontally and `3daaaaab` vertically.
+
+For an axis-aligned analytic stamp whose edges land on whole pixels, form its two pixel extents plus .5. Truncate their product to F32 before taking its reciprocal. The interpolation basis on each axis is the opposite padded extent times that reciprocal, truncated to F32. The coordinate step multiplies this basis by F32(2 + 1/extent). Treat the span’s lowest significand bit as a separate partial product. Recode the remaining bits in signed radix four, round each partial product’s magnitude to a multiple of 2¹⁷, and add 2²⁰ before storing the normalized product. Use the left edge and the preceding four-pixel boundary to set up the affine coordinate. The saved regression exercises six rectangular and square Gaussian samples. Fractional edges and oblique angles still have separate unverified cases. Sampled images retain their point and mip filtering coordinates.
+
+**Independent interpolation check.** Render a four-vertex triangle strip with a 4×4 viewport and pixel-space corners (0,0), (X,0), (0,Y), (X,Y). Give the corners the respective attributes (0,0), (A,0), (0,A), (A,A), with clip W equal to one. Read the raw F32 pair at pixel (0,0) and double it to obtain the two gradients. The two directions matched at 78,000/78,000 calibration values and 40,000/40,000 held-out values, maximum error zero. The held-out set included quarter-pixel extents up to 1,600 and amplitudes with eleven exponent values. Truncating the area corrected the 1,000 held-out products that differed with a nearest-rounded area.
+
+For a shorter reproducible sweep, start a 32-bit unsigned state at `0x51c37e29`. Advance by `state = 1664525 × state + 1013904223` modulo 2³². For each of 8,192 rectangles take three successive states a, b and c. Obtain X and Y from a and b with `1 + (s mod 1599) + ((s >> 20) & 3)/4`. Use the F32 amplitude with bits `((121 + c mod 11) << 23) | (c >> 9)`. The unit-amplitude check matches 16,384/16,384 gradients and the variable-amplitude check matches 16,384/16,384, maximum error zero, on the same Direct3D 11 device as the reference.
+
+| Complete output or independent control | Renders | Exact pixels | Maximum error |
+|---|---:|---:|---:|
+| Alveolus, earlier root matrices | 41 | 334,336/334,336 | 0 |
+| Pattern Alveolus, earlier root matrices | 33 | 203,264/203,264 | 0 |
+| Alveolus, follow-up matrix | 25 | 681,728/681,728 | 0 |
+| Pattern Alveolus, follow-up matrix | 25 | 681,728/681,728 | 0 |
+| Unit horizontal ramp at zero and half turns, F32 | 72 | 2,032,128/2,032,128 | 0 |
+| Paraboloid, Gaussian and horizontal ramp in three render regions, F32 | 90 | 552,960/552,960 | 0 |
+| Previously verified roots using the pattern primitive | 167 | 3,139,328/3,139,328 | 0 |
+
+For each root’s 25 follow-up renders, the 5,120 U8, 553,728 U16, 78,336 F16 and 44,544 F32 output pixels also match after reopening its MaterialCraft save in both apps. The 17 previously verified roots were rechecked with their recorded settings, including the matching preview size for Position Debug. Gradient Linear 1 still differs at 224/435,968 pixels across 47 renders. The extended 1.5-turn case remains open. Gradient Linear 3 now matches 277,760/277,760 pixels across its earlier 23 renders. [Root settings and saved-file checks](#reopening-sbs-files-with-release-number-headers) · [Ramp dimensions, seeds and extended turns](#linear-gradient-sampling-on-rectangular-targets) · [Render-region controls](#pattern-coordinates-under-a-change-of-render-region)
+
+In a single-worker release run, four interleaved measurements of the 128² default, 256² default and 512² filled cases gave median whole-graph cook times of 46, 259 and 1,138 ms for Alveolus (previously 45, 247 and 1,068 ms). Pattern Alveolus took 45, 253 and 1,083 ms (previously 43, 238 and 1,045 ms).
+
 ### Reopening SBS files with release-number headers
 
 Save both Alveolus roots, then open each saved file as a user package in the reference app (16.0.7). With the earlier writer both files declare format version `0.1.3` and updater `0.4.1`. Both opens fail. Changing only the format revision to `1.1.0.202502` makes both files open. Changing only the updater, package identity or graph name leaves both opens failing.

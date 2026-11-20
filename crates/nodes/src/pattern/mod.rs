@@ -1,6 +1,7 @@
 mod bitmap;
 mod blend;
 mod catalog;
+mod coordinates;
 mod evaluation;
 mod footprint;
 mod pattern_stamp;

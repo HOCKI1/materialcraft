@@ -2,7 +2,7 @@ use craft_texture::{Image, Kind, Limits};
 use materialcraft_core::OutputFormat;
 use std::sync::Arc;
 
-use super::{bitmap, blend, footprint::Footprint, pattern_stamp::PatternStamp, region::Region, shape};
+use super::{bitmap, blend, coordinates::PixelPlanes, footprint::Footprint, pattern_stamp::PatternStamp, region::Region, shape};
 use crate::CookContext;
 use crate::atomic::input_resize::{InputResize, resized_input};
 use crate::function::flush_subnormal;
@@ -107,11 +107,21 @@ pub(super) fn render(context: &CookContext, stamps: &[PatternStamp], max_depth: 
                 let center = [center[0] + repeat_x as f32 * period[0], center[1] + repeat_y as f32 * period[1]];
                 let [[left, right], [top, bottom]] = render_region.bounds(center, radius, [width, height]);
                 let samples = u64::from(right.saturating_sub(left)) * u64::from(bottom.saturating_sub(top));
+                if samples == 0 {
+                    continue;
+                }
                 budget = budget.checked_sub(samples).ok_or("pattern rendering exceeded its pixel budget")?;
+                // Sampled bitmaps keep the texture coordinates used by point and mip filtering.
+                let planes = if texture.is_none() { PixelPlanes::new(&frame, &render_region, center, stamp.size, [width, height]) } else { None };
                 for y in top..bottom {
                     for x in left..right {
-                        let point = render_region.point([x, y], [width, height]);
-                        let Some(local) = frame.local(point, center, stamp.size) else { continue };
+                        let local = if let Some(planes) = &planes {
+                            planes.sample(x, y)
+                        } else {
+                            let point = render_region.point([x, y], [width, height]);
+                            let Some(local) = frame.local(point, center, stamp.size) else { continue };
+                            local
+                        };
 
                         let (foreground, stamp_alpha) = if let Some((input, format)) = &texture {
                             let sample = bitmap::sample(input, local, *format, stamp.filtering == 2).map(flush_subnormal);

@@ -33,6 +33,12 @@ impl Region {
         std::array::from_fn(|axis| self.start[axis] + (pixel[axis] as f32 + 0.5) / size[axis] as f32 * self.span[axis])
     }
 
+    pub fn pixel_interval(&self, axis: usize, center: f32, radius: f32, pixels: u32) -> [f64; 2] {
+        let origin = f64::from(center) - f64::from(self.start[axis]);
+        let scale = f64::from(pixels) / f64::from(self.span[axis]);
+        [(origin - f64::from(radius)) * scale, (origin + f64::from(radius)) * scale]
+    }
+
     pub fn bounds(&self, center: [f32; 2], radius: [f32; 2], size: [u32; 2]) -> [[u32; 2]; 2] {
         std::array::from_fn(|axis| {
             let a = (center[axis] - radius[axis] - self.start[axis]) / self.span[axis];
