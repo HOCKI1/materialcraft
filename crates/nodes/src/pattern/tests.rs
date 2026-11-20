@@ -8,6 +8,17 @@ fn coverage(shape: i32, x: f32, y: f32, variation: f32) -> f32 {
 }
 
 #[test]
+fn gaussian_stamps_stop_at_the_disc_boundary() {
+    let x = 0.6;
+    let inside = 0.79999;
+    let outside = 0.80001;
+    assert_eq!(coverage(3, x, inside, 0.0), 1.0);
+    assert!(coverage(6, x, inside, 0.0) > 0.0);
+    assert_eq!(coverage(3, x, outside, 0.0), 0.0);
+    assert_eq!(coverage(6, x, outside, 0.0), 0.0);
+}
+
+#[test]
 fn radial_stamps_keep_the_measured_center_and_skirt() {
     for (x, y, expected) in [
         (0xbf7c0000, 0x3c7fffbf, [0x3cfc0000, 0x35762800, 0x36cecb1c]),

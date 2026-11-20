@@ -489,6 +489,27 @@ For each of the nine [boolean, signed integer and float argument controls](#unco
 
 Independently name and save the eight scalar packages and the 18 single-argument typed packages through MaterialCraft. Open each saved file in the reference under its fresh identifiers and repeat the comparisons. All 6,400/6,400 LUM32F pixels and 24/24 typed values across 34 outputs match, maximum error zero. Formatting, the release suites for core, nodes, formats, engine, eval and UI, strict workspace Clippy, dependency layers and WebAssembly passed.
 
+### Gaussian coverage at the disc boundary
+
+The Gaussian stamp in both Alveolus roots now writes zero outside its unit disc. In the 54 F32 [render-region pairs](#pattern-coordinates-under-a-change-of-render-region), match the Gaussian to the paraboloid at the same coordinate. For each positive paraboloid sample, find the F32 squared radii that round to its observed value under max(0, 1 − r²). Across 147,664/147,664 samples at least one of those radii reproduces the reference Gaussian exactly. For 67,889 samples the paraboloid identifies a unique radius, maximum Gaussian error zero. At 61 additional pixels MaterialCraft previously produced a positive Gaussian where the paraboloid was zero. The largest such value was 7.75708031e−9. The reference Gaussian was zero at all 61 pixels.
+
+Draw an unrotated, white, single stamp on black with maximum blending and no tiling. Use the four rows below. For each row move the center so the chosen pixel center samples (x,y) = direction × sqrt(1+d) in signed stamp coordinates. Render the disc, paraboloid and Gaussian separately in F32. Use d = 0 and both signs of .000001, .000005, .00001, .00002, .00005, .0001 and .0003. The seed is 164117 + 43 times the zero-based row + the position in ascending d. In a second sweep use d = k × 2⁻²⁶ for k from −32 through 32 and base seed 165311.
+
+| Output size | Sample pixel | Signed stamp size | Direction |
+|---|---|---|---|
+| 16×16 | (8,8) | (.5,.5) | (.6,.8) |
+| 32×16 | (17,6) | (.75,.3125) | (−.8,.6) |
+| 16×32 | (5,19) | (−.375,.625) | (.6,−.8) |
+| 32×32 | (22,17) | (.625,−.4375) | (−.6,−.8) |
+
+| Gaussian outputs | Renders | Exact pixels before | Exact pixels after | Maximum error after |
+|---|---:|---:|---:|---:|
+| Three render regions, four formats | 135 | 537,415/663,552 | 537,476/663,552 | U8 0, U16 1, F16 3.05175781e−5, F32 8.94069672e−7 |
+| First F32 sweep | 60 | 30,046/34,560 | 30,073/34,560 | 1.25169754e−6 |
+| Second F32 sweep | 260 | 130,128/149,760 | 130,223/149,760 | 5.66244125e−7 |
+
+Every reference Gaussian pixel outside its paired disc was zero in both sweeps, 29,406/29,406 and 127,365/127,365. The probes leave equality at exactly r² = 1 unresolved. The implementation applies the cutoff only above one. Differences in the interior remain. On the earlier whole-root matrices, Alveolus still matches 332,280/334,336 pixels and the pattern variant 201,876/203,264. Their maximum U8/U16/F16/F32 errors are 0/1,000/0/3.05175781e−5 and 0/2/0/1.52587891e−5 respectively. The two brick-generator Tile helpers each retain 114,688/114,688 LUM16 pixels across four renders. The boundary regression failed before the fix. All 262 release node tests, formatting, strict workspace Clippy, layers and WebAssembly passed.
+
 ## 2026-11-19 root comparisons
 
 ### Texture sampling in pattern functions

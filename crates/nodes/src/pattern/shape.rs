@@ -13,6 +13,7 @@ pub(super) fn profile(pattern: i32, x: f32, y: f32, variation: f32) -> Result<(f
         }
         3 => radial,
         4 => quartic_bell(radius_squared).max(0.0),
+        5 if radius_squared > 1.0 => 0.0,
         5 => {
             const FALLOFF: f32 = 11.1 * std::f32::consts::LOG2_E;
             (crate::function::pixel_exp2(-FALLOFF * radius_squared) - 0.000_015_1).max(0.0)
