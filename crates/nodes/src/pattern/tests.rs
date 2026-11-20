@@ -392,6 +392,38 @@ fn empty_switches_at_later_depths_still_affect_roughness() {
 }
 
 #[test]
+fn missing_direct_pattern_inputs_use_the_field_default() {
+    use materialcraft_core::ValueType;
+
+    let direct = FunctionGraph::input("strength", ValueType::Float);
+    let mut derived = direct.clone();
+    let read = derived.output.unwrap();
+    let offset = derived.add_constant(Value::Float(0.375));
+    derived.output = Some(derived.add("add", &[read, offset], None));
+    for (expression, binding, expected) in [
+        (direct.clone(), None, 1.0),
+        (direct.clone(), Some(0.0), 0.0),
+        (direct, Some(0.375), 0.375),
+        (derived, None, 0.375),
+        (FunctionGraph::input("tint", ValueType::Float4), None, 1.0),
+    ] {
+        let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
+        graph.nodes[0].parameters = BTreeMap::from([("patterntype".into(), Value::Int(2)), ("opacity".into(), Value::Function(Box::new(expression)))]);
+        let vars = binding.map(|v| ("strength".into(), Value::Float(v))).into_iter().collect();
+        let image = cook_with_variables(graph, &vars, 7).unwrap().remove(0);
+        assert_eq!(image.get_gray(8, 8, false), expected);
+    }
+
+    let mut graph = PatternGraph::with_root(PatternNodeKind::Iterate);
+    let square = graph.add(PatternNodeKind::Quadrant).unwrap();
+    graph.nodes[0].children[1] = Some(square);
+    graph.nodes[0].parameters.insert("numberadded".into(), Value::Function(Box::new(FunctionGraph::input("count", ValueType::Integer))));
+    graph.nodes[1].parameters.insert("patterntype".into(), Value::Int(2));
+    graph.nodes[1].parameters.insert("patternsize".into(), Value::Function(Box::new(FunctionGraph::input("extent", ValueType::Float2))));
+    assert!(cook(graph).unwrap()[0].data().iter().all(|&value| value == 1.0));
+}
+
+#[test]
 fn a_quadrant_only_publishes_writes_from_active_stamp_properties() {
     for (pattern, property, result, expected) in [
         (0, "opacity", Value::Float(0.0), 0.125),

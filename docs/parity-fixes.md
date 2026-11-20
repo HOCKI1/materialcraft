@@ -387,6 +387,25 @@ Isolate the shortest connected path from the pattern root to a drawing quadrant 
 | noise_crystal_1 | 4 | 35,328 | 30,215/35,328 | 0 / 1 / .00048828125 / .00000101327896 |
 | noise_crystal_2 | 12 | 17,664 | 17,512/17,664 | 0 / 1 / .000244140625 / .00000238418579 |
 
+### Direct pattern links with an unbound variable
+
+An unbound user variable connected directly to a pattern property leaves that property at its default. Within an arithmetic expression the same getter contributes its typed zero. A bound zero supplies an actual zero. MaterialCraft now distinguishes these cases when evaluating a pattern graph.
+
+| Original control | Renders | Exact pixels / compared | Maximum F32 / U16 error |
+|---|---:|---:|---|
+| Grayscale and RGBA square, scalar and Float4 opacity | 84 | 35,840/35,840 | 0 / 0 |
+| Square size from a Float2 link | 21 | 8,960/8,960 | 0 / 0 |
+| Iterate count from an integer link | 21 | 8,960/8,960 | 0 / 0 |
+| Seed inheritance from a Boolean link | 21 | 8,310/8,960 | .694821596 / 40631 |
+
+For the first row, render a centered square of size (.75,.75). In each output kind and for each opacity type, compare seven settings. Omit opacity, read an unbound user variable directly, bind that variable to zero or a second value in an outer Iterate, add the second value to an unbound read, or author either value directly. Use .375 for the scalar and (.25,.5,.75,1) for the vector. Author the scalar controls as constant-return expressions and the vector controls as literal colors. In grayscale, the vector expression supplies its alpha and the literal vector supplies its mean RGB. Use 16² F32, 32×16 F32 and 32×16 U16 at seeds 100801 through 100803. Before the change 32,960/35,840 pixels matched, with maxima of 1 F32 and 65535 U16 levels.
+
+For the next three rows start with an outer Iterate's initial child. Use a square of size (.8125,.625) and RGBA (.125,.25,.375,1). Compare omission, an unbound read, explicit constant-return expressions for zero and a second value, matching assignments in the outer Iterate, and a derived expression. Use (.375,.625) for the second size. To measure count, insert a second Iterate and draw (.125,.25,.375,.25) on its repeated branch with a changed count of 2. For seed inheritance, use a seed offset of 43, a random stamp color, true as the second value and logical negation for the derived expression. For property index j in the displayed order use the same sizes and formats at seed 101621+11j+i, with i from 0 through 2. Together these rows improved from 23,650 to 26,230/26,880. The remaining 650 pixels occur when the outer Iterate assigns false to the seed-inheritance variable. The reference uses the field default there. [Quadrant mode reads and writes](#assignments-in-quadrant-mode-expressions)
+
+Six additional original files at format version 1.1.0.202502 were saved by MaterialCraft, reopened in the reference app and compared against their source-file renders. The four pattern files exercise writes from empty and drawing squares, an image-index expression and an exposed bilinear filter. The two pixel-read files exercise an 8² source and a 32×16 source feeding a 16² output. All 19 stored-image comparisons matched, **6,912/6,912 pixels**, maximum error zero. [Pattern properties](#active-properties-of-empty-and-drawing-quadrants) · [Filtered pixel reads](#subnormal-values-in-filtered-pixel-reads)
+
+The 19 previously verified roots also match all 3,211,776 pixels in 159 renders after the direct-link change, maximum error zero.
+
 ### Assignments in quadrant mode expressions
 
 Local assignments inside the pattern type, blend mode, image filter, premultiplication and seed-inheritance expressions affect that expression's result. Later properties and children retain their incoming variables. Across the [117 child-color controls](#active-properties-of-empty-and-drawing-quadrants), the count improved from 49,120 to **49,920/49,920 exact RGBA pixels**, maximum error zero. The image-index expression still publishes its assignment on a bound image stamp.

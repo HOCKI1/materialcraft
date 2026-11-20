@@ -72,6 +72,10 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
 
         let mut evaluate = |id: &str, random: &mut FunctionRandom| -> Result<Option<Value>, String> {
             let Some(program) = functions.get(&(node.id, id)) else { return Ok(node.parameters.get(id).cloned()) };
+            // An unbound direct link leaves the field at its default. A getter inside an expression still evaluates to its typed zero.
+            if program.input_identifier().is_some_and(|name| !name.starts_with('$') && !variables.contains_key(name)) {
+                return Ok(None);
+            }
             let evaluation = EvaluationContext {
                 image_formats: context.input_formats.get(1..).unwrap_or(&[]),
                 scope: crate::function::FunctionScope::FxMap,
