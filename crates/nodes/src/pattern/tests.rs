@@ -392,6 +392,33 @@ fn empty_switches_at_later_depths_still_affect_roughness() {
 }
 
 #[test]
+fn a_quadrant_only_publishes_writes_from_active_stamp_properties() {
+    for (pattern, property, result, expected) in [
+        (0, "opacity", Value::Float(0.0), 0.125),
+        (0, "branchoffset", Value::Float2([0.0; 2]), 0.75),
+        (2, "opacity", Value::Float(0.0), 0.75),
+        (2, "imageindex", Value::Int(0), 0.125),
+    ] {
+        let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
+        let child = graph.add(PatternNodeKind::Quadrant).unwrap();
+        graph.nodes[0].children[0] = Some(child);
+        let parent = &mut graph.nodes[0].parameters;
+        parent.insert("patterntype".into(), Value::Int(pattern));
+        parent.insert("opacity".into(), Value::Float(0.0));
+        let mut expression = FunctionGraph::default();
+        let value = expression.add_constant(Value::Float(0.75));
+        let write = expression.add("set", &[value], Some(Value::Text("marker".into())));
+        let result = expression.add_constant(result);
+        expression.output = Some(expression.add("sequence", &[write, result], None));
+        parent.insert(property.into(), Value::Function(Box::new(expression)));
+        graph.nodes[1].parameters.insert("patterntype".into(), Value::Int(2));
+        graph.nodes[1].parameters.insert("opacity".into(), Value::Function(Box::new(FunctionGraph::input("marker", materialcraft_core::ValueType::Float))));
+        let image = cook_with_variables(graph, &BTreeMap::from([("marker".into(), Value::Float(0.125))]), 19).unwrap().remove(0);
+        assert_eq!(image.get_gray(3, 3, false), expected, "pattern {pattern}, property {property}");
+    }
+}
+
+#[test]
 fn an_empty_switch_still_runs_its_seed_assignment() {
     let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
     let repeat = graph.add(PatternNodeKind::Iterate).unwrap();

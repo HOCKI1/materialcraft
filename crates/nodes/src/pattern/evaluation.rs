@@ -91,7 +91,16 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
         visit.seed = if inherits { visit.seed.wrapping_add(offset) } else { offset };
         let mut parameters = BTreeMap::new();
         let mut random = FunctionRandom::image(visit.seed);
-        for parameter in definition.params.iter().filter(|p| !matches!(p.id, "randomseed" | "randominherited")) {
+        let mut pattern = if node.kind == PatternNodeKind::Quadrant { evaluate("patterntype", &mut random)?.and_then(|v| v.as_i32()).unwrap_or(0) } else { 0 };
+        let image_pattern = pattern == 1 || (256..256 + crate::MAX_IMAGE_INPUTS as i32).contains(&pattern);
+        // An unused stamp property cannot publish a Set to a child. The branch offset still positions that child.
+        let active = |id: &str| match id {
+            "patterntype" | "randomseed" | "randominherited" => false,
+            "branchoffset" => true,
+            "imageindex" | "imagefiltering" | "imagepremul" => image_pattern,
+            _ => node.kind != PatternNodeKind::Quadrant || pattern != 0,
+        };
+        for parameter in definition.params.iter().filter(|p| active(p.id)) {
             let mut stream = FunctionRandom::pattern(visit.seed, parameter.id);
             let value = evaluate(parameter.id, stream.as_mut().unwrap_or(&mut random))?.unwrap_or_else(|| parameter.default.clone());
             parameters.insert(parameter.id, value);
@@ -106,8 +115,7 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
             PatternNodeKind::Quadrant => {
                 let offset = vector("branchoffset");
                 visit.center = [visit.center[0] + offset[0], visit.center[1] + offset[1]];
-                let mut pattern = integer("patterntype");
-                if pattern == 1 || (256..256 + crate::MAX_IMAGE_INPUTS as i32).contains(&pattern) {
+                if image_pattern {
                     let requested = integer("imageindex");
                     let slot = if functions.get(&(node.id, "imageindex")).is_some_and(|program| !program.output_is_literal()) {
                         // A runtime selector advances across disconnected slots and stops at the last wired image.
