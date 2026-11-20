@@ -530,6 +530,89 @@ To reproduce the twelve-mode sweep, take mode j = 0…11. Cycle output size thro
 
 The one remaining mismatch in this sweep is the 64×32 F32 shape-3 render, with 1,864/2,048 pixels exact. On the same eight inputs, setting only the shape to 3 gives 1,856/2,048 exact. Each of the other eleven modes matches all 2,048 pixels with the same inputs and remaining settings. Across five stage controls the sampled input, active flag, ray distance, atlas index, cube normal and stored object normal each match 10,240/10,240 pixels. The vector before encoding matches 7,372/10,240, maximum error 2.38418579e−7. The root remains in progress.
 
+### Rectangular fields in the two brick-generator Tile helpers
+
+Both Tile helpers matched their four earlier U16 cases, 114,688 pixels each. New rectangular fields expose differences in each helper. For a 16×32 and 32×16 U16 input set the stored level at (x,y) to (1471x + 317y + 71xy + 17) mod 65536. Test defaults, then input image, square, disc, paraboloid and Gaussian patterns in that order. On the changed cases set the X/Y counts to (3,5), scale to .8125, offset to .375, global offset to (.125,−.0625) and opacity to .6875. Render each case in U8, U16, F16 and F32. Use seed 171443 + 11j + width, with defaults at j=0.
+
+| Pattern | Exact / 4,096 pixels, brick generator | Exact / 4,096 pixels, pattern brick generator |
+|---|---:|---:|
+| Defaults | 4,096 | 4,096 |
+| Input image | 4,076 | 4,012 |
+| Square | 4,076 | 4,012 |
+| Disc | 4,096 | 4,096 |
+| Paraboloid | 3,635 | 3,638 |
+| Gaussian | 3,598 | 3,620 |
+
+The first helper matches 23,577/24,576 new pixels and the second 23,474/24,576. Each has maximum errors of 175 U8 levels, 45,055 U16 levels, .6875 F16 and .6875 F32. For a square the first 16×32 F32 result differs at five pixels and the 32×16 result matches. The other helper differs at 18 and three respectively. The paraboloid and Gaussian have much smaller F32 differences, at most 1.11758709e−6. In the reference app, independently named files saved by MaterialCraft reproduce all 24,576/24,576 original reference pixels for each helper, zero maximum error across the four formats. The two inventory rows are in progress.
+
+### Root checks after clipping Gaussian stamps
+
+A scan of the reachable pattern nodes in the 546 inventory graphs found 61 roots with an explicit Gaussian or a variable stamp type. The table reports the previous whole-root captures compared again after the [disc cutoff](#gaussian-coverage-at-the-disc-boundary). It includes the archived authored defaults, changed controls and seeds, the available four-format and independent-field captures, and the earlier square/rectangular sets where present. The inventory links the wider matrices for individual roots. Some dynamic selectors choose other shapes in these cases. The table records measured output agreement across all completed outputs. Dirt Gradient and Wood Fibers 2 also encountered the recorded evaluation budget in the rows marked with an asterisk. The [new rectangular Tile cases](#rectangular-fields-in-the-two-brick-generator-tile-helpers) are additional measurements.
+
+| Inventory index | Root | Cases | Exact / compared pixels | Maximum U8 / U16 / F16 / F32 error |
+|---:|---|---:|---:|---|
+| 19 | `alveolus.sbs/alveolus` | 41 | 332,280/334,336 | 0 / 1000 / 0 / 3.05175781e-05 |
+| 62 | `brick_generator.sbs/resources/Tile` | 4 | 114,688/114,688 | — / 0 / — / — |
+| 127 | `directionnal_noise.sbs/directionnal_noise` | 23 | 145,077/147,712 | 1 / 3 / 0.00048828125 / 3.36766243e-05 |
+| 132 | `dirt_gradient.sbs/dirt_gradient` | 16 | 128,396/129,280 | 0 / 2 / 0.000244140625 / 1.98483467e-05 |
+| 137 | `fibers_1.sbs/fibers_1` | 9 | 130,217/132,096 | 0 / 1 / 3.05175781e-05 / 1.52587891e-05 |
+| 155 | `fur_1.sbs/fur_1` | 9 | 121,609/132,096 | 1 / 2 / 0.00048828125 / 3.05175781e-05 |
+| 156 | `fur_2.sbs/fur_2` | 9 | 121,041/132,096 | 1 / 1 / 0.000244140625 / 6.7949295e-06 |
+| 160 | `gaussian_1.sbs/gaussian_1` | 9 | 130,730/132,096 | 0 / 2 / 0 / 1.52587891e-05 |
+| 161 | `gaussian_2.sbs/gaussian_2` | 9 | 131,076/132,096 | 0 / 1 / 0 / 1.52587891e-05 |
+| 163 | `gaussian_spots_2.sbs/gaussian_spots_2` | 9 | 124,083/132,096 | 1 / 1 / 0.000244140625 / 5.15580177e-06 |
+| 202 | `make_it_tile_patch.sbs/make_it_tile_patch` | 9 | 132,090/132,096 | 1 / 93 / 0.00146484375 / 0.00212101638 |
+| 203 | `make_it_tile_patch_grayscale.sbs/make_it_tile_patch_grayscale` | 9 | 132,092/132,096 | 0 / 47 / 0.000732421875 / 0.00105287135 |
+| 206 | `me_water_level.sbs/scratches_2` | 9 | 126,034/132,096 | 1 / 2 / 0.00048828125 / 1.98483467e-05 |
+| 223 | `messy_fibers_4.sbs/messy_fibers_4` | 8 | 85,783/115,712 | 1 / 200 / 0.00048828125 / 7.62939453e-05 |
+| 224 | `microscope_view.sbs/microscope_view` | 9 | 131,223/132,096 | 0 / 60 / 0.000244140625 / 1.52606517e-05 |
+| 236 | `noise_bnw_spots_1.sbs/bnw_spots_1` | 9 | 3,214/132,096 | 1 / 5957 / 0.0029296875 / 0.0030413866 |
+| 237 | `noise_bnw_spots_1_v2.sbs/bnw_spots_1` | 9 | 41,776/132,096 | 16 / 10 / 0.00048828125 / 0.000160634518 |
+| 241 | `noise_cells_1_v2.sbs/cells_1` | 9 | 132,092/132,096 | 1 / 0 / 0 / 0 |
+| 257 | `noise_directional_noise_4.sbs/directional_noise_4` | 9 | 126,388/132,096 | 0 / 1 / 0 / 2.89082527e-06 |
+| 258 | `noise_directional_noise_4_v2.sbs/directional_noise_4` | 9 | 127,092/132,096 | 1 / 1 / 0.00048828125 / 2.38418579e-06 |
+| 270 | `noise_dirt_gradient.sbs/dirt_gradient` | 9 | 131,270/132,096 | 0 / 1 / 0.000244140625 / 1.52587891e-05 |
+| 271 * | `noise_dirt_gradient_v2.sbs/dirt_gradient` | 9 | 110,035/115,712 | 10 / 578 / 0.0087890625 / 0.0088198483 |
+| 278 | `noise_fur_1.sbs/fur_1` | 9 | 111,105/132,096 | 1 / 2 / 0.00048828125 / 2.7179718e-05 |
+| 279 | `noise_fur_2.sbs/fur_2` | 9 | 119,335/132,096 | 1 / 2 / 0.000244140625 / 1.35600567e-05 |
+| 280 | `noise_fur_3.sbs/fur_3` | 9 | 120,953/132,096 | 1 / 1 / 0.000244140625 / 1.26212835e-05 |
+| 281 | `noise_gaussian_noise.sbs/gaussian_noise` | 9 | 125,703/132,096 | 0 / 1 / 0.000122070312 / 3.57627869e-07 |
+| 282 | `noise_gaussian_noise_v2.sbs/gaussian_noise` | 9 | 127,129/132,096 | 1 / 1 / 0.000244140625 / 5.96046448e-07 |
+| 285 | `noise_gaussian_spots_2.sbs/gaussian_spots_2` | 9 | 122,726/132,096 | 1 / 1 / 0.000244140625 / 1.37090683e-05 |
+| 286 | `noise_gaussian_spots_2_v2.sbs/gaussian_spots_2` | 9 | 126,481/132,096 | 1 / 1 / 0.000244140625 / 1.42455101e-05 |
+| 287 | `noise_liquid.sbs/liquid` | 9 | 127,452/132,096 | 1 / 268 / 0.0009765625 / 0.000885009766 |
+| 294 | `noise_microscope_view.sbs/microscope_view` | 9 | 130,081/132,096 | 1 / 48 / 0.000183105469 / 0.000137329102 |
+| 300 | `noise_plasma.sbs/plasma` | 9 | 129,346/132,096 | 0 / 2 / 0.000122070312 / 1.52885914e-05 |
+| 350 | `paths_tools.sbs/paths_trace` | 9 | 18,297/18,432 | 120 / 30822 / 0.62109375 / 1.22619528 |
+| 353 | `pattern_alveolus.sbs/alveolus` | 33 | 201,876/203,264 | 0 / 2 / 0 / 1.52587891e-05 |
+| 354 | `pattern_arc_pavement.sbs/arc_pavement` | 9 | 132,096/132,096 | 0 / 0 / 0 / 0 |
+| 357 | `pattern_brick_generator.sbs/resources/Tile` | 4 | 114,688/114,688 | — / 0 / — / — |
+| 361 | `pattern_fibers_1.sbs/fibers_1` | 9 | 130,217/132,096 | 0 / 1 / 3.05175781e-05 / 1.52587891e-05 |
+| 362 | `pattern_fibers_2.sbs/fibers_2` | 9 | 128,900/132,096 | 0 / 2 / 0 / 3.05175781e-05 |
+| 363 | `pattern_gaussian_1.sbs/gaussian_1` | 9 | 130,730/132,096 | 0 / 2 / 0 / 1.52587891e-05 |
+| 364 | `pattern_gaussian_2.sbs/gaussian_2` | 9 | 131,076/132,096 | 0 / 1 / 0 / 1.52587891e-05 |
+| 369 | `pattern_shape.sbs/shape_base` | 9 | 130,383/132,096 | 0 / 1 / 0.00048828125 / 1.37090683e-06 |
+| 370 | `pattern_splatter_circular.sbs/splatter_circular` | 9 | 130,916/132,096 | 223 / 57311 / 0.874511719 / 0.921568625 |
+| 371 | `pattern_splatter_circular.sbs/splatter_circular_color` | 9 | 130,715/132,096 | 254 / 65535 / 0.996078491 / 0.996078431 |
+| 373 | `pattern_tile_generator.sbs/tile_generator` | 9 | 130,546/132,096 | 0 / 1 / 0 / 0 |
+| 374 | `pattern_tile_generator.sbs/tile_generator_color` | 9 | 128,338/132,096 | 0 / 1 / 0 / 0 |
+| 375 | `pattern_tile_random.sbs/tile_random` | 9 | 132,096/132,096 | 0 / 0 / 0 / 0 |
+| 376 | `pattern_tile_random.sbs/tile_random_color` | 9 | 132,096/132,096 | 0 / 0 / 0 / 0 |
+| 418 | `perlin_noise_zoom.sbs/perlin_noise_zoom` | 9 | 126,082/132,096 | 0 / 1 / 0.000244140625 / 5.66244125e-07 |
+| 463 | `scratches_1.sbs/scratches_1` | 9 | 125,454/132,096 | 0 / 3 / 0.00048828125 / 1.63316727e-05 |
+| 464 | `scratches_2.sbs/scratches_2` | 9 | 112,902/132,096 | 1 / 2 / 0.00048828125 / 2.07424164e-05 |
+| 466 | `shape.sbs/shape_base` | 9 | 130,383/132,096 | 0 / 1 / 0.00048828125 / 1.37090683e-06 |
+| 489 | `splatter_circular.sbs/splatter_circular` | 9 | 130,443/132,096 | 222 / 57311 / 1 / 1.00000006 |
+| 490 | `splatter_circular.sbs/splatter_circular_color` | 9 | 130,794/132,096 | 247 / 65535 / 0.96862793 / 0.996078431 |
+| 520 | `tile_generator.sbs/tile_generator` | 9 | 129,318/132,096 | 0 / 1 / 0.00048828125 / 4.88758087e-06 |
+| 521 | `tile_generator_color.sbs/tile_generator_color` | 9 | 127,043/132,096 | 0 / 1 / 0.0009765625 / 4.88758087e-06 |
+| 522 | `tile_random.sbs/tile_random` | 9 | 105,004/132,096 | 223 / 57311 / 1 / 1.00000006 |
+| 523 | `tile_random.sbs/tile_random_color` | 9 | 105,004/132,096 | 250 / 65535 / 1 / 1.00000006 |
+| 534 | `vertical_noise.sbs/vertical_noise` | 9 | 131,620/132,096 | 0 / 2 / 0.000244140625 / 1.69873238e-05 |
+| 535 | `waveform_01_v2.sbs/waveform_01_v2` | 9 | 124,848/132,096 | 255 / 0 / 0 / 0 |
+| 536 | `waveform_1.sbs/waveform_1` | 9 | 131,931/132,096 | 0 / 1 / 0 / 0 |
+| 545 * | `wood_fibers_2.sbs/wood_fibers_2` | 8 | 46,058/50,176 | 1 / 4 / 0.0009765625 / 8.55624676e-05 |
+
 ## 2026-11-19 root comparisons
 
 ### Texture sampling in pattern functions

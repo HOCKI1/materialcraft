@@ -35,7 +35,7 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **377 Parity**, **169 In progress** and **0 Too hard**. The November 17–20 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons) · [November 19 measurements](parity-fixes.md#2026-11-19-root-comparisons) · [November 20 measurements](parity-fixes.md#2026-11-20-root-comparisons)
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **375 Parity**, **171 In progress** and **0 Too hard**. The November 17–20 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons) · [November 19 measurements](parity-fixes.md#2026-11-19-root-comparisons) · [November 20 measurements](parity-fixes.md#2026-11-20-root-comparisons)
 
 [Pattern tiling axes and copy bounds across 215 renders](parity-fixes.md#tiling-axes-and-pattern-copy-bounds) · [Grayscale sampler measurements](parity-fixes.md#grayscale-sampling-of-color-inputs) · [Value sampling across 240 typed comparisons](parity-fixes.md#value-processor-texture-filtering) · [Five saved graphs reopened in the reference](parity-fixes.md#saved-filter-graphs-and-scalar-levels-controls)
 
@@ -68,6 +68,8 @@ The reference reopened 26 function packages saved by MaterialCraft. All 6,400 pi
 [Four-format results by root and output](parity-fixes.md#four-format-inventory-comparison) cover 375 roots. The same table includes the independent 32² measurements for 352 roots.
 
 Reduced Sharpen now matches 16,704/16,704 pixels on the held-out signed field and 158,688/158,688 on six further fields. Four requested 1² cases still differ in output extent. [Filter measurements](parity-fixes.md#sharpen-at-reduced-output-sizes)
+
+A change to Gaussian stamp coverage was checked against 61 roots. Additional rectangular captures reopened both brick-generator Tile helpers. [Root checks](parity-fixes.md#root-checks-after-clipping-gaussian-stamps) [Tile input and shape comparisons](parity-fixes.md#rectangular-fields-in-the-two-brick-generator-tile-helpers)
 
 ## Complete inventory
 
@@ -135,7 +137,7 @@ Reduced Sharpen now matches 16,704/16,704 pixels on the held-out signed field an
 | [brick_1.sbs/brick_1](../assets/sbs/brick_1.sbs) | 0 | Yes | [In progress · 202,490/204,288 pixels across 34 renders](parity-fixes.md#square-and-rectangular-pattern-generators) |
 | [brick_2.sbs/brick_2](../assets/sbs/brick_2.sbs) | 0 | Yes | [In progress · 185,560/185,856 pixels across 27 renders](parity-fixes.md#square-and-rectangular-pattern-generators) |
 | [brick_3.sbs/brick_3](../assets/sbs/brick_3.sbs) | 0 | Yes | [In progress · 201,968/204,288 exact pixels in 34 renders](parity-fixes.md#stored-opacity-across-pattern-depths) |
-| [brick_generator.sbs/resources/Tile](../assets/sbs/brick_generator.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
+| [brick_generator.sbs/resources/Tile](../assets/sbs/brick_generator.sbs) | 1 | Yes | [In progress · 138,265/139,264 pixels across 52 renders](parity-fixes.md#rectangular-fields-in-the-two-brick-generator-tile-helpers) |
 | [cartesian_polar_transformation.sbs/cartesian_to_polar](../assets/sbs/cartesian_polar_transformation.sbs) | 1 | No | [Parity · 171,264 exact pixels in 18 renders](parity-fixes.md#segment-mapping-and-normal-graph-rechecks) |
 | [cartesian_polar_transformation.sbs/cartesian_to_polar_grayscale](../assets/sbs/cartesian_polar_transformation.sbs) | 1 | No | [Parity · 171,264 exact pixels in 18 renders](parity-fixes.md#segment-mapping-and-normal-graph-rechecks) |
 | [cartesian_polar_transformation.sbs/polar_to_cartesian](../assets/sbs/cartesian_polar_transformation.sbs) | 1 | No | [Parity · 28 renders, all 306,688 pixels exact](parity-fixes.md#reverse-polar-sampling-in-color-and-grayscale) |
@@ -430,7 +432,7 @@ Reduced Sharpen now matches 16,704/16,704 pixels on the held-out signed field an
 | [pattern_arc_pavement.sbs/arc_pavement](../assets/sbs/pattern_arc_pavement.sbs) | 1 | No | [In progress · 206,911/211,200 pixels across 27 renders](parity-fixes.md#pattern-rotation-phase) |
 | [pattern_brick_1.sbs/brick_1](../assets/sbs/pattern_brick_1.sbs) | 0 | No | [In progress · 139,565/142,592 exact pixels in 19 whole renders](parity-fixes.md#paper-brick-fiber-mesh-polygon-and-shape-roots) |
 | [pattern_brick_2.sbs/brick_2](../assets/sbs/pattern_brick_2.sbs) | 0 | No | [In progress · 139,074/142,592 exact pixels in 19 whole renders](parity-fixes.md#paper-brick-fiber-mesh-polygon-and-shape-roots) |
-| [pattern_brick_generator.sbs/resources/Tile](../assets/sbs/pattern_brick_generator.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
+| [pattern_brick_generator.sbs/resources/Tile](../assets/sbs/pattern_brick_generator.sbs) | 1 | Yes | [In progress · 138,162/139,264 pixels across 52 renders](parity-fixes.md#rectangular-fields-in-the-two-brick-generator-tile-helpers) |
 | [pattern_checker_1.sbs/checker_1](../assets/sbs/pattern_checker_1.sbs) | 0 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [pattern_cube_3d.sbs/cube_3d](../assets/sbs/pattern_cube_3d.sbs) | 0 | No | [Parity · 18 renders, all 171,264 pixels exact](parity-fixes.md#normal-maps-panoramas-and-primitive-shapes) |
 | [pattern_cube_3d.sbs/cube_3d_gbuffers](../assets/sbs/pattern_cube_3d.sbs) | 0 | No | [Parity · 60 renders, all 685,056 pixels exact](parity-fixes.md#normal-maps-panoramas-and-primitive-shapes) |
