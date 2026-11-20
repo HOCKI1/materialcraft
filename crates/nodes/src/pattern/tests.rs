@@ -749,11 +749,22 @@ fn connected_pattern_backgrounds_prepare_small_samples_before_filtering() {
     let largest_subnormal = f32::from_bits(0x007f_ffff);
     let gray = Image::gray(2, 2, |x, _| if x == 0 { largest_subnormal } else { 2.0 * smallest });
     let underflow = Image::gray(2, 2, |x, _| if x == 0 { smallest } else { 0.0 });
-    for (input, size, expected) in [
-        (gray, 1, [smallest.to_bits(); 4]),
-        (underflow, 1, [0; 4]),
-        (Image::filled(2, 2, Kind::Gray, [-largest_subnormal; 4]), 2, [0; 4]),
-        (Image::filled(2, 2, Kind::Color, [-largest_subnormal, -0.0, largest_subnormal, -smallest]), 2, [0x8000_0000, 0x8000_0000, 0, 0x8080_0000]),
+    let mixed = [-0.0_f32, -0.375, 0.5, -0.0];
+    let negative = [-0.0_f32, -0.375, -0.5, -0.0];
+    for (input, size, source, expected) in [
+        (gray, 1, OutputFormat::F32, [smallest.to_bits(); 4]),
+        (underflow, 1, OutputFormat::F32, [0; 4]),
+        (Image::filled(2, 2, Kind::Gray, [-largest_subnormal; 4]), 2, OutputFormat::F32, [0; 4]),
+        (
+            Image::filled(2, 2, Kind::Color, [-largest_subnormal, -0.0, largest_subnormal, -smallest]),
+            2,
+            OutputFormat::F32,
+            [0x8000_0000, 0x8000_0000, 0, 0x8080_0000],
+        ),
+        (Image::filled(2, 2, Kind::Color, mixed), 2, OutputFormat::F32, mixed.map(f32::to_bits)),
+        (Image::filled(2, 2, Kind::Color, mixed), 4, OutputFormat::F32, [0, mixed[1].to_bits(), mixed[2].to_bits(), 0]),
+        (Image::filled(2, 2, Kind::Color, mixed), 4, OutputFormat::F16, [0, mixed[1].to_bits(), mixed[2].to_bits(), 0]),
+        (Image::filled(2, 2, Kind::Color, negative), 4, OutputFormat::F32, negative.map(f32::to_bits)),
     ] {
         let kind = input.kind();
         let graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
@@ -768,7 +779,7 @@ fn connected_pattern_backgrounds_prepare_small_samples_before_filtering() {
             seed: 100237,
             format: OutputFormat::F32,
             tile: true,
-            input_formats: &[OutputFormat::F32],
+            input_formats: &[source],
             inputs: &[Some(input)],
             params: &params,
             resource: &|_| None,

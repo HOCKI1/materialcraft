@@ -25,23 +25,32 @@ pub(super) fn warp_input(context: &CookContext, port: usize) -> (Image, OutputFo
     resized_texture(context, port, InputResize::Warp).unwrap_or_else(|| (Image::filled(context.w, context.h, Kind::Gray, [0.0; 4]), context.format))
 }
 
-fn prepare_pattern_background(image: Image, mode: InputResize, source: OutputFormat) -> Image {
-    if mode != InputResize::PatternBackground || source != OutputFormat::F32 {
+fn prepare_pattern_background(image: Image, mode: InputResize, source: OutputFormat, enlarged: bool) -> Image {
+    if mode != InputResize::PatternBackground {
         return image;
     }
-    // Connected gray backgrounds clear the sign of zero. Color backgrounds retain it.
     let gray = image.kind() == Kind::Gray;
-    let prepare = |v| {
-        let v = crate::function::flush_subnormal(v);
-        if gray && v == 0.0 { 0.0 } else { v }
-    };
-    if image.data().iter().any(|&v| prepare(v).to_bits() != v.to_bits()) { image.map(image.kind(), |pixel| pixel.map(prepare)) } else { image }
+    let flush = source == OutputFormat::F32;
+    let enlarged_color = enlarged && !gray && matches!(source, OutputFormat::F16 | OutputFormat::F32);
+    if !flush && !enlarged_color {
+        return image;
+    }
+    let needs_change = |&v: &f32| (flush && v.is_subnormal()) || ((gray || enlarged_color) && v.to_bits() == (-0.0_f32).to_bits());
+    if !image.data().iter().any(needs_change) {
+        return image;
+    }
+    image.map(image.kind(), |pixel| {
+        let pixel = if flush { pixel.map(crate::function::flush_subnormal) } else { pixel };
+        // In an enlarged color background a negative zero survives only when all three RGB signs are negative.
+        let clear_zero_sign = gray || (enlarged_color && pixel[..3].iter().any(|v| v.is_sign_positive()));
+        if clear_zero_sign { pixel.map(|v| if v == 0.0 { 0.0 } else { v }) } else { pixel }
+    })
 }
 
 fn resized_texture(context: &CookContext, port: usize, mode: InputResize) -> Option<(Image, OutputFormat)> {
     let mut image = context.input(port)?.clone();
     let mut source = context.input_formats.get(port).copied().unwrap_or(if image.integer_sampling() { OutputFormat::U16 } else { OutputFormat::F32 });
-    image = prepare_pattern_background(image, mode, source);
+    image = prepare_pattern_background(image, mode, source, false);
     let target = craft_texture::clamp_size(context.w, context.h);
     let size = (image.width(), image.height());
     // A warp can take its final taps directly from an input up to one level larger on either axis.
@@ -76,7 +85,7 @@ fn resized_texture(context: &CookContext, port: usize, mode: InputResize) -> Opt
         let intermediate = (advance(current.0, target.0), advance(current.1, target.1));
         let (w, h) = if intermediate == current { target } else { intermediate };
         image = crate::texture_sampler::resize_input_level(&image, w, h, source, context.tiling_axes());
-        image = prepare_pattern_background(image, mode, source);
+        image = prepare_pattern_background(image, mode, source, (w, h) == target && (w > size.0 || h > size.1));
         // A final reduction can feed the Levels curve directly. An enlargement stores the
         // filtered texels first, which matters when the working image uses half precision.
         if mode == InputResize::Levels && (w, h) == target && w <= current.0 && h <= current.1 {

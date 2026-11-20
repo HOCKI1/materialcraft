@@ -43,6 +43,8 @@ Pattern center culling matched all 356,352 pixels across 204 renders. Background
 
 Filtered F32 pixel reads now match 41,664/41,664 pixels across 150 renders. The nearest and directly wired controls preserve subnormal inputs. [Sampler measurements and capture timings](parity-fixes.md#subnormal-values-in-filtered-pixel-reads)
 
+Enlarged RGBA pattern backgrounds now match 71,680/71,680 pixels across 280 independent renders. The earlier source-storage tests still differ at 121 grayscale zero signs. [Background sign measurements](parity-fixes.md#signs-of-zero-in-enlarged-color-backgrounds)
+
 The 32²-to-16² signed threshold controls match 2,048/2,048 pixels. [Floating texture filter measurements](parity-fixes.md#signed-zero-in-floating-point-texture-filtering)
 
 Connected F32 backgrounds now match all 2,048 same-size pixels. Across 132 further renders with changed input sizes, the maximum absolute error is zero. Some RGBA zeros still differ in sign. [Connected background counts and file checks](parity-fixes.md#connected-floating-point-pattern-backgrounds)

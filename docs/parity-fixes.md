@@ -248,6 +248,27 @@ Use the [three-storage sampler fields](#signed-zero-in-floating-point-texture-fi
 
 Eight small capture graphs also tested the cost of loading the node library. Use the first row at size/storage pairs (0,U16), (1,F16), (2,F32), (3,U16), (4,F16), (3,F32), (0,F32) and (4,U16), including all four field variants for each pair. Running eight independent sessions in separate processes took 26.12 and 24.70 seconds. Running the same sessions in one process with a shared read-only library took 3.34 and 3.29 seconds. Test the two orders on one worker. Each run produced 96 identical images, 30,976/30,976 captured pixels, identical node values and errors, and zero maximum difference.
 
+### Signs of zero in enlarged color backgrounds
+
+MaterialCraft now preserves a negative zero in an enlarged connected RGBA pattern background when all three filtered RGB channels have their sign bit set. A positive sign in any RGB channel changes zero components to positive zero, including an alpha of negative zero. The rule applies at the final enlargement before output storage. A 2× enlargement of the constant (−0,−.375,.5,−0) gives (+0,−.375,.5,+0). With blue set to −.5 both negative zeros survive. Same-size controls preserve the original RGBA signs.
+
+| Original control | Renders | Previous exact | Exact pixels / compared | Maximum numerical error |
+|---|---:|---:|---:|---:|
+| Vary RGB and alpha signs in independent spatial fields | 80 | 14,027 | 20,480/20,480 | 0 |
+| Flat fields with mixed zero signs and ordinary values | 80 | 12,800 | 20,480/20,480 | 0 |
+| Both sides of the first nonzero half value, four output formats | 120 | 30,131 | 30,720/30,720 | 0 |
+| Earlier signed F32 inputs at six relative sizes | 72 | 17,764 | 18,432/18,432 | 0 |
+| Earlier subnormal and normal threshold fields | 60 | 14,575 | 15,360/15,360 | 0 |
+| Earlier U8, U16 and F16 sources | 120 | 30,559 | 30,599/30,720 | 0 |
+
+For the first row render an empty color pattern at 16² F32. Use F32 and F16 RGBA sources at 16², 32², 8², 8×16, 16×8, 8×32, 4² and 32×4. Number those sizes j from zero, and the five fields i from zero. For the first three fields use sign mask (floor(x/2)+3floor(y/2)+5i) mod 16. For the last two use (3x+5y+3xy+i) mod 16. Bit c sets the sign of channel c, starting with red. Use zero magnitude in field 0. In field 1 use .375+.125c where (floor(x/2)+floor(y/2)+c) mod 3 is zero. In field 2 use .1875+.0625c where (5x+3y+c) mod 3 is zero. Elsewhere these two fields use zero. In fields 3 and 4 choose magnitude at index (x+5y+3c+i) mod 4 from (0,2⁻¹²⁶,2⁻¹²⁵,2⁻¹²⁷) for F32 and (0,2⁻²⁴,2⁻²⁰,.75) for F16. Use seed 102389+13j+i.
+
+For the second row use both source formats, sizes 8², 16², 32², 4² and 8×32, and seed 102991+16j+i. Use the two constant examples above followed by (−0,−0,−0,+0), (+0,−0,−0,−0), (.25,−0,−0,−0), (−.25,−0,−0,.75), (−0,.25,−0,−.75) and (−0,−0,.25,−.75).
+
+For the half threshold row use source sizes 16², 32², 8², 4² and 8×32. Draw three fields with sign mask (5x+3y+7xy+i) mod 16 and magnitudes (0,2⁻²⁴,2⁻²⁵,2⁻²³,2⁻²⁶,2⁻²¹,2⁻²⁴,.3125). For field 0 index the magnitudes by (floor(x/2)+5floor(y/2)+2c) mod 8. For fields 1 and 2 use (3x+y+3c+i) mod 8. Use seed 103109+7j+i and render both source formats to F32, F16, U16 and U8.
+
+All 15,360 RGBA pixels in the earlier mixed-storage controls now match. The remaining 121 unequal grayscale pixels differ only in their zero sign. The reference input bridge already clears negative zero in the measured half-gray source. [Earlier texture filtering measurements](#signed-zero-in-floating-point-texture-filtering) · [Original background inputs](#connected-floating-point-pattern-backgrounds)
+
 ### Signed zero in floating-point texture filtering
 
 A bilinear footprint containing only zeros retains a negative sign in a channel when every contributing texel has a negative sign. Texels with zero weight have no effect. On 20 original color Pixel Processor renders, all **20,480/20,480 F16- and F32-source component signs** match this rule. The full 60-render matrix improved from 10,741 to 14,489/15,360 bit-exact RGBA32F pixels. The remaining maximum absolute error is 1.10202595e−38.
