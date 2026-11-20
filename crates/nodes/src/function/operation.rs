@@ -1,17 +1,19 @@
 use super::{
     EvaluationContext,
+    function_call::CallBindings,
     instruction::Instruction,
     value_type::{self, boolean, dimensions, floats, integers},
 };
 use materialcraft_core::Value;
 use std::collections::BTreeMap;
 
-pub(crate) fn evaluate(
+pub(super) fn evaluate(
     instruction: &Instruction,
     arguments: &[Value],
     variables: &mut BTreeMap<String, Value>,
     random: &mut crate::random::FunctionRandom,
     context: &EvaluationContext<'_>,
+    bindings: Option<(&CallBindings<'_>, &BTreeMap<String, Value>)>,
 ) -> Result<Value, String> {
     let op = instruction.definition.id;
     let first = || arguments.first().ok_or("missing first operand");
@@ -89,7 +91,11 @@ pub(crate) fn evaluate(
         }
         "isdefined" => {
             let name = name()?;
-            Value::Bool(context.variable(name, variables)?.is_some())
+            let defined = match bindings {
+                Some((call, assignments)) if super::SystemVariable::named(name).is_none() => call.is_defined(name, assignments),
+                _ => context.variable(name, variables)?.is_some(),
+            };
+            Value::Bool(defined)
         }
         "and" => Value::Bool(boolean(first()?)? && boolean(second()?)?),
         "or" => Value::Bool(boolean(first()?)? || boolean(second()?)?),

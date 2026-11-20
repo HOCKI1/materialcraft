@@ -444,6 +444,29 @@ For the first four geometries center the stamp at (.25,.25), with sizes (3,1.5),
 
 On the 64×32 F32 horizontal gradient at geometry zero, pixel (14,8) has bits 3efbffff in the unit reference and 3efc0000 in both expanded reference crops. MaterialCraft gives 3efc0000 for all three. In the Gaussian F32 cases the centered and translated reference crops respectively reach 1.78813934e-07 and 4.17232513e-07 absolute difference from the unit reference. The linear gradient also changes before any radial falloff is involved. The coordinate rounding rule and both whole Alveolus roots remain open.
 
+### Wire presence inside a called function
+
+The normal processor in `shape_splatter_compute_normal` tests whether a ray argument has a wire. MaterialCraft counted an unwired argument's declared default as a connection. A called function now tests its own input wires. A zero-valued wire counts. An identically named wire on an enclosing call does not supply the inner call. An executed Set can define a free variable in the function or a caller. A Set to a formal argument stays inside the call. The nested-call regression failed on the earlier evaluator. Formatting, 259 release node tests, strict workspace Clippy, dependency layers and WebAssembly passed.
+
+Create a separate package and distinct function identifiers for each control, including each nested function. Return .8125 when Is Defined is true and .3125 when false. Declare the scalar argument with default .1875. At 16² and 32² use seeds 79 and 197 and publish .625 and .3125 respectively. Test a wire, an open port, a same-named outer value, and open ports explicitly marked connectable or non-connectable in a node parameter, Pixel Processor, FX-Map and Value Processor. All 19,200/19,200 F32 pixels and 10/10 typed floats match. Six separate calibration functions returning successive multiples of .046875 matched 3,840/3,840 pixels and 6/6 typed floats.
+
+In separate pixel and typed graphs, wire zero or .1875, Set .4375 before the call or in its body, forward or omit an inner wire, and read the name after the call. Include a Set in an untaken branch, a free name matching a published input, an unknown name, and the system names for size, position and time. The top-level checks match 10,240/10,240 pixels and 16/16 typed floats. Of the 224 outputs across all six groups, 212 match. Four explicit connectable-wire cases fail to resolve locally. Four plain Get cases return the authored .1875 where the reference returns zero. Four cases reading a formal after assigning .4375 also differ by .4375. The earlier [unconnected argument controls](#unconnected-function-arguments) include separate live-document behavior.
+
+| Whole root | Cases | Exact pixels / compared | Maximum U8 / U16 / F16 / F32 error |
+|---|---:|---:|---|
+| shape_splatter_compute_normal, [earlier inputs](#clamped-texture-reads-in-spline-graphs) | 19 | 142,592/142,592, previously 666 | 0 / 0 / 0 / 0 |
+| shape_splatter_compute_normal, independent inputs below | 10 | 9,811/11,520 | 0 / 0 / 0 / .593523026 |
+| cells_1 in noise_cells_1_v2, [earlier inputs](#tile-random-cell-fields-and-noise-upscaling) | 20 | 158,728/173,312, previously 158,598 | 1 / 0 / 0 / .00000181794167 |
+| perlin_noise in noise_perlin_noise_v2, [earlier inputs](#liquid-fiber-and-related-noise-sources) | 19 | 132,970/142,592 | 1 / 39,650 / .00048828125 / .435275048 |
+
+Counts compare stored bits in every channel. The earlier 32×64 F16 normal render has 26 matching blue NaNs with bits `7fff`. The new 16×32 F32 input set 2 and 64×32 F32 set 4 produce NaNs in all three RGB channels in both applications. All 7,680 payloads and all alpha values in those two outputs match. The table gives the maximum error among finite pairs.
+
+For independent field set m=0…6 use dimensions 16², 32×16, 16×32, 32², 64×32, 32×64 and 64×32. Supply six RGBA maps and two grayscale maps. At pixel (x,y) in input t, channel c, take q=((71x+157y+33xy+1471t+253c+997m+33(x+11t)(y+7c)) mod 4093)/4092. When m is divisible by three use .8125+.125q if (floor(x/3)+2floor(y/5)+t+c) mod 4 is zero, otherwise .0625+.4375q. In inputs 0 and 4 set alpha to zero where (x+3y+m) mod 7 is zero. Store even sets in U16 rounded to nearest and odd sets in F32. Use seed 157807+29m. Request F32 except set 5 in F16. Repeat set 3 in U8, U16 and F16.
+
+Set 0 uses defaults. For sets 1…6 choose shape types 11, 1, 4, 7, 11 and 2. Set X and Y counts to 2+(m mod 4) and 4−(m mod 3), amount to 7+m, distribution mode and output normal format to m mod 2, nonsquare expansion to m mod 3 = 1, and extrusion height to .40625+.125m with symmetry on for even sets. Enable displacement when m is divisible by three. Turn around the normal by (m−3)×.109375, set the pivot to (.09375(m−2),−.109375m,.03125), background opacity to .0625m, atlas grid to (2+(m mod 3),2), and pattern input count to 1+(m mod 3).
+
+The reference reopened a MaterialCraft-saved graph using the same public math calls. Its ten reference outputs reproduce all 11,520 original reference pixels bit for bit. On the seventh field set, changing only the shape type to 2 reproduces the full discrepancy, 339/2,048 F32 pixels exact. In 31 single-setting and shape/displacement controls, 18 shape-2 outputs each match 339/2,048 and the other 13 each match 2,048/2,048. Sampling, the active predicate, ray distance and atlas position each match 6,656/6,656 pixels across four instrumented cases. The cube normal and the subsequent stored normal each match 970/6,656. The value before encoding matches 4,947/6,656 and differs only on shape 2. The whole root remains in progress.
+
 ## 2026-11-19 root comparisons
 
 ### Texture sampling in pattern functions

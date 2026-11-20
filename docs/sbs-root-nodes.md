@@ -314,7 +314,7 @@ Reduced Sharpen now matches 16,704/16,704 pixels on the held-out signed field an
 | [noise_bnw_spots_3.sbs/bnw_spots_3](../assets/sbs/noise_bnw_spots_3.sbs) | 0 | Yes | [In progress · 104,343/107,776 pixels, 13 execution-limit cases](parity-fixes.md#bnw-spots-3-and-cells-1-pattern-sources) |
 | [noise_bnw_spots_3_v2.sbs/bnw_spots_3](../assets/sbs/noise_bnw_spots_3_v2.sbs) | 0 | No | [In progress · 106,559/107,776 pixels, 13 execution-limit cases](parity-fixes.md#bnw-spots-3-and-cells-1-pattern-sources) |
 | [noise_cells_1.sbs/cells_1](../assets/sbs/noise_cells_1.sbs) | 0 | Yes | [In progress · 143,321/153,856 pixels in 19 renders](parity-fixes.md#bnw-spots-3-and-cells-1-pattern-sources) |
-| [noise_cells_1_v2.sbs/cells_1](../assets/sbs/noise_cells_1_v2.sbs) | 0 | No | [In progress · 20 renders, 158,598/173,312 exact pixels](parity-fixes.md#tile-random-cell-fields-and-noise-upscaling) |
+| [noise_cells_1_v2.sbs/cells_1](../assets/sbs/noise_cells_1_v2.sbs) | 0 | No | [In progress · 20 renders, 158,728/173,312 exact pixels](parity-fixes.md#wire-presence-inside-a-called-function) |
 | [noise_cells_4.sbs/cells_4](../assets/sbs/noise_cells_4.sbs) | 1 | Yes | [In progress · 215,500/215,552 pixels in 29 renders](parity-fixes.md#paths-caustics-and-cell-fields-after-pattern-sampling) |
 | [noise_cells_4_v2.sbs/cells_4](../assets/sbs/noise_cells_4_v2.sbs) | 1 | No | [In progress · 215,516/215,552 pixels in 29 renders](parity-fixes.md#paths-caustics-and-cell-fields-after-pattern-sampling) |
 | [noise_clouds_1.sbs/clouds_1](../assets/sbs/noise_clouds_1.sbs) | 0 | Yes | [In progress · 143,752/149,760 pixels, two execution-limit cases](parity-fixes.md#cloud-and-crystal-pattern-sources-across-scales) |
@@ -553,7 +553,7 @@ Reduced Sharpen now matches 16,704/16,704 pixels on the held-out signed field an
 | [shape_splatter_v2.sbs/mipmap_tools/Mipmap_N_from_O_color](../assets/sbs/shape_splatter_v2.sbs) | 1 | Yes | [Parity · 18 renders, all 287,232 pixels exact](parity-fixes.md#marked-variable-reads-in-path-and-mipmap-graphs) |
 | [shape_splatter_v2.sbs/poisson_disc/poisson_disc_iteration](../assets/sbs/shape_splatter_v2.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [shape_splatter_v2.sbs/scanline_to_z_order](../assets/sbs/shape_splatter_v2.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
-| [shape_splatter_v2.sbs/shape_splatter_compute_normal](../assets/sbs/shape_splatter_v2.sbs) | 10 | Yes | [In progress · 666/142,592 pixels, first difference in the normal processor](parity-fixes.md#clamped-texture-reads-in-spline-graphs) |
+| [shape_splatter_v2.sbs/shape_splatter_compute_normal](../assets/sbs/shape_splatter_v2.sbs) | 10 | Yes | [In progress · 152,403/154,112 pixels in 29 renders, shape 2 differs](parity-fixes.md#wire-presence-inside-a-called-function) |
 | [shape_splatter_v2_companion.sbs/shape_splatter_to_mask](../assets/sbs/shape_splatter_v2_companion.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [skew.sbs/skew](../assets/sbs/skew.sbs) | 1 | No | [Parity · 13 cases, 163,840 exact pixels](parity-fixes.md#height-distance-texture-mapping-skew-and-weave) |
 | [skew.sbs/skew_grayscale](../assets/sbs/skew.sbs) | 1 | No | [Parity · 13 cases, 163,840 exact pixels](parity-fixes.md#height-distance-texture-mapping-skew-and-weave) |

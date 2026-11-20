@@ -1821,6 +1821,56 @@ fn a_loop_evaluates_its_condition_and_body_again_on_every_iteration() {
 }
 
 #[test]
+fn defined_arguments_follow_wires_through_nested_calls() {
+    fn caller(body: FunctionGraph, wired: bool) -> FunctionGraph {
+        let mut graph = FunctionGraph::default();
+        let zero = graph.add_constant(Value::Float(0.0));
+        let result = graph.add("instance", &[], None);
+        let call = graph.nodes.last_mut().unwrap();
+        call.instance = Some(materialcraft_core::GraphInstance {
+            label: String::new(),
+            package: String::new(),
+            graph: "probe".into(),
+            inputs: vec![materialcraft_core::GraphPort { identifier: "amount".into(), type_code: 256 }],
+            outputs: vec![materialcraft_core::GraphPort { identifier: "output".into(), type_code: 4 }],
+            defaults: BTreeMap::from([("amount".into(), Value::Float(0.1875))]),
+        });
+        call.inputs = vec![wired.then_some(zero)];
+        call.source = Some(Ok(std::sync::Arc::new(body)));
+        graph.output = Some(result);
+        graph
+    }
+
+    let mut body = FunctionGraph::default();
+    let value = body.add_constant(Value::Float(0.4375));
+    let set = body.add("set", &[value], Some(Value::Text("amount".into())));
+    let defined = body.add("isdefined", &[], Some(Value::Text("amount".into())));
+    body.output = Some(body.add("sequence", &[set, defined], None));
+    let variables = BTreeMap::from([("amount".into(), Value::Float(0.625))]);
+    for (outer, inner) in [(false, false), (true, false), (false, true), (true, true)] {
+        let graph = caller(caller(body.clone(), inner), outer);
+        assert_eq!(evaluate(&graph, &variables), Ok(Value::Bool(inner)));
+    }
+
+    let mut free = FunctionGraph::default();
+    free.output = Some(free.add("isdefined", &[], Some(Value::Text("mark".into()))));
+    let mut graph = caller(free, false);
+    let call = graph.output.unwrap();
+    let external = BTreeMap::from([("mark".into(), Value::Float(0.625))]);
+    assert_eq!(evaluate(&graph, &external), Ok(Value::Bool(false)));
+    let value = graph.add_constant(Value::Float(0.4375));
+    let set = graph.add("set", &[value], Some(Value::Text("mark".into())));
+    graph.output = Some(graph.add("sequence", &[set, call], None));
+    assert_eq!(evaluate(&graph, &BTreeMap::new()), Ok(Value::Bool(true)));
+
+    let mut graph = caller(body, false);
+    let call = graph.output.unwrap();
+    let assigned = graph.add("isdefined", &[], Some(Value::Text("amount".into())));
+    graph.output = Some(graph.add("sequence", &[call, assigned], None));
+    assert_eq!(evaluate(&graph, &BTreeMap::new()), Ok(Value::Bool(false)));
+}
+
+#[test]
 fn variables_a_called_graph_sets_reach_its_caller_but_its_inputs_do_not() {
     let mut called = FunctionGraph::default();
     let input = called.add("get_integer1", &[], Some(Value::Text("amount".into())));

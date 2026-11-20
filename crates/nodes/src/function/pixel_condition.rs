@@ -34,7 +34,7 @@ pub(super) fn live_readers(program: &Program, context: &EvaluationContext<'_>) -
             SystemVariable::Tiling.resolve(context).ok().flatten()
         } else if matches!(op.type_code, 4 | 16) && op.depends_only_on_operands() {
             let inputs: Option<Vec<_>> = op.inputs.iter().map(|&input| known.get(input)?.clone()).collect();
-            inputs.and_then(|args| operation::evaluate(op, &args, &mut variables, &mut random, context).ok())
+            inputs.and_then(|args| operation::evaluate(op, &args, &mut variables, &mut random, context, None).ok())
         } else {
             None
         };

@@ -1,4 +1,6 @@
-use super::{EvaluationContext, EvaluationState, evaluation_step::EvaluationStep, instruction::Instruction, operation, value_type};
+use super::{
+    EvaluationContext, EvaluationState, evaluation_step::EvaluationStep, function_call::CallBindings, instruction::Instruction, operation, value_type,
+};
 use crate::random::FunctionRandom;
 use materialcraft_core::Value;
 
@@ -104,7 +106,7 @@ impl Program {
     fn run_with_random(&self, context: &EvaluationContext<'_>, state: &mut EvaluationState, random: &mut FunctionRandom) -> Result<Value, String> {
         state.random = *random;
         let mut remaining = MAX_EVALUATION_STEPS;
-        let result = self.run(context, state, &mut remaining);
+        let result = self.run(context, state, &mut remaining, None);
         *random = state.random;
         result
     }
@@ -125,10 +127,16 @@ impl Program {
         state.variables.clear();
         state.random = self.random_stream(context);
         let mut remaining = MAX_EVALUATION_STEPS;
-        self.run(context, state, &mut remaining)
+        self.run(context, state, &mut remaining, None)
     }
 
-    fn run(&self, context: &EvaluationContext<'_>, state: &mut EvaluationState, remaining_steps: &mut usize) -> Result<Value, String> {
+    fn run(
+        &self,
+        context: &EvaluationContext<'_>,
+        state: &mut EvaluationState,
+        remaining_steps: &mut usize,
+        bindings: Option<&CallBindings<'_>>,
+    ) -> Result<Value, String> {
         use EvaluationStep::*;
 
         state.steps.clear();
@@ -201,17 +209,26 @@ impl Program {
 
                         // A function call consumes its caller's stream instead of restarting it
                         storage.random = state.random;
-                        let result = call.program.run(context, storage, remaining_steps);
+                        let child = CallBindings { call, caller_assignments: &state.assignments, parent: bindings };
+                        let result = call.program.run(context, storage, remaining_steps, Some(&child));
                         state.random = storage.random;
                         if call.exports && result.is_ok() {
                             // Set publishes into the caller's scope; arguments and defaults stay local
+                            storage.assignments.retain(|name, _| !call.defaults.contains_key(name));
                             state.variables.extend(storage.assignments.clone());
                             state.assignments.extend(storage.assignments.clone());
                         }
 
                         result
                     } else {
-                        operation::evaluate(instruction, arguments, &mut state.variables, &mut state.random, context)
+                        operation::evaluate(
+                            instruction,
+                            arguments,
+                            &mut state.variables,
+                            &mut state.random,
+                            context,
+                            bindings.map(|call| (call, &state.assignments)),
+                        )
                     }
                     .map_err(|error| format!("{} ({}): {error}", instruction.definition.label, instruction.id))?;
 
