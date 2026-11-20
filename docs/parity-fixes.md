@@ -443,6 +443,68 @@ Use an Iterate with zero repeats. In its count expression set a Float4 variable 
 
 The child retained its initial color for property writes in blend mode, image filter, premultiplication, seed inheritance and pattern type on all three kinds of parent. Some local children still see those assignments. Independent single-stamp controls confirm that literal, computed-constant and exposed-variable settings choose the same reference draw in 33,280/33,280 pixels across 78 comparisons against 39 literal renders. The 19 previously verified pattern roots match 3,211,776/3,211,776 pixels in 159 renders.
 
+### Liquid, fiber and related noise sources
+
+The fourteen roots produced 242/266 comparable whole outputs and 1,703,324/1,891,840 exact pixels. Each microscope-view root reached the pattern graph execution limit in eight of its 19 cases. A failed cook contributes zero compared pixels. Integer differences are storage levels.
+
+| Root package | Whole outputs compared / attempted | Exact pixels / compared | Maximum U8 / U16 / F16 / F32 error |
+|---|---:|---:|---|
+| noise_liquid | 19/19 | 135,824/142,592 | 1 / 268 / 0.0009765625 / 0.451499209 |
+| noise_messy_fibers_1 | 19/19 | 96,519/142,592 | 1 / 4 / 0.00048828125 / 4.52399254e-05 |
+| noise_messy_fibers_1_v2 | 19/19 | 131,876/142,592 | 1 / 2 / 0.00048828125 / 2.95042992e-05 |
+| noise_messy_fibers_2 | 19/19 | 84,588/142,592 | 1 / 7 / 0.00048828125 / 7.802248e-05 |
+| noise_messy_fibers_2_v2 | 19/19 | 130,496/142,592 | 1 / 4 / 0.00048828125 / 6.29425049e-05 |
+| noise_messy_fibers_3 | 19/19 | 123,834/142,592 | 0 / 2 / 0.00048828125 / 2.47955322e-05 |
+| noise_messy_fibers_3_v2 | 19/19 | 132,391/142,592 | 1 / 3 / 0.00048828125 / 3.12328339e-05 |
+| noise_microscope_view | 19/19 | 140,486/142,592 | 1 / 48 / 0.000244140625 / 0.000274658203 |
+| noise_moisture_noise | 11/19 | 107,093/107,776 | 0 / 1 / 0.00048828125 / 1.52587891e-05 |
+| noise_moisture_noise_1_v2 | 11/19 | 104,176/107,776 | 0 / 1 / 0 / 1.43051147e-06 |
+| noise_moisture_noise_2 | 11/19 | 104,071/107,776 | 1 / 1 / 0.00048828125 / 1.49011612e-06 |
+| noise_perlin_noise | 19/19 | 139,281/142,592 | 0 / 4 / 0.00048828125 / 3.05771828e-05 |
+| noise_perlin_noise_v2 | 19/19 | 132,970/142,592 | 1 / 39650 / 0.00048828125 / 0.435275048 |
+| noise_plasma | 19/19 | 139,719/142,592 | 0 / 2 / 0.000122070312 / 1.52885914e-05 |
+
+Use the four archived cases, the [four-format sweep and independent seed](#four-format-inventory-comparison), and ten fresh renders. In inventory order, number these roots i=287 through 300, starting with noise_liquid. Use 102011+17i as the base seed. Add [0,1,2,2,2,2,6,7,8,9] for the ten renders. Use [16²,32²,32²,32²,32²,32²,32×16,16×32,64×32,32×64], storage [F32,F32,U8,U16,F16,F32,F32,U16,F32,F16], and settings [defaults,A,B,B,B,B,C,C,B,A]. Apply each setting to the published controls present in that package.
+
+| Controls | A | B | C |
+|---|---|---|---|
+| Scale when the package default is 1 | 1 | 1 | 2 |
+| Scale with any other default | 1 | 5 | 13 |
+| Disorder, nonsquare expansion, disorder speed | 0, on, 1 | .3125, off, .6875 | .8125, on, 1.4375 |
+| Disorder anisotropy, its angle, tile offset | 0, 0, (0,0) | .25, .3125, (.125,−.1875) | .625, −.21875, (−.3125,.4375) |
+| Warp intensity, angle, angle randomness | 0, 0, 0 | .3125, .21875, .375 | .8125, −.3125, .6875 |
+| Line and link counts, color and luminance randomness | 2, 2, 0, 0 | 5, 5, .3125, .3125 | 9, 9, .625, .625 |
+| Pattern size, angle, angle randomness, global opacity | (1,1), 0, 0, 1 | (.75,1.25), .21875, .375, .8125 | (1.375,.625), −.3125, .6875, 1.1875 |
+
+In each of 17 pattern stages, keep the shortest connected path to a quadrant with an authored shape and clear its image inputs. Break equal-length ties by connection identifier. Use the nine cases that exclude 64×32. Render the authored shape, then a square and a disc with the same parameters and connections. The three groups match 122,941/143,616, 143,301/143,616 and 143,298/143,616 pixels respectively. Of 153 runs per group, 146 authored runs, 148 square runs and 148 disc runs produced at least one nonzero reference pixel. Only the Perlin noise root differs on its hard shapes, with maximum U8 / U16 / F16 / F32 error 0 / 32768 / 0 / 3.96000028 for the square and 0 / 32768 / 0 / 3.52000022 for the disc.
+
+| Root package | Authored shape numbers | Authored exact / compared | Maximum authored U8 / U16 / F16 / F32 error | Square exact / compared | Disc exact / compared |
+|---|---|---:|---|---:|---:|
+| noise_liquid | 6 | 5,773/8,448 | 0 / 1 / 0.000244140625 / 9.83476639e-07 | 8,448/8,448 | 8,448/8,448 |
+| noise_messy_fibers_1 | 11 | 8,099/8,448 | 0 / 1 / 0.000122070312 / 1.84476376e-05 | 8,448/8,448 | 8,448/8,448 |
+| noise_messy_fibers_1_v2 | 11 | 8,045/8,448 | 0 / 1 / 3.05175781e-05 / 1.26063824e-05 | 8,448/8,448 | 8,448/8,448 |
+| noise_messy_fibers_2 | 11 | 8,357/8,448 | 0 / 1 / 6.10351562e-05 / 6.99050725e-06 | 8,448/8,448 | 8,448/8,448 |
+| noise_messy_fibers_2_v2 | 11 | 8,321/8,448 | 0 / 1 / 3.05175781e-05 / 4.35113907e-06 | 8,448/8,448 | 8,448/8,448 |
+| noise_messy_fibers_3 | 14 | 8,437/8,448 | 0 / 1 / 0 / 2.5331974e-06 | 8,448/8,448 | 8,448/8,448 |
+| noise_messy_fibers_3_v2 | 14 | 8,434/8,448 | 0 / 1 / 0 / 3.41795385e-06 | 8,448/8,448 | 8,448/8,448 |
+| noise_microscope_view | 6 | 5,773/8,448 | 0 / 1 / 0.000122070312 / 1.07288361e-06 | 8,448/8,448 | 8,448/8,448 |
+| noise_moisture_noise | 4 | 16,669/16,896 | 0 / 1 / 2.38418579e-07 / 3.57627869e-07 | 16,896/16,896 | 16,896/16,896 |
+| noise_moisture_noise_1_v2 | 4 | 8,336/8,448 | 0 / 1 / 0 / 3.87430191e-07 | 8,448/8,448 | 8,448/8,448 |
+| noise_moisture_noise_2 | 4 | 8,034/8,448 | 0 / 1 / 0 / 2.38418579e-07 | 8,448/8,448 | 8,448/8,448 |
+| noise_perlin_noise | 5 | 11,401/16,896 | 0 / 1 / 0.00048828125 / 1.66893005e-06 | 16,896/16,896 | 16,896/16,896 |
+| noise_perlin_noise_v2 | 5 | 5,692/8,448 | 0 / 32768 / 0 / 0.653483272 | 8,133/8,448 | 8,130/8,448 |
+| noise_plasma | 6 | 11,570/16,896 | 0 / 1 / 0.000244140625 / 9.53674316e-07 | 16,896/16,896 | 16,896/16,896 |
+
+Where there are downstream stages, replace the source patterns with the same original fields in both applications. Use each source's output size and storage and the ten field settings from the [dirt noise source comparison](#dirt-noise-sources-and-downstream-stages). All five substitutions produced ten comparable images each.
+
+| Root package | Exact pixels / compared | Maximum U8 / U16 / F16 / F32 error |
+|---|---:|---|
+| noise_liquid | 8,448/10,496 | 0 / 0 / 0 / 0.836438522 |
+| noise_microscope_view | 10,496/10,496 | 0 / 0 / 0 / 0 |
+| noise_moisture_noise | 10,496/10,496 | 0 / 0 / 0 / 0 |
+| noise_perlin_noise | 10,496/10,496 | 0 / 0 / 0 / 0 |
+| noise_plasma | 10,496/10,496 | 0 / 0 / 0 / 0 |
+
 ### Dirt noise sources and downstream stages
 
 The eleven dirt-noise roots produced **116/209 comparable whole outputs** and **1,045,373/1,067,264 exact pixels**. MaterialCraft reached its pattern execution limit in 93 cases, including every whole-graph case for both Dirt 4 packages. The counts below exclude replacement images emitted after a cook error. Integer errors are storage levels.

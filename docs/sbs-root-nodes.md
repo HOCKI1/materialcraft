@@ -35,7 +35,7 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **367 Parity**, **121 In progress** and **58 Too hard**. The November 17–19 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons) · [November 19 measurements](parity-fixes.md#2026-11-19-root-comparisons)
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **367 Parity**, **135 In progress** and **44 Too hard**. The November 17–19 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons) · [November 19 measurements](parity-fixes.md#2026-11-19-root-comparisons)
 
 [Pattern tiling axes and copy bounds across 215 renders](parity-fixes.md#tiling-axes-and-pattern-copy-bounds) · [Grayscale sampler measurements](parity-fixes.md#grayscale-sampling-of-color-inputs) · [Value sampling across 240 typed comparisons](parity-fixes.md#value-processor-texture-filtering) · [Five saved graphs reopened in the reference](parity-fixes.md#saved-filter-graphs-and-scalar-levels-controls)
 
@@ -356,20 +356,20 @@ Reading inherited variables directly reduced cook time on six Dirt 1 and BNW Spo
 | [noise_gaussian_spots_1_v2.sbs/gaussian_spots_1](../assets/sbs/noise_gaussian_spots_1_v2.sbs) | 0 | No | [In progress · 2,984/132,096 pixels across 9 renders](parity-fixes.md#radial-stamp-profiles-and-pattern-generators) |
 | [noise_gaussian_spots_2.sbs/gaussian_spots_2](../assets/sbs/noise_gaussian_spots_2.sbs) | 0 | Yes | [In progress · 132,670/174,336 exact pixels · 2 additional cases exceeded the traversal limit](parity-fixes.md#gaussian-pattern-sources-and-repeat-limits) |
 | [noise_gaussian_spots_2_v2.sbs/gaussian_spots_2](../assets/sbs/noise_gaussian_spots_2_v2.sbs) | 0 | No | [In progress · 136,601/174,336 exact pixels · 2 additional cases exceeded the traversal limit](parity-fixes.md#gaussian-pattern-sources-and-repeat-limits) |
-| [noise_liquid.sbs/liquid](../assets/sbs/noise_liquid.sbs) | 0 | No | [Too hard · 127,452/132,096 exact pixels in 9 renders](parity-fixes.md#gradient-warp-displacement-and-sampling) |
-| [noise_messy_fibers_1.sbs/messy_fibers_1](../assets/sbs/noise_messy_fibers_1.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [noise_messy_fibers_1_v2.sbs/messy_fibers_1](../assets/sbs/noise_messy_fibers_1_v2.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [noise_messy_fibers_2.sbs/messy_fibers_2](../assets/sbs/noise_messy_fibers_2.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [noise_messy_fibers_2_v2.sbs/messy_fibers_2](../assets/sbs/noise_messy_fibers_2_v2.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [noise_messy_fibers_3.sbs/messy_fibers_3](../assets/sbs/noise_messy_fibers_3.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [noise_messy_fibers_3_v2.sbs/messy_fibers_3](../assets/sbs/noise_messy_fibers_3_v2.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [noise_microscope_view.sbs/microscope_view](../assets/sbs/noise_microscope_view.sbs) | 0 | No | [Too hard · 130,081/132,096 exact pixels in 9 renders](parity-fixes.md#gradient-warp-displacement-and-sampling) |
-| [noise_moisture_noise.sbs/moisture_noise](../assets/sbs/noise_moisture_noise.sbs) | 0 | Yes | [Too hard: measurement timeout](parity-fixes.md#remaining-differences) |
-| [noise_moisture_noise_1_v2.sbs/moisture_noise_1](../assets/sbs/noise_moisture_noise_1_v2.sbs) | 0 | No | [Too hard: measurement timeout](parity-fixes.md#remaining-differences) |
-| [noise_moisture_noise_2.sbs/moisture_noise_2](../assets/sbs/noise_moisture_noise_2.sbs) | 0 | No | [Too hard: measurement timeout](parity-fixes.md#remaining-differences) |
-| [noise_perlin_noise.sbs/perlin_noise](../assets/sbs/noise_perlin_noise.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [noise_perlin_noise_v2.sbs/perlin_noise](../assets/sbs/noise_perlin_noise_v2.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [noise_plasma.sbs/plasma](../assets/sbs/noise_plasma.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [noise_liquid.sbs/liquid](../assets/sbs/noise_liquid.sbs) | 0 | No | [In progress · 19/19 whole outputs, 135,824/142,592 exact pixels](parity-fixes.md#liquid-fiber-and-related-noise-sources) |
+| [noise_messy_fibers_1.sbs/messy_fibers_1](../assets/sbs/noise_messy_fibers_1.sbs) | 0 | Yes | [In progress · 19/19 whole outputs, 96,519/142,592 exact pixels](parity-fixes.md#liquid-fiber-and-related-noise-sources) |
+| [noise_messy_fibers_1_v2.sbs/messy_fibers_1](../assets/sbs/noise_messy_fibers_1_v2.sbs) | 0 | No | [In progress · 19/19 whole outputs, 131,876/142,592 exact pixels](parity-fixes.md#liquid-fiber-and-related-noise-sources) |
+| [noise_messy_fibers_2.sbs/messy_fibers_2](../assets/sbs/noise_messy_fibers_2.sbs) | 0 | Yes | [In progress · 19/19 whole outputs, 84,588/142,592 exact pixels](parity-fixes.md#liquid-fiber-and-related-noise-sources) |
+| [noise_messy_fibers_2_v2.sbs/messy_fibers_2](../assets/sbs/noise_messy_fibers_2_v2.sbs) | 0 | No | [In progress · 19/19 whole outputs, 130,496/142,592 exact pixels](parity-fixes.md#liquid-fiber-and-related-noise-sources) |
+| [noise_messy_fibers_3.sbs/messy_fibers_3](../assets/sbs/noise_messy_fibers_3.sbs) | 0 | Yes | [In progress · 19/19 whole outputs, 123,834/142,592 exact pixels](parity-fixes.md#liquid-fiber-and-related-noise-sources) |
+| [noise_messy_fibers_3_v2.sbs/messy_fibers_3](../assets/sbs/noise_messy_fibers_3_v2.sbs) | 0 | No | [In progress · 19/19 whole outputs, 132,391/142,592 exact pixels](parity-fixes.md#liquid-fiber-and-related-noise-sources) |
+| [noise_microscope_view.sbs/microscope_view](../assets/sbs/noise_microscope_view.sbs) | 0 | No | [In progress · 19/19 whole outputs, 140,486/142,592 exact pixels](parity-fixes.md#liquid-fiber-and-related-noise-sources) |
+| [noise_moisture_noise.sbs/moisture_noise](../assets/sbs/noise_moisture_noise.sbs) | 0 | Yes | [In progress · 11/19 whole outputs, 107,093/107,776 exact pixels](parity-fixes.md#liquid-fiber-and-related-noise-sources) |
+| [noise_moisture_noise_1_v2.sbs/moisture_noise_1](../assets/sbs/noise_moisture_noise_1_v2.sbs) | 0 | No | [In progress · 11/19 whole outputs, 104,176/107,776 exact pixels](parity-fixes.md#liquid-fiber-and-related-noise-sources) |
+| [noise_moisture_noise_2.sbs/moisture_noise_2](../assets/sbs/noise_moisture_noise_2.sbs) | 0 | No | [In progress · 11/19 whole outputs, 104,071/107,776 exact pixels](parity-fixes.md#liquid-fiber-and-related-noise-sources) |
+| [noise_perlin_noise.sbs/perlin_noise](../assets/sbs/noise_perlin_noise.sbs) | 0 | Yes | [In progress · 19/19 whole outputs, 139,281/142,592 exact pixels](parity-fixes.md#liquid-fiber-and-related-noise-sources) |
+| [noise_perlin_noise_v2.sbs/perlin_noise](../assets/sbs/noise_perlin_noise_v2.sbs) | 0 | No | [In progress · 19/19 whole outputs, 132,970/142,592 exact pixels](parity-fixes.md#liquid-fiber-and-related-noise-sources) |
+| [noise_plasma.sbs/plasma](../assets/sbs/noise_plasma.sbs) | 0 | No | [In progress · 19/19 whole outputs, 139,719/142,592 exact pixels](parity-fixes.md#liquid-fiber-and-related-noise-sources) |
 | [noise_upscale_1.sbs/noise_upscale_1](../assets/sbs/noise_upscale_1.sbs) | 1 | No | [Parity · 21 renders, 697,344 exact pixels](parity-fixes.md#sampling-integer-bitmap-inputs-through-wider-bridges) |
 | [noise_upscale_2.sbs/noise_upscale_2](../assets/sbs/noise_upscale_2.sbs) | 1 | No | [Parity · 21 renders, 697,344 exact pixels](parity-fixes.md#sampling-integer-bitmap-inputs-through-wider-bridges) |
 | [noise_upscale_3.sbs/noise_upscale_3](../assets/sbs/noise_upscale_3.sbs) | 2 | No | [Parity · 21 renders, 697,344 exact pixels](parity-fixes.md#sampling-integer-bitmap-inputs-through-wider-bridges) |
