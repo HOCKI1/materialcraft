@@ -35,7 +35,7 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **370 Parity**, **143 In progress** and **33 Too hard**. The November 17–20 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons) · [November 19 measurements](parity-fixes.md#2026-11-19-root-comparisons) · [November 20 measurements](parity-fixes.md#2026-11-20-root-comparisons)
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **370 Parity**, **144 In progress** and **32 Too hard**. The November 17–20 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons) · [November 19 measurements](parity-fixes.md#2026-11-19-root-comparisons) · [November 20 measurements](parity-fixes.md#2026-11-20-root-comparisons)
 
 [Pattern tiling axes and copy bounds across 215 renders](parity-fixes.md#tiling-axes-and-pattern-copy-bounds) · [Grayscale sampler measurements](parity-fixes.md#grayscale-sampling-of-color-inputs) · [Value sampling across 240 typed comparisons](parity-fixes.md#value-processor-texture-filtering) · [Five saved graphs reopened in the reference](parity-fixes.md#saved-filter-graphs-and-scalar-levels-controls)
 
@@ -513,7 +513,7 @@ Reading inherited variables directly reduced cook time on six Dirt 1 and BNW Spo
 | [quantize_color.sbs/modify_color_palette_sub](../assets/sbs/quantize_color.sbs) | 2 | Yes | [In progress · two of 256 palette entries differ at F32](parity-fixes.md#height-distance-texture-mapping-skew-and-weave) |
 | [quantize_color.sbs/view_color_palette_sub](../assets/sbs/quantize_color.sbs) | 2 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [radial_blur.sbs/radial_blur_grayscale](../assets/sbs/radial_blur.sbs) | 1 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [replace_color.sbs/replace_color](../assets/sbs/replace_color.sbs) | 1 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [replace_color.sbs/replace_color](../assets/sbs/replace_color.sbs) | 1 | No | [In progress · 136,480/142,592 exact pixels in 19 whole renders](parity-fixes.md#hue-saturation-lightness-and-replace-color) |
 | [rgb-a_merge.sbs/rgb-a_merge](../assets/sbs/rgb-a_merge.sbs) | 2 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [rgb-a_split.sbs/rgb-a_split](../assets/sbs/rgb-a_split.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [rgba_merge.sbs/rgba_merge](../assets/sbs/rgba_merge.sbs) | 4 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |

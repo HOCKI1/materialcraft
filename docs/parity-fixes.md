@@ -59,6 +59,30 @@ The first pass classifies all 546 roots: 166 Parity and 380 Too hard. These meas
 
 ## 2026-11-20 root comparisons
 
+### Hue, saturation, lightness and Replace Color
+
+The HSL primitive adds twice each slider's displacement from .5 to saturation and lightness, then clamps. For an HDR input it divides RGB by the largest of 1 and the three input channels before adjusting color and restores that gain afterwards. With default settings pure red produces (.999877930, .0001220703125, .00109827518) in the reference. Equal-channel .125 gray with saturation .75 produces (.1875,.0625,.0625). Changing lightness to .75 instead gives (.625,.625,.625).
+
+| Measured outputs | Exact pixels before | Maximum U8 / U16 / F16 / F32 error before | Exact pixels after | Maximum U8 / U16 / F16 / F32 error after |
+|---|---:|---|---:|---|
+| Palette and two coordinate fields, 90 renders | 13,380/42,240 | 126 / 32256 / 0.492195129 / 1.02734375 | 35,732/42,240 | 0 / 1 / 0.000122070312 / 1.54972076e-06 |
+| Independent colors and nearly equal channels, 72 renders | 8,189/79,872 | 255 / 65535 / 1.31054688 / 3.25 | 52,896/79,872 | 0 / 1 / 0.001953125 / 0.000122368336 |
+| Replace Color, 19 whole renders | 99,049/142,592 | 64 / 15809 / 0.241210938 / 0.244705796 | 136,480/142,592 | 1 / 1 / 0.000244140625 / 1.07288361e-06 |
+
+Alpha matched the source in both applications for all 75,520 direct F32 pixels. The color error that remains is largest on nearly gray colors with raised saturation. In a separate 26-hue sweep with saturation 1 and lightness .5, 5,387/13,312 F32 pixels match, maximum error 0.000122845173. Four original HSL graphs saved by MaterialCraft reopened in the reference. Their 24 before/after readbacks across all four formats matched 15,104/15,104 pixels, maximum error zero.
+
+Build a single HSL node with a linear F32 color input. For the first six cases at each setting use 16² F32, 16×32 F32, 32×16 F32, then repeat the 16×32 source in U8, U16 and F16. Seed case k at setting j with 104887+17j+k, both zero-based. In the 16² palette vary alpha by row y/16 and cycle RGB across black, white, .5 gray, .125 gray, red, green, blue, yellow, magenta, cyan, (.25,.5,.75), (.75,.5,.25), (.625,.375,.125), (.875,.375,.5), (.1875,.375,.25), and (.75,.625,.125). For channel c at coordinates x,y use v=((11x+17y+13xy+7c+5xc+3yc) mod 67)/64. The unit field uses min(1,v). The HDR field uses 2.5v−.75 and replaces the first 16 RGB pixels in row zero with the palette.
+
+Start with omitted controls, then set (hue,saturation,lightness) to (.5,.5,.5), (.625,.5,.5), (.375,.5,.5), (.5,.25,.5), (.5,.75,.5), (.5,0,.5), (.5,1,.5), (.5,.5,.25), (.5,.5,.75), (.5,.5,0), (.5,.5,1), (.3125,.6875,.15625), (.875,.1875,.8125) and (−.125,1.125,−.25).
+
+For the independent six-case batch use 64×32 F32, 32² F32, 32×16 F32, then the 32² field in U16, F16 and U8. Use seed 105289+17j+k. In the first image choose low=floor(y/6)/16, high=1−low and middle=low+(x/64)(high−low). Permute the channels using lexicographic permutation index (y+floor(x/32)) mod 6. For the second image draw PCG64 seed 105022 uniformly over [−.8125,2.3125), convert to F32, and replace even rows with F32 uniform draws in [0,1). For the third image choose a base cyclically by (x+3y) from [−.5,−0,0,smallest positive F32,2⁻¹⁸,2⁻¹²,.125,.49999997,.5,.50000006,.875,1,2,4]. Add and subtract a difference from [0,2⁻²⁴,2⁻¹⁸,2⁻¹²,.0625,.25] indexed by (floor(x/3)+2y) mod 6. Permute (base,base+d,base−d) by (x+y) mod 6, and use (.7,.3,.1) in the first pixel. Draw the three alpha fields over [−.375,1.375) with the corresponding PCG64 streams seeded 105021, 105022 and 105023. Set the first pixel's alpha to .6 in each image.
+
+The 12 settings for the independent fields are (.5,.5,.5), (0,.5,.5), (1,.5,.5), (.75,.5,.5), (.5,1,.5), (.25,1,.5), (.625,1,.5), (.5,.5,.625), (.5,.625,.5), (.1875,.3125,.75), (.8125,.625,.4375) and (.5000031,.499817,.499987).
+
+The separate hue sweep uses 32×16 linear F32, seed 106871+j and hue [0, 0.03125, 0.08333333, 0.1092233, 0.125, 0.15625, 0.18739991, 0.25, 0.3125, 0.4375, 0.46875, 0.49999997, 0.5, 0.50000006, 0.500371, 0.5772527, 0.5833333, 0.625, 0.6666667, 0.6875, 0.75, 0.81115973, 0.8333333, 0.9101257, 0.96875, 1]. Set alpha to (x+.5)/32. For x<8 take gray from [0,.0625,.1875,.25,.3125,.49999997,.5,.5625,.6875,.75,.9375,1,1.5,2,3.125,4] indexed by row y. For 8≤x<20 use ((31x+79y+3xy) mod 253)/252. For x≥20 take the same positions in a row-major 32×16 PCG64 field drawn uniformly over [−.125,1.5) with seed 106913. Set all RGB channels to that F32 gray.
+
+For Replace Color repeat the four archived cases, the [five precision and seed cases](#four-format-inventory-comparison), and the ten [linear input and size cases](#shared-lookups-and-environment-shadow-pass) with i=442 and a single RGBA input. Use source/target color settings (.5,.5,.5)/(.5,.5,.5) for A, (.125,.625,.8125)/(.8125,.25,.375) for B, and (.875,.1875,.3125)/(.25,.75,.125) for C. The root still differs in all four output formats. Its standalone regressions for hue endpoints, additive adjustments and HDR gain failed on the previous implementation and passed with the change. All 252 release node tests, formatting, strict workspace Clippy, dependency layers and WebAssembly checks passed.
+
 ### Shared lookups and environment shadow pass
 
 Three whole roots matched all 721,408 pixels across 103 renders. The tile and noise roots used two original lookup images in both applications. Their earlier comparisons used different lookup data. The parity measurements below apply to the two common inputs.

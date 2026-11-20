@@ -30,19 +30,37 @@ fn cook(def: &str, mut values: BTreeMap<String, Value>, inputs: &[Option<Image>]
 }
 
 #[test]
-fn hsl_hue_endpoints_complete_a_full_turn() {
+fn hsl_hue_endpoints_and_half_turn_preserve_alpha() {
     let color = [0.7, 0.3, 0.1, 0.6];
     let inputs = [Some(Image::filled(64, 64, Kind::Color, color))];
-    for hue in [0.0, 0.5, 1.0] {
+    for (hue, expected) in [
+        (0.0, [0.69990844, 0.29946107, 0.10009158]),
+        (0.5, [0.69990844, 0.29946128, 0.10009158]),
+        (1.0, [0.69990844, 0.29946128, 0.10009158]),
+        (0.75, [0.10009158, 0.5005387, 0.69990844]),
+    ] {
         let image = cook("hsl", BTreeMap::from([("hue".into(), Value::Float(hue))]), &inputs);
-        for (actual, expected) in image.get(0, 0, false).into_iter().zip(color) {
-            assert!((actual - expected).abs() < 1e-5, "hue {hue}: {actual} != {expected}");
+        let pixel = image.get(0, 0, false);
+        for (actual, expected) in pixel.into_iter().zip(expected) {
+            assert!((actual - expected).abs() < 1e-6, "hue {hue}: {actual} != {expected}");
         }
+        assert_eq!(pixel[3], color[3]);
     }
+}
 
-    let image = cook("hsl", BTreeMap::from([("hue".into(), Value::Float(0.75))]), &inputs);
-
-    assert!((image.get(0, 0, false)[2] - 0.7).abs() < 1e-5);
+#[test]
+fn hsl_offsets_clamp_in_normalized_lightness_and_restore_hdr_gain() {
+    let gray = [0.125, 0.125, 0.125, 0.5];
+    for (source, slider, value, expected) in [
+        (gray, "saturation", 0.75, [0.1875, 0.0625, 0.0625, 0.5]),
+        (gray, "lightness", 0.75, [0.625, 0.625, 0.625, 0.5]),
+        ([0.25, 0.5, 0.75, 0.5], "saturation", 0.25, [0.5; 4]),
+        ([1.7890625, -0.046875, 0.734375, 1.515625], "lightness", 1.0, [1.7890625, 1.7890625, 1.7890625, 1.515625]),
+    ] {
+        let inputs = [Some(Image::filled(64, 64, Kind::Color, source))];
+        let image = cook("hsl", BTreeMap::from([(slider.into(), Value::Float(value))]), &inputs);
+        assert_eq!(image.get(0, 0, false), expected);
+    }
 }
 
 #[test]
