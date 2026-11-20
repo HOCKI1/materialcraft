@@ -75,14 +75,18 @@ pub(super) fn render(context: &CookContext, stamps: &[PatternStamp], max_depth: 
             return Err("pattern roughness overflowed its depth opacity".into());
         }
 
-        let [red, green, blue, alpha] = stamp.color.map(flush_subnormal);
+        let [red, green, blue, authored_alpha] = stamp.color.map(flush_subnormal);
         // Flush the stored alpha before a large tint could amplify a subnormal product.
-        let alpha = flush_subnormal(alpha * flush_subnormal(opacity));
+        let alpha = flush_subnormal(authored_alpha * flush_subnormal(opacity));
         let channel_tint = [red * alpha, green * alpha, blue * alpha, alpha].map(flush_subnormal);
         let tinted_offset = matches!(stamp.pattern, 17 | 18);
         let sample_shape = shape::prepare(stamp.pattern, stamp.variation);
 
         let frame = Footprint::new(stamp)?;
+        // The horizontal offset ramp can still contribute its variation at zero stamp opacity.
+        if authored_alpha == 0.0 && matches!(stamp.pattern, 2..=16 | 18) {
+            continue;
+        }
         let texture = if stamp.pattern >= 256 {
             let index = (stamp.pattern - 256) as usize + 1;
             let Some(input) = context.input(index).filter(|image| image.kind() == kind) else { continue };
@@ -137,7 +141,7 @@ pub(super) fn render(context: &CookContext, stamps: &[PatternStamp], max_depth: 
                                 (color, coverage)
                             }
                         } else {
-                            let (coverage, offset) = sample_shape(local[0], local[1])?;
+                            let Some((coverage, offset)) = sample_shape(local[0], local[1])? else { continue };
                             let coverage = flush_subnormal(coverage);
                             let offset = flush_subnormal(offset);
                             let color = channel_tint.map(|tint| if tinted_offset { coverage.mul_add(tint, offset) } else { coverage * tint });

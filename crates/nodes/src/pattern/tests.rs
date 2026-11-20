@@ -4,8 +4,7 @@ use std::collections::BTreeMap;
 
 fn coverage(shape: i32, x: f32, y: f32, variation: f32) -> f32 {
     let sample = super::shape::prepare(shape, variation);
-    let (base, offset) = sample(x, y).unwrap();
-    base + offset
+    sample(x, y).unwrap().map_or(0.0, |(base, offset)| base + offset)
 }
 
 #[test]
@@ -43,6 +42,25 @@ fn bell_stamps_keep_signed_samples_until_blending() {
         let image = cook_at_size(graph, &variables, 316163, 64).unwrap().remove(0);
         let samples = [(10, 8), (54, 9)].map(|(x, y)| image.get_gray(x, y, false).to_bits());
         assert_eq!(samples, expected, "blend mode {mode}");
+    }
+}
+
+#[test]
+fn radial_stamp_draws_its_boundary_and_leaves_the_corners_of_its_quad_clear() {
+    let variables = BTreeMap::from([("$tiling".into(), Value::Int(0))]);
+    for (shape, variation, corner, edge) in
+        [(3, 0.25, -0.25, 1.0), (4, 0.25, -0.25, 0.0), (5, 0.25, -0.25, 0.0), (10, 1.0, 0.0, 0.0), (15, 1.0, 0.0, 0.0), (18, 0.25, -0.25, 0.25)]
+    {
+        let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
+        graph.nodes[0].parameters = BTreeMap::from([
+            ("patterntype".into(), Value::Int(shape)),
+            ("patternsuppl".into(), Value::Float(variation)),
+            ("blendingmode".into(), Value::Int(1)),
+            ("frameoffset".into(), Value::Float2([1.0 / 128.0; 2])),
+            ("patternsize".into(), Value::Float2([0.5; 2])),
+        ]);
+        let image = cook_in_regions(graph, &variables, 322224, [64; 2], [[0.0, 1.0, 0.0, 1.0]; 2], -0.25).unwrap().remove(0);
+        assert_eq!([image.get_gray(20, 20, false), image.get_gray(48, 32, false)], [corner, edge], "shape {shape}");
     }
 }
 
@@ -164,10 +182,8 @@ fn solid_stamps_round_the_alpha_blend_at_accumulator_precision() {
     }
 }
 
-fn assert_stamp_pixel(shape: i32, color: bool, tint: Value, gain: f32, background: f32, expected: [u32; 4]) {
+fn stamp_on_background(graph: PatternGraph, color: bool, gain: f32, background: [f32; 4], seed: u32) -> craft_texture::Image {
     let definition = find("fx_map").unwrap();
-    let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
-    graph.nodes[0].parameters = BTreeMap::from([("patterntype".into(), Value::Int(shape)), ("opacity".into(), tint), ("blendingmode".into(), Value::Int(0))]);
     let params = resolve_params(
         definition,
         &BTreeMap::from([
@@ -175,7 +191,7 @@ fn assert_stamp_pixel(shape: i32, color: bool, tint: Value, gain: f32, backgroun
             ("roughness".into(), Value::Float(0.0)),
             ("color_mode".into(), Value::Bool(color)),
             ("opacity".into(), Value::Float(gain)),
-            ("background".into(), Value::Color([background; 4])),
+            ("background".into(), Value::Color(background)),
         ]),
     );
     let context = CookContext {
@@ -183,16 +199,50 @@ fn assert_stamp_pixel(shape: i32, color: bool, tint: Value, gain: f32, backgroun
         format: materialcraft_core::OutputFormat::F32,
         w: 32,
         h: 32,
-        seed: 7,
+        seed,
         tile: true,
         inputs: &[],
         params: &params,
         resource: &|_| None,
         vars: &BTreeMap::new(),
     };
-    let image = (definition.cook)(&context).unwrap().remove(0);
+    (definition.cook)(&context).unwrap().remove(0)
+}
+
+fn assert_stamp_pixel(shape: i32, color: bool, tint: Value, gain: f32, background: f32, expected: [u32; 4]) {
+    let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
+    graph.nodes[0].parameters = BTreeMap::from([("patterntype".into(), Value::Int(shape)), ("opacity".into(), tint), ("blendingmode".into(), Value::Int(0))]);
+    let image = stamp_on_background(graph, color, gain, [background; 4], 7);
     let pixel = image.get(16, 16, false).map(f32::to_bits);
     assert_eq!(&pixel[..image.channels()], &expected[..image.channels()], "shape {shape}, color {color}, opacity {gain}");
+}
+
+#[test]
+fn zero_authored_stamp_opacity_is_distinct_from_zero_graph_opacity() {
+    let linked = |value| Value::Function(Box::new(FunctionGraph::constant(Value::Float(value))));
+    let tiny = f32::from_bits(1 << 19);
+    for (shape, tint, gain, gray, red) in [
+        (2, Value::Float4([0.0; 4]), 1.0, -0.25, -0.25),
+        (2, Value::Float4([1.0; 4]), 0.0, 0.0, -0.25),
+        (17, Value::Float4([0.0; 4]), 1.0, 0.25, 0.0625),
+        (18, Value::Float4([0.0; 4]), 1.0, -0.25, -0.25),
+        (18, Value::Float4([1.0; 4]), 0.0, 0.25, 0.0625),
+        (18, linked(tiny), 1.0, -0.25, -0.25),
+        (18, linked(-tiny), 1.0, -0.25, -0.25),
+        (18, linked(f32::MIN_POSITIVE), 1.0, 0.25, 0.0625),
+    ] {
+        for (color, expected) in [(false, gray), (true, red)] {
+            let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
+            graph.nodes[0].parameters = BTreeMap::from([
+                ("patterntype".into(), Value::Int(shape)),
+                ("opacity".into(), tint.clone()),
+                ("blendingmode".into(), Value::Int(1)),
+                ("patternsuppl".into(), Value::Float(0.25)),
+            ]);
+            let image = stamp_on_background(graph, color, gain, [-0.25; 4], 328019);
+            assert_eq!(image.get(16, 16, false)[0], expected, "shape {shape}, color {color}, gain {gain}");
+        }
+    }
 }
 
 #[test]
@@ -212,30 +262,7 @@ fn gradient_stamp_offsets_apply_to_the_tinted_channels() {
             ("opacity".into(), Value::Float4([0.75, 0.375, 1.0, 0.625])),
             ("blendingmode".into(), Value::Int(blend)),
         ]);
-        let definition = find("fx_map").unwrap();
-        let parameters = resolve_params(
-            definition,
-            &BTreeMap::from([
-                ("pattern".into(), Value::PatternGraph(Box::new(graph))),
-                ("color_mode".into(), Value::Bool(true)),
-                ("roughness".into(), Value::Float(0.0)),
-                ("opacity".into(), Value::Float(0.5)),
-                ("background".into(), Value::Color(background)),
-            ]),
-        );
-        let context = CookContext {
-            input_formats: &[],
-            format: materialcraft_core::OutputFormat::F32,
-            w: 32,
-            h: 32,
-            seed: 468,
-            tile: true,
-            inputs: &[],
-            params: &parameters,
-            resource: &|_| None,
-            vars: &BTreeMap::new(),
-        };
-        let image = (definition.cook)(&context).unwrap().remove(0);
+        let image = stamp_on_background(graph, true, 0.5, background, 468);
         assert_eq!(image.get(position, position, false).map(f32::to_bits), expected);
     }
 }
@@ -249,7 +276,7 @@ fn cook_at_size(graph: PatternGraph, variables: &BTreeMap<String, Value>, seed: 
 }
 
 fn cook_at_dimensions(graph: PatternGraph, variables: &BTreeMap<String, Value>, seed: u32, width: u32, height: u32) -> crate::CookResult {
-    cook_in_regions(graph, variables, seed, [width, height], [[0.0, 1.0, 0.0, 1.0]; 2])
+    cook_in_regions(graph, variables, seed, [width, height], [[0.0, 1.0, 0.0, 1.0]; 2], 0.0)
 }
 
 fn cook_in_regions(
@@ -258,6 +285,7 @@ fn cook_in_regions(
     seed: u32,
     [width, height]: [u32; 2],
     [render, tiling]: [[f32; 4]; 2],
+    background: f32,
 ) -> crate::CookResult {
     let definition = find("fx_map").unwrap();
 
@@ -268,6 +296,7 @@ fn cook_in_regions(
             ("pattern".into(), Value::PatternGraph(Box::new(graph))),
             ("roughness".into(), Value::Float(0.0)),
             ("color_mode".into(), Value::Bool(false)),
+            ("background".into(), Value::Color([background; 4])),
             ("render_region".into(), Value::Float4(render)),
             ("tiling_region".into(), Value::Float4(tiling)),
         ]),
@@ -432,7 +461,7 @@ fn shifted_region_keeps_the_original_center_for_tiled_copies() {
             ("frameoffset".into(), Value::Float2(center)),
             ("patternsize".into(), Value::Float2(size)),
         ]);
-        let image = cook_in_regions(graph, &BTreeMap::new(), 319091, canvas, regions).unwrap().remove(0);
+        let image = cook_in_regions(graph, &BTreeMap::new(), 319091, canvas, regions, 0.0).unwrap().remove(0);
         assert_eq!(image.get_gray(x, y, false).to_bits(), expected, "center {center:?}");
     }
 }
@@ -449,7 +478,7 @@ fn shifted_region_stores_the_snap_offset_in_pattern_space() {
         ("patternrotation".into(), Value::Float(0.25)),
     ]);
     let regions = [[-0.173, 0.369, 0.096, 0.869], [0.019, 0.631, -0.073, 0.689]];
-    let image = cook_in_regions(graph, &BTreeMap::new(), 319613, [32, 64], regions).unwrap().remove(0);
+    let image = cook_in_regions(graph, &BTreeMap::new(), 319613, [32, 64], regions, 0.0).unwrap().remove(0);
     assert_eq!(image.get_gray(0, 2, false).to_bits(), 0x3cd4_7660);
 }
 

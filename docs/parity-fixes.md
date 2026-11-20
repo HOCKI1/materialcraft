@@ -534,6 +534,44 @@ For each root’s 25 follow-up renders, the 5,120 U8, 553,728 U16, 78,336 F16 an
 
 In a single-worker release run, four interleaved measurements of the 128² default, 256² default and 512² filled cases gave median whole-graph cook times of 46, 259 and 1,138 ms for Alveolus (previously 45, 247 and 1,068 ms). Pattern Alveolus took 45, 253 and 1,083 ms (previously 43, 238 and 1,045 ms).
 
+### Circular stamp coverage and zero stamp opacity
+
+A circular stamp preserves its background outside the unit disc. Samples exactly on the circumference still enter the blend, including a zero-valued sample. On a 64² F32 canvas, draw a white stamp centered at (32.5,32.5) pixels with size (32,32) pixels and maximum blending over −.25. At (20,20) a disc, paraboloid and bell each leave −.25. At (48,32) their values are 1, 0 and 0. A fully attenuated horizontal ramp and the capsule both write zero at (20,20). The circular selectors are 3–7, 11–14, 16 and 18.
+
+Authored opacity is tested after flushing subnormal values and before multiplying by graph opacity. With zero authored opacity all built-in selectors except the horizontal offset ramp preserve the background. The horizontal offset ramp still contributes its variation. At graph opacity zero, a hemisphere with nonzero authored opacity still contributes its variation inside the disc. For variation .25 over gray −.25 and maximum blending the center pixel is .25 at graph opacity zero and −.25 at authored opacity zero. The smallest normal F32 value and two signed subnormal values distinguish the two stages. [Earlier opacity and accumulator controls](#pattern-opacity-near-zero-and-color-accumulation)
+
+| F32 comparison | Renders | Previously exact | Now exact / compared | Maximum absolute error |
+|---|---:|---:|---:|---:|
+| Grayscale selectors and blend modes | 312 | 770,731 | 877,555/878,592 | 5.960464477539063e-08 |
+| All selectors on signed backgrounds | 84 | 263,102 | 302,307/311,808 | 3.0994415283203125e-06 |
+| Gray swatches and global gain | 204 | 655,067 | 833,852/835,584 | 5.960464477539063e-08 |
+| RGBA swatches and global gain | 204 | 826,976 | 834,227/835,584 | 1.1920928955078125e-07 |
+| Linked scalar and vector, gray | 56 | 35,520 | 57,344/57,344 | 0 |
+| Linked scalar and vector, RGBA | 56 | 52,472 | 57,344/57,344 | 0 |
+
+For the 312 selector and blend controls use a single unwrapped stamp over −.25. In order, use these (output, normalized center, normalized size, turns) settings.
+
+| Index | Output | Center | Size | Turns |
+|---:|---|---|---|---:|
+| 0 | 64² | .5, .5 | 1, 1 | 0 |
+| 1 | 64² | 32.5/64, 32.5/64 | .5, .5 | 0 |
+| 2 | 32×64 | 15.5/32, 28.5/64 | .75, .5 | 0 |
+| 3 | 64×32 | 28.5/64, 15.5/32 | .5, .75 | .25 |
+| 4 | 64² | .5, .5 | 1, 1 | .125 |
+| 5 | 32×16 | .4375, .375 | 1.25, .75 | .5 |
+
+First use selectors (3,4,5,6,7,11,12,13,14,16,18) with variation .25, white tint and mode 1. Then use (9,10,12,14,15) with variation 1 and the same tint and mode. Finally use (2,5,17,18) with variation .25, grayscale tints (0,−.125,.0001) and blend modes (0,1,2) in that order, with mode varying fastest. Set the seed to 322193 + 31 × geometry index + control index, starting both at zero. The 72 zero-tint renders match 202,752/202,752 pixels.
+
+For the 84-render selector comparison use the negative-background, maximum-blend bell geometries 0, 1, 4 and 5 (seeds 316166, 316203, 316314 and 316351). Use all 17 selectors with white tint and variation .25, selectors 2, 3 and 5 with black tint and variation .25, and selector 10 with white tint and variation 1. [Bell geometries](#image-inputs-and-bell-stamps-in-brick-generator-tile)
+
+For the two 204-render swatch matrices, use every selector from 2 through 18, variation .25, mode 1 and geometries 0, 1 and 4. Use black with alpha 1, white with alpha 0, then (.75,.375,1,.625) at graph opacities 0 and 1. The first two swatches have graph opacity 1. Use gray −.25 or RGBA (−.25,.375,−.125,.5) as background. Set the seed to 328019 + 37 × geometry index + selector + swatch index. For the linked controls use a 32² unit stamp on those backgrounds with selectors 2, 5, 17 and 18. Drive opacity with a scalar or a vector (.625,.375,1,alpha). Use −.125, 0, .0001, 2⁻¹²⁶, 2⁻¹³⁰, −2⁻¹³⁰ and .375 as scalar or alpha. The seed is 329691 + value index.
+
+Gray bell controls at the earlier settings match 57,344/57,344, 57,331/57,344, 57,091/57,344, 124,189/126,976 pixels in U8, U16, F16 and F32 respectively. The maximum errors in the same order are 0, 1, 0.0001220703125, 4.166056442045374e-07. RGBA bell controls at the earlier settings match 57,344/57,344, 57,313/57,344, 57,138/57,344, 124,172/126,976 pixels in U8, U16, F16 and F32 respectively. The maximum errors in the same order are 0, 1, 0.000244140625, 2.8312206268310547e-07. [Bell geometry, formats and seeds](#image-inputs-and-bell-stamps-in-brick-generator-tile)
+
+The intact BNW Spots 1 and BNW Spots 3 outputs still match 197,377/204,288 and 180,975/185,856 pixels across 34 and 27 renders. The largest errors remain 3 and 2 levels in U16, and .0000431537628 and .0000305175781 in F32. The two Tile helpers and Gradient Linear 1 continue to match in all four formats and on their recorded saved-file settings. [Intact roots and remaining rotation differences](#rotated-stamp-coordinates-in-gradient-linear-1-and-bnw-spots)
+
+The median single-worker release cook across four alternating measurements per version was 173.8 to 170.6 ms for 64² Spots 1 (seed 8855) and 150.1 to 146.5 ms for 64² Spots 3 (seed 8868). Both used disorder .84375 and F32 output.
+
 ### Rotated stamp coordinates in Gradient Linear 1 and BNW Spots
 
 Gradient Linear 1 matches 958,208/958,208 pixels across 79 renders, with zero maximum error in U8, U16, F16 and F32. The earlier 47 renders differed on 16 U8, 16 U16, 16 F16 and 176 F32 pixels. Maximum errors were one integer level, .000244140625 F16 and .0000152587890625 F32. All 32 additional settings match after reopening the MaterialCraft save in both apps. The reference also reproduces every original output from the saved file. [Earlier root settings and phase measurements](#pattern-rotation-phase) · [Rectangular gradient controls](#linear-gradient-sampling-on-rectangular-targets)
