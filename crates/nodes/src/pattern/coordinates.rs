@@ -1,7 +1,7 @@
 use super::{footprint::Footprint, region::Region};
 use crate::function::{pixel_divide, truncate_float};
 
-/// The two signed coordinate gradients for an axis-aligned analytic stamp.
+/// The two signed coordinate gradients for an axis-aligned stamp.
 pub(super) struct PixelPlanes {
     axes: [Axis; 2],
     swap: bool,

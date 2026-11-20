@@ -34,6 +34,19 @@ fn radial_stamps_keep_the_measured_center_and_skirt() {
 }
 
 #[test]
+fn bell_stamps_keep_signed_samples_until_blending() {
+    let variables = BTreeMap::from([("$tiling".into(), Value::Int(0))]);
+    for (mode, expected) in [(0, [0xb2f2_8000, 0xb363_46e0]), (1, [0; 2])] {
+        let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
+        graph.nodes[0].parameters =
+            BTreeMap::from([("patterntype".into(), Value::Int(5)), ("blendingmode".into(), Value::Int(mode)), ("patternsize".into(), Value::Float2([1.0; 2]))]);
+        let image = cook_at_size(graph, &variables, 316163, 64).unwrap().remove(0);
+        let samples = [(10, 8), (54, 9)].map(|(x, y)| image.get_gray(x, y, false).to_bits());
+        assert_eq!(samples, expected, "blend mode {mode}");
+    }
+}
+
+#[test]
 fn beveled_square_multiplies_the_two_edge_profiles() {
     for (x, y, variation, expected) in [
         (-0.984375, 0.0, 0.0625, 0x3e200000),
@@ -1067,6 +1080,24 @@ fn bitmap_stamp_filters_use_the_selected_source_level() {
             [("patternsize", Value::Float2([0.17, 1.0])), ("frameoffset", Value::Float2([0.07125, -0.0390625])), ("patternrotation", Value::Float(angle))];
         let image = render_bitmap(input.clone(), OutputFormat::U8, 64, &stamp, &[("color_mode", Value::Bool(false))]);
         assert_eq!(image.get_gray(36, 29, false).to_bits(), expected, "angle {angle}");
+    }
+}
+
+#[test]
+fn bitmap_stamp_filters_include_the_last_interpolated_texel() {
+    use materialcraft_core::OutputFormat;
+
+    let input = craft_texture::Image::gray(32, 32, |_, _| 1.0).with_integer_sampling(true);
+    let controls = [("color_mode", Value::Bool(false)), ("opacity", Value::Float(0.6875))];
+    for (mode, expected) in [(1, 0x3eb0_00b0), (2, 0x3f30_0000)] {
+        let stamp = [
+            ("branchoffset", Value::Float2([-0.5; 2])),
+            ("frameoffset", Value::Float2([-0.020_833_343, 0.4375])),
+            ("patternsize", Value::Float2([0.135_416_67, 0.8125])),
+            ("imagefiltering", Value::Int(mode)),
+        ];
+        let image = render_bitmap(input.clone(), OutputFormat::U8, 32, &stamp, &controls);
+        assert_eq!(image.get_gray(1, 1, false).to_bits(), expected, "filter {mode}");
     }
 }
 

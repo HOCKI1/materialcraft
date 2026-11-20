@@ -22,7 +22,7 @@ fn profile(pattern: i32, x: f32, y: f32, variation: f32, inverse_width: f32) -> 
             }
         }
         3 => radial,
-        4 => quartic_bell(radius_squared).max(0.0),
+        4 => quartic_bell(radius_squared),
         5 if radius_squared > 1.0 => 0.0,
         5 => {
             const FALLOFF: f32 = 11.1 * std::f32::consts::LOG2_E;

@@ -534,6 +534,46 @@ For each root’s 25 follow-up renders, the 5,120 U8, 553,728 U16, 78,336 F16 an
 
 In a single-worker release run, four interleaved measurements of the 128² default, 256² default and 512² filled cases gave median whole-graph cook times of 46, 259 and 1,138 ms for Alveolus (previously 45, 247 and 1,068 ms). Pattern Alveolus took 45, 253 and 1,083 ms (previously 43, 238 and 1,045 ms).
 
+### Image inputs and bell stamps in Brick Generator Tile
+
+The first Brick Generator Tile helper matches all 347,136 pixels in 106 renders. The 32 settings saved by MaterialCraft also match all 196,608 pixels after reopening in both apps. The second helper still differs on rectangular outputs. For the 32 additional settings, both saved graphs reproduce their respective original reference outputs exactly.
+
+| Helper and settings | Renders | U8 exact / pixels | U16 exact / pixels | F16 exact / pixels | F32 exact / pixels |
+|---|---:|---:|---:|---:|---:|
+| Brick Generator, earlier | 74 | 6,144/6,144 | 120,832/120,832 | 6,144/6,144 | 17,408/17,408 |
+| Brick Generator, additional | 32 | 27,136/27,136 | 71,168/71,168 | 27,136/27,136 | 71,168/71,168 |
+| Pattern Brick Generator, earlier | 74 | 6,138/6,144 | 120,822/120,832 | 6,138/6,144 | 17,100/17,408 |
+| Pattern Brick Generator, additional | 32 | 27,133/27,136 | 70,741/71,168 | 27,133/27,136 | 65,830/71,168 |
+
+Maximum error is zero in all four formats for the first helper. Across all 106 renders of the second helper, the maxima are 175 U8 levels, 45,055 U16 levels, .6875 F16 and .6875 F32. Its independently drawn stamps reproduce the reference helper output at every pixel on the 16×32 paraboloid and 32×16 Gaussian controls. The remaining differences are already present in the individual stamps. [Earlier settings and procedural input](#rectangular-fields-in-the-two-brick-generator-tile-helpers)
+
+For the additional rows, use seed 314159 + 73j for zero-based row j. Render F32 and U16 every time, adding U8 and F16 on rows 0, 2, 6 and 8. Supply a white U16 input when j mod 4 = 0. Otherwise set its level at (x,y) to 1024 + ((65519 + 39377x + 17713y + 131xy + 1123j) mod 63521). The type column is the integer pattern selector on the helper.
+
+| j | Output | Input | Type | X/Y count | Scale | Offset | Global offset X/Y | Opacity |
+|---:|---|---|---:|---|---:|---:|---|---:|
+| 0 | 32×16 | 16×32 | 1 | 3/5 | .8125 | .375 | .125/−.0625 | .6875 |
+| 1 | 16×64 | 16×64 | 1 | 1/7 | .739 | .167 | −.207/.137 | .533 |
+| 2 | 32×64 | 64×32 | 2 | 5/3 | .917 | .259 | .371/−.291 | .817 |
+| 3 | 64×32 | 64×32 | 3 | 7/2 | .631 | .457 | −.329/.539 | .913 |
+| 4 | 64×64 | 32×64 | 4 | 9/5 | .833 | .579 | .117/−.217 | .639 |
+| 5 | 64×128 | 64×128 | 5 | 3/7 | .517 | .719 | −.373/.171 | .977 |
+| 6 | 128×64 | 128×32 | 1 | 5/9 | .993 | .339 | .219/−.317 | .369 |
+| 7 | 128×32 | 32×128 | 2 | 3/1 | .867 | .119 | −.413/−.193 | .733 |
+| 8 | 128×128 | 128×128 | 1 | 9/7 | .687 | .883 | .083/.241 | .871 |
+| 9 | 256×64 | 64×128 | 4 | 11/3 | .931 | .631 | −.189/.327 | .571 |
+| 10 | 32×128 | 32×128 | 3 | 1/5 | .439 | .953 | .499/−.493 | .937 |
+| 11 | 64×64 | 16×32 | 5 | 4/3 | .377 | .215 | −.311/.413 | .753 |
+
+A single tiled 16×32 image stamp isolates the edge-sampling error in the first helper. Use a white input of the same size, a black background, center (.958333313,.4375), size (.270833343,.8125), zero rotation and opacity .6875. Pixel (1,1) was zero in all three filter modes. The reference reads .2229037880897522 with mip filtering, .34375524520874023 with linear filtering and .6875 with nearest filtering. The interpolated horizontal coordinate lies just inside the stamp and samples its last texel. The rasterizer now uses the same interpolated coordinates for image and analytic stamps.
+
+At 12 stamp placements, repeat all three filters with white and patterned U16 inputs. Generate the patterned input as in the table with j=0. Seed each pair with 312883 + 17 times the zero-based placement index. Each mode now matches 12,288/12,288 F32 pixels, maximum error zero. The previous exact counts were 12,214 for each linear filter and 12,206 for nearest. A 32² regression uses a white U8 source, center (−.020833343,.4375), size (.13541667,.8125) and wrapping disabled. It failed on the previous sampler. Across 1,213 earlier bitmap controls, exact whole pixels increased from 4,762,689 to 4,791,431 of 4,821,760. The maximum grayscale errors are zero U8, 343 U16, zero F16 and .005227506160736084 F32. The corresponding RGBA maxima are zero, 34,583, zero and .5276985168457031. [Filter, channel and blend controls](#bitmap-stamp-filtering-and-compositing)
+
+The 12 (center X/Y, width/height) placements, in seed order, are (.291666687,.4375,.270833343,.8125), (.625,.4375,.270833313,.8125), (.958333313,.4375,.270833343,.8125), (.416666687,.237500012,.270833343,.162499994), (.666666687,.637500048,.270833343,.162499994), (.791666687,.837499976,.270833343,.162500009), (.958333313,.037499994,.270833343,.162500009), (1.20833325,.43749997,.270833343,.162500009), (.958333313,.0625,.270833343,.203125), (1.20833325,.5625,.270833343,.203125), (.291666687,−.5625,.270833343,.8125) and (.625,−.362499952,.270833313,.162499994). Use zero rotation, tiling on both axes, additive blending and opacity .6875.
+
+The final 25 differences in the wider first-helper matrix were all negative F32 bell samples on rows 5 and 11. Their 33 independently drawn bells now match 221,184/221,184 F32 pixels. Replacing each bell by a ramp or paraboloid also gives 221,184/221,184 pixels per shape. At 64² a white, centered unit bell on black with additive blending reads b2f28000 at (10,8) and b36346e0 at (54,9) in raw F32 bits. The old profile clamped both to zero. Keeping the signed quartic until blending preserves both readings and the maximum blend gives zero at those same pixels. The two-mode regression failed before this change.
+
+In 136 independent gray and color bell renders, exact whole pixels increased from 579,761 to 580,258/598,016. The centered unit additive gray case improved from 4,082 to 4,096/4,096 F32 pixels, maximum error zero. With maximum blending over a gray background of −.25, that unit case still matches 3,228/4,096 with maximum error .25 at the stamp corners. Some oblique stamps also differ. For these controls use (output, center X/Y, size X/Y, turns) of (64²,.5/.5,1/1,0), (32×16,.417/.533,.813/.693,0), (16×32,.541/.383,.779/.689,0), (64×128,.437/.329,.517/.817,0), (128×64,.675/.419,.433/.557,.25), (32×64,.519/.591,.777/.625,.125), (64²,.291/.773,.519/.627,.071) and (128×32,.717/.177,.881/.437,.5). Use F32 throughout and add F16, U16 and U8 at indices 0, 3 and 5. Run additive and maximum blending on black, then on −.25 gray or RGBA (−.25,.1875,−.09375,.375). Use white for gray and tint (.75,.375,1,.625) for color. Use seed 316163 + 37 times the geometry index + the blend/background index from 0 to 3.
+
 ### Stored stamp vertices in Crystal 1
 
 Crystal 1 now matches all 1,966,336 raw pixels across 64 distinct renders. At 512×128, graph seed 311203, warp intensity 5.137 and disorder .923, nine paraboloids cover source pixel (138,0). The maximum comes from a stamp centered at (.2958984076976776,.9684525728225708), size (.1875,.1875), rotation zero and opacity .91. Draw its upper wrapped copy alone at Y −.031547427. The reference reads `3f368e3f` in F32, and MaterialCraft previously read `3f368e41`. In the whole graph that changes the stored U16 source from 46,734 to 46,733. The warp then reproduces the measured output in all four formats.

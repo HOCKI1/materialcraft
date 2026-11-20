@@ -113,8 +113,7 @@ pub(super) fn render(context: &CookContext, stamps: &[PatternStamp], max_depth: 
                     continue;
                 }
                 budget = budget.checked_sub(samples).ok_or("pattern rendering exceeded its pixel budget")?;
-                // Sampled bitmaps keep the texture coordinates used by point and mip filtering.
-                let planes = if texture.is_none() { PixelPlanes::new(&frame, &render_region, center, stamp.size, [width, height]) } else { None };
+                let planes = PixelPlanes::new(&frame, &render_region, center, stamp.size, [width, height]);
                 let [[left, right], [top, bottom]] = planes.as_ref().map_or(bounds, |p| p.clip(bounds));
                 for y in top..bottom {
                     let row = planes.as_ref().map(|planes| planes.row(y));
