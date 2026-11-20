@@ -291,6 +291,34 @@ fn fractional_stamp_edges_set_both_coordinate_gradients() {
 }
 
 #[test]
+fn wrapped_beveled_stamp_retains_its_coordinate_at_the_crop() {
+    let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
+    graph.nodes[0].parameters = BTreeMap::from([
+        ("patterntype".into(), Value::Int(9)),
+        ("patternsuppl".into(), Value::Float(0.7265625)),
+        ("patternsize".into(), Value::Float2([0.984375, 0.484375])),
+        ("frameoffset".into(), Value::Float2([0.5, 0.25])),
+    ]);
+    let image = cook_at_size(graph, &BTreeMap::new(), 261312, 128).unwrap().remove(0);
+    assert_eq!(image.get_gray(48, 88, false).to_bits(), 0x3e73_2b04);
+}
+
+#[test]
+fn clipped_stamp_gradients_use_one_triangle_vertex_for_both_axes() {
+    let region = super::region::Region::new([0.0, 1.0, 0.0, 1.0]).unwrap();
+    for (canvas, center, size, expected) in [
+        ([128, 64], [-0.2734375, 0.3125], [0.734375_f32, 0.734375], 0x3f60_ae4e),
+        ([128, 64], [-0.2734375, 0.3125], [-0.734375, 0.734375], 0x3dfa_8d8c),
+        ([128, 128], [-0.3046875, -0.265625], [0.7578125, 0.6953125], 0x3f68_3f56),
+    ] {
+        let frame = super::footprint::Footprint { sine: 0.0, cosine: 1.0, radius: size.map(|s| s.abs() * 0.5) };
+        let planes = super::coordinates::PixelPlanes::new(&frame, &region, center, size, canvas).unwrap();
+        let [x, _] = planes.row(0)(0);
+        assert_eq!(((x + 1.0) * 0.5).to_bits(), expected, "center {center:?}, size {size:?}");
+    }
+}
+
+#[test]
 fn gaussian_stamp_coordinates_follow_the_pixel_footprint() {
     let definition = find("fx_map").unwrap();
     let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);

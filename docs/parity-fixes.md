@@ -534,6 +534,38 @@ For each root’s 25 follow-up renders, the 5,120 U8, 553,728 U16, 78,336 F16 an
 
 In a single-worker release run, four interleaved measurements of the 128² default, 256² default and 512² filled cases gave median whole-graph cook times of 46, 259 and 1,138 ms for Alveolus (previously 45, 247 and 1,068 ms). Pattern Alveolus took 45, 253 and 1,083 ms (previously 43, 238 and 1,045 ms).
 
+### Cropped origins of axis-aligned stamps
+
+Brick 1 at 256², tiling 2, edge smoothness .7265625 and interstice width .03125 differed at 64 output positions in each of U16 and F32. Two independently authored bevel stamps reproduce the entire 128² source in each app. For the wrapped stamp use shape 9, size (.984375,.484375), center (0,.75), unit opacity and the same smoothness. At (48,88) its F32 value was `3e732afe` in MaterialCraft and `3e732b04` in the reference. The combined U16 source there was 15,562 versus 15,563. Replacing the bevel by a horizontal ramp isolated the difference to the horizontal coordinate.
+
+At the four-pixel origin, choose the far vertical triangle vertex when its integer distance fits in as few bits as the vertical distance to the near vertex. Otherwise apply the same comparison horizontally, then use the near vertex if neither qualifies. For each axis, multiply the unsigned offset by the 24-bit gradient significand. Drop the low max(0, bit length of the offset − 5) columns in each partial product before adding the rows. Apply the sign, add the vertex attribute and truncate to F32. For a negative interpolated value add 1/64 of a gradient unit in the last place before the final truncation. The wrapped bevel and signed, doubly clipped gradient assertions exercise the original discrepancy.
+
+| Original control | Renders | Exact pixels or scalar coordinates | Maximum error |
+|---|---:|---:|---:|
+| Horizontal and vertical ramps at fractional extents | 669 | 5,050,368/5,050,368 | 0 |
+| Seeded independent triangle interpolation, two signed coordinates | 1,024 | 251,364/251,364 | 0 |
+| Brick 1, original 68 runs and first 31 follow-ups | 99 | 1,283,584/1,283,584 | 0 in all four formats |
+| Brick 1, first 31 follow-ups reopened from a MaterialCraft save | 31 | 856,064/856,064 | 0 in all four formats |
+| Brick 1, 12 further parameter settings | 32 | 1,906,474/1,910,784 | 0 U8, 1 U16, 0 F16, .0000153183937 F32 |
+| Previously verified roots at their recorded settings | 167 | 3,139,328/3,139,328 | 0 |
+
+To reproduce the triangle check, start a 32-bit state at `0x31d57b09` and advance with 1,664,525 × state + 1,013,904,223 modulo 2³² before each draw. For j = 0 through 1,023 take W = 19 + draw mod 493, H = 17 + draw mod 389. For K and J use (draw shifted right eight) mod (floor(dimension/2) + 4) − 3. Take two more draws for near attributes u and v, each .5 + ((draw shifted right 16) mod 64)/64. Negate u unless j is divisible by three and v unless j is divisible by five. The far attributes are F32(u × (1 − W/(max(K,3) + t))) and its vertical counterpart, with t = .5 on odd j and zero otherwise. Draw the right triangle with corners (−K,−J), (W−K,−J) and (−K,H−J) onto 16×8. Compare pixel centers with nonnegative barycentric coordinates and normalized horizontal plus vertical distance below .997.
+
+For the 32 new Brick 1 renders, read each row as width × height, tiling, smoothness and gap. Run F32 and U16 for every row, then U8 and F16 for rows 0, 1, 3 and 7. In that order, seed each format with 286049 + 43 × row + format index.
+
+| Row | Dimensions, tiling, smoothness, gap | Row | Dimensions, tiling, smoothness, gap |
+|---:|---|---:|---|
+| 0 | 16×32, 2, .113, .071 | 6 | 256², 5, .917, .287 |
+| 1 | 32×64, 1, .199, .183 | 7 | 512×128, 3, .577, .253 |
+| 2 | 64×128, 3, .317, .097 | 8 | 512², 1, .431, .107 |
+| 3 | 128×32, 4, .489, .139 | 9 | 1024×256, 2, .737, .149 |
+| 4 | 128×256, 3, .697, .193 | 10 | 256×512, 3, .349, .039 |
+| 5 | 256×128, 2, .811, .063 | 11 | 128², 2, .999, .013 |
+
+Across the 32, U8 and F16 each match all 72,192 pixels. U16 matches 881,552/883,200 and F32 matches 880,538/883,200. Brick 1 remains in progress. Separately, 200 original F32 ramps with arbitrary fractional centers match 1,346,264/1,392,640 pixels, maximum .000000178813934. For 72 deliberately clipped signed ramps per orientation, 509,590/509,952 pixels match horizontally and vertically, with maxima 1 and 1.00000024. [Earlier sizes, root settings and saved packages](#fractional-edges-of-axis-aligned-pattern-stamps)
+
+On the recorded set of 17 Crystal 1 renders, 144,967/145,664 pixels match. Directional Noise matches 146,377/147,712 on its 23 renders. Four interleaved single-worker release runs gave median 512² cook times of 1,355 ms for Alveolus and 1,050 ms for Pattern Alveolus, compared with 1,238 and 1,169 ms respectively before this change. All 270 release node tests passed.
+
 ### Fractional edges of axis-aligned pattern stamps
 
 Changing only the height of a horizontal ramp changes its left-to-right coordinate step. For a 64² grayscale F32 quadrant, use shape 10, center (.5,.5), size (.375,.23046875), zero rotation and zero roughness. At pixel (21,32) the reference returns `3d800004`. The previous calculation returned `3d800000`. A second control uses size (.23828125,.375), center (.5,.501953125) and a quarter turn. Pixel (20,34) reads `3f27de6c`. The five raw sample assertions fail on the previous cooker and pass with the change.

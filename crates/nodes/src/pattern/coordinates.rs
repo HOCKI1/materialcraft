@@ -10,6 +10,7 @@ pub(super) struct PixelPlanes {
 struct Axis {
     base: f64,
     step: f64,
+    negative_bias: f64,
 }
 
 impl PixelPlanes {
@@ -33,6 +34,12 @@ impl PixelPlanes {
         let far: [f64; 2] = std::array::from_fn(|i| (bounds[i][0] + 2.0 * extents[i] + 0.5).floor() + 1.0);
         let padded: [f32; 2] = std::array::from_fn(|i| ((far[i] - near[i]) * 0.5) as f32);
         let reciprocal = area_reciprocal(truncate_float(f64::from(padded[0]) * f64::from(padded[1])));
+        let origin = near.map(|n| (n.max(0.0) * 0.25).floor() * 4.0);
+        let near_offset: [i32; 2] = std::array::from_fn(|i| (origin[i] - near[i]) as i32);
+        let far_offset: [i32; 2] = std::array::from_fn(|i| (origin[i] - far[i]) as i32);
+        // The triangle has only one far vertex on each axis. When both offsets fit the same
+        // number of bits, the vertical far vertex has priority, then the horizontal one.
+        let far_axis = (0..2).rev().find(|&i| far_offset[i].unsigned_abs().leading_zeros() >= near_offset[i].unsigned_abs().leading_zeros());
         let axes = std::array::from_fn(|axis| {
             let basis = truncate_float(f64::from(padded[1 - axis]) * f64::from(reciprocal));
             let center = (bounds[axis][0] + bounds[axis][1]) * 0.5;
@@ -40,11 +47,13 @@ impl PixelPlanes {
             let low = ((near[axis] - center) * scale) as f32;
             let high = ((far[axis] - center) * scale) as f32;
             let span = truncate_float(f64::from(high) - f64::from(low)) * 0.5;
-            let step = f64::from(gradient_product(basis, span));
-            let origin = (near[axis].max(0.0) * 0.25).floor() * 4.0;
-            let base = truncate_float((origin - near[axis]).mul_add(step, f64::from(low)));
+            let gradient = gradient_product(basis, span);
+            let unit = f64::from(gradient.next_up() - gradient);
+            let (offset, vertex) = if far_axis == Some(axis) { (far_offset[axis], high) } else { (near_offset[axis], low) };
+            let base = origin_coordinate(offset, gradient, unit, vertex);
             let sign = f64::from(signs[axis]);
-            Axis { base: ((0.5 - origin) * step + f64::from(base)) * sign, step: step * sign }
+            let step = f64::from(gradient);
+            Axis { base: ((0.5 - origin[axis]) * step + f64::from(base)) * sign, step: step * sign, negative_bias: unit / 64.0 }
         });
         Some(Self { axes, swap })
     }
@@ -61,9 +70,25 @@ impl PixelPlanes {
 impl Axis {
     fn sample(&self, pixel: u32) -> f32 {
         let value = f64::from(pixel) * self.step + self.base;
-        let stored = truncate_float(value);
-        if value < 0.0 && f64::from(stored) == value { stored.next_up() } else { stored }
+        truncate_float(if value < 0.0 { value + self.negative_bias } else { value })
     }
+}
+
+fn origin_coordinate(offset: i32, gradient: f32, unit: f64, vertex: f32) -> f32 {
+    let magnitude = offset.unsigned_abs();
+    // The integer offset times the 24-bit gradient retains 29 product columns. Each
+    // partial row loses its low columns before the remaining rows are added.
+    let low_columns = (u32::BITS - magnitude.leading_zeros()).saturating_sub(5);
+    let significand = (gradient.to_bits() & 0x7f_ffff) | 0x80_0000;
+    let mask = (1_u32 << low_columns) - 1;
+    let mut discarded = 0_u64;
+    for bit in 0..low_columns {
+        if magnitude & (1 << bit) != 0 {
+            discarded += u64::from(significand & (mask >> bit)) << bit;
+        }
+    }
+    let product = f64::from(magnitude) * f64::from(gradient) - discarded as f64 * unit;
+    truncate_float(f64::from(vertex) + if offset < 0 { -product } else { product })
 }
 
 // Interpolate 1/x from its two endpoints and midpoint in each normalized mantissa interval.
