@@ -161,6 +161,34 @@ Four roots also have downstream stages. Replace the source patterns with the ori
 | mesh_2 | 8,984/10,496 | 0 / 1 / 0.25 / 1.52587891e-05 |
 | polygon_2 | 10,496/10,496 | 0 / 0 / 0 / 0 |
 
+### Bounded traversal of deep patterns
+
+Four roots reached the traversal guard even at 4×4. An instrumented release cook raised the visit ceiling from 1,048,576 to 2,097,152 and the raster copy ceiling from 1,048,576 to 8,388,608 for this experiment. The 256,000,000-pixel-work guard remained active. Use defaults, F32, and seeds 106622, 106635, 106765 and 106778 in table order. Each process cooked one graph on one worker. Peak resident memory includes graph loading. The visit and stamp counts are for the most expensive pattern stage. Times are single observations.
+
+| Package | Whole pixels exact | Maximum F32 error | Visits / emitted stamps | Cook seconds | Peak MiB | First differing stage |
+|---|---:|---:|---:|---:|---:|---|
+| noise_directional_noise_3 | 13/16 | 2.50339508e-05 | 1,398,103 / 1,392,640 | 14.65 | 291.0 | Depth-ten pattern, 13/16 U16 pixels, one level |
+| noise_directional_noise_3_v2 | 16/16 | 0 | 1,430,879 / 1,392,640 | 42.12 | 291.6 | All observed stages exact |
+| noise_dirt_4 | 0/16 | 0.103746146 | 1,398,103 / 1,398,080 | 13.63 | 289.4 | Sharpen, after an exact 2×2 U16 source |
+| noise_dirt_4_v2 | 0/16 | 1.63018703e-05 | 1,463,647 / 1,398,080 | 42.36 | 290.2 | Sharpen, after an exact 2×2 U8 source |
+
+Both dirt graphs already match all four source texels before sharpening. In the first graph a reference F32 edge is −.103746146 and the local edge is zero. The second has only small positive differences. In the first directional graph the two smaller patterns and their blend match exactly. Three values differ by one stored level in the deepest pattern, and those differences reach the final Levels node.
+
+For a traversal-only control, connect all four slots of each empty quadrant to the next quadrant, down to depth nine or ten. Use absolute 4×4 F32 output, zero roughness, unit global opacity, additive axis-aligned square leaves, gray level 2⁻²⁰, and seed 107011 + 17 × depth + 4. Use leaf size (1,1) for one cell or (2^depth,2^depth) for an image-wide square. The input consists entirely of these original parameters.
+
+| Depth and footprint | Visit ceiling | Exact pixels | Maximum error | Cook seconds | Peak MiB |
+|---|---:|---:|---:|---:|---:|
+| 9, cell | 1,048,576 | 16/16 | 0 | 0.94 | 190.6 |
+| 9, wide | 1,048,576 | 16/16 | 0 | 0.95 | 190.4 |
+| 10, cell | 1,048,576 | Execution budget | — | 2.55 | 239.3 |
+| 10, cell | 2,097,152 | 16/16 | 0 | 3.98 | 225.2 |
+| 10, wide | 1,048,576 | Execution budget | — | 2.48 | 224.8 |
+| 10, wide | 2,097,152 | 16/16 | 0 | 3.80 | 225.4 |
+
+Depth ten produces 1,398,101 visits and 1,048,576 stamps. Raising only the visit ceiling renders both footprints. The cell case produces exactly one increment per pixel. In the wide case each pixel receives 409,600 to 802,816 increments. Both controls match every stored bit. At depth nine the wide case receives 102,400 to 200,704 increments. Dropping the last subdivision would therefore change the output.
+
+For a separate partition test, isolate the deepest pattern of each directional graph and the sole pattern of each dirt graph. At the first quadrant whose four outputs point to the same child, keep just one connected slot. Repeat with each of the four slots, retaining its original slot number. Render 4², 8², and 8×4 F32, using seeds 103307 + 13 × the zero-based inventory index + 0, 1 and 2 respectively. Use the first two distinct default/changed settings from the linked family measurements. All 48 partitioned renders complete with the standard guard. They match 160/1,120 pixels, with maximum F32 error .0000105798244. These are separate quadrant images. Full-root parity remains open for all four graphs.
+
 ## 2026-11-19 root comparisons
 
 ### Texture sampling in pattern functions
