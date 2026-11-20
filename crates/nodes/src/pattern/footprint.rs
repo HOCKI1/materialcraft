@@ -35,22 +35,8 @@ impl Footprint {
         (!outside).then_some(local)
     }
 
-    fn contains_axis(&self, axis: usize, point: f32, center: f32) -> bool {
+    pub(super) fn contains_axis(&self, axis: usize, point: f32, center: f32) -> bool {
         point > center - self.radius[axis] && point - center <= self.radius[axis]
-    }
-
-    pub fn clip_aligned(&self, region: &Region, center: [f32; 2], size: [u32; 2], bounds: [[u32; 2]; 2]) -> [[u32; 2]; 2] {
-        std::array::from_fn(|axis| {
-            let [mut start, mut end] = bounds[axis];
-            let contains = |pixel| self.contains_axis(axis, region.pixel_center(axis, pixel, size[axis]), center[axis]);
-            while start < end && !contains(start) {
-                start += 1;
-            }
-            while start < end && !contains(end - 1) {
-                end -= 1;
-            }
-            [start, end]
-        })
     }
 }
 

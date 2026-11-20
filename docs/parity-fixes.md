@@ -534,6 +534,34 @@ For each root’s 25 follow-up renders, the 5,120 U8, 553,728 U16, 78,336 F16 an
 
 In a single-worker release run, four interleaved measurements of the 128² default, 256² default and 512² filled cases gave median whole-graph cook times of 46, 259 and 1,138 ms for Alveolus (previously 45, 247 and 1,068 ms). Pattern Alveolus took 45, 253 and 1,083 ms (previously 43, 238 and 1,045 ms).
 
+### Fractional stamp vertices and the last covered pixel
+
+Brick 1 and Brick 2 now match all 255 measured original renders, including defaults, changed graph controls, several seeds, rectangular outputs and four storage formats. An original horizontal F32 ramp localized the first difference in Brick 2. At 64² use center (.425,.375), size (28.625/64,12.625/64), zero rotation and unit opacity. Before the change, pixel (16,18) read `3e013acc` instead of `3e013ace` and (33,18) read `3f3857a2` instead of `3f3857a4`. Translating the same ramp in two-pixel increments changed its step when a far vertex crossed 64, even though its fractional position on the grid stayed the same.
+
+The interpolator now stores each unsnapped vertex in F32 before adding its displacement to the pixel grid. The two coordinates at the outermost sample must also lie within the closed interval [−1,1]. The physical footprint still assigns a pixel exactly on a shared edge to one neighbor. For a solid stamp centered at (−19/64,−20/64), size (45/64,49/64), (0,3) stays white and (0,4) becomes black. Both this assertion and the ramp regression failed on the previous cooker. The clipping check runs at the ends of the span.
+
+| Root | Renders | Exact U8 | Exact U16 | Exact F16 | Exact F32 | Total exact / compared | Maximum in each format |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| 59 · brick_1 | 131 | 128,512 | 1,476,096 | 128,512 | 1,461,248 | 3,194,368/3,194,368 | 0 |
+| 60 · brick_2 | 124 | 126,464 | 1,469,952 | 126,464 | 1,453,056 | 3,175,936/3,175,936 | 0 |
+
+Use the previously recorded root settings, then apply the 12 decimal settings to both graphs. Add 909 to each seed for Brick 2. In the first 31 follow-ups, each original and its ordinary MaterialCraft save now match all 856,064 raw pixels across apps. [Original brick controls and first saved-file checks](#fractional-edges-of-axis-aligned-pattern-stamps) · [Twelve additional settings and output formats](#cropped-origins-of-axis-aligned-stamps)
+
+| Additional original F32 controls | Renders | Exact pixels | Maximum absolute error |
+|---|---:|---:|---:|
+| Translated ramps with three width and height pairs | 180 | 1,732,608/1,732,608 | 0 |
+| Horizontal and vertical signed ramps crossing a canvas edge | 144 | 1,019,904/1,019,904 | 0 |
+| Solid, paraboloid, beveled and offset stamps at the same boundaries | 144 | 1,019,904/1,019,904 | 0 |
+| Fractional-width and fractional-height ramps measured earlier | 669 | 5,050,368/5,050,368 | 0 |
+| Arbitrary centers and extents in the unit region, first set | 200 | 1,391,416/1,392,640 | .000000119209290 |
+| Independently seeded unit-region controls, second set | 264 | 1,801,968/1,802,240 | .0000000894069672 |
+
+For the signed edge controls choose these (canvas, pixel extent, pixel center) triples. Use (128²,126×62,0/96), (128×64,94×47,−35/20), (64×128,47×94,20/−35), (128²,97×89,−39/−34), (64²,45×49,−19/−20), (32×128,99×123,−40/22), (128×32,105×95,27/−37), (64²,66×64,−27/15), (32×64,92×85,−33/−34), (64×128,27.75×119.125,12/−48), (128×64,99.25×51.75,−41/27), and (32²,73.125×71.875,−28/−29). Offset the center by (0,0), (.125,.25), or (.375,.125) pixels. Use single horizontal and quarter-turned ramps with both signs of the ramp size, then shapes 2, 4, 9 and 17. Use zero roughness, .7265625 bevel smoothness, seed 270557 + 31 × triple index + 3 × offset index + negative-size flag for the ramps and .375 variation for shape 17. Brick 3 still differs at 32/427,520 pixels across 68 renders, maximum one U16 level or .0000152587891 F32. Its U8 and F16 results agree throughout.
+
+Saving both graphs with the normal package writer and reopening them in the reference app preserved all 1,910,784 pixels per graph across the 32 decimal cases. MaterialCraft reopened the same two files and matched those pixels as well. Four nonunit-region controls still differ. Render the 24 cases for j = 12 through 23 of the generator below with view and tiling bounds (−.175,.837,−.243,1.109), (.071,.663,.169,.728), (−.11328125,.88671875,−.0703125,.9296875) and (.1875,.8125,.09375,.84375), respectively. The four sets match 155,285, 130,877, 159,340 and 138,652 of 163,840 pixels each. Their maximum errors are 1.78813934e−7, 2.38418579e−7, 1.78813934e−7 and 2.38418579e−7.
+
+For the 264 unit-region controls start the [32-bit generator](#cropped-origins-of-axis-aligned-stamps) at 0x4a9721d3. Each draw shifts the new state right eight and divides by 2²⁴. Cycle the canvas through 16×128, 128×16, 32×64, 64×32, 128² and 256×64. Draw width and height in pixels as 2 + draw × (1.2 × axis dimension − 2), then the two normalized center components as −.2 + 1.4 × draw. Negate the X size for j mod 3 = 1 and the Y size for j mod 5 = 1. At even j render zero and half turns, at odd j render both quarter turns after transposing the canvas and center. The seed is 290449 + 11j + orientation index. The remaining 272 pixels belong to the two j = 68 images. In the first set, entering the same 32-bit width explicitly made both previously different renders exact. All 272 release node tests passed.
+
 ### Cropped origins of axis-aligned stamps
 
 Brick 1 at 256², tiling 2, edge smoothness .7265625 and interstice width .03125 differed at 64 output positions in each of U16 and F32. Two independently authored bevel stamps reproduce the entire 128² source in each app. For the wrapped stamp use shape 9, size (.984375,.484375), center (0,.75), unit opacity and the same smoothness. At (48,88) its F32 value was `3e732afe` in MaterialCraft and `3e732b04` in the reference. The combined U16 source there was 15,562 versus 15,563. Replacing the bevel by a horizontal ramp isolated the difference to the horizontal coordinate.

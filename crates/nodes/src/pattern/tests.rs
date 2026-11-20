@@ -319,6 +319,33 @@ fn clipped_stamp_gradients_use_one_triangle_vertex_for_both_axes() {
 }
 
 #[test]
+fn snapped_stamp_vertices_preserve_fractional_positions() {
+    let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
+    graph.nodes[0].parameters = BTreeMap::from([
+        ("patterntype".into(), Value::Int(10)),
+        ("patternsize".into(), Value::Float2([28.625 / 64.0, 12.625 / 64.0])),
+        ("frameoffset".into(), Value::Float2([-0.075, -0.125])),
+    ]);
+    let image = cook_at_size(graph, &BTreeMap::new(), 265259, 64).unwrap().remove(0);
+    for (x, bits) in [(16, 0x3e01_3ace), (33, 0x3f38_57a4)] {
+        assert_eq!(image.get_gray(x, 18, false).to_bits(), bits, "column {x}");
+    }
+}
+
+#[test]
+fn snapped_stamp_vertices_clip_the_last_solid_sample() {
+    let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
+    graph.nodes[0].parameters = BTreeMap::from([
+        ("patterntype".into(), Value::Int(2)),
+        ("patternsize".into(), Value::Float2([0.703125, 0.765625])),
+        ("frameoffset".into(), Value::Float2([-0.796875, -0.8125])),
+    ]);
+    let image = cook_at_size(graph, &BTreeMap::new(), 270681, 64).unwrap().remove(0);
+    assert_eq!(image.get_gray(0, 3, false), 1.0);
+    assert_eq!(image.get_gray(0, 4, false), 0.0);
+}
+
+#[test]
 fn gaussian_stamp_coordinates_follow_the_pixel_footprint() {
     let definition = find("fx_map").unwrap();
     let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);

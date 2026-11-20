@@ -43,9 +43,14 @@ impl PixelPlanes {
         let axes = std::array::from_fn(|axis| {
             let basis = truncate_float(f64::from(padded[1 - axis]) * f64::from(reciprocal));
             let center = (bounds[axis][0] + bounds[axis][1]) * 0.5;
-            let scale = f64::from(pixel_divide(2.0, extents[axis] as f32));
-            let low = ((near[axis] - center) * scale) as f32;
-            let high = ((far[axis] - center) * scale) as f32;
+            let radius = extents[axis] * 0.5;
+            let scale = pixel_divide(2.0, extents[axis] as f32);
+            // Store the unsnapped vertices at pixel precision before applying each snap displacement.
+            let near_vertex = (center - radius) as f32;
+            let far_radius = f64::from((3.0 * radius) as f32);
+            let far_vertex = (center + far_radius) as f32;
+            let low = (near[axis] - f64::from(near_vertex) - radius) as f32 * scale;
+            let high = ((far[axis] - f64::from(far_vertex) + far_radius) * f64::from(scale)) as f32;
             let span = truncate_float(f64::from(high) - f64::from(low)) * 0.5;
             let gradient = gradient_product(basis, span);
             let unit = f64::from(gradient.next_up() - gradient);
@@ -56,6 +61,22 @@ impl PixelPlanes {
             Axis { base: ((0.5 - origin[axis]) * step + f64::from(base)) * sign, step: step * sign, negative_bias: unit / 64.0 }
         });
         Some(Self { axes, swap })
+    }
+
+    pub fn clip(&self, frame: &Footprint, region: &Region, center: [f32; 2], size: [u32; 2], bounds: [[u32; 2]; 2]) -> [[u32; 2]; 2] {
+        std::array::from_fn(|axis| {
+            let [mut start, mut end] = bounds[axis];
+            // A shared physical edge has one owner. A rounded coordinate beyond the stamp is discarded as well.
+            let contains =
+                |pixel| frame.contains_axis(axis, region.pixel_center(axis, pixel, size[axis]), center[axis]) && self.axes[axis].sample(pixel).abs() <= 1.0;
+            while start < end && !contains(start) {
+                start += 1;
+            }
+            while start < end && !contains(end - 1) {
+                end -= 1;
+            }
+            [start, end]
+        })
     }
 
     pub fn row(&self, y: u32) -> impl Fn(u32) -> [f32; 2] + '_ {
