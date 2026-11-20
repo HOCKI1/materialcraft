@@ -76,9 +76,10 @@ impl SampleGrid {
         }
         let center = std::array::from_fn(|i| if self.axes[i] { stamp.center[i].rem_euclid(1.0) } else { stamp.center[i] });
         let Ok(repeats) = self.region.repeats(&self.region, center, frame.radius, self.axes) else { return false };
-        for row in repeats[1][0]..=repeats[1][1] {
-            for column in repeats[0][0]..=repeats[0][1] {
-                let center = [center[0] + column as f32, center[1] + row as f32];
+        let columns = self.region.copy_centers(0, center[0], repeats[0]);
+        for y_center in self.region.copy_centers(1, center[1], repeats[1]) {
+            for x_center in columns.clone() {
+                let center = [x_center, y_center];
                 let [[left, right], [top, bottom]] = self.region.bounds(center, frame.radius, self.dimensions);
                 for y in top..bottom {
                     for x in left..right {

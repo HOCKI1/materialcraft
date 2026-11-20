@@ -346,6 +346,40 @@ fn stamp_precision_at_the_far_vertex_precedes_the_coordinate_scale() {
 }
 
 #[test]
+fn wrapped_centers_store_each_step_across_fractional_periods() {
+    let region = super::region::Region::new([-0.173, 0.369, 0.096, 0.869]).unwrap();
+    let leftmost = region.copy_centers(0, 0.307_120_5, [-4, 3]).min_by(f32::total_cmp);
+    assert_eq!(leftmost.map(f32::to_bits), Some(0xbfee_314e));
+}
+
+#[test]
+fn wrapped_additive_stamps_visit_the_outer_row_and_column_first() {
+    let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
+    graph.nodes[0].parameters = BTreeMap::from([
+        ("patterntype".into(), Value::Int(10)),
+        ("blendingmode".into(), Value::Int(0)),
+        ("branchoffset".into(), Value::Float2([-0.5; 2])),
+        ("frameoffset".into(), Value::Float2([0.1875, 0.34375])),
+        ("patternsize".into(), Value::Float2([2.75, 2.5])),
+    ]);
+    let image = cook_at_size(graph, &BTreeMap::new(), 311197, 32).unwrap().remove(0);
+    assert_eq!(image.get_gray(3, 0, false).to_bits(), 0x4035_1747);
+}
+
+#[test]
+fn a_wrapped_stamp_keeps_the_center_precision_of_its_outer_copy() {
+    let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
+    graph.nodes[0].parameters = BTreeMap::from([
+        ("patterntype".into(), Value::Int(10)),
+        ("branchoffset".into(), Value::Float2([-0.5; 2])),
+        ("frameoffset".into(), Value::Float2([0.063_709_915, 0.906_030_9])),
+        ("patternsize".into(), Value::Float2([0.128_019_7, 0.062_836_37])),
+    ]);
+    let image = cook_at_size(graph, &BTreeMap::new(), 303021, 64).unwrap().remove(0);
+    assert_eq!(image.get_gray(0, 56, false).to_bits(), 0x3d81_c730);
+}
+
+#[test]
 fn snapped_stamp_vertices_clip_the_last_solid_sample() {
     let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
     graph.nodes[0].parameters = BTreeMap::from([

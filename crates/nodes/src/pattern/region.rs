@@ -58,6 +58,17 @@ impl Region {
         self.span
     }
 
+    pub fn copy_centers(&self, axis: usize, center: f32, [first, last]: [i32; 2]) -> impl Iterator<Item = f32> + Clone {
+        let period = self.span[axis];
+        // Each step starts from the preceding F32 center, including across fractional periods.
+        let outer = center + last as f32 * period;
+        (first..=last).rev().scan(outer, move |next, _| {
+            let current = *next;
+            *next -= period;
+            Some(current)
+        })
+    }
+
     pub fn repeats(&self, render: &Self, center: [f32; 2], radius: [f32; 2], axes: [bool; 2]) -> Result<[[i32; 2]; 2], String> {
         let mut result = [[0; 2]; 2];
         for axis in 0..2 {

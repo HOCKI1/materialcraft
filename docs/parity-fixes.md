@@ -534,6 +534,50 @@ For each root’s 25 follow-up renders, the 5,120 U8, 553,728 U16, 78,336 F16 an
 
 In a single-worker release run, four interleaved measurements of the 128² default, 256² default and 512² filled cases gave median whole-graph cook times of 46, 259 and 1,138 ms for Alveolus (previously 45, 247 and 1,068 ms). Pattern Alveolus took 45, 253 and 1,083 ms (previously 43, 238 and 1,045 ms).
 
+### Wrapped stamp centers in Brick 3
+
+Three stamps accounted for the last 16 differing U16 source pixels in the earlier Brick 3 cases. The downstream outputs repeated those differences in U16 and F32. All three stamps crossed the left edge. A single 64² horizontal ramp, center (.063709915,.9060309), size (.1280197,.06283637), zero rotation and horizontal tiling isolates the error. At (0,56) the F32 bits were `3d81c770`. The reference reads `3d81c730`. A regression for that pixel failed on the previous cooker.
+
+The starting center is stored in F32 at the outer copy that overlaps the render and tiling windows. The rasterizer and its small-footprint test step back one period at a time from that center. Where the horizontal period is one and the outer copy is the next tile, this makes the center in the original tile `(center + 1) − 1` in F32. The three isolated bevels now match all 20,480 F32 pixels, maximum error zero. The other two centers are (.0630749836564064,.15664711594581604) and (.0630003958940506,.6566050052642822), both with size (.1265193521976471,.06177031993865967) at 128×64.
+
+| Brick 3 outputs | Renders | Exact U8 | Exact U16 | Exact F16 | Exact F32 | Total exact / compared |
+|---|---:|---:|---:|---:|---:|---:|
+| Earlier cases, including defaults | 68 | 39,936 | 179,200 | 39,936 | 168,448 | 427,520/427,520 |
+| Changed decimal controls | 32 | 78,336 | 355,840 | 78,336 | 355,840 | 868,352/868,352 |
+
+Maximum error is zero in each format. Before the change, the 32 new cases matched 867,054/868,352 pixels. Maximum errors were zero U8, one U16 level, .00048828125 F16 and .0000152587890625 F32. The ordinary MaterialCraft save reopened in both apps and preserved every one of those 868,352 pixels. [Earlier brick cases and parameter settings](#fractional-stamp-vertices-and-the-last-covered-pixel)
+
+For the 32 new renders use the following (width×height, tiling, roundness, luminosity variation, luminosity seed, disorder) tuples, in row order. Use F32 and U16 on every row, adding U8 and F16 on rows 0, 2, 5 and 9. The graph seed is 303407 + 59 × row + the zero-based format index in that order.
+
+| Row | Size | Tiling | Roundness | Luminosity variation | Luminosity seed | Disorder |
+|---:|---|---:|---:|---:|---:|---:|
+| 0 | 32×16 | 1 | .131 | .219 | 11 | .883 |
+| 1 | 16×64 | 2 | .257 | .418 | 27 | .539 |
+| 2 | 32×128 | 1 | .319 | .623 | 37 | .173 |
+| 3 | 64×32 | 3 | .437 | .716 | 41 | .297 |
+| 4 | 64×128 | 3 | .531 | .317 | 53 | .373 |
+| 5 | 128×64 | 2 | .647 | .931 | 67 | .477 |
+| 6 | 128×256 | 4 | .701 | .293 | 79 | .663 |
+| 7 | 256×128 | 1 | .789 | .147 | 93 | .513 |
+| 8 | 256² | 2 | .853 | .839 | 103 | .719 |
+| 9 | 512×128 | 3 | .947 | .353 | 127 | .993 |
+| 10 | 512×256 | 2 | .197 | .751 | 151 | .193 |
+| 11 | 128×32 | 1 | .339 | .497 | 173 | .383 |
+
+An independent single-ramp sweep varied horizontal and vertical orientation, all four tiling masks and stamp sizes spanning up to 3.3 periods. All 3,112,960 F32 pixels across 456 renders agree. For each mask and orientation, begin with the three isolated stamp geometries. With NumPy PCG64 seed 302609, draw two widths uniformly from [.15,.87) and two center fractions from [.16,.48) for each of 45 geometries. For each axis choose width × fraction, 1 − width × fraction, or .5 in that order. Cycle the horizontal choice each row and the vertical choice every three rows. Cycle 64², 128×32, 32×128, 64×128 and 128² outputs. Use nine further 64² cases with both widths drawn from [1.05,3.3) and both centers from [.001,.99). For the vertical ramp transpose the two widths and use a quarter turn. Use seed 302999 + 11 × geometry index.
+
+As a separate check inside the reference app, combine independently drawn, unwrapped paraboloids with maximum blending and compare them with the tiled drawing. For each of 15 geometries the reconstructed images match in the unit region at .071 turns and in the asymmetric region (−.125,.75,−.25,1.125) at zero and .071 turns, 294,912/294,912 pixels. Measuring each center directly from the original position missed 8,955 and 4,972 pixels on the two rotated sets. In a 64² subpixel solid-stamp check, horizontal tiling matches 196,608/196,608 pixels across 48 renders. With tiling disabled, 196,597/196,608 match, maximum error one. The differing samples lie within a few F32 steps of the stamp boundary. The four nonunit ramp sets retain their previously recorded differences.
+
+Fractional periods distinguish a sequence of F32 subtractions from a single multiplication by the copy index. Repeat geometries 3, 12, 22, 38, 48, 50, 51, 53, 55 and 56 above at 32². Use bounds (.019,.631,−.073,.689) at zero turns and (−.173,.369,.096,.869) at .071 turns. Stepping one period at a time reconstructs 20,480/20,480 native maximum-blend pixels. A single multiplication misses 371, maximum 1.1920928955078125e−7. With horizontal period .542, center .30712050199508667 and copy indices −4 through 3, the leftmost center has bits `bfee314e`.
+
+For additive blending, each row runs from the largest to the smallest column, and rows run from the largest to the smallest row. Reassembling the unwrapped native outputs in that order reproduces all 118,784 F32 pixels in 35 renders across the unit region and the two fractional regions. Reversing both axes differs at 8,414 pixels, maximum 2.86102294921875e−6. With a 32² horizontal ramp centered at (.1875,.34375), size (2.75,2.5), opacity one and wrapping on both axes, pixel (3,0) has bits `40351747`. Traversing in ascending order gives `40351746`. Both the fractional-center and accumulation-order regressions failed before the change.
+
+For a direct comparison between apps, render centered horizontal ramps and paraboloids with the following (width×height, center X/Y, size X/Y) groups at zero turns, additive blending and F32 storage. Use (32²,.1875/.34375,2.75/2.5), (64×32,.29535/.6747,1.8125/3.125), (32×64,.8197/.43265,3.536/.939), (64²,.5729/.1692,2.617/2.329), (32²,.593/.7796,1.801/2.71) and (64×32,.1121/.997,3.145/3.499) with seed 311197 + 19 × group. The ramps improved from 7,953 to 12,288/12,288 and the paraboloids from 8,282 to 12,288/12,288. Maximum errors fell from 1.430511474609375e−6 and 9.5367431640625e−7 to zero.
+
+BNW Spots 1 now matches 197,312/204,288 pixels, BNW Spots 3 matches 180,768/185,856, the two Brick Generator Tile helpers match 150,301 and 149,872 of 150,528 and Cells 1 matches 145,061/145,664. The maximum errors in U8, U16, F16 and F32 respectively are 1/3/.00048828125/.0000431537628 for Spots 1, 1/2/.00048828125/.0000305175781 for Spots 3, 175/45,055/.6875/1 for each Tile and 0/3/.00048828125/.0000367760658 for Cells 1. [Individual spot measurements](#individual-stamps-in-bnw-spots-1) · [Tile helper controls](#rectangular-fields-in-the-two-brick-generator-tile-helpers)
+
+Crystal 1 gained its last 311 pixels in the earlier 17-render matrix, 145,664/145,664. Another 32 original renders and their saved-file readbacks each match 935,935/935,936 pixels between apps. The reference app reproduces all 935,936 pixels before versus after the save. One F16 pixel differs by .0001220703125. Use (width×height, warp intensity, disorder) of (16×32,0,.137), (32×64,3.179,.533), (64×16,7.25,.351), (128×32,12.739,.119), (64×128,20.527,.779), (256×64,35.193,.801), (128×256,49.73,.327), (256×128,63.125,1), (256²,32.979,.477), (512×128,5.137,.923), (512×256,47.507,.679) and (128×64,0,0). Use seed 310453 + 83 × row + the format index. Render F32 then U16 throughout, adding U8 then F16 on rows 0, 2, 6 and 9. At (138,0) on the 512×128 F16 case, the first differing stage is the U16 pattern map, 46,733 in the reference and 46,734 in MaterialCraft. Reusing that seed in every format gives one U16 difference, one F16 difference, one F32 difference of .0000152736902 and exact U8. Crystal 1 remains in progress. Crystal 2 lost four matches in its earlier matrix, with 144,766/145,664 exact. Its maximum errors are zero U8, two U16 levels, zero F16 and .0000305175781 F32.
+
 ### Decimal graph parameters on the control channel
 
 The two remaining differences in the first 200-render unit-region sweep came from parsing the width before cooking. A 128×32 horizontal ramp used width `0.37710319459438324`, height `0.6551689207553864`, frame offset (−.022019073367118835,.3031836450099945) from the canvas center and seed 265655. Its transposed counterpart used a quarter turn and seed 265656. The width lies halfway between two F32 values. The JSON reader previously returned a binary64 value just below that midpoint. The positive width reached the graph as `3ec113ab`. The reference reads `3ec113ac`. Enabling round-trip decimal parsing in the existing JSON dependency preserves the midpoint until conversion to the graph’s type. A regression with both signs failed before the change.

@@ -102,9 +102,10 @@ pub(super) fn render(context: &CookContext, stamps: &[PatternStamp], max_depth: 
             continue;
         }
         copies_left = copies_left.checked_sub(copies).ok_or("pattern repetition exceeds its budget")?;
-        for repeat_y in repeats[1][0]..=repeats[1][1] {
-            for repeat_x in repeats[0][0]..=repeats[0][1] {
-                let center = [center[0] + repeat_x as f32 * period[0], center[1] + repeat_y as f32 * period[1]];
+        let columns = tile_region.copy_centers(0, center[0], repeats[0]);
+        for y_center in tile_region.copy_centers(1, center[1], repeats[1]) {
+            for x_center in columns.clone() {
+                let center = [x_center, y_center];
                 let bounds = render_region.bounds(center, radius, [width, height]);
                 let [[left, right], [top, bottom]] = bounds;
                 let samples = u64::from(right.saturating_sub(left)) * u64::from(bottom.saturating_sub(top));
