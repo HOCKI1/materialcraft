@@ -317,6 +317,24 @@ For each live source in the original graph, route it directly to the output. Kee
 
 All isolated squares and discs here have maximum error zero. In Scratches, Messy Fibers 1, 2 and 4 the complete square controls also agree. The authored soft and wave profiles still differ. Microscope and Moisture also have differences with all original branches drawing squares. All six whole roots remain in progress.
 
+### BNW Spots 3 and Cells 1 pattern sources
+
+| Root package | Whole outputs compared / attempted | Exact pixels / compared | Maximum U8 / U16 / F16 / F32 error |
+|---|---:|---:|---|
+| noise_bnw_spots_3 | 6/19 | 104,343/107,776 | — / 2 / .00048828125 / .0000259578228 |
+| noise_bnw_spots_3_v2 | 6/19 | 106,559/107,776 | 1 / — / .00048828125 / .00000336766243 |
+| noise_cells_1 | 19/19 | 143,321/153,856 | 0 / 1 / .00048828125 / .000000894069672 |
+
+Each row includes the original 128² and 256² defaults, 128² seed 42 and changed controls, the four-format and independent inputs, and ten additional stage captures. In each spots root 13 settings hit the pattern execution limit. Counts omit outputs without a comparable image. In the v2 spots root the 128² U8 seed-42 case is exact at 16,384/16,384. Cells 1 matches all 5,120 U8 pixels and 4,397/13,568 F32 pixels. [Original four-format controls](#four-format-inventory-comparison)
+
+For the ten stage captures use inventory index i = 238, 239 or 240 and seeds 100333+11i plus [0,1,2,2,2,2,6,7,8,9]. Start with 16² F32 at defaults. At 32² F32 set (scale, disorder, non-square expansion) to (1,0,on). Use (3,.3125,off) at 32² in U8, U16, F16 and F32. Use (5,.8125,on) at 64×32 F32 and 32×64 U16, then (3,.3125,off) at 64² F32 and (1,0,on) at 128×64 F16. For v2 use (speed, anisotropy, anisotropy angle, tile offset) of (1,0,0,[0,0]), (.6875,.25,.3125,[.125,−.1875]) and (1.4375,.625,−.21875,[−.3125,.4375]) at scales 1, 3 and 5 respectively.
+
+In the first spots root the three U16 generators match 63/64, 988/1,024 and 255/256 pixels at the 32² scale-one setting. Replace those generators with original grayscale fields matching each stage's resolution and format. The remaining two blends and Levels then give 21,760/21,760 exact output pixels in ten renders. For field j use level 8199(j+1) at defaults, a diagonal of 59003−49j over 302+69j at scale one, and ((11x+31y+7xy+93+47j+(j+1)x)×7919) mod 65536 for the format sweep. For the two rectangular scale-five cases use levels 32769+j and 32767+j selected by (7x+13y+3j) mod 11. Use the format-sweep field at 64² and 128×64.
+
+The v2 spots graph has three pattern stages in series. At the same 32² setting its first two images match 64/64 and 256/256 U8 pixels. The terminal F32 pattern stage matches 81/1,024. In separate tests substitute an original input for the first stage, then for the second stage. The comparable whole outputs match 8,200/9,472 and 8,208/9,472 respectively. Seven of ten settings per substitution still hit the execution limit. The original Cells 1 graph consists of a single pattern stage.
+
+For each of these seven generators isolate a shortest connected path from the pattern root to a drawing quadrant. Retain the original Iterate and Switch expressions on the path, keep one outgoing connection per node, and give the stage an empty background input. Compare its authored paraboloid, then substitute a solid square and a disc. Use the ten-case series above with the 64² case omitted. On those isolated paths the authored profiles match 23,180/23,184, 23,097/23,184 and 14,864/17,664 pixels respectively. The square and disc each match 64,032/64,032 pixels across all seven sources, maximum zero. The authored profiles retain F32 maxima of 4.17232513e−7, 6.25848770e−7 and 8.94069672e−7. These three roots remain in progress.
+
 ### Gaussian pattern sources and repeat limits
 
 At commit `793e0b7`, each root received 21 reference renders. The first table gives exact pixels / compared pixels / maximum error in each stored format. Integer errors are stored levels. The two Spots packages with a scale control exceeded the local traversal limit in two cases each. Their pixel denominators include the 19 cases that emitted comparable images. The reference app completed all four of the omitted renders.
