@@ -380,6 +380,21 @@ Dirt 1 also has 12 new comparisons per setting. Repeat seed S eight times interl
 
 Opening six MaterialCraft saves in the reference app reproduces 37,632/37,632 source-file pixels in 69 renders, maximum error zero. The files exercise a grayscale swatch, constant expression, color grid, gradient with a four-channel getter, radial shape with a scalar getter and a bitmap with an expression. Rerunning 19 previously verified pattern roots gives 3,211,776/3,211,776 exact pixels across 159 renders.
 
+### Overlapping disc additions in Dirt 1
+
+The whole root still matches 145,661/145,664 pixels across 17 renders. Its first differing stage draws grayscale discs at depths seven and eight. Connect that stage directly to the output, retain all four root quadrants or one at a time, and enable both drawing depths or either depth alone. To disable a depth, set its pattern type to zero and leave the descendants, offsets and seed expressions connected. Across the 15 variants, 120 renders match **629,340/629,760** pixels.
+
+| Output format | Exact pixels / compared | Maximum absolute error |
+|---|---:|---:|
+| U8 | 61,440/61,440 | 0 |
+| U16 | 61,439/61,440 | 1 level |
+| F16 | 61,440/61,440 | 0 |
+| F32 | 445,021/445,440 | 1.19209290e−7 |
+
+For each variant render 64² with disorder .4 and seed 42 in F32, U16, F16 and U8. Then render 32² with disorder .15625 and seed 100189, 128² at defaults with seed zero, 64² with disorder .4 and seed 43, and repeat the first F32 case. At the pattern output with all quadrants and both depths enabled, the two seed-42 reference F32 frames differ at 29/4,096 pixels, maximum 5.96046448e−8. [Repeated final-root outputs](#pattern-tint-coverage-and-grayscale-conversion)
+
+For an independent check take the centers, sizes and luminosities from MaterialCraft's traversal of each quadrant. Each quadrant emits 20,480 axis-aligned discs across both depths. At each pixel center, wrap the disc center to its tile, test the unit-disc radius and accumulate the covered luminosities with their depth opacities in traversal order using F32. This reconstruction matches all 384,000 local F32 pixels for the four distinct settings across the 15 variants. Against the reference it matches 383,644/384,000. At every one of the 356 unequal pixels some ordering of those same individual additions reproduces the observed reference bits exactly. The differing pixels each have three to eight contributions. Reversing the whole traversal matches 383,365 pixels, grouping by ascending depth matches 383,584, and accumulating in F64 before rounding matches 383,470. These results isolate the sensitivity to addition order. The remaining whole-root difference and the repeat variability are recorded separately.
+
 ### Stored opacity across pattern depths
 
 | Direct pattern control | Renders | Exact pixels / compared | Maximum U8 / U16 / F16 / F32 error |
