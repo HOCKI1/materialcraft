@@ -41,7 +41,7 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 
 Pattern center culling matched all 356,352 pixels across 204 renders. Background-only resizing matched all 150,528 pixels across 84 renders. The mixed-size square controls now match all 188,160 pixels, and the 288 independent depth controls match all 73,728 pixels. [Opacity and accumulator measurements](parity-fixes.md#pattern-opacity-near-zero-and-color-accumulation) [Pattern backgrounds, saved graphs and affected roots](parity-fixes.md#pattern-backgrounds-and-center-culling)
 
-The independent 264-render stamp sweep matches all 1,802,240 F32 pixels. [Far-vertex precision and root rechecks](parity-fixes.md#scaling-the-far-vertex-of-an-analytic-stamp)
+Both unit-region stamp sweeps match every F32 pixel, 1,392,640 across 200 renders and 1,802,240 across 264. All 350 scalar components also match in direct typed comparisons and after a package save. [Decimal graph parameters](parity-fixes.md#decimal-graph-parameters-on-the-control-channel) · [Far-vertex precision and root rechecks](parity-fixes.md#scaling-the-far-vertex-of-an-analytic-stamp)
 
 Filtered F32 pixel reads now match 41,664/41,664 pixels across 150 renders. The nearest and directly wired controls preserve subnormal inputs. [Sampler measurements and capture timings](parity-fixes.md#subnormal-values-in-filtered-pixel-reads)
 

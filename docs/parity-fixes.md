@@ -534,6 +534,20 @@ For each root’s 25 follow-up renders, the 5,120 U8, 553,728 U16, 78,336 F16 an
 
 In a single-worker release run, four interleaved measurements of the 128² default, 256² default and 512² filled cases gave median whole-graph cook times of 46, 259 and 1,138 ms for Alveolus (previously 45, 247 and 1,068 ms). Pattern Alveolus took 45, 253 and 1,083 ms (previously 43, 238 and 1,045 ms).
 
+### Decimal graph parameters on the control channel
+
+The two remaining differences in the first 200-render unit-region sweep came from parsing the width before cooking. A 128×32 horizontal ramp used width `0.37710319459438324`, height `0.6551689207553864`, frame offset (−.022019073367118835,.3031836450099945) from the canvas center and seed 265655. Its transposed counterpart used a quarter turn and seed 265656. The width lies halfway between two F32 values. The JSON reader previously returned a binary64 value just below that midpoint. The positive width reached the graph as `3ec113ab`. The reference reads `3ec113ac`. Enabling round-trip decimal parsing in the existing JSON dependency preserves the midpoint until conversion to the graph’s type. A regression with both signs failed before the change.
+
+| Pass-through value | Exact scalar components before | Exact after | Maximum absolute error before | Maximum after |
+|---|---:|---:|---:|---:|
+| Float | 47/50 | 50/50 | 1.9073486328125e−6 | 0 |
+| Float2 | 93/100 | 100/100 | 7.62939453125e−6 | 0 |
+| Float4 | 192/200 | 200/200 | 3.814697265625e−6 | 0 |
+
+For each type, connect a value processor that reads its exposed parameter directly to a typed output. Supply JSON decimals and compare the raw F32 component bits. Start the unsigned 32-bit generator at `443b0781` hexadecimal and update it with `1664525s + 1013904223` modulo 2³². Continue the sequence across all three types. For case j=0…49 and component c, take two successive draws. Use biased exponent 119 + (first draw modulo 15) and the low 23 bits of the second draw for a positive F32. Find its midpoint with the next higher F32 in binary64. According to (j+c) modulo 4, supply the midpoint, its lower binary64 neighbor, its higher binary64 neighbor, or the higher F32. Negate when (j+c) modulo 3 is zero. In case zero, replace the generated values with the width above and alternate signs. Use 32² for even cases, 16² for odd cases and seed 304193 + 31j + component count.
+
+The original and the ordinary MaterialCraft save for each type produced identical typed readbacks in both apps, 350/350 scalar components per set. The 200 original ramp renders improved from 1,391,416 to 1,392,640/1,392,640 bit-identical F32 pixels. Maximum absolute pixel error fell from 1.1920928955078125e−7 to zero. The 264 independently seeded controls retained all 1,802,240 pixels. [Ramp controls and remaining nonunit-region differences](#fractional-stamp-vertices-and-the-last-covered-pixel)
+
 ### Scaling the far vertex of an analytic stamp
 
 The two remaining square-edge ramp differences in the 264-render unit-region sweep have the same cause. Use a 32×64 output, center (.029354721,.79239917), normalized size (.1660128,.6520761), unit opacity, and zero or half a turn. At (0,30) the zero-turn F32 bits were 3ed5a7fa instead of 3ed5a7fc. The half-turn bits were 3f152c03 instead of 3f152c02. The signed displacement from the far vertex is stored in F32 before multiplication by the coordinate scale. A two-orientation regression failed on the previous implementation.

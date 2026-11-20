@@ -29,6 +29,13 @@ fn coerce_from_json() {
 }
 
 #[test]
+fn decimal_parameter_text_preserves_a_float_midpoint() {
+    let input = serde_json::from_str("[0.37710319459438324, -0.37710319459438324]").unwrap();
+    let rounded = f32::from_bits(0x3ec1_13ac);
+    assert_eq!(Value::Float2([0.0; 2]).coerce_json(&input), Some(Value::Float2([rounded, -rounded])));
+}
+
+#[test]
 fn gradient_interpolates() {
     let g = Gradient::default();
     assert_eq!(g.eval(0.5), [0.5, 0.5, 0.5, 1.0]);
