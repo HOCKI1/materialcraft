@@ -57,6 +57,59 @@ The first pass classifies all 546 roots: 166 Parity and 380 Too hard. These meas
 
 - **2026-11-13 - Unconnected output images:** Unconnected output bridges now produce transparent RGBA instead of grayscale. The importer separately retains each output's declared image type so saving an unconnected output preserves the graph interface. Both material templates match all 1,179,648 RGBA8 pixels across six recorded cases. All 2,560 direct grayscale/color declaration probe pixels also match, and both declared image types survive save/reload.
 
+## 2026-11-20 root comparisons
+
+### Paper, brick, fiber, mesh, polygon and shape roots
+
+All eight roots produced 19 whole outputs apiece. Across 152 renders, 915,896/1,140,736 pixels matched. Every root differs in at least one recorded case. Integer error counts storage levels. Floating-point error is the largest absolute difference in a stored channel.
+
+| Root | Exact whole pixels / compared | Maximum U8 / U16 / F16 / F32 error |
+|---|---:|---|
+| paper_path | 135,674/142,592 | 0 / 1 / 0.0009765625 / 5.69224358e-06 |
+| brick_1 | 139,565/142,592 | 0 / 1 / 0 / 6.94394112e-06 |
+| brick_2 | 139,074/142,592 | 0 / 1 / 3.81469727e-06 / 1 |
+| fibers_2 | 139,312/142,592 | 0 / 2 / 0.000244140625 / 3.05175781e-05 |
+| mesh_1 | 41,087/142,592 | 0 / 5317 / 0.0375976562 / 0.0811322033 |
+| mesh_2 | 39,574/142,592 | 0 / 9102 / 0.0595703125 / 0.138887614 |
+| polygon_2 | 141,734/142,592 | 0 / 4 / 3.05175781e-05 / 6.10351562e-05 |
+| shape_base | 139,876/142,592 | 0 / 1 / 0.00048828125 / 1.37090683e-06 |
+
+Use the four archived cases, the [four-format sweep and independent seed](#four-format-inventory-comparison), and ten additional renders. Use the zero-based inventory index i and seed 103547+17i plus [0,1,2,2,2,2,6,7,8,9]. The sizes are [16²,32²,32²,32²,32²,32²,32×16,16×32,64×32,32×64]. Use [F32,F32,U8,U16,F16,F32,F32,U16,F32,F16] and settings [defaults,A,B,B,B,B,C,C,B,A]. Apply the controls exposed by the selected root.
+
+| Controls | A | B | C |
+|---|---|---|---|
+| Paper width, height, disorder | 100, 100, 0 | 73.5, 119.25, .375 | 137.25, 65.5, .8125 |
+| Integer scale, edge smoothness, interstice width | 1, 0, 0 | 3, .15625, .21875 | 5, .546875, .0625 |
+| Nonsquare expansion, tiling, rotate 45° | on, 1, off | off, 3, on | on, 2, off |
+| Boolean rotation, polygon sides, polygon scale | off, 3, 1 | on, 5, .75 | off, 9, 1.1875 |
+| Polygon rotation, curve, gradient, invert gradient | 0, 0, 1, off | .125, .3125, .625, on | −.21875, −.1875, .1875, off |
+| Autoscale, pattern, pattern-specific control | on, 2, 0 | off, 5, .1875 | on, 9, .5625 |
+| Shape scale, XY size, angle, nonsquare | 1, (1,1), 0, on | .8125, (.625,.8125), .21875, off | 1.1875, (1.1875,.4375), −.3125, on |
+
+For each connected pattern stage retain the shortest path to an authored stamp, breaking ties by connection identifier, and clear image inputs. For the shape root use its single authored quadrant and choose square or disc through its published pattern control. Use the nine cases excluding 64×32. Each variant covers ten stages in 90 renders.
+
+| Root | Authored shape numbers | Authored exact / compared | Maximum authored U8 / U16 / F16 / F32 error | Square exact / compared | Disc exact / compared |
+|---|---|---:|---|---:|---:|
+| paper_path | 15 | 8,446/8,448 | 0 / 0 / 0 / 1.07288361e-06 | 8,448/8,448 | 8,448/8,448 |
+| brick_1 | 9 | 8,173/8,448 | 0 / 1 / 0 / 1.7285347e-06 | 8,448/8,448 | 8,448/8,448 |
+| brick_2 | 9 | 8,330/8,448 | 0 / 1 / 0 / 3.08454037e-06 | 8,448/8,448 | 8,448/8,448 |
+| fibers_2 | 6 | 985/1,728 | 0 / 1 / 0 / 5.96046448e-07 | 1,728/1,728 | 1,728/1,728 |
+| mesh_1 | 13 | 2,000/3,264 | 0 / 1 / 3.05175781e-05 / 1.07288361e-06 | 3,264/3,264 | 3,261/3,264 |
+| mesh_2 | 15 | 2,380/3,456 | 0 / 1 / 0.00048828125 / 2.83122063e-06 | 3,456/3,456 | 3,456/3,456 |
+| polygon_2 | 3, 10, 16 | 21,510/25,344 | 0 / 1 / 0.00048828125 / 4.17232513e-07 | 25,344/25,344 | 25,344/25,344 |
+| shape_base | published pattern + 1 | 7,951/8,448 | 0 / 1 / 0 / 1.49011612e-07 | 8,448/8,448 | 8,448/8,448 |
+
+Authored shapes match 59,775/67,584 pixels, squares 67,584/67,584, and discs 67,581/67,584. The reference produced nonzero pixels in 89, 90 and 89 of the 90 renders respectively. The three unequal disc pixels are all in the first mesh root. Its disc maximum U8 / U16 / F16 / F32 error is 0 / 65535 / 0 / 1.00211096.
+
+Four roots also have downstream stages. Replace the source patterns with the original fields, sizes and input storage used in the [dirt source substitutions](#dirt-noise-sources-and-downstream-stages). Each row covers ten outputs. The two mesh roots produce identical residual totals with these inputs. Their 32×64 F16 field cases account for their maximum floating error.
+
+| Root | Exact pixels / compared | Maximum U8 / U16 / F16 / F32 error |
+|---|---:|---|
+| fibers_2 | 10,496/10,496 | 0 / 0 / 0 / 0 |
+| mesh_1 | 8,984/10,496 | 0 / 1 / 0.25 / 1.52587891e-05 |
+| mesh_2 | 8,984/10,496 | 0 / 1 / 0.25 / 1.52587891e-05 |
+| polygon_2 | 10,496/10,496 | 0 / 0 / 0 / 0 |
+
 ## 2026-11-19 root comparisons
 
 ### Texture sampling in pattern functions
