@@ -798,6 +798,30 @@ fn pixel_gray_sampler_combines_stored_color_channels_after_reading() {
 }
 
 #[test]
+fn filtered_pixel_reads_flush_single_precision_subnormals_before_and_after_filtering() {
+    let normal = f32::MIN_POSITIVE;
+    let subnormal = f32::from_bits(normal.to_bits() - 1);
+    let left = [subnormal, -subnormal, -normal, normal * 2.0];
+    let image = Image::generate(2, 1, Kind::Color, |x, _| if x == 0 { left } else { [normal, -normal, 0.0, subnormal] });
+    let context = EvaluationContext {
+        scope: super::FunctionScope::PixelProcessor,
+        position: [0.0; 2],
+        size: [2.0, 1.0],
+        images: &[Some(image)],
+        image_formats: &[materialcraft_core::OutputFormat::F32],
+        tile: true,
+        variables: &BTreeMap::new(),
+    };
+    for (filter, u, expected) in [(0, 0.25, left), (1, 0.25, [0.0, -0.0, -normal, normal * 2.0]), (1, 0.5, [0.0, -0.0, -0.0, normal])] {
+        let mut graph = FunctionGraph::default();
+        let uv = graph.add_constant(Value::Float2([u, 0.5]));
+        graph.output = Some(graph.add("samplecol", &[uv], Some(Value::Int2([0, filter]))));
+        let value = compile(&graph, 0).unwrap().evaluate_pixel(&context, &mut EvaluationState::default()).unwrap();
+        assert_eq!(value.as_vec4().unwrap().map(f32::to_bits), expected.map(f32::to_bits));
+    }
+}
+
+#[test]
 fn pixel_dot_rounds_in_channel_order() {
     // One sampled texel distinguishes the accumulation orders in all three widths.
     let [x, y, z, w] = [0xc07089a0, 0x3fa2fba9, 0xbe30266f, 0xbcf10944].map(f32::from_bits);

@@ -147,7 +147,7 @@ pub(crate) fn evaluate(
                 }
                 Some(image) if context.scope == super::FunctionScope::PixelProcessor => {
                     let format = context.image_formats.get(index).copied().unwrap_or(materialcraft_core::OutputFormat::F32);
-                    crate::texture_sampler::sample(image, [position[0], position[1]], [true; 2], format, None)
+                    crate::texture_sampler::sample_pixel(image, [position[0], position[1]], format)
                 }
                 Some(image) => image.sample_stored(position[0], position[1], context.tile),
                 None => [0.0; 4],

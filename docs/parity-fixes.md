@@ -232,6 +232,22 @@ The remaining F32 gradient measurements separate coverage from the tint arithmet
 
 Six current-header saves reopened in the reference app and matched 34,816/34,816 pixels across 58 renders, maximum error zero. The 19 previously verified pattern roots retained 3,211,776/3,211,776 exact pixels in 159 renders, maximum error zero.
 
+### Subnormal values in filtered pixel reads
+
+The F32 bilinear Pixel Processor sampler flushes subnormal input components to signed zero before filtering. It applies the same rule to the filtered result. Nearest sampling and directly wired images preserve their input bit patterns. The 150 original renders below match **41,664/41,664 RGBA32F pixels**, maximum error zero. The first 60 previously matched 14,489/15,360, maximum 1.10202595e−38.
+
+| Sample mode and field | Renders | Exact pixels / compared |
+|---|---:|---:|
+| U16, F16 and F32 fields sampled at output pixel centers | 60 | 15,360/15,360 |
+| Mixed signed F32 fields at six input sizes, bilinear at output centers | 18 | 4,608/4,608 |
+| Same fields, nearest at output centers or at (.390625,.34375) | 36 | 9,216/9,216 |
+| Same fields, bilinear at (.390625,.34375) | 18 | 4,608/4,608 |
+| Direct wire at the six original input sizes | 18 | 7,872/7,872 |
+
+Use the [three-storage sampler fields](#signed-zero-in-floating-point-texture-filtering) for the first row. For the other rows use a 16² output and scale the source width and height by (1,1), (2,2), (½,½), (2,1), (1,2) or (½,2). At relative size j generate three fields with seeds 100151+19j+i. Use F32 bit patterns 00000000, 80000000, 00371245, 80371245, 007fffff, 807fffff, 00800000, 80800000, 00800001, 80800001, 009fffff, 80bfffff, 01000000, 81000000, 017fffff, 817fffff, 02000001 and 82000001. The first field samples this list uniformly with a seeded PCG64 generator in row, column and channel order. For the second field take index (5x+9y+3c) mod 18, with index 12+(c mod 2) where (floor(x/2)+3floor(y/2)+c) mod 7 is zero. For the last field take index (x+7y+c) mod 18, with −.25 where (x+y+c) mod 3 is zero. At output centers the native nearest reads preserve all 3,547 subnormal components. The filtered reads return signed zeros there when the result falls below the smallest positive normal.
+
+Eight small capture graphs also tested the cost of loading the node library. Use the first row at size/storage pairs (0,U16), (1,F16), (2,F32), (3,U16), (4,F16), (3,F32), (0,F32) and (4,U16), including all four field variants for each pair. Running eight independent sessions in separate processes took 26.12 and 24.70 seconds. Running the same sessions in one process with a shared read-only library took 3.34 and 3.29 seconds. Test the two orders on one worker. Each run produced 96 identical images, 30,976/30,976 captured pixels, identical node values and errors, and zero maximum difference.
+
 ### Signed zero in floating-point texture filtering
 
 A bilinear footprint containing only zeros retains a negative sign in a channel when every contributing texel has a negative sign. Texels with zero weight have no effect. On 20 original color Pixel Processor renders, all **20,480/20,480 F16- and F32-source component signs** match this rule. The full 60-render matrix improved from 10,741 to 14,489/15,360 bit-exact RGBA32F pixels. The remaining maximum absolute error is 1.10202595e−38.

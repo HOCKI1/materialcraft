@@ -54,7 +54,15 @@ pub(crate) fn sample(image: &Image, uv: [f32; 2], tiling: [bool; 2], format: Out
     if !uv.iter().all(|v| v.is_finite()) {
         return matte.unwrap_or([0.0, 0.0, 0.0, 1.0]);
     }
-    filter_taps(image, taps(image, uv, tiling), tiling, format, matte)
+    filter_taps(image, taps(image, uv, tiling), tiling, format, matte, std::convert::identity)
+}
+
+/// A filtered pixel read flushes F32 subnormals at the texels and again at the filter result.
+pub(crate) fn sample_pixel(image: &Image, uv: [f32; 2], format: OutputFormat) -> [f32; 4] {
+    if format != OutputFormat::F32 || !uv.iter().all(|v| v.is_finite()) {
+        return sample(image, uv, [true; 2], format, None);
+    }
+    filter_taps(image, taps(image, uv, [true; 2]), [true; 2], format, None, |pixel| pixel.map(crate::function::flush_subnormal))
 }
 
 /// Average each clamped 2×2 footprint at source precision, then store the reduced level.
@@ -62,20 +70,28 @@ pub(crate) fn reduce_level(image: &Image, source: OutputFormat, destination: Out
     let level = Image::generate(image.width().div_ceil(2), image.height().div_ceil(2), image.kind(), |x, y| {
         let (x, y) = (i64::from(x) * 2, i64::from(y) * 2);
         let taps = [(x, y, 64), (x + 1, y, 64), (x, y + 1, 64), (x + 1, y + 1, 64)];
-        filter_taps(image, taps, [false; 2], source, None)
+        filter_taps(image, taps, [false; 2], source, None, std::convert::identity)
     });
     crate::output_precision::apply(level, destination)
 }
 
-fn filter_taps(image: &Image, taps: [(i64, i64, u32); 4], tiling: [bool; 2], format: OutputFormat, matte: Option<[f32; 4]>) -> [f32; 4] {
+fn filter_taps(
+    image: &Image,
+    taps: [(i64, i64, u32); 4],
+    tiling: [bool; 2],
+    format: OutputFormat,
+    matte: Option<[f32; 4]>,
+    prepare: impl Fn([f32; 4]) -> [f32; 4],
+) -> [f32; 4] {
     if image.integer_sampling() {
         return sample_normalized(image, taps, tiling, matte);
     }
+    let read = |x, y| prepare(texel(image, x, y, tiling, matte));
     if let Some((x, y, _)) = taps.iter().find(|(_, _, weight)| *weight == 256) {
-        return texel(image, *x, *y, tiling, matte);
+        return read(*x, *y);
     }
-    let pixels = taps.map(|(x, y, weight)| (texel(image, x, y, tiling, matte), weight));
-    std::array::from_fn(|channel| filter_float(&pixels, channel, format))
+    let pixels = taps.map(|(x, y, weight)| (read(x, y), weight));
+    prepare(std::array::from_fn(|channel| filter_float(&pixels, channel, format)))
 }
 
 fn taps(image: &Image, [u, v]: [f32; 2], tiling: [bool; 2]) -> [(i64, i64, u32); 4] {
