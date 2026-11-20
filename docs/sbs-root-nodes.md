@@ -35,7 +35,7 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **377 Parity**, **143 In progress** and **26 Too hard**. The November 17–20 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons) · [November 19 measurements](parity-fixes.md#2026-11-19-root-comparisons) · [November 20 measurements](parity-fixes.md#2026-11-20-root-comparisons)
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **377 Parity**, **168 In progress** and **1 Too hard**. The November 17–20 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons) · [November 19 measurements](parity-fixes.md#2026-11-19-root-comparisons) · [November 20 measurements](parity-fixes.md#2026-11-20-root-comparisons)
 
 [Pattern tiling axes and copy bounds across 215 renders](parity-fixes.md#tiling-axes-and-pattern-copy-bounds) · [Grayscale sampler measurements](parity-fixes.md#grayscale-sampling-of-color-inputs) · [Value sampling across 240 typed comparisons](parity-fixes.md#value-processor-texture-filtering) · [Five saved graphs reopened in the reference](parity-fixes.md#saved-filter-graphs-and-scalar-levels-controls)
 
@@ -445,16 +445,16 @@ Reading inherited variables directly reduced cook time on six Dirt 1 and BNW Spo
 | [pattern_splatter_circular.sbs/splatter_circular_color](../assets/sbs/pattern_splatter_circular.sbs) | 7 | No | [In progress · 130,678/132,096 exact pixels in 9 renders](parity-fixes.md#other-roots-using-uniform-arc-tangents) |
 | [pattern_stripes.sbs/stripes](../assets/sbs/pattern_stripes.sbs) | 0 | No | [In progress · 215,036/215,040 exact pixels in 18 renders](parity-fixes.md#other-roots-using-uniform-arc-tangents) |
 | [pattern_tile_generator.sbs/tile_generator](../assets/sbs/pattern_tile_generator.sbs) | 7 | No | [In progress · 217,222/226,048 pixels, stamp placement and waveform rounding differ](parity-fixes.md#beveled-square-gradient-and-wave-stamps) |
-| [pattern_tile_generator.sbs/tile_generator_color](../assets/sbs/pattern_tile_generator.sbs) | 7 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [pattern_tile_generator.sbs/tile_generator_color](../assets/sbs/pattern_tile_generator.sbs) | 7 | No | [In progress · 137,997/142,592 whole pixels, first differing stages measured](parity-fixes.md#tile-weave-splatter-and-fiber-stage-comparisons) |
 | [pattern_tile_random.sbs/tile_random](../assets/sbs/pattern_tile_random.sbs) | 2 | No | [In progress · 238,215/243,968 exact pixels across 32 renders](parity-fixes.md#tile-random-image-and-soft-patterns) |
 | [pattern_tile_random.sbs/tile_random_color](../assets/sbs/pattern_tile_random.sbs) | 2 | No | [In progress · 268,904/276,736 exact pixels in 40 renders](parity-fixes.md#signed-bitmap-blend-precision) |
 | [pattern_tile_random_2.sbs/functions/debug_find_cell](../assets/sbs/pattern_tile_random_2.sbs) | 0 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [pattern_tile_random_2.sbs/tile_random_2](../assets/sbs/pattern_tile_random_2.sbs) | 5 | No | [Parity · 285,184 exact pixels in 38 renders](parity-fixes.md#shared-lookups-and-environment-shadow-pass) |
 | [pattern_tile_sampler.sbs/arrow](../assets/sbs/pattern_tile_sampler.sbs) | 0 | Yes | [Parity · seven 512×512 runs, four formats](parity-fixes.md#transform-edges-and-floating-point-filtering) |
 | [pattern_triangle_grid.sbs/triangle_grid_base](../assets/sbs/pattern_triangle_grid.sbs) | 3 | Yes | [Parity · 18 renders, all 171,264 pixels exact](parity-fixes.md#high-pass-anisotropic-noise-and-triangle-grid-controls) |
-| [pattern_weave_1.sbs/weave_1](../assets/sbs/pattern_weave_1.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [pattern_weave_2.sbs/weave_2](../assets/sbs/pattern_weave_2.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [pavement_1.sbs/pavement_1](../assets/sbs/pavement_1.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [pattern_weave_1.sbs/weave_1](../assets/sbs/pattern_weave_1.sbs) | 0 | No | [In progress · 139,840/142,592 whole pixels, first differing stages measured](parity-fixes.md#tile-weave-splatter-and-fiber-stage-comparisons) |
+| [pattern_weave_2.sbs/weave_2](../assets/sbs/pattern_weave_2.sbs) | 0 | No | [In progress · 140,765/142,592 whole pixels, first differing stages measured](parity-fixes.md#tile-weave-splatter-and-fiber-stage-comparisons) |
+| [pavement_1.sbs/pavement_1](../assets/sbs/pavement_1.sbs) | 0 | Yes | [In progress · 141,408/142,592 whole pixels, first differing stages measured](parity-fixes.md#tile-weave-splatter-and-fiber-stage-comparisons) |
 | [pbr_albedo_safe_color.sbs/pbr_albedo_safe_color](../assets/sbs/pbr_albedo_safe_color.sbs) | 2 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [pbr_dielectric_F0.sbs/pbr_dielectric_F0](../assets/sbs/pbr_dielectric_F0.sbs) | 0 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [pbr_metal_reflectance.sbs/pbr_metal_reflectance](../assets/sbs/pbr_metal_reflectance.sbs) | 0 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
@@ -487,9 +487,9 @@ Reading inherited variables directly reduced cook time on six Dirt 1 and BNW Spo
 | [pbr_render_ortho.sbs/ibl_shadow_pass](../assets/sbs/pbr_render_ortho.sbs) | 3 | Yes | [Parity · 151,040 exact pixels in 27 renders](parity-fixes.md#shared-lookups-and-environment-shadow-pass) |
 | [pbr_render_ortho.sbs/mipmap_generator](../assets/sbs/pbr_render_ortho.sbs) | 1 | Yes | [Parity · 171,264 exact pixels in 18 renders](parity-fixes.md#centered-transform-resizing-and-untiled-edges) |
 | [pbr_render_ortho.sbs/rotate_environment](../assets/sbs/pbr_render_ortho.sbs) | 1 | Yes | [Parity · 18 renders, all 171,264 RGBA pixels exact](parity-fixes.md#environment-rotation-and-wired-irradiance-samples) |
-| [pbr_render_ortho.sbs/sphere_displace](../assets/sbs/pbr_render_ortho.sbs) | 1 | Yes | [Too hard: cook timeout](parity-fixes.md#remaining-differences) |
+| [pbr_render_ortho.sbs/sphere_displace](../assets/sbs/pbr_render_ortho.sbs) | 1 | Yes | [In progress · 142,163/142,592 whole pixels, first differing stages measured](parity-fixes.md#tile-weave-splatter-and-fiber-stage-comparisons) |
 | [pbr_render_ortho.sbs/vector_shadow_pass](../assets/sbs/pbr_render_ortho.sbs) | 4 | Yes | [Parity · 28 cases, 211,456 exact pixels](parity-fixes.md#large-transform-offsets-and-additive-blends) |
-| [perlin_noise_zoom.sbs/perlin_noise_zoom](../assets/sbs/perlin_noise_zoom.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [perlin_noise_zoom.sbs/perlin_noise_zoom](../assets/sbs/perlin_noise_zoom.sbs) | 0 | Yes | [In progress · 131,983/142,592 whole pixels, first differing stages measured](parity-fixes.md#tile-weave-splatter-and-fiber-stage-comparisons) |
 | [pow.sbs/pow](../assets/sbs/pow.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [pow.sbs/pow_grayscale](../assets/sbs/pow.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [pre_multiply_straight.sbs/premult_to_straight](../assets/sbs/pre_multiply_straight.sbs) | 1 | No | [Parity · 19 cases, 172,288 exact pixels](parity-fixes.md#large-transform-offsets-and-additive-blends) |
@@ -509,10 +509,10 @@ Reading inherited variables directly reduced cook time on six Dirt 1 and BNW Spo
 | [quantize_color.sbs/get_min_max/GetMaxFromAlpha_v2](../assets/sbs/quantize_color.sbs) | 1 | Yes | [Parity · 33 renders, all 36 output pixels exact](parity-fixes.md#alpha-maximum-and-one-texel-reductions) |
 | [quantize_color.sbs/get_min_max/GetMaxFromAlpha_v3](../assets/sbs/quantize_color.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [quantize_color.sbs/helpers/cdf_pass](../assets/sbs/quantize_color.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
-| [quantize_color.sbs/kmeans_iteration](../assets/sbs/quantize_color.sbs) | 2 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [quantize_color.sbs/kmeans_iteration](../assets/sbs/quantize_color.sbs) | 2 | Yes | [In progress · 77,776/77,824 whole pixels, first differing stages measured](parity-fixes.md#tile-weave-splatter-and-fiber-stage-comparisons) |
 | [quantize_color.sbs/modify_color_palette_sub](../assets/sbs/quantize_color.sbs) | 2 | Yes | [In progress · two of 256 palette entries differ at F32](parity-fixes.md#height-distance-texture-mapping-skew-and-weave) |
 | [quantize_color.sbs/view_color_palette_sub](../assets/sbs/quantize_color.sbs) | 2 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
-| [radial_blur.sbs/radial_blur_grayscale](../assets/sbs/radial_blur.sbs) | 1 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [radial_blur.sbs/radial_blur_grayscale](../assets/sbs/radial_blur.sbs) | 1 | No | [In progress · 121,514/142,592 whole pixels, first differing stages measured](parity-fixes.md#tile-weave-splatter-and-fiber-stage-comparisons) |
 | [replace_color.sbs/replace_color](../assets/sbs/replace_color.sbs) | 1 | No | [In progress · 136,480/142,592 exact pixels in 19 whole renders](parity-fixes.md#hue-saturation-lightness-and-replace-color) |
 | [rgb-a_merge.sbs/rgb-a_merge](../assets/sbs/rgb-a_merge.sbs) | 2 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [rgb-a_split.sbs/rgb-a_split](../assets/sbs/rgb-a_split.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
@@ -534,10 +534,10 @@ Reading inherited variables directly reduced cook time on six Dirt 1 and BNW Spo
 | [rt_shadows_v2.sbs/mip_max_step](../assets/sbs/rt_shadows_v2.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [safe_transform.sbs/safe_transform](../assets/sbs/safe_transform.sbs) | 1 | No | [Parity · 171,264 exact pixels in 18 renders](parity-fixes.md#rotated-transforms-and-fractional-texture-coordinates) |
 | [safe_transform.sbs/safe_transform_grayscale](../assets/sbs/safe_transform.sbs) | 1 | No | [Parity · 171,264 exact pixels in 18 renders](parity-fixes.md#rotated-transforms-and-fractional-texture-coordinates) |
-| [scratches_1.sbs/scratches_1](../assets/sbs/scratches_1.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [scratches_2.sbs/scratches_2](../assets/sbs/scratches_2.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [scratches_4.sbs/scratches_4](../assets/sbs/scratches_4.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [shape.sbs/shape_base](../assets/sbs/shape.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [scratches_1.sbs/scratches_1](../assets/sbs/scratches_1.sbs) | 0 | Yes | [In progress · 133,530/142,592 whole pixels, first differing stages measured](parity-fixes.md#tile-weave-splatter-and-fiber-stage-comparisons) |
+| [scratches_2.sbs/scratches_2](../assets/sbs/scratches_2.sbs) | 0 | Yes | [In progress · 118,291/142,592 whole pixels, first differing stages measured](parity-fixes.md#tile-weave-splatter-and-fiber-stage-comparisons) |
+| [scratches_4.sbs/scratches_4](../assets/sbs/scratches_4.sbs) | 0 | Yes | [In progress · 106,551/126,208 whole pixels, first differing stages measured](parity-fixes.md#tile-weave-splatter-and-fiber-stage-comparisons) |
+| [shape.sbs/shape_base](../assets/sbs/shape.sbs) | 0 | Yes | [In progress · 139,931/142,592 whole pixels, first differing stages measured](parity-fixes.md#tile-weave-splatter-and-fiber-stage-comparisons) |
 | [shape_mapper.sbs/shape_mapper](../assets/sbs/shape_mapper.sbs) | 1 | No | [Parity · 310,784/310,784 pixels](parity-fixes.md#wired-spline-helpers-and-shape-mapping) |
 | [shape_splatter.sbs/min_max](../assets/sbs/shape_splatter.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [shape_splatter.sbs/shape_splatter_blend](../assets/sbs/shape_splatter.sbs) | 12 | No | [Parity · 18 renders, 171,264 exact pixels](parity-fixes.md#per-pixel-random-initialization) |
@@ -559,10 +559,10 @@ Reading inherited variables directly reduced cook time on six Dirt 1 and BNW Spo
 | [slope_blur.sbs/slope_blur_grayscale](../assets/sbs/slope_blur.sbs) | 2 | Yes | [Parity · 18 renders, 145,664 exact pixels](parity-fixes.md#gradient-warp-displacement-and-sampling) |
 | [slope_blur.sbs/slope_blur_grayscale_2](../assets/sbs/slope_blur.sbs) | 2 | No | [Parity · 18 renders, 145,664 exact pixels](parity-fixes.md#gradient-warp-displacement-and-sampling) |
 | [smart_auto_tile.sbs/pattern_find_edges_step](../assets/sbs/smart_auto_tile.sbs) | 4 | Yes | [Parity · 16 cases, 3,185,920 exact pixels](parity-fixes.md#tile-edge-masks-and-normalized-spline-distances) |
-| [splatter.sbs/splatter](../assets/sbs/splatter.sbs) | 1 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [splatter_circular.sbs/splatter_circular](../assets/sbs/splatter_circular.sbs) | 2 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [splatter_circular.sbs/splatter_circular_color](../assets/sbs/splatter_circular.sbs) | 2 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [splatter_color.sbs/splatter_color](../assets/sbs/splatter_color.sbs) | 2 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [splatter.sbs/splatter](../assets/sbs/splatter.sbs) | 1 | No | [In progress · 142,577/142,592 whole pixels, first differing stages measured](parity-fixes.md#tile-weave-splatter-and-fiber-stage-comparisons) |
+| [splatter_circular.sbs/splatter_circular](../assets/sbs/splatter_circular.sbs) | 2 | Yes | [In progress · 139,297/142,592 whole pixels, first differing stages measured](parity-fixes.md#tile-weave-splatter-and-fiber-stage-comparisons) |
+| [splatter_circular.sbs/splatter_circular_color](../assets/sbs/splatter_circular.sbs) | 2 | Yes | [In progress · 140,218/142,592 whole pixels, first differing stages measured](parity-fixes.md#tile-weave-splatter-and-fiber-stage-comparisons) |
+| [splatter_color.sbs/splatter_color](../assets/sbs/splatter_color.sbs) | 2 | No | [In progress · 142,551/142,592 whole pixels, first differing stages measured](parity-fixes.md#tile-weave-splatter-and-fiber-stage-comparisons) |
 | [spline_tools.sbs/-----WIP-----/circular_array_wip](../assets/sbs/spline_tools.sbs) | 2 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [spline_tools.sbs/-----WIP-----/displace_spline_by_spline_wip](../assets/sbs/spline_tools.sbs) | 4 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [spline_tools.sbs/internal_tools/2dtransform_spline_sub](../assets/sbs/spline_tools.sbs) | 3 | Yes | [Parity · 87,570/87,570 pixels and values](parity-fixes.md#wired-spline-helpers-and-shape-mapping) |
@@ -580,7 +580,7 @@ Reading inherited variables directly reduced cook time on six Dirt 1 and BNW Spo
 | [spline_tools.sbs/internal_tools/select_spline_sub](../assets/sbs/spline_tools.sbs) | 3 | Yes | [Parity · 622,592 exact pixels in 19 renders](parity-fixes.md#clamped-texture-reads-in-spline-graphs) |
 | [spline_tools.sbs/internal_tools/spline_warp_sub](../assets/sbs/spline_tools.sbs) | 6 | Yes | [Parity · 28,928 exact pixels in 19 renders](parity-fixes.md#clamped-texture-reads-in-spline-graphs) |
 | [spot_emboss.sbs/spot_emboss](../assets/sbs/spot_emboss.sbs) | 2 | No | [Parity · 218,368 exact cook pixels and six exact saved-file renders](parity-fixes.md#image-selection-in-saved-pattern-graphs) |
-| [starburst.sbs/starburst](../assets/sbs/starburst.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [starburst.sbs/starburst](../assets/sbs/starburst.sbs) | 0 | No | [In progress · 141,503/142,592 whole pixels, first differing stages measured](parity-fixes.md#tile-weave-splatter-and-fiber-stage-comparisons) |
 | [stripes.sbs/stripes](../assets/sbs/stripes.sbs) | 0 | Yes | [In progress · 215,012/215,040 exact pixels in 18 renders](parity-fixes.md#other-roots-using-uniform-arc-tangents) |
 | [summed_area_table.sbs/summed_area_table_iteration](../assets/sbs/summed_area_table.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [summed_area_table_2.sbs/summed_area_table_iteration](../assets/sbs/summed_area_table_2.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
@@ -591,10 +591,10 @@ Reading inherited variables directly reduced cook time on six Dirt 1 and BNW Spo
 | [templates.sbs/Templates/Standard_Materials/Extended_Material](../assets/sbs/templates.sbs) | 0 | Yes | [Parity: 3 cases](parity-fixes.md#verified-cases) |
 | [templates.sbs/Templates/Standard_Materials/Simple_Material](../assets/sbs/templates.sbs) | 0 | Yes | [Parity: 3 cases](parity-fixes.md#verified-cases) |
 | [threshold.sbs/threshold](../assets/sbs/threshold.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
-| [tile_generator.sbs/tile_generator](../assets/sbs/tile_generator.sbs) | 2 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [tile_generator_color.sbs/tile_generator_color](../assets/sbs/tile_generator_color.sbs) | 2 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [tile_random.sbs/tile_random](../assets/sbs/tile_random.sbs) | 2 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [tile_random.sbs/tile_random_color](../assets/sbs/tile_random.sbs) | 2 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [tile_generator.sbs/tile_generator](../assets/sbs/tile_generator.sbs) | 2 | Yes | [In progress · 139,723/142,592 whole pixels, first differing stages measured](parity-fixes.md#tile-weave-splatter-and-fiber-stage-comparisons) |
+| [tile_generator_color.sbs/tile_generator_color](../assets/sbs/tile_generator_color.sbs) | 2 | Yes | [In progress · 137,445/142,592 whole pixels, first differing stages measured](parity-fixes.md#tile-weave-splatter-and-fiber-stage-comparisons) |
+| [tile_random.sbs/tile_random](../assets/sbs/tile_random.sbs) | 2 | Yes | [In progress · 111,364/142,592 whole pixels, first differing stages measured](parity-fixes.md#tile-weave-splatter-and-fiber-stage-comparisons) |
+| [tile_random.sbs/tile_random_color](../assets/sbs/tile_random.sbs) | 2 | Yes | [In progress · 111,228/142,592 whole pixels, first differing stages measured](parity-fixes.md#tile-weave-splatter-and-fiber-stage-comparisons) |
 | [tile_sampler.sbs/arrow](../assets/sbs/tile_sampler.sbs) | 0 | Yes | [Parity · seven 512×512 runs, four formats](parity-fixes.md#transform-edges-and-floating-point-filtering) |
 | [tileable_material_to_mesh_material.sbs/tileable_material_to_mesh_material](../assets/sbs/tileable_material_to_mesh_material.sbs) | 5 | No | [Parity · both outputs, 358,912 exact pixels in 42 renders](parity-fixes.md#diffuse-and-specular-outputs-of-the-mesh-material-graph) |
 | [trapezoid_transform.sbs/trapezoid_transform](../assets/sbs/trapezoid_transform.sbs) | 1 | No | [Parity · 848,384 exact pixels in 68 renders across four formats](parity-fixes.md#trapezoid-coordinates-under-fixed-clipping) |
@@ -605,15 +605,15 @@ Reading inherited variables directly reduced cook time on six Dirt 1 and BNW Spo
 | [value_get_size.sbs/get_size_grayscale](../assets/sbs/value_get_size.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [vector_morph.sbs/vector_morph](../assets/sbs/vector_morph.sbs) | 2 | No | [Parity · 171,264/171,264 pixels in 18 renders](parity-fixes.md#quad-swirl-trapezoid-and-vector-morph-comparisons) |
 | [vector_morph.sbs/vector_morph_grayscale](../assets/sbs/vector_morph.sbs) | 2 | No | [Parity · 171,264/171,264 pixels in 18 renders](parity-fixes.md#quad-swirl-trapezoid-and-vector-morph-comparisons) |
-| [vertical_noise.sbs/vertical_noise](../assets/sbs/vertical_noise.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [vertical_noise.sbs/vertical_noise](../assets/sbs/vertical_noise.sbs) | 0 | Yes | [In progress · 142,088/142,592 whole pixels, first differing stages measured](parity-fixes.md#tile-weave-splatter-and-fiber-stage-comparisons) |
 | [waveform_01_v2.sbs/waveform_01_v2](../assets/sbs/waveform_01_v2.sbs) | 0 | No | [In progress · 142,662/171,264 exact pixels in 18 renders](parity-fixes.md#plane-light-splatter-symmetry-and-waveform-comparisons) |
 | [waveform_1.sbs/waveform_1](../assets/sbs/waveform_1.sbs) | 0 | Yes | [In progress · 142,630/171,264 exact pixels in 18 renders](parity-fixes.md#plane-light-splatter-symmetry-and-waveform-comparisons) |
-| [weave_1.sbs/weave_1](../assets/sbs/weave_1.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [weave_2.sbs/weave_2](../assets/sbs/weave_2.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [weave_1.sbs/weave_1](../assets/sbs/weave_1.sbs) | 0 | Yes | [In progress · 139,856/142,592 whole pixels, first differing stages measured](parity-fixes.md#tile-weave-splatter-and-fiber-stage-comparisons) |
+| [weave_2.sbs/weave_2](../assets/sbs/weave_2.sbs) | 0 | Yes | [In progress · 138,111/142,592 whole pixels, first differing stages measured](parity-fixes.md#tile-weave-splatter-and-fiber-stage-comparisons) |
 | [weave_3.sbs/weave_3](../assets/sbs/weave_3.sbs) | 0 | Yes | [Parity · 13 cases, 163,840 exact pixels](parity-fixes.md#height-distance-texture-mapping-skew-and-weave) |
 | [weave_4.sbs/weave_4](../assets/sbs/weave_4.sbs) | 0 | Yes | [In progress · 170,018/171,264 exact pixels in 18 renders](parity-fixes.md#plane-light-splatter-symmetry-and-waveform-comparisons) |
 | [white_noise.sbs/white_noise](../assets/sbs/white_noise.sbs) | 0 | Yes | [Parity · 13 renders, 254,208 exact pixels](parity-fixes.md#stored-grayscale-stops-and-scalar-levels-controls) |
 | [white_noise.sbs/white_noise_fast](../assets/sbs/white_noise.sbs) | 0 | Yes | [Parity · 18 renders, 127,488 exact pixels](parity-fixes.md#per-pixel-random-initialization) |
 | [white_noise_v2.sbs/white_noise_v2](../assets/sbs/white_noise_v2.sbs) | 0 | No | [Parity · 76 renders, 183,808 exact pixels](parity-fixes.md#conditional-pixel-draws-and-white-noise-v2) |
-| [wood_fibers_1.sbs/wood_fibers_1](../assets/sbs/wood_fibers_1.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [wood_fibers_2.sbs/wood_fibers_2](../assets/sbs/wood_fibers_2.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [wood_fibers_1.sbs/wood_fibers_1](../assets/sbs/wood_fibers_1.sbs) | 0 | Yes | [In progress · 136,524/142,592 whole pixels, first differing stages measured](parity-fixes.md#tile-weave-splatter-and-fiber-stage-comparisons) |
+| [wood_fibers_2.sbs/wood_fibers_2](../assets/sbs/wood_fibers_2.sbs) | 0 | Yes | [Too hard · all 18 whole renders exceed the pattern visit limit](parity-fixes.md#tile-weave-splatter-and-fiber-stage-comparisons) |

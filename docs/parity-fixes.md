@@ -255,6 +255,109 @@ Add ten position fields per root and table. At integer coordinates x,y let u=(x+
 
 After the sampler and Sharpen changes, 24 repeat renders reproduced all 21,504 pixels bit for bit. The inventory status covers the common procedural inputs. The applications' bundled tables give different default output. On the 128² seed-zero ramp, basic noise matched 173/16,384 U8 pixels (maximum 203 levels) and ridged noise matched 176/16,384 (maximum 139 levels). [Bundled table measurements](#natural-exponential-and-ridged-noise)
 
+### Tile, weave, splatter and fiber stage comparisons
+
+Across 25 roots, 3,294,234/3,483,648 whole output pixels matched in 474 renders. All 25 had a measured difference. Another 18 renders of wood_fibers_2 reached the traversal limit before producing a whole image. The numbers below use zero-based inventory indices to distinguish graphs with identical names. Error is the largest stored-channel difference, in levels for integers and absolute units for floats. A dash indicates an unavailable comparison.
+
+| Index and graph | Renders | Exact whole pixels / compared | Maximum U8 / U16 / F16 / F32 error | First differing stage IDs in the ten new renders |
+|---|---:|---:|---|---|
+| 374 · tile_generator_color | 19 | 137,997/142,592 | 0 / 49 / 0.0009765625 / 0.00121033192 | 1238191865 pattern |
+| 381 · weave_1 | 19 | 139,840/142,592 | 0 / 1 / 0 / 1.52587891e-05 | 1064675946 pattern |
+| 382 · weave_2 | 19 | 140,765/142,592 | 1 / 59 / 0.0009765625 / 0.00169374049 | 1298573641 pattern, 1298573810 pattern |
+| 383 · pavement_1 | 19 | 141,408/142,592 | 0 / 2 / 0 / 2.06083059e-05 | 1047650292 pattern |
+| 416 · sphere_displace | 19 | 142,163/142,592 | 0 / 329 / 0.000244140625 / 0.000122070312 | 1335843323 pixel processor |
+| 418 · perlin_noise_zoom | 19 | 131,983/142,592 | 0 / 1 / 0.000244140625 / 8.34465027e-07 | 1051010199 pattern |
+| 438 · kmeans_iteration | 19 | 77,776/77,824 | 0 / 0 / 0 / 8.94069672e-08 | 1502542656 pixel processor |
+| 441 · radial_blur_grayscale | 19 | 121,514/142,592 | 1 / 14 / 0.00048828125 / 0.000137329102 | 1310833960 pattern, 1312489342 pattern |
+| 463 · scratches_1 | 19 | 133,530/142,592 | 0 / 3 / 0.00048828125 / 4.06503677e-05 | 1028634246 pattern |
+| 464 · scratches_2 | 19 | 118,291/142,592 | 1 / 2 / 0.00048828125 / 4.4465065e-05 | 1028227090 pattern |
+| 465 · scratches_4 | 18 | 106,551/126,208 | 1 / 5 / 0.00048828125 / 4.57763672e-05 | 1047058056 pattern |
+| 466 · shape_base | 19 | 139,931/142,592 | 0 / 1 / 0.00048828125 / 1.37090683e-06 | 1041346098 pattern |
+| 488 · splatter | 19 | 142,577/142,592 | 0 / 91 / 0.00122070312 / 0.00137332082 | 1028307162 pattern |
+| 489 · splatter_circular | 19 | 139,297/142,592 | 231 / 59438 / 1 / 1.00000006 | 1048865333 pattern |
+| 490 · splatter_circular_color | 19 | 140,218/142,592 | 247 / 65535 / 0.96862793 / 0.996078431 | 1048865333 pattern |
+| 491 · splatter_color | 19 | 142,551/142,592 | 1 / 83 / 0.00134277344 / 0.00141908228 | 1028307162 pattern |
+| 509 · starburst | 19 | 141,503/142,592 | 0 / 1 / 1.52587891e-05 / 1.52592547e-05 | 1065612277 pattern |
+| 520 · tile_generator | 19 | 139,723/142,592 | 0 / 42 / 0.00048828125 / 0.000639975071 | 1238191865 pattern |
+| 521 · tile_generator_color | 19 | 137,445/142,592 | 1 / 103 / 0.00146484375 / 0.00199997425 | 1067616990 pattern |
+| 522 · tile_random | 19 | 111,364/142,592 | 223 / 57311 / 1 / 1.00000006 | 1126353318 pattern |
+| 523 · tile_random_color | 19 | 111,228/142,592 | 250 / 65535 / 1 / 2.00000003 | 1126353318 pattern |
+| 534 · vertical_noise | 19 | 142,088/142,592 | 0 / 2 / 0.00048828125 / 1.75237656e-05 | 1094664716 pattern, 1041349787 output |
+| 537 · weave_1 | 19 | 139,856/142,592 | 0 / 1 / 6.10351562e-05 / 1.52587891e-05 | 1064675946 pattern |
+| 538 · weave_2 | 19 | 138,111/142,592 | 0 / 3 / 0.00048828125 / 4.57763672e-05 | 1035222092 pattern |
+| 544 · wood_fibers_1 | 19 | 136,524/142,592 | 1 / 10 / 0.00048828125 / 7.51614571e-05 | 1035311965 pattern |
+| 545 · wood_fibers_2 | 18 | 0 comparable outputs | 0 / 0 / 0 / 0 | pattern traversal |
+
+Repeat the archived default, seed 42, changed controls when available, and the [four-format and independent-seed comparison](#four-format-inventory-comparison). For the ten additional renders use the extents, formats, settings and seed offsets in the [shared lookup matrix](#shared-lookups-and-environment-shadow-pass). The base seed is 104351+17i through index 441 and 107839+17i thereafter. The table gives changes in A / B / C order. Other parameters retain their published defaults.
+
+| Inventory indices | Controls and their A / B / C values |
+|---|---|
+| 374 | x_amount 2 / 3 / 5 · y_amount 2 / 5 / 3 · pattern 2 / 1 / 3 · pattern_input_number 1 / 6 / 3 · image_input_filtering 2 / 1 / 0 · pattern_size (1,1) / (0.6875,0.8125) / (1.25,0.5625) · position_random (0,0) / (0.125,0.1875) / (0.3125,0.0625) · pattern_rotation_random 0 / 0.375 / 0.6875 · rotation 0 / 0.15625 / -0.21875 · global_opacity 1 / 0.8125 / 0.375 |
+| 381 | Tiling 1 / 2 / 3 · rotate_45_degrees off / on / off · non_square_expansion on / off / on |
+| 382 | scale 1 / 3 / 7 · Disorder 0 / 0.3125 / 0.8125 · rotate_45_degrees off / on / off · non_square_expansion on / off / on |
+| 383 | Roudness 0 / 0.3125 / 0.8125 |
+| 416 | size 1 / 0.8125 / 0.5625 · displacement_intensity 0 / 0.1875 / 0.625 · uv_scale (1,1) / (0.75,1.25) / (1.5,0.625) · uv_offset (0,0) / (0.1875,-0.28125) / (-0.3125,0.4375) · tilt_uvs off / on / off · samples 2 / 5 / 9 |
+| 418 | Distance 2 / 5 / 11 · Disorder 0 / 19.375 / 61.25 |
+| 438 | k 2 / 3 / 5 · ignore_alpha off / on / off · color_space 1 / 0 / 1 |
+| 441 | samples 2 / 5 / 11 · angle 0 / 0.09375 / -0.21875 · center_position (0.5,0.5) / (0.375,0.6875) / (0.1875,0.8125) |
+| 463 | Pattern_size_width 100 / 73.5 / 137.25 · Pattern_size_height 100 / 119.25 / 65.5 · Disorder 0 / 0.375 / 0.8125 · Rotation_Var 0 / 31.25 / 63.75 · Rotation 0 / 22.5 / -16.875 |
+| 464 | Pattern_size_width 100 / 73.5 / 137.25 · Pattern_size_height 100 / 119.25 / 65.5 · Disorder 0 / 0.375 / 0.8125 |
+| 465, 545 | Published defaults |
+| 466 | pattern 1 / 5 / 8 · pattern_specific 0 / 0.1875 / 0.5625 · scale 1 / 0.8125 / 1.1875 · size_xy (1,1) / (0.625,0.8125) / (1.1875,0.4375) · angle 0 / 0.21875 / -0.3125 |
+| 488, 491 | Pattern_size_width 100 / 73.5 / 137.25 · Pattern_size_height 100 / 119.25 / 65.5 · Disorder 0 / 0.375 / 0.8125 · Rotation_Var 0 / 31.25 / 63.75 · Rotation 0 / 22.5 / -16.875 · Grid_Number 2 / 3 / 5 · Pan_X 0 / 0.125 / -0.1875 · Pan_Y 0 / -0.0625 / 0.21875 · Gain 1 / 0.625 / 0.8125 · image_input_filtering 2 / 1 / 0 · Disorder_Random off / on / on |
+| 489 | Number 2 / 5 / 7 · Radius 0.25 / 0.375 / 0.1875 · Radius_Random 0 / 0.21875 / 0.4375 · Pattern 2 / 1 / 3 · PatternSize (0.25,0.25) / (0.1875,0.3125) / (0.375,0.125) · PatternSize_Random 0 / 0.15625 / 0.4375 · Rotation 0 / 22.5 / -16.875 · image_input_filtering 2 / 1 / 0 · CenterOrientation off / on / off · RandomMask 0 / 0.1875 / 0.375 |
+| 490 | number 2 / 5 / 7 · radius 0.25 / 0.375 / 0.1875 · radius_random 0 / 0.21875 / 0.4375 · pattern 2 / 1 / 3 · pattern_size (0.25,0.25) / (0.1875,0.3125) / (0.375,0.125) · pattern_size_Random 0 / 0.15625 / 0.4375 · rotation 0 / 0.21875 / -0.3125 · image_input_filtering 2 / 1 / 0 · center_orientation off / on / off · random_mask 0 / 0.1875 / 0.375 |
+| 509 | Branches 3 / 7 / 11 · BlurAmount 0 / 1 / 2 · Randomness 0 / 0.375 / 0.8125 · SizeMin 0.125 / 0.21875 / 0.0625 · SizeMax 0.875 / 0.6875 / 1 · SizeVariation 0 / 0.3125 / 0.625 · Tiling 1 / 2 / 3 |
+| 520, 521 | Nb_X 2 / 3 / 5 · Nb_Y 2 / 5 / 3 · Scale 1 / 0.8125 / 0.5625 · ScaleVariation 0 / 0.21875 / 0.4375 · Offset 0 / 0.375 / -0.25 · Pattern_Type 2 / 1 / 3 · image_input_filtering 2 / 1 / 0 · Free_Rotation 0 / 0.09375 / 0.21875 · Position_Random (0,0) / (0.125,0.0625) / (0.3125,0.25) · GlobalOpacity 1 / 0.6875 / 0.4375 |
+| 522, 523 | x_amount 2 / 3 / 5 · y_amount 2 / 5 / 3 · pattern 2 / 1 / 3 · image_input_filtering 2 / 1 / 0 · pattern_rotation_random 0 / 0.21875 / 0.4375 · split_threshold 0.5 / 0.3125 / 0.8125 · shape_scale 1 / 0.6875 / 1.125 · position_random 0 / 0.1875 / 0.4375 · mask_random 0 / 0.125 / 0.3125 |
+| 534, 544 | Disorder 0 / 0.375 / 0.8125 |
+| 537 | Tiling 1 / 3 / 2 · Rotate_45_Degrees off / on / off |
+| 538 | Tiling 1 / 3 / 2 · Rotate_45_Degrees off / on / off · Disorder 0 / 0.375 / 0.8125 |
+
+For each bound pin use the flat, impulse, near-threshold and hashed fields in the [shared input recipe](#shared-lookups-and-environment-shadow-pass). Set n=4p+c for indices through 441, or n=4(p+1)+c for later indices, with p the zero-based pin position in the following table and c the channel. Single-channel inputs use c=0.
+
+| Index | Bound pins in field order |
+|---|---|
+| 374 | pattern_input_1, pattern_input_2, pattern_input_3, pattern_input_4, pattern_input_5, pattern_input_6, background |
+| 416 | input |
+| 438 | input, seeds |
+| 441 | input |
+| 488 | Source |
+| 489 | Source, background |
+| 490 | Source, background |
+| 491 | Source, Source_alpha |
+| 520 | Source, background |
+| 521 | Source, background |
+| 522 | pattern_input, background_input |
+| 523 | background_input_1, pattern_input |
+
+To isolate the pattern stages, connect the identified stage directly to the output, disconnect its input images, and retain the shortest branch from the pattern root to a node with a nonempty or dynamic shape. For ties, visit the output slots in identifier order. Render once with its authored shape and again with a disc (pattern 3). Use the ten-case matrix indices 0, 2, 3, 4, 5 and 7. This retains the branch parameters, seeds and output-format inheritance. Stage dimensions can differ from the whole output. The counts cover every stored channel of each output pixel.
+
+| Index and stage ID | Retained branch IDs, root to stamp | Authored exact / compared | Authored maximum U8 / U16 / F16 / F32 | Disc exact / compared | Disc maximum U8 / U16 / F16 / F32 |
+|---|---|---:|---|---:|---|
+| 374 · 1238191865 | 1299185944 → 1299185946 → 1032256671 → 1032256560 | 4,777/4,864 | 0 / 0 / 0 / 2.95042992e-06 | 4,864/4,864 | 0 / 0 / 0 / 0 |
+| 381 · 1064675946 | 4087961384 → 4087966788 → 4087966766 → 4087966772 | 1,390/1,408 | 0 / 1 / 0 / 9.53674316e-07 | 1,408/1,408 | 0 / 0 / 0 / 0 |
+| 382 · 1298573641 | 1298572907 → 1298572909 → 1298572911 → 1298574249 | 4,864/4,864 | 0 / 0 / 0 / 0 | 4,864/4,864 | 0 / 0 / 0 / 0 |
+| 382 · 1298573810 | 1035222495 → 1035222491 | 1,183/1,216 | 0 / 0 / 0 / 5.36441803e-07 | 1,216/1,216 | 0 / 0 / 0 / 0 |
+| 383 · 1047650292 | 1027784760 → 1027785067 → 1027785022 | 152/152 | 0 / 0 / 0 / 0 | 152/152 | 0 / 0 / 0 / 0 |
+| 418 · 1051010199 | 1051010310 → 1051010203 | 3,649/4,864 | 0 / 1 / 0 / 8.34465027e-07 | 4,864/4,864 | 0 / 0 / 0 / 0 |
+| 463 · 1028634246 | 4087623626 → 4087677897 → 1028225479 → 1028225487 → 1028634317 → 4087677903 | 4,863/4,864 | 0 / 0 / 0 / 1.14087015e-08 | 4,864/4,864 | 0 / 0 / 0 / 0 |
+| 464 · 1028227090 | 4087623626 → 4087677895 → 1025020977 → 1025023617 → 1028227170 → 1028227669 → 1028227391 | 4,864/4,864 | 0 / 0 / 0 / 0 | 4,864/4,864 | 0 / 0 / 0 / 0 |
+| 465 · 1047058056 | 4087623626 → 4087677895 → 4087677897 → 1047057855 → 1047057852 → 1027434391 → 4087677903 | 4,861/4,864 | 0 / 0 / 3.05175781e-05 / 2.4959445e-06 | 4,864/4,864 | 0 / 0 / 0 / 0 |
+| 488 · 1028307162 | 1033746299 → 1033745600 | 4,864/4,864 | 0 / 0 / 0 / 0 | 4,864/4,864 | 0 / 0 / 0 / 0 |
+| 489 · 1048865333 | 1048865351 → 1181069015 | 4,843/4,864 | 0 / 65535 / 0 / 0 | 4,603/4,864 | 255 / 65535 / 1 / 1 |
+| 490 · 1048865333 | 1048865351 → 1181069015 | 4,834/4,864 | 0 / 53713 / 0 / 0 | 4,710/4,864 | 209 / 53713 / 0.819335938 / 0.819607973 |
+| 491 · 1028307162 | 1033746299 → 1033745600 | 4,864/4,864 | 0 / 0 / 0 / 0 | 4,864/4,864 | 0 / 0 / 0 / 0 |
+| 509 · 1065612277 | 1048629866 → 1048629846 | 1,290/1,408 | 0 / 1 / 9.53674316e-07 / 2.68220901e-06 | 1,408/1,408 | 0 / 0 / 0 / 0 |
+| 520 · 1238191865 | 1032256671 → 1032256560 | 4,777/4,864 | 0 / 0 / 0 / 2.95042992e-06 | 4,864/4,864 | 0 / 0 / 0 / 0 |
+| 521 · 1067616990 | 1032256671 → 1032256560 | 4,777/4,864 | 0 / 0 / 0 / 2.95042992e-06 | 4,864/4,864 | 0 / 0 / 0 / 0 |
+| 534 · 1094664716 | 1028056080 → 1028056090 → 1028376477 → 1028376473 → 1028055564 | 2,430/2,432 | 0 / 0 / 0 / 5.96046448e-08 | 2,432/2,432 | 0 / 0 / 0 / 0 |
+| 537 · 1064675946 | 4087961384 → 4087966788 → 4087966766 → 4087966772 | 1,390/1,408 | 0 / 1 / 0 / 9.53674316e-07 | 1,408/1,408 | 0 / 0 / 0 / 0 |
+| 538 · 1035222092 | 1028306906 → 1028306857 → 4089929701 → 1035222497 → 1035222495 → 1035222491 | 1,405/1,408 | 0 / 0 / 2.38418579e-07 / 4.07162588e-08 | 1,408/1,408 | 0 / 0 / 0 / 0 |
+| 544 · 1035311965 | 1029866950 → 1030039276 | 3,938/4,864 | 0 / 1 / 0 / 8.94069672e-07 | 4,864/4,864 | 0 / 0 / 0 / 0 |
+
+The 120 authored single-branch renders matched 70,015/72,664 pixels. The 120 disc controls matched 72,249/72,664. A disc still differing leaves placement, coverage or evaluation upstream of the original shape open. At indices 441, 466, 522 and 523 the native runtime rejected the isolated packages. Whole-root and connected-stage counts are available for all four. Sphere displacement and K-means first differ in their pixel processors. Wood fibers 2 still needs a bounded whole-graph cook.
+
 ## 2026-11-19 root comparisons
 
 ### Texture sampling in pattern functions
