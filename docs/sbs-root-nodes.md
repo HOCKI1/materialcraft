@@ -41,6 +41,8 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 
 Pattern center culling matched all 356,352 pixels across 204 renders. Background-only resizing matched all 150,528 pixels across 84 renders. The mixed-size square controls now match all 188,160 pixels, and the 288 independent depth controls match all 73,728 pixels. [Opacity and accumulator measurements](parity-fixes.md#pattern-opacity-near-zero-and-color-accumulation) [Pattern backgrounds, saved graphs and affected roots](parity-fixes.md#pattern-backgrounds-and-center-culling)
 
+The 32²-to-16² signed threshold controls match 2,048/2,048 pixels. [Floating texture filter measurements](parity-fixes.md#signed-zero-in-floating-point-texture-filtering)
+
 Connected F32 backgrounds now match all 2,048 same-size pixels. Across 132 further renders with changed input sizes, the maximum absolute error is zero. Some RGBA zeros still differ in sign. [Connected background counts and file checks](parity-fixes.md#connected-floating-point-pattern-backgrounds)
 
 Reading inherited variables directly reduced cook time on six Dirt 1 and BNW Spots 3 cases from 128–133 seconds to 43–44 seconds across two runs. The five completed cases retained every measured output bit. [Timings and root checks](parity-fixes.md#pattern-expression-variables-and-cook-time)

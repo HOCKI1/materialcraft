@@ -121,7 +121,8 @@ fn filter_float(taps: &[([f32; 4], u32); 4], channel: usize, format: OutputForma
         }
     }
     if maximum == 0.0 {
-        return 0.0;
+        // A footprint of negative zeros retains its sign. A zero-weight texel cannot change it.
+        return if taps.iter().all(|(pixel, weight)| *weight == 0 || pixel[channel].is_sign_negative()) { -0.0 } else { 0.0 };
     }
 
     // Align participating texels to their largest exponent, retaining four extra significand bits.
@@ -161,6 +162,19 @@ mod tests {
     use craft_texture::{Image, Kind};
     use materialcraft_core::{FunctionGraph, Value};
     use std::collections::BTreeMap;
+
+    #[test]
+    fn floating_texture_filter_preserves_negative_zero_when_every_active_tap_has_its_sign() {
+        use materialcraft_core::OutputFormat;
+
+        let image = Image::generate(2, 2, Kind::Color, |x, y| [-0.0, if x == 1 { 0.0 } else { -0.0 }, if y == 1 { 0.0 } else { -0.0 }, 0.0]);
+        for format in [OutputFormat::F16, OutputFormat::F32] {
+            for (position, expected) in [([0.5, 0.5], [-0.0_f32, 0.0, 0.0, 0.0]), ([0.25, 0.5], [-0.0, -0.0, 0.0, 0.0])] {
+                let result = super::sample(&image, position, [true; 2], format, None);
+                assert_eq!(result.map(f32::to_bits), expected.map(f32::to_bits));
+            }
+        }
+    }
 
     #[test]
     fn filtered_coordinates_keep_fraction_bits_through_wrap_and_texel_centering() {

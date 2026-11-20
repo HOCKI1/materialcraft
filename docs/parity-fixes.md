@@ -232,6 +232,14 @@ The remaining F32 gradient measurements separate coverage from the tint arithmet
 
 Six current-header saves reopened in the reference app and matched 34,816/34,816 pixels across 58 renders, maximum error zero. The 19 previously verified pattern roots retained 3,211,776/3,211,776 exact pixels in 159 renders, maximum error zero.
 
+### Signed zero in floating-point texture filtering
+
+A bilinear footprint containing only zeros retains a negative sign in a channel when every contributing texel has a negative sign. Texels with zero weight have no effect. On 20 original color Pixel Processor renders, all **20,480/20,480 F16- and F32-source component signs** match this rule. The full 60-render matrix improved from 10,741 to 14,489/15,360 bit-exact RGBA32F pixels. The remaining maximum absolute error is 1.10202595e−38.
+
+At a 16² output sample the original field at each pixel center using bilinear filtering. Use source sizes 32², 8², 32×16, 16² and 8×32. Test U16, F16 and F32 inputs at each size. First fill all channels with negative zero, then use negative zero except where (7x+3y+c) mod 11 is divisible by five. These two fields on floating sources supply the sign comparisons above. For a mixed field use index (7x+3y+c) mod 11 into [0,−0,0,−0,−0,q,−q,−2q,4q,.125,−.125], with q=2⁻¹²⁶ for F32 and 2⁻²⁴ for F16. For the last field replace each negative zero of the second field with −2×2⁻¹²⁶ and each positive zero with negative zero. Encode the U16 controls as level zero for zero values and 32333 otherwise. Use seeds 100397+11s+j for size index s and field index j.
+
+The [connected pattern background controls](#connected-floating-point-pattern-backgrounds) now match 2,048/2,048 on the eight 32²-to-16² threshold renders, 17,764/18,432 on the 72 relative-size renders and 14,575/15,360 on the 60 threshold-field renders. The 120 lower-precision source cases remain at 30,559/30,720. Maximum numeric error is zero in all four groups. The 19 previously verified roots still match 3,211,776/3,211,776 pixels across 159 renders.
+
 ### Connected floating-point pattern backgrounds
 
 | Original inputs, 16² output | Renders | Previously exact | Exact pixels / compared | Maximum absolute error |
