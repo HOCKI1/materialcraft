@@ -21,6 +21,7 @@ pub(super) struct ProductSum {
     negated: bool,
     operation: &'static str,
     literal_divisor: bool,
+    rounded_components: u8,
     retained: Option<Box<Retained>>,
 }
 
@@ -33,6 +34,7 @@ impl ProductSum {
             negated: false,
             operation: "mul",
             literal_divisor: false,
+            rounded_components: 0,
             retained: Some(Box::new(Retained::Lanes(terms))),
         }
     }
@@ -74,8 +76,14 @@ impl ProductSum {
         let result: [f32; 4] = std::array::from_fn(|i| {
             let factor = if negate_product { -a[i] } else { a[i] };
             let addend = if negate_addend { -c[i] } else { c[i] };
-            let sum =
-                if self.operation == "div" { super::reciprocal::divide_add(factor, b[i], addend, self.literal_divisor) } else { factor.mul_add(b[i], addend) };
+            let sum = if self.rounded_components & (1 << i) != 0 {
+                let product = if self.operation == "div" { super::reciprocal::divide_by(factor, b[i], self.literal_divisor) } else { factor * b[i] };
+                flush_subnormal(product) + addend
+            } else if self.operation == "div" {
+                super::reciprocal::divide_add(factor, b[i], addend, self.literal_divisor)
+            } else {
+                factor.mul_add(b[i], addend)
+            };
             blend.map_or(sum, |t| flush_subnormal(sum).mul_add(t[i], c[i]))
         })
         .map(flush_subnormal);
@@ -93,6 +101,21 @@ struct ProductOperand {
 struct ProductUsage {
     count: usize,
     rounded: bool,
+    swizzles: usize,
+    selected_components: u8,
+    repeated: bool,
+}
+
+fn selected_components(op: &Instruction) -> Option<u8> {
+    let count = match op.definition.id {
+        "swizzle1" => 1,
+        "swizzle2" => 2,
+        "swizzle3" => 3,
+        "swizzle4" => 4,
+        _ => return None,
+    };
+    let components = value_type::integers(op.value.as_ref()?).ok()?;
+    components.iter().take(count).try_fold(0, |mask, &i| (0..4).contains(&i).then(|| mask | 1 << i))
 }
 
 /// A scalar argument can contract with a callee's addition when that addition is its only use.
@@ -134,6 +157,7 @@ fn called_sum(op: &Instruction, instructions: &[Instruction], usage: &[ProductUs
             negated: false,
             operation: product.definition.id,
             literal_divisor: product.literal_divisor,
+            rounded_components: 0,
             retained: Some(Box::new(retained)),
         })
     });
@@ -177,6 +201,7 @@ fn pass_into_sums(call: &mut super::function_call::FunctionCall, inputs: &[usize
                 negated: false,
                 operation: product.definition.id,
                 literal_divisor: product.literal_divisor,
+                rounded_components: 0,
                 retained: Some(Box::new(Retained::PassedArgument)),
             });
         }
@@ -203,6 +228,13 @@ pub(super) fn identify(instructions: &mut [Instruction], live_readers: Option<&[
     let mut usage = vec![ProductUsage::default(); instructions.len()];
     let has_loop = instructions.iter().any(|op| op.definition.id == "while");
     for (index, op) in instructions.iter().enumerate() {
+        if op.definition.id == "while" {
+            for &member in &op.control_registers {
+                if let Some(reader) = usage.get_mut(member) {
+                    reader.repeated = true;
+                }
+            }
+        }
         if op.definition.id == "neg" || live_readers.is_some_and(|readers| readers.get(index) == Some(&false)) {
             continue;
         }
@@ -213,6 +245,10 @@ pub(super) fn identify(instructions: &mut [Instruction], live_readers: Option<&[
         for (slot, &input) in op.inputs.iter().enumerate() {
             if let Some(p) = operand(input) {
                 usage[p.index].count += 1;
+                if let Some(components) = selected_components(op) {
+                    usage[p.index].swizzles += 1;
+                    usage[p.index].selected_components |= components;
+                }
                 // In lerp(a,b,t), b can contract into b-a. Both uses of a need its rounded value.
                 usage[p.index].rounded |= !(sum || (op.definition.id == "lerp" && slot == 1));
             }
@@ -278,14 +314,22 @@ pub(super) fn identify(instructions: &mut [Instruction], live_readers: Option<&[
                 let source = operand(source)?;
                 let product = instructions.get(source.index)?;
                 let used = usage[source.index];
-                if used.rounded || product.type_code != op.type_code {
+                let &[a, b] = product.inputs.as_slice() else { return None };
+                // A swizzle observes only its selected components. The other components may still contract with their sole sum.
+                let vector_mask = match product.type_code {
+                    512 => 0b0011,
+                    1024 => 0b0111,
+                    2048 => 0b1111,
+                    _ => 0,
+                };
+                let partial = used.swizzles > 0 && used.count == used.swizzles + 1 && vector_mask & !used.selected_components != 0 && blend.is_none();
+                if (used.rounded && !partial) || product.type_code != op.type_code {
                     return None;
                 }
                 // Loop iterations can invalidate an operand independently of a shared product.
-                if has_loop && used.count > 1 {
+                if has_loop && used.count > 1 && (!partial || used.repeated || usage.get(a)?.repeated || usage.get(b)?.repeated) {
                     return None;
                 }
-                let &[a, b] = product.inputs.as_slice() else { return None };
                 let mut inputs = if product_on_right { vec![other, a, b] } else { vec![a, b, other] };
                 inputs.extend(blend);
                 Some((
@@ -296,6 +340,7 @@ pub(super) fn identify(instructions: &mut [Instruction], live_readers: Option<&[
                         negated: source.negated,
                         operation: product.product_operation()?,
                         literal_divisor: product.literal_divisor,
+                        rounded_components: used.selected_components,
                         retained: None,
                     },
                 ))

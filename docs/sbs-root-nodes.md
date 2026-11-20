@@ -35,7 +35,7 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **375 Parity**, **171 In progress** and **0 Too hard**. The November 17–20 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons) · [November 19 measurements](parity-fixes.md#2026-11-19-root-comparisons) · [November 20 measurements](parity-fixes.md#2026-11-20-root-comparisons)
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **376 Parity**, **170 In progress** and **0 Too hard**. The November 17–20 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons) · [November 19 measurements](parity-fixes.md#2026-11-19-root-comparisons) · [November 20 measurements](parity-fixes.md#2026-11-20-root-comparisons)
 
 [Pattern tiling axes and copy bounds across 215 renders](parity-fixes.md#tiling-axes-and-pattern-copy-bounds) · [Grayscale sampler measurements](parity-fixes.md#grayscale-sampling-of-color-inputs) · [Value sampling across 240 typed comparisons](parity-fixes.md#value-processor-texture-filtering) · [Five saved graphs reopened in the reference](parity-fixes.md#saved-filter-graphs-and-scalar-levels-controls)
 
@@ -555,7 +555,7 @@ A change to Gaussian stamp coverage was checked against 61 roots. Additional rec
 | [shape_splatter_v2.sbs/mipmap_tools/Mipmap_N_from_O_color](../assets/sbs/shape_splatter_v2.sbs) | 1 | Yes | [Parity · 18 renders, all 287,232 pixels exact](parity-fixes.md#marked-variable-reads-in-path-and-mipmap-graphs) |
 | [shape_splatter_v2.sbs/poisson_disc/poisson_disc_iteration](../assets/sbs/shape_splatter_v2.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [shape_splatter_v2.sbs/scanline_to_z_order](../assets/sbs/shape_splatter_v2.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
-| [shape_splatter_v2.sbs/shape_splatter_compute_normal](../assets/sbs/shape_splatter_v2.sbs) | 10 | Yes | [In progress · 266,568/266,752 pixels across 108 renders, 184 F32 pixels differ on shape 3](parity-fixes.md#numeric-arguments-in-partially-wired-calls) |
+| [shape_splatter_v2.sbs/shape_splatter_compute_normal](../assets/sbs/shape_splatter_v2.sbs) | 10 | Yes | [Parity · 292,864/292,864 pixels in 144 whole renders across four formats](parity-fixes.md#component-rounding-in-the-shape-splatter-normal) |
 | [shape_splatter_v2_companion.sbs/shape_splatter_to_mask](../assets/sbs/shape_splatter_v2_companion.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [skew.sbs/skew](../assets/sbs/skew.sbs) | 1 | No | [Parity · 13 cases, 163,840 exact pixels](parity-fixes.md#height-distance-texture-mapping-skew-and-weave) |
 | [skew.sbs/skew_grayscale](../assets/sbs/skew.sbs) | 1 | No | [Parity · 13 cases, 163,840 exact pixels](parity-fixes.md#height-distance-texture-mapping-skew-and-weave) |

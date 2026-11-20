@@ -418,6 +418,44 @@ fn fixed_pixel_clipping_preserves_the_live_quotient_precision() {
 }
 
 #[test]
+fn a_swizzle_of_a_quotient_keeps_the_other_vector_components_available_for_a_sum() {
+    for (numerator, divisor, offset, expected) in [
+        (
+            [0x3ef8_f8f9, 0x3f59_d9da, 0x3e58_d8d9],
+            [0x3ee6_e6e7, 0x3ee8_e8e9, 0x3eec_eced],
+            [0.0, 0.0, -0.5],
+            [0x3f8a_0474, 0x3fef_72c2, 0xbd2d_8f2f, 0x3f8a_0474],
+        ),
+        (
+            [0x3f74_c9cf, 0x3fe6_626a, 0x3f47_c930],
+            [0x3fe6_626a, 0x3f47_c930, 0x3fcf_e21a],
+            [-0.375, 0.3125, -0.5],
+            [0x3e20_02c4, 0x4027_9aa4, 0xbc9f_8b65, 0x3f08_00b1],
+        ),
+    ] {
+        let variables = BTreeMap::from([("a".into(), Value::Float3(numerator.map(f32::from_bits))), ("b".into(), Value::Float3(divisor.map(f32::from_bits)))]);
+        let context = EvaluationContext {
+            scope: super::FunctionScope::PixelProcessor,
+            image_formats: &[],
+            position: [0.5; 2],
+            size: [1.0; 2],
+            images: &[],
+            tile: true,
+            variables: &variables,
+        };
+        let mut graph = FunctionGraph::default();
+        let [a, b] = ["a", "b"].map(|name| graph.add("get_float3", &[], Some(Value::Text(name.into()))));
+        let ratio = graph.add("div", &[a, b], None);
+        let offset = graph.add_constant(Value::Float3(offset));
+        let shifted = graph.add("add", &[ratio, offset], None);
+        let red = graph.add("swizzle1", &[ratio], Some(Value::Int(0)));
+        graph.output = Some(graph.add("vector4", &[shifted, red], None));
+        let actual = compile(&graph, 0).unwrap().evaluate_pixel(&context, &mut EvaluationState::default()).unwrap();
+        assert_eq!(actual, Value::Float4(expected.map(f32::from_bits)));
+    }
+}
+
+#[test]
 fn pixel_quotient_sums_and_second_interpolation_operands_contract() {
     let values = [0x4044_ca77, 0x4077_425b, 0xbf00_bb3e, 0x4029_426b].map(|v| Value::Float(f32::from_bits(v)));
     let variables = ["a", "b", "c", "t"].into_iter().map(str::to_owned).zip(values).collect();
