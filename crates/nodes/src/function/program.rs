@@ -52,17 +52,23 @@ impl Program {
     }
 
     pub fn evaluate(&self, context: &EvaluationContext<'_>, state: &mut EvaluationState) -> Result<Value, String> {
+        state.variables.clone_from(context.variables);
         let mut random = self.random_stream(context);
-        self.evaluate_with_random(context, state, &mut random)
+        self.evaluate_finite(context, state, &mut random)
     }
 
-    /// Calls within an expression consume its selected random stream.
+    /// Pattern expressions borrow inherited variables and export only their explicit assignments.
     pub(crate) fn evaluate_with_random(
         &self,
         context: &EvaluationContext<'_>,
         state: &mut EvaluationState,
         random: &mut FunctionRandom,
     ) -> Result<Value, String> {
+        state.variables.clear();
+        self.evaluate_finite(context, state, random)
+    }
+
+    fn evaluate_finite(&self, context: &EvaluationContext<'_>, state: &mut EvaluationState, random: &mut FunctionRandom) -> Result<Value, String> {
         let value = self.run_with_random(context, state, random)?;
         // Callers may clamp undefined intermediates; completed functions must be finite
         if value.as_vec4().is_some_and(|components| components.iter().any(|value| !value.is_finite())) {
@@ -73,6 +79,7 @@ impl Program {
 
     /// Evaluate an integer texture's channel control at its normalized storage boundary.
     pub fn evaluate_normalized_color(&self, context: &EvaluationContext<'_>, state: &mut EvaluationState) -> Result<Value, String> {
+        state.variables.clone_from(context.variables);
         let mut random = self.random_stream(context);
         let channels = match self.run_with_random(context, state, &mut random)? {
             Value::Float(v) => [v, v, v, 1.0],
@@ -84,7 +91,6 @@ impl Program {
     }
 
     fn run_with_random(&self, context: &EvaluationContext<'_>, state: &mut EvaluationState, random: &mut FunctionRandom) -> Result<Value, String> {
-        state.variables.clone_from(context.variables);
         state.random = *random;
         let mut remaining = MAX_EVALUATION_STEPS;
         let result = self.run(context, state, &mut remaining);

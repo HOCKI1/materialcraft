@@ -1330,6 +1330,38 @@ fn deep_graphs_shared_inputs_and_cycles_do_not_recurse() {
 }
 
 #[test]
+fn pattern_expressions_read_inherited_values_and_keep_only_local_writes() {
+    let mut expression = FunctionGraph::default();
+    let counter = expression.add("get_float1", &[], Some(Value::Text("counter".into())));
+    let one = expression.add_constant(Value::Float(1.0));
+    let next = expression.add("add", &[counter, one], None);
+    expression.output = Some(expression.add("set", &[next], Some(Value::Text("counter".into()))));
+    let increment = compile(&expression, 17).unwrap();
+    let inherited = compile(&FunctionGraph::input("counter", materialcraft_core::ValueType::Float), 17).unwrap();
+    let mut state = EvaluationState::default();
+    let mut random = crate::random::FunctionRandom::image(17);
+    for initial in [0.5, -3.0] {
+        let variables = BTreeMap::from([("counter".into(), Value::Float(initial)), ("label".into(), Value::Text("pattern".into()))]);
+        let context = EvaluationContext {
+            scope: super::FunctionScope::FxMap,
+            position: [0.5; 2],
+            size: [16.0; 2],
+            images: &[],
+            image_formats: &[],
+            tile: true,
+            variables: &variables,
+        };
+        let expected = Value::Float(initial + 1.0);
+        assert_eq!(increment.evaluate_with_random(&context, &mut state, &mut random).unwrap(), expected);
+        assert_eq!(state.assignments().get("counter"), Some(&expected));
+        assert!(!state.variables().contains_key("label"));
+        assert_eq!(inherited.evaluate_with_random(&context, &mut state, &mut random).unwrap(), Value::Float(initial));
+        assert!(state.assignments().is_empty());
+        assert!(state.variables().is_empty());
+    }
+}
+
+#[test]
 fn pixel_assignments_are_local_and_match_exported_evaluation() {
     let mut graph = FunctionGraph::default();
     let current = graph.add("get_float1", &[], Some(Value::Text("counter".into())));

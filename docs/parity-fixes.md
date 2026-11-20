@@ -335,6 +335,17 @@ The v2 spots graph has three pattern stages in series. At the same 32² setting 
 
 For each of these seven generators isolate a shortest connected path from the pattern root to a drawing quadrant. Retain the original Iterate and Switch expressions on the path, keep one outgoing connection per node, and give the stage an empty background input. Compare its authored paraboloid, then substitute a solid square and a disc. Use the ten-case series above with the 64² case omitted. On those isolated paths the authored profiles match 23,180/23,184, 23,097/23,184 and 14,864/17,664 pixels respectively. The square and disc each match 64,032/64,032 pixels across all seven sources, maximum zero. The authored profiles retain F32 maxima of 4.17232513e−7, 6.25848770e−7 and 8.94069672e−7. These three roots remain in progress.
 
+### Pattern expression variables and cook time
+
+Pattern expressions now read inherited graph variables from the active context. Each expression stores its local writes and passes explicit assignments to the next expression. A general evaluation still returns the complete variable environment. In two release runs in opposite order, raw outputs matched between builds on all five successful controls, **17,024/17,024 captured pixels per run**, maximum error zero. A sixth control reached the same execution limit and produced the same intermediate data. The independent reference comparisons on 19 previously verified roots matched 3,211,776/3,211,776 pixels in 159 renders.
+
+| Six-case release batch, one worker | Previous cook time | Revised cook time | Previous process CPU time | Revised process CPU time |
+|---|---:|---:|---:|---:|
+| Previous build followed by revised build | 133.28 s | 43.59 s | 145.86 s | 62.12 s |
+| Revised build followed by previous build | 127.98 s | 42.96 s | 147.44 s | 62.53 s |
+
+Use the [Dirt 1 disc stage](#overlapping-disc-additions-in-dirt-1) at 64²/seed 42/disorder .4, 32²/100189/.15625 and 64²/43/.4, in F32. Then run the two [BNW Spots 3](#bnw-spots-3-and-cells-1-pattern-sources) scale-one controls at 32² F32, and the first spots root at scale three and 32² U8. Use a fresh session for each case and the same processor affinity for both release binaries. Cook time is the sum reported by the six graph evaluations. Process CPU time also includes loading the node library, configuring the cases and capturing the images.
+
 ### Gaussian pattern sources and repeat limits
 
 At commit `793e0b7`, each root received 21 reference renders. The first table gives exact pixels / compared pixels / maximum error in each stored format. Integer errors are stored levels. The two Spots packages with a scale control exceeded the local traversal limit in two cases each. Their pixel denominators include the 19 cases that emitted comparable images. The reference app completed all four of the omitted renders.

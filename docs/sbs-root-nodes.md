@@ -43,6 +43,8 @@ Pattern center culling matched all 356,352 pixels across 204 renders. Background
 
 Connected F32 backgrounds now match all 2,048 same-size pixels. Across 132 further renders with changed input sizes, the maximum absolute error is zero. Some RGBA zeros still differ in sign. [Connected background counts and file checks](parity-fixes.md#connected-floating-point-pattern-backgrounds)
 
+Reading inherited variables directly reduced cook time on six Dirt 1 and BNW Spots 3 cases from 128–133 seconds to 43–44 seconds across two runs. The five completed cases retained every measured output bit. [Timings and root checks](parity-fixes.md#pattern-expression-variables-and-cook-time)
+
 [Unconnected function arguments](parity-fixes.md#unconnected-function-arguments) records the measured difference between open ports and authored defaults.
 
 [Runtime square-root measurements](parity-fixes.md#runtime-pixel-square-roots) cover both exponent parities and the signed domain.
