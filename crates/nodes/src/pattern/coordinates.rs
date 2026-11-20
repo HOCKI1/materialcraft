@@ -33,9 +33,11 @@ impl PixelPlanes {
     pub fn new(frame: &Footprint, region: &Region, center: [f32; 2], size: [f32; 2], dimensions: [u32; 2]) -> Option<Self> {
         let pixel_size: [f32; 2] = std::array::from_fn(|i| region.period()[i] / dimensions[i] as f32);
         let projected: [_; 2] = std::array::from_fn(|i| region.stamp_vertices(i, center[i], frame.radius[i], dimensions[i]));
-        // Smaller stamps and extents too large to resolve half pixels use the ordinary footprint.
+        // An axis-aligned stamp interpolates its signed coordinates even within a single pixel.
+        // Extents too large to resolve half pixels use the ordinary footprint.
+        let minimum = if frame.is_axis_aligned() { 0.0 } else { 1.0 };
         if (0..2).any(|i| {
-            !(1.0..8_388_608.0).contains(&(2.0 * f64::from(frame.radius[i]) / f64::from(pixel_size[i]))) || projected[i].iter().any(|v| !v.is_finite())
+            !(minimum..8_388_608.0).contains(&(2.0 * f64::from(frame.radius[i]) / f64::from(pixel_size[i]))) || projected[i].iter().any(|v| !v.is_finite())
         }) {
             return None;
         }
@@ -50,7 +52,7 @@ impl PixelPlanes {
             let planes = oblique::planes(&triangle, frame, region, center, size, dimensions)?;
             return Some(Self { first_pixel, mapping: Mapping::Oblique { planes, origin: triangle.origin } });
         };
-        let axes = std::array::from_fn(|axis| {
+        let [Some(horizontal), Some(vertical)] = std::array::from_fn(|axis| {
             let radius = frame.radius[axis];
             let scale = pixel_divide(2.0, 2.0 * radius);
             // Store each snapping displacement in pattern space before adding it to the signed vertex.
@@ -59,15 +61,23 @@ impl PixelPlanes {
             let low = (low_delta - radius) * scale;
             let high = (high_delta + 3.0 * radius) * scale;
             let span = truncate_float(f64::from(high) - f64::from(low)) * 0.5;
-            let gradient = gradient_product(triangle.basis[axis], span);
+            let basis = triangle.basis[axis];
+            let exponents = (basis.to_bits() >> 23) + (span.to_bits() >> 23);
+            // Extremely small stamps in large render windows can overflow the vertex span.
+            if !span.is_normal() || span <= 0.0 || !basis.is_normal() || !(128..=380).contains(&exponents) {
+                return None;
+            }
+            let gradient = gradient_product(basis, span);
             let unit = f64::from(gradient.next_up() - gradient);
             let vertex = if triangle.far_axis == Some(axis) { high } else { low };
             let base = truncate_float(f64::from(vertex) + offset_product(triangle.offset[axis], gradient, unit));
             let sign = f64::from(signs[axis]);
             let step = f64::from(gradient);
-            Axis { base: ((0.5 - triangle.origin[axis]) * step + f64::from(base)) * sign, step: step * sign, negative_bias: unit / 64.0 }
-        });
-        Some(Self { first_pixel, mapping: Mapping::Aligned { axes, swap } })
+            Some(Axis { base: ((0.5 - triangle.origin[axis]) * step + f64::from(base)) * sign, step: step * sign, negative_bias: unit / 64.0 })
+        }) else {
+            return None;
+        };
+        Some(Self { first_pixel, mapping: Mapping::Aligned { axes: [horizontal, vertical], swap } })
     }
 
     pub fn clip(&self, bounds: [[u32; 2]; 2]) -> [[u32; 2]; 2] {
@@ -168,6 +178,10 @@ fn gradient_product(basis: f32, span: f32) -> f32 {
     // Both inputs are positive normal values. Round the magnitude of each signed radix-four
     // partial product before accumulating it. The low bit of the span is a separate row.
     const FRACTION: u32 = (1 << 23) - 1;
+    // A power of two only shifts the significand. Every discarded column is zero.
+    if basis.to_bits() & FRACTION == 0 || span.to_bits() & FRACTION == 0 {
+        return basis * span;
+    }
     let significand = |value: f32| i64::from((value.to_bits() & FRACTION) | (1 << 23));
     let a = significand(span);
     let b = significand(basis);

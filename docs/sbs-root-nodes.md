@@ -79,6 +79,8 @@ The reference app reopened both intact Alveolus graphs saved with the corrected 
 
 All 368,640 square-mask pixels match in the 135 extended quarter-turn renders. The 45 displaced-window ramps match 101,216/101,376 pixels, with maximum F32 error 2⁻²². [Tiled draw controls, saved files and root rechecks](parity-fixes.md#tiled-draws-in-cropped-windows-and-quarter-turn-bounds)
 
+All 185,856 pixels match on 44 unrotated subpixel geometries across three patterns. Four intact roots gained exact pixels. Dirt 3 has one U16 difference in its 17-render matrix. [Subpixel stamp measurements, saved files and intact roots](parity-fixes.md#drawing-axis-aligned-stamps-smaller-than-one-pixel)
+
 ## Complete inventory
 
 | SBS package / graph path | Input pins | Hidden in library | Parity status |
@@ -210,12 +212,12 @@ All 368,640 square-mask pixels match in the 135 extended quarter-turn renders. T
 | [diffusion.sbs/impl/pass_gray](../assets/sbs/diffusion.sbs) | 3 | Yes | [Parity · 19 renders, 143,872 exact pixels](parity-fixes.md#per-pixel-random-initialization) |
 | [diffusion.sbs/impl/pass_normal](../assets/sbs/diffusion.sbs) | 2 | Yes | [Parity · 19 renders, 143,872 exact pixels](parity-fixes.md#per-pixel-random-initialization) |
 | [directional_distance.sbs/directional_distance](../assets/sbs/directional_distance.sbs) | 3 | No | [Parity · 32 renders, both outputs exact across 342,528 pixels](parity-fixes.md#distance-output-channels-axis-wrapping-and-cutoffs) |
-| [directionnal_noise.sbs/directionnal_noise](../assets/sbs/directionnal_noise.sbs) | 0 | Yes | [In progress · 146,315/147,712 pixels across 23 renders](parity-fixes.md#fractional-edges-of-axis-aligned-pattern-stamps) |
+| [directionnal_noise.sbs/directionnal_noise](../assets/sbs/directionnal_noise.sbs) | 0 | Yes | [In progress · 147,080/147,712 pixels across 23 renders](parity-fixes.md#drawing-axis-aligned-stamps-smaller-than-one-pixel) |
 | [dirt_1.sbs/dirt_1](../assets/sbs/dirt_1.sbs) | 0 | Yes | [In progress · 145,661/145,664 exact pixels, overlapping disc additions isolated](parity-fixes.md#overlapping-disc-additions-in-dirt-1) |
-| [dirt_3.sbs/dirt_3](../assets/sbs/dirt_3.sbs) | 0 | Yes | [In progress · 145,559/145,664 pixels across 17 renders](parity-fixes.md#fractional-edges-of-axis-aligned-pattern-stamps) |
+| [dirt_3.sbs/dirt_3](../assets/sbs/dirt_3.sbs) | 0 | Yes | [In progress · 145,663/145,664 pixels across 17 renders](parity-fixes.md#drawing-axis-aligned-stamps-smaller-than-one-pixel) |
 | [dirt_5.sbs/dirt_5](../assets/sbs/dirt_5.sbs) | 0 | Yes | [In progress · 129,226/129,280 exact pixels in 16 renders](parity-fixes.md#stored-opacity-across-pattern-depths) |
-| [dirt_6.sbs/dirt_6](../assets/sbs/dirt_6.sbs) | 0 | Yes | [In progress · 125,236/129,280 pixels across 16 renders](parity-fixes.md#fractional-edges-of-axis-aligned-pattern-stamps) |
-| [dirt_gradient.sbs/dirt_gradient](../assets/sbs/dirt_gradient.sbs) | 0 | Yes | [In progress · 128,959/129,280 pixels across 16 renders](parity-fixes.md#fractional-edges-of-axis-aligned-pattern-stamps) |
+| [dirt_6.sbs/dirt_6](../assets/sbs/dirt_6.sbs) | 0 | Yes | [In progress · 129,249/129,280 pixels across 16 renders](parity-fixes.md#drawing-axis-aligned-stamps-smaller-than-one-pixel) |
+| [dirt_gradient.sbs/dirt_gradient](../assets/sbs/dirt_gradient.sbs) | 0 | Yes | [In progress · 129,046/129,280 pixels across 16 renders](parity-fixes.md#drawing-axis-aligned-stamps-smaller-than-one-pixel) |
 | [exposure.sbs/exposure](../assets/sbs/exposure.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [extend_shape.sbs/extend_shape_color](../assets/sbs/extend_shape.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [extend_shape.sbs/extend_shape_grayscale](../assets/sbs/extend_shape.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |

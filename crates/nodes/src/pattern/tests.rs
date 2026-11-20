@@ -346,6 +346,46 @@ fn quarter_turn_square_snaps_its_bounds_before_the_residual_phase_affects_sampli
 }
 
 #[test]
+fn subpixel_axis_aligned_ramps_and_paraboloids_use_interpolated_coordinates() {
+    let variables = BTreeMap::from([("$tiling".into(), Value::Int(0))]);
+    let unit = [0.0, 1.0, 0.0, 1.0];
+    for (canvas, [x, y], center, size, seed, expected) in [
+        ([64, 32], [37, 18], [0.586_013_8, 0.577_758_8], [1.0 / 2048.0, 1.0 / 512.0], 332208, [0x3eb0_0002, 0x3f43_0001]),
+        ([16, 32], [6, 19], [0.405_578_6, 0.609_878_54], [-1.0 / 512.0, 1.0 / 512.0], 332239, [0x3e20_0004, 0x3e85_e008]),
+    ] {
+        for (shape, bits) in [10, 4].into_iter().zip(expected) {
+            let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
+            graph.nodes[0].parameters = BTreeMap::from([
+                ("patterntype".into(), Value::Int(shape)),
+                ("branchoffset".into(), Value::Float2([-0.5; 2])),
+                ("frameoffset".into(), Value::Float2(center)),
+                ("patternsize".into(), Value::Float2(size)),
+            ]);
+            let image = cook_in_regions(graph, &variables, seed, canvas, [unit; 2], 0.0).unwrap().remove(0);
+            assert_eq!(image.get_gray(x, y, false).to_bits(), bits, "shape {shape} at {center:?}");
+        }
+    }
+}
+
+#[test]
+fn subpixel_square_keeps_its_interpolated_edge_on_repeated_draws() {
+    let mut graph = PatternGraph::with_root(PatternNodeKind::Iterate);
+    let child = graph.add(PatternNodeKind::Quadrant).unwrap();
+    graph.nodes[0].children[1] = Some(child);
+    graph.nodes[0].parameters.insert("numberadded".into(), Value::Int(2));
+    graph.nodes[1].parameters = BTreeMap::from([
+        ("patterntype".into(), Value::Int(2)),
+        ("blendingmode".into(), Value::Int(0)),
+        ("branchoffset".into(), Value::Float2([-0.5; 2])),
+        ("frameoffset".into(), Value::Float2([0.003_742_665_5, 0.523_437_5])),
+        ("patternsize".into(), Value::Float2([0.008_139_668, 0.011_718_75])),
+    ]);
+    let variables = BTreeMap::from([("$tiling".into(), Value::Int(0))]);
+    let image = cook_at_size(graph, &variables, 307023, 64).unwrap().remove(0);
+    assert_eq!(image.get_gray(0, 33, false), 2.0);
+}
+
+#[test]
 fn oblique_stamp_interpolates_both_coordinates_of_a_paraboloid() {
     let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
     graph.nodes[0].parameters = BTreeMap::from([

@@ -534,6 +534,48 @@ For each root’s 25 follow-up renders, the 5,120 U8, 553,728 U16, 78,336 F16 an
 
 In a single-worker release run, four interleaved measurements of the 128² default, 256² default and 512² filled cases gave median whole-graph cook times of 46, 259 and 1,138 ms for Alveolus (previously 45, 247 and 1,068 ms). Pattern Alveolus took 45, 253 and 1,083 ms (previously 43, 238 and 1,045 ms).
 
+### Drawing axis-aligned stamps smaller than one pixel
+
+At zero rotation a narrow ramp still interpolates across the padded triangle. Sampling its continuous shape at the pixel center gave a different F32 result. In a repeated draw, a test against the continuous rectangle could also discard an entire stamp. MaterialCraft now clips these small axis-aligned stamps against the interpolated coordinates during traversal and drawing.
+
+For a minimal reproduction, use a black 64×32 graph with tiling off. Center a white stamp at (.5860138,.5777588), set the size to (1/2048,1/512), use zero rotation and variation, and set seed 332208. At (37,18), the horizontal ramp stores F32 bits `3eb00002` and the paraboloid stores `3f430001`. On a black 64² graph, draw a white additive square twice at (.0037426655,.5234375), size (.008139668,.01171875), seed 307023. At (0,33) the accumulator stores 2. Both Rust regression tests exercise the normal graph cook and failed before the fix.
+
+| F32 control | Renders | Previous exact | Current exact / pixels | Previous maximum | Current maximum |
+|---|---:|---:|---:|---:|---:|
+| Unrotated square | 44 | 61,952 | 61,952/61,952 | 0 | 0 |
+| Unrotated horizontal ramp | 44 | 61,915 | 61,952/61,952 | 5.66244125e−7 | 0 |
+| Unrotated paraboloid | 44 | 61,916 | 61,952/61,952 | 6.07967377e−6 | 0 |
+| Quarter-turn multiples, square | 144 | 417,776 | 417,791/417,792 | 1 | 1 |
+| Quarter-turn multiples, horizontal ramp | 144 | 417,602 | 417,782/417,792 | .999998569 | .205678016 |
+| Quarter-turn multiples, paraboloid | 144 | 417,698 | 417,780/417,792 | .0000569820404 | .00000107288361 |
+| First-column square, tiling off | 48 | 196,597 | 196,601/196,608 | 1 | 1 |
+| First-column square, horizontal tiling on | 48 | 196,608 | 196,608/196,608 | 0 | 0 |
+| First-column ramps of either sign and paraboloids, both tiling settings | 288 | 1,179,539 | 1,179,549/1,179,648 | 1 | 1 |
+
+For the 44 unrotated geometries, the sequence of pixel extents is (.03125,.0625), (.125,.09375), (.265625,.4375), (.8125,.375), (.96875,.4375), (1,.6875), (1.03125,.625), (.375,1.25), (1.5,1.25), (.59375,2.375) and (2.375,.40625). For each extent (w,h), use the four rows below. Starting at the center of the indicated pixel, add (dx×w,dy×h) pixels and normalize by the output dimensions. Normalize the stamp size by the same dimensions. For extent index i and row j, both starting at zero, use seed 332177+31(24i+j).
+
+| Output | Pixel | dx, dy | Width sign |
+|---|---|---|---:|
+| 32² | (13,15) | 0, 0 | + |
+| 64×32 | (37,18) | .15625, −.1875 | + |
+| 16×32 | (6,19) | −.34375, .2578125 | − |
+| 32×64 | (12,42) | .40625, .09375 | + |
+
+The quarter-turn series includes signed widths and heights, draws on half-pixel edges, and adjacent F32 center values on six rectangular or square outputs from 16×32 to 128×64. It uses turns 0, .25, .5, −.25, .75, 1, −.5 and −1. All errors in this series occur in the render window (−.173,.369,.096,.869). The unit window and (−.375,1.125,.125,.875) each match all 417,792 sampled pixels. Across 220 oblique geometries, the square still matches 309,760/309,760, the ramp 309,560/309,760 (maximum .0000476837158), and the paraboloid 309,628/309,760 (maximum .000161468983). A separate Direct3D 11 triangle given MaterialCraft’s vertices agrees with its CPU square, ramp and paraboloid for all 3,798,528 pixels across 380 axis-aligned geometries. Differences from the reference remain at the stamp edges.
+
+A two-draw test covers seven square placements, six ramps and six paraboloids in each of U8, U16, F16 and F32. For each format 47,100/47,104 pixels match. The four differences occur on squares, with maxima of 255, 65,535, 2 and 2 respectively. Four graphs saved by MaterialCraft reopen in both apps. Within each app all 337,920 original and reopened pixels agree over 100 renders, including 84,480 in each format. Between apps, original and reopened files both give 84,476/84,480 exact in U8, U16 and F16, and 84,475/84,480 in F32. [First-column placements](#tiling-axes-and-pattern-copy-bounds)
+
+| Intact root | Renders | Previous exact | Current exact / pixels | Maximum U8 / U16 / F16 / F32 |
+|---|---:|---:|---:|---|
+| Directional Noise | 23 | 146,950 | 147,080/147,712 | 1 / 3 / .00048828125 / .0000336766243 |
+| Dirt 3 | 17 | 145,627 | 145,663/145,664 | 0 / 1 / 0 / 0 |
+| Dirt 6 | 16 | 126,304 | 129,249/129,280 | 0 / 5 / 0 / 0 |
+| Dirt Gradient | 16 | 129,026 | 129,046/129,280 | 0 / 2 / 0 / .0000183582306 |
+
+The other 36 rechecked roots keep their recorded exact counts and maximum errors, including BNW Spots 1 at 197,377/204,288 and BNW Spots 3 at 180,975/185,856. On the 128² seed-42 Dirt 3 graph, the pattern stage stores 24,007 at (85,0) against 24,006 in the reference. The transformation matches 16,384/16,384 pixels. The final U16 blend stores 39,714 against 39,713. [Generator settings and earlier intact-root comparisons](#rotated-stamp-coordinates-in-gradient-linear-1-and-bnw-spots)
+
+In four alternating single-worker release runs, median 64² cook time for Spots 1 went from 169.7 to 173.8 ms, and Spots 3 from 147.7 to 149.3 ms. An original four-way square graph at 16² took 32.7 ms at depth seven and 516.4 ms at depth nine, previously 32.3 and 530.8 ms. Both versions produced the same 2,560 pixels at 16² and 32². The reference failed to compute the depth-seven stress graph and the depth-nine run was interrupted after ten minutes without a result. These timing fixtures have no cross-app pixel measurement.
+
 ### Tiled draws in cropped windows and quarter-turn bounds
 
 A tiled stamp starts at the outermost copy in the tiling window, including when that copy is outside the render window. Its position is stored in F32, then each successive copy subtracts the F32 period. In the fractional-window controls, adding ten independently rendered, unwrapped copies at those centers reproduces all 16,384 reference pixels of eight tiled horizontal and vertical ramps. Four settings use trials 24, 28, 48 and 64 in the earlier D/E window. [Window definitions and trial sequence](#projecting-stamp-vertices-through-shifted-render-regions)

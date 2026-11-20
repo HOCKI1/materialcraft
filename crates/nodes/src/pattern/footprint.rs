@@ -1,4 +1,4 @@
-use super::{pattern_stamp::PatternStamp, region::Region};
+use super::{coordinates::PixelPlanes, pattern_stamp::PatternStamp, region::Region};
 use crate::CookContext;
 
 pub(super) struct Footprint {
@@ -9,6 +9,9 @@ pub(super) struct Footprint {
 
 impl Footprint {
     pub fn new(stamp: &PatternStamp) -> Result<Self, String> {
+        if stamp.rotation == 0.0 {
+            return Ok(Self { sine: stamp.rotation, cosine: 1.0, radius: stamp.size.map(|s| s.abs() * 0.5) });
+        }
         let angle = stamp.rotation * std::f32::consts::TAU;
         if !angle.is_finite() {
             return Err("pattern rotation exceeds the finite angle range".into());
@@ -43,6 +46,10 @@ impl Footprint {
 
     pub(super) fn contains_axis(&self, axis: usize, point: f32, center: f32) -> bool {
         point > center - self.radius[axis] && point - center <= self.radius[axis]
+    }
+
+    pub(super) fn is_axis_aligned(&self) -> bool {
+        (self.sine == 0.0 && self.cosine.abs() == 1.0) || (self.cosine == 0.0 && self.sine.abs() == 1.0)
     }
 }
 
@@ -86,7 +93,30 @@ impl SampleGrid {
         for y_center in repeats[1].centers() {
             for x_center in columns.clone() {
                 let center = [x_center, y_center];
-                let [[left, right], [top, bottom]] = self.region.bounds(center, frame.radius, self.dimensions);
+                let bounds = self.region.bounds(center, frame.radius, self.dimensions);
+                let [[left, right], [top, bottom]] = bounds;
+                if left == right || top == bottom {
+                    continue;
+                }
+                if frame.is_axis_aligned() {
+                    // Skip the copy when even the final sample precedes the snapped triangle
+                    // and lies outside the ordinary footprint used for extreme vertex spans.
+                    if (0..2).any(|axis| {
+                        let low = center[axis] - frame.radius[axis];
+                        let end = bounds[axis][1];
+                        let pixels = self.dimensions[axis];
+                        f64::from(low * pixels as f32) + 0.5 >= f64::from(end) && self.region.pixel_center(axis, end - 1, pixels) <= low
+                    }) {
+                        continue;
+                    }
+                    if let Some(planes) = PixelPlanes::new(&frame, &self.region, center, stamp.size, self.dimensions) {
+                        let [[x0, x1], [y0, y1]] = planes.clip(bounds);
+                        if x0 < x1 && y0 < y1 {
+                            return false;
+                        }
+                        continue;
+                    }
+                }
                 for y in top..bottom {
                     for x in left..right {
                         if frame.local(self.region.point([x, y], self.dimensions), center, stamp.size).is_some() {
