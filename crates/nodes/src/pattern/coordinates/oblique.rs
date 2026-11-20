@@ -1,4 +1,4 @@
-use super::{Footprint, Region, Triangle, gradient_product, offset_product};
+use super::{Footprint, Triangle, gradient_product, offset_product};
 use crate::function::{pixel_divide, truncate_float};
 
 pub(super) struct Plane {
@@ -18,15 +18,10 @@ impl Plane {
     }
 }
 
-pub(super) fn planes(triangle: &Triangle, frame: &Footprint, region: &Region, center: [f32; 2], size: [f32; 2], dimensions: [u32; 2]) -> Option<[Plane; 2]> {
+pub(super) fn planes(triangle: &Triangle, frame: &Footprint, size: [f32; 2], [[left, right], [top, bottom]]: [[f32; 2]; 2]) -> Option<[Plane; 2]> {
     let scale = size.map(|s| pixel_divide(2.0, s));
-    let [left, top] = triangle.near;
-    let [right, bottom] = triangle.far;
-    let vertices = [[left, top], [right, top], [left, bottom]].map(|corner| {
-        let point = region.vertex_point(corner, dimensions);
-        let [x, y] = [point[0] - center[0], point[1] - center[1]];
-        [y.mul_add(frame.sine, x * frame.cosine) * scale[0], y.mul_add(frame.cosine, -x * frame.sine) * scale[1]]
-    });
+    let vertices = [[left, top], [right, top], [left, bottom]]
+        .map(|[x, y]| [y.mul_add(frame.sine, x * frame.cosine) * scale[0], y.mul_add(frame.cosine, -x * frame.sine) * scale[1]]);
     if vertices.iter().flatten().any(|v| !v.is_finite()) {
         return None;
     }

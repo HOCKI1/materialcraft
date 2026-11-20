@@ -534,6 +534,62 @@ For each root’s 25 follow-up renders, the 5,120 U8, 553,728 U16, 78,336 F16 an
 
 In a single-worker release run, four interleaved measurements of the 128² default, 256² default and 512² filled cases gave median whole-graph cook times of 46, 259 and 1,138 ms for Alveolus (previously 45, 247 and 1,068 ms). Pattern Alveolus took 45, 253 and 1,083 ms (previously 43, 238 and 1,045 ms).
 
+### Bounds and pixel coordinates of rotated pattern stamps
+
+A white square, horizontal ramp and paraboloid distinguish the bounding rectangle of a stamp from its coordinate rotation. Translating both the stamp and its render window by an integer preserves their relative positions and exposes rounding when the corners are stored. The measured bounds use the uniform sine and cosine of the original rotation in turns. Each vertex retains its snapping displacement in pattern space. The two signed coordinates use the pixel rotation of the angle in radians and the original stamp dimensions. A rotated stamp narrower than one pixel still interpolates across the padded triangle. MaterialCraft now uses these coordinates for drawing and for culling repeated subpixel stamps.
+
+Render a white stamp of size (.25,.25) against black at 64² with tiling off, at zero variation and unit opacity. Center the stamp at (128.4375,.4375), use .125 turns and render the window (128,129,0,1). The horizontal ramp at (17,27) stores F32 bits `3c62f8c0`. At (1024.4375,1024.4375), .0625 turns and window (1024,1025,1024,1025), the paraboloid at (23,21) stores `3cc0e9a0`. For a subpixel reproduction, use the unit window at 64×32, center (.5860138,.5777588), size (1/2048,1/512), .125 turns and seed 332332. At (37,18) the ramp stores `3f6b7e10` and the paraboloid `3e44b5b0`. Both regression tests failed on the preceding release build.
+
+| F32 comparison | Renders | Previous exact | Current exact / pixels | Previous maximum error | Current maximum error |
+|---|---:|---:|---:|---:|---:|
+| Translated square | 210 | 860,086 | 860,160/860,160 | 1 | 0 |
+| Translated horizontal ramp | 210 | 818,202 | 860,128/860,160 | 0.999963701 | 5.96046448e−08 |
+| Translated paraboloid | 210 | 824,830 | 860,071/860,160 | 0.0643066764 | 1.1920929e−07 |
+| Extended-turn horizontal ramp | 99 | 321,658 | 337,757/337,920 | 0.000248193741 | 5.96046448e−08 |
+| Extended-turn paraboloid | 99 | 324,170 | 337,743/337,920 | 0.000876843929 | 1.1920929e−07 |
+| Rotated subpixel square | 220 | 309,760 | 309,760/309,760 | 0 | 0 |
+| Rotated subpixel ramp | 220 | 309,560 | 309,757/309,760 | 4.76837158e−05 | 9.53674316e−07 |
+| Rotated subpixel paraboloid | 220 | 309,628 | 309,749/309,760 | 0.000161468983 | 2.98023224e−06 |
+| Individual draws from BNW Spots 1 | 1,052 | 805,230 | 820,191/820,304 | 8.36327672e−07 | 1.67638063e−07 |
+
+For the translated series, draw in unit-size 64² windows starting at (0,0), (.5,0), (1,0), (0,−1), (−2,2), (4,0), (0,4), (16,16), (128,0), (0,128), (−128,128), (1024,1024), (16384,0), (0,−16384) and (65536,65536). Add either (28,28)/64 or (27.375,23.625)/64 to the window origin. Use corresponding sizes (16,16)/64 and (16.875,13.375)/64. For each angle in (.125,−.125,.0625,.21875,.3305,.04073,278.50824) draw the two geometries in that order. The seed is 337107+41i+j for zero-based window i and draw j.
+
+The extended series uses 33 angles in each of three unit windows with origins (0,0), (128,0) and (1024,−32). The first eight angles are .125, .04073, 278.50824, 1.5, 4096.25, .3305, 65535.25 and −1024.75 turns. The remaining angles have the following F32 bit patterns, in order.
+
+`3f33fb3e c038fb77 c0545a49 c04d4960 407fe89a c1438ef8 41c3281c c1c889c9 41d9b04b 41ffdea6 434ace4b c3bb0f0c 43fb49fb c3d59add c3e40003 c57e64bf c5ac2320 c5d84f6c c5c40e47 c5dd2600 474ae86f c76a5182 47eaef36 47a88f06 47c11be1`
+
+For zero-based angle j, cycle 32×64, 64² and 128×32. Add (.4375+.02075(j mod 4), .453125+.0375(j mod 3)) to the window origin. Use width .19+.014(j mod 5), negated when j mod 5 = 4, and height .315−.027(j mod 4). The seed is 341771+71i+j. The subpixel sweep uses the 11 extents and four placements described below with five nonzero angles per placement. [Subpixel sizes and placements](#drawing-axis-aligned-stamps-smaller-than-one-pixel)
+
+An independently drawn Direct3D 11 triangle with these vertex coordinates reproduced every reference pixel in a separate 30-render control, 159,744/159,744 for each of square, ramp, paraboloid and pyramid with zero maximum error. With identical vertices, the CPU matched 159,744, 159,724, 159,715 and 159,717 respectively. The largest CPU error was zero for coverage, 5.96046448e−8 for ramp and pyramid, and 1.19209290e−7 for paraboloid. Interpolation of the signed coordinates remains measurable after the change to the bounds.
+
+| Intact root | Renders | Previous exact | Current exact / pixels | Maximum U8 / U16 / F16 / F32 |
+|---|---:|---:|---:|---|
+| BNW Spots 1 | 34 | 197,377 | 201,559/204,288 | 0 / 3 / 0.00048828125 / 4.30941582e−05 |
+| BNW Spots 3 | 27 | 180,975 | 184,346/185,856 | 0 / 2 / 0.00048828125 / 2.7179718e−05 |
+| Cells 1 | 17 | 145,267 | 145,664/145,664 | 0 / 0 / 0 / 0 |
+| Clouds 1 | 17 | 144,225 | 145,634/145,664 | 0 / 4 / 0 / 5.49852848e−05 |
+| Clouds 2 | 16 | 128,440 | 129,223/129,280 | 0 / 2 / 0.00048828125 / 2.29477882e−05 |
+| Creased | 17 | 145,105 | 145,541/145,664 | 0 / 19 / 0 / 0 |
+| Crystal 2 | 17 | 145,213 | 145,662/145,664 | 0 / 1 / 0 / 1.52587891e−05 |
+
+The other 33 rechecked roots retained their exact counts and maxima. The three roots below also ran on new cases. Use sizes (16×32,32×16,32×64,64×32,64²,128×64,64×128,128²) in order. At size index j=0 use the defaults and seed 0. At j=1 use seed 42. Thereafter the seed is 342557+113r+31j, where r is 57, 58 or 67 in inventory order, counting from zero. For the spots roots use disorders (default,0,.1875,.6875,.421875,.984375,.21875,.36). For Cells 1 multiply each changed disorder by 100 and use distances (default,1,5,7,13,19,23,16). Render the even-indexed sizes in all four formats and the odd-indexed sizes in U16 and F32.
+
+| Intact root, 24 new renders each | U8 exact · max | U16 exact · max | F16 exact · max | F32 exact · max |
+|---|---:|---:|---:|---:|
+| BNW Spots 1 | 14,848/14,848 · 0 | 41,770/41,984 · 2 | 14,841/14,848 · 0.00048828125 | 41,770/41,984 · 2.16364861e−05 |
+| BNW Spots 3 | 14,848/14,848 · 0 | 41,859/41,984 · 1 | 14,847/14,848 · 0.000244140625 | 41,831/41,984 · 1.53779984e−05 |
+| Cells 1 | 14,848/14,848 · 0 | 41,983/41,984 · 3 | 14,848/14,848 · 0 | 41,983/41,984 · 3.67164612e−05 |
+
+Cells 1 remains in progress. At the 64×128 setting with seed 350314, distance 23 and disorder 21.875, the only differing position is (1,52). The pattern map stores 52,787 against 52,786 in the reference. Levels produces 34,868 against 34,865 in U16. A single white paraboloid isolates the maximum at that pixel. Use center (.046721816,.41302496), size (.10638297,.10638297), .4306513 turns, tiling on and unit opacity. The F32 values are .8054704666 and .8054704070 respectively. All other candidate draws at this position were smaller.
+
+All six MaterialCraft saves reopened in both apps. Within each app all 496,640 pixels matched the corresponding originals, maximum zero. This includes the 72 intact-root renders and 60 independent stamp renders. The three independent inputs were five translated ramps, five subpixel paraboloids and five extended-angle ramps in all four formats. Between apps the first two sets matched all 81,920 and 24,576 pixels respectively. The extended ramps matched 12,288/12,288 U8, 12,287/12,288 U16 (maximum one), 12,288/12,288 F16 and 12,270/12,288 F32 (maximum 5.96046448e−8) on the originals and saves.
+
+The default 32² BNW Spots 1 root has two exact pattern maps, 64/64 and 4,096/4,096 U16 pixels. The third matches 255/256. At (7,7) it stores 9,686 against 9,685 in the reference. Summing the four contributing independently rendered reference stamps gives .1477923244, while measuring the original reference pattern stage directly in F32 gives .1477918327. All eight separately forced re-cooks reproduce the U16 result at every pixel. In the 16² root the corresponding 8² pattern map differs at (7,5), with 5,870 against 5,869. All permutations of the three individual reference contributions still store 5,870. The source of that discrepancy is open.
+
+For Dirt 3, a separate 32-render whole-root matrix matched 86,528/86,528 in U8 and F16, 237,055/237,056 in U16 (maximum one), and 237,055/237,056 in F32 (maximum 1.52587891e−5), on the original and its MaterialCraft save. At 128² and seed 42, (85,0), three isolated pyramid contributions agree in both apps at F32 bits `3e6302db`, `3db28155` and `3d6b5fe4`. The local pattern accumulator stores `3ebb8dc0` and ten forced reference re-cooks each store `3ebb8dbf` there. Across the complete 128² F32 stage, 16,266 to 16,309 pixels match across the ten comparisons, maximum 1.19209290e−7. A separate three-branch graph tests all six draw orders at seven tile placements. All 688,128 F32 pixels match. This leaves the order of overlapping draws in the intact graph unresolved. [Original Dirt 3 accumulation case](#drawing-axis-aligned-stamps-smaller-than-one-pixel)
+
+On four alternating single-worker release runs, median cook times at 64² went from 173.4 to 188.1 ms for BNW Spots 1 and from 146.7 to 149.8 ms for BNW Spots 3. The 16² four-way stress graph took 34.8 ms at depth seven and 555.9 ms at depth nine, previously 32.6 and 520.3 ms. All 294 release node tests, formatting, strict workspace Clippy, layers and WebAssembly passed.
+
 ### Drawing axis-aligned stamps smaller than one pixel
 
 At zero rotation a narrow ramp still interpolates across the padded triangle. Sampling its continuous shape at the pixel center gave a different F32 result. In a repeated draw, a test against the continuous rectangle could also discard an entire stamp. MaterialCraft now clips these small axis-aligned stamps against the interpolated coordinates during traversal and drawing.

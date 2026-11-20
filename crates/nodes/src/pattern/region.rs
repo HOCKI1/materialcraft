@@ -54,10 +54,6 @@ impl Region {
         self.start[axis] + (pixel as f32 + 0.5) / size as f32 * self.span[axis]
     }
 
-    pub fn vertex_point(&self, pixel: [f64; 2], dimensions: [u32; 2]) -> [f32; 2] {
-        std::array::from_fn(|i| self.start[i] + pixel[i] as f32 / dimensions[i] as f32 * self.span[i])
-    }
-
     pub fn stamp_vertices(&self, axis: usize, center: f32, radius: f32, pixels: u32) -> [f32; 2] {
         let scale = pixels as f32 / self.span[axis];
         // Store the two triangle vertices in pattern space before projecting them into the render window.

@@ -62,7 +62,7 @@ pub(crate) use reciprocal::divide as pixel_divide;
 pub use resolve_instances::resolve_instances;
 pub(crate) use square_root::evaluate as pixel_sqrt;
 pub use system_variable::SystemVariable;
-pub(crate) use trigonometry::pixel_sin_cos;
+pub(crate) use trigonometry::{pixel_sin_cos, uniform_sin_cos_turns};
 pub use warnings::warnings;
 
 #[cfg(test)]

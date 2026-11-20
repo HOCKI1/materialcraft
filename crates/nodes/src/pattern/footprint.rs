@@ -16,14 +16,9 @@ impl Footprint {
         if !angle.is_finite() {
             return Err("pattern rotation exceeds the finite angle range".into());
         }
-        // Extended quarter turns can retain a cross-axis component at the stored phase.
+        // Sample in the pixel phase. Draw bounds use the uniform phase of the original turns.
         let (sine, cosine) = crate::function::pixel_sin_cos(angle);
-        // Exact quarter turns have axis-aligned draw bounds even when the sampling phase retains a residual.
-        let (bounds_sine, bounds_cosine) = match stamp.rotation.fract().abs() {
-            0.0 | 0.5 => (0.0, 1.0),
-            0.25 | 0.75 => (1.0, 0.0),
-            _ => (sine, cosine),
-        };
+        let (bounds_sine, bounds_cosine) = crate::function::uniform_sin_cos_turns(stamp.rotation);
         let radius = [
             (stamp.size[0] * bounds_cosine).abs() * 0.5 + (stamp.size[1] * bounds_sine).abs() * 0.5,
             (stamp.size[0] * bounds_sine).abs() * 0.5 + (stamp.size[1] * bounds_cosine).abs() * 0.5,
@@ -98,24 +93,23 @@ impl SampleGrid {
                 if left == right || top == bottom {
                     continue;
                 }
-                if frame.is_axis_aligned() {
-                    // Skip the copy when even the final sample precedes the snapped triangle
-                    // and lies outside the ordinary footprint used for extreme vertex spans.
-                    if (0..2).any(|axis| {
+                // Skip the copy when even the final sample precedes the snapped triangle
+                // and lies outside the ordinary footprint used for extreme vertex spans.
+                if frame.is_axis_aligned()
+                    && (0..2).any(|axis| {
                         let low = center[axis] - frame.radius[axis];
                         let end = bounds[axis][1];
                         let pixels = self.dimensions[axis];
                         f64::from(low * pixels as f32) + 0.5 >= f64::from(end) && self.region.pixel_center(axis, end - 1, pixels) <= low
-                    }) {
-                        continue;
+                    })
+                {
+                    continue;
+                }
+                if let Some(planes) = PixelPlanes::new(&frame, &self.region, center, stamp.size, self.dimensions) {
+                    if planes.covers_any(bounds) {
+                        return false;
                     }
-                    if let Some(planes) = PixelPlanes::new(&frame, &self.region, center, stamp.size, self.dimensions) {
-                        let [[x0, x1], [y0, y1]] = planes.clip(bounds);
-                        if x0 < x1 && y0 < y1 {
-                            return false;
-                        }
-                        continue;
-                    }
+                    continue;
                 }
                 for y in top..bottom {
                     for x in left..right {

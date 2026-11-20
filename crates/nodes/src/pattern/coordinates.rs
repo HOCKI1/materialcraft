@@ -33,15 +33,20 @@ impl PixelPlanes {
     pub fn new(frame: &Footprint, region: &Region, center: [f32; 2], size: [f32; 2], dimensions: [u32; 2]) -> Option<Self> {
         let pixel_size: [f32; 2] = std::array::from_fn(|i| region.period()[i] / dimensions[i] as f32);
         let projected: [_; 2] = std::array::from_fn(|i| region.stamp_vertices(i, center[i], frame.radius[i], dimensions[i]));
-        // An axis-aligned stamp interpolates its signed coordinates even within a single pixel.
-        // Extents too large to resolve half pixels use the ordinary footprint.
-        let minimum = if frame.is_axis_aligned() { 0.0 } else { 1.0 };
+        // Even a subpixel stamp interpolates its signed coordinates. Extents too large
+        // to resolve half pixels use the ordinary footprint.
         if (0..2).any(|i| {
-            !(minimum..8_388_608.0).contains(&(2.0 * f64::from(frame.radius[i]) / f64::from(pixel_size[i]))) || projected[i].iter().any(|v| !v.is_finite())
+            !(0.0..8_388_608.0).contains(&(2.0 * f64::from(frame.radius[i]) / f64::from(pixel_size[i]))) || projected[i].iter().any(|v| !v.is_finite())
         }) {
             return None;
         }
         let triangle = Triangle::new(projected);
+        // Move each stored vertex by its snapping displacement in pattern space.
+        let displacements: [[f32; 2]; 2] = std::array::from_fn(|axis| {
+            let low_delta = (triangle.near[axis] - f64::from(projected[axis][0])) as f32 * pixel_size[axis];
+            let high_delta = (triangle.far[axis] - f64::from(projected[axis][1])) as f32 * pixel_size[axis];
+            [low_delta - frame.radius[axis], high_delta + 3.0 * frame.radius[axis]]
+        });
         let first_pixel = triangle.near.map(|n| n as u32);
         let swap = frame.cosine == 0.0;
         let signs = if swap && frame.sine.abs() == 1.0 {
@@ -49,17 +54,12 @@ impl PixelPlanes {
         } else if frame.sine == 0.0 && frame.cosine.abs() == 1.0 {
             [frame.cosine * size[0].signum(), frame.cosine * size[1].signum()]
         } else {
-            let planes = oblique::planes(&triangle, frame, region, center, size, dimensions)?;
+            let planes = oblique::planes(&triangle, frame, size, displacements)?;
             return Some(Self { first_pixel, mapping: Mapping::Oblique { planes, origin: triangle.origin } });
         };
         let [Some(horizontal), Some(vertical)] = std::array::from_fn(|axis| {
-            let radius = frame.radius[axis];
-            let scale = pixel_divide(2.0, 2.0 * radius);
-            // Store each snapping displacement in pattern space before adding it to the signed vertex.
-            let low_delta = (triangle.near[axis] - f64::from(projected[axis][0])) as f32 * pixel_size[axis];
-            let high_delta = (triangle.far[axis] - f64::from(projected[axis][1])) as f32 * pixel_size[axis];
-            let low = (low_delta - radius) * scale;
-            let high = (high_delta + 3.0 * radius) * scale;
+            let scale = pixel_divide(2.0, size[if swap { 1 - axis } else { axis }].abs());
+            let [low, high] = displacements[axis].map(|v| v * scale);
             let span = truncate_float(f64::from(high) - f64::from(low)) * 0.5;
             let basis = triangle.basis[axis];
             let exponents = (basis.to_bits() >> 23) + (span.to_bits() >> 23);
@@ -94,6 +94,20 @@ impl PixelPlanes {
                 end -= 1;
             }
             [start, end]
+        })
+    }
+
+    pub fn covers_any(&self, bounds: [[u32; 2]; 2]) -> bool {
+        let [[left, right], [top, bottom]] = self.clip(bounds);
+        if left >= right || top >= bottom {
+            return false;
+        }
+        if matches!(self.mapping, Mapping::Aligned { .. }) {
+            return true;
+        }
+        (top..bottom).any(|y| {
+            let row = self.row(y);
+            (left..right).any(|x| row(x).is_some())
         })
     }
 

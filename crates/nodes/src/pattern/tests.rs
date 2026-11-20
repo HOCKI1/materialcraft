@@ -399,6 +399,45 @@ fn oblique_stamp_interpolates_both_coordinates_of_a_paraboloid() {
 }
 
 #[test]
+fn rotated_stamp_uses_its_stored_bounds_in_a_displaced_render_window() {
+    let variables = BTreeMap::from([("$tiling".into(), Value::Int(0))]);
+    let unit = [0.0, 1.0, 0.0, 1.0];
+    for (region, center, turn, shape, [x, y], bits) in [
+        ([128.0, 129.0, 0.0, 1.0], [128.4375, 0.4375], 0.125, 10, [17, 27], 0x3c62_f8c0),
+        ([1024.0, 1025.0, 1024.0, 1025.0], [1024.4375; 2], 0.0625, 4, [23, 21], 0x3cc0_e9a0),
+    ] {
+        let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
+        graph.nodes[0].parameters = BTreeMap::from([
+            ("patterntype".into(), Value::Int(shape)),
+            ("branchoffset".into(), Value::Float2([-0.5; 2])),
+            ("frameoffset".into(), Value::Float2(center)),
+            ("patternsize".into(), Value::Float2([0.25; 2])),
+            ("patternrotation".into(), Value::Float(turn)),
+        ]);
+        let rendered = cook_in_regions(graph, &variables, 337435, [64, 64], [region, unit], 0.0).unwrap().remove(0);
+        assert_eq!(rendered.get_gray(x, y, false).to_bits(), bits);
+    }
+}
+
+#[test]
+fn subpixel_rotated_stamp_interpolates_its_ramp_and_paraboloid() {
+    let variables = BTreeMap::from([("$tiling".into(), Value::Int(0))]);
+    let unit = [0.0, 1.0, 0.0, 1.0];
+    for (shape, bits) in [(10, 0x3f6b_7e10), (4, 0x3e44_b5b0)] {
+        let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
+        graph.nodes[0].parameters = BTreeMap::from([
+            ("patterntype".into(), Value::Int(shape)),
+            ("branchoffset".into(), Value::Float2([-0.5; 2])),
+            ("frameoffset".into(), Value::Float2([0.586_013_8, 0.577_758_8])),
+            ("patternsize".into(), Value::Float2([1.0 / 2048.0, 1.0 / 512.0])),
+            ("patternrotation".into(), Value::Float(0.125)),
+        ]);
+        let rendered = cook_in_regions(graph, &variables, 332332, [64, 32], [unit; 2], 0.0).unwrap().remove(0);
+        assert_eq!(rendered.get_gray(37, 18, false).to_bits(), bits);
+    }
+}
+
+#[test]
 fn oblique_stamp_retains_the_small_cross_axis_step_on_a_thin_ramp() {
     let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
     graph.nodes[0].parameters = BTreeMap::from([("patterntype".into(), Value::Int(10)), ("patternrotation".into(), Value::Float(1.5))]);

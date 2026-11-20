@@ -64,12 +64,20 @@ fn pixel_component(angle: f32, cosine: bool) -> f32 {
 }
 
 fn uniform_component(angle: f32, cosine: bool) -> f32 {
+    uniform_turn_component(angle * (std::f32::consts::FRAC_1_PI * 0.5), cosine)
+}
+
+pub(crate) fn uniform_sin_cos_turns(turns: f32) -> (f32, f32) {
+    (uniform_turn_component(turns, false), uniform_turn_component(turns, true))
+}
+
+fn uniform_turn_component(turns: f32, cosine: bool) -> f32 {
     const QUADRANT: f64 = std::f64::consts::FRAC_PI_2;
     const CUBIC: f64 = -QUADRANT * QUADRANT * QUADRANT / 6.0;
     const FIFTH: f64 = -CUBIC * QUADRANT * QUADRANT / 20.0;
     // The measured seventh-order term targets one minus a float epsilon at the quadrant endpoint.
     const SEVENTH: f32 = (1.0 - f32::EPSILON as f64 - QUADRANT - CUBIC - FIFTH) as f32;
-    let turns = angle * (std::f32::consts::FRAC_1_PI * 0.5) + if cosine { 0.5 } else { 0.25 };
+    let turns = turns + if cosine { 0.5 } else { 0.25 };
     let x = 4.0 * (turns - turns.round_ties_even()).abs() - 1.0;
     let square = x * x;
     let cube = x * square;
