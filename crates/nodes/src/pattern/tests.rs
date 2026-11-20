@@ -702,6 +702,57 @@ fn roughness_sample(roughness: f32, depth: usize, blend: i32, color: bool, repea
 }
 
 #[test]
+fn single_square_preserves_the_stored_opacity_at_each_depth() {
+    let definition = find("fx_map").unwrap();
+    let gain = f32::from_bits(0x4020_0150);
+    for (last, draw, roughness, opacity, blend, bits) in [
+        (5, 5, 0.95, gain, 1, 0x3eba_f23c),
+        (1, 0, 0.99, 1.0, 1, 0x3f00_a4b1),
+        (2, 2, 0.99, 1.0, 1, 0x3ea8_f445),
+        (2, 2, 1.5, 0.6137, 1, 0x3e94_d6a2),
+        (2, 1, 1.0, gain, 1, 0x3f55_5716),
+        (5, 5, 4_194_304.0, 1.0, 1, 0),
+        (0, 0, 0.0, -1.0, 0, 0xbf80_0000),
+        (0, 0, 0.95, 327.125, 0, 0x43a3_9000),
+    ] {
+        let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
+        for depth in 0..last {
+            let child = graph.add(PatternNodeKind::Quadrant).unwrap();
+            graph.nodes[depth].children[0] = Some(child);
+        }
+        graph.nodes[draw].parameters = BTreeMap::from([
+            ("patterntype".into(), Value::Int(2)),
+            ("patternsize".into(), Value::Float2([(1_u32 << draw) as f32; 2])),
+            ("blendingmode".into(), Value::Int(blend)),
+        ]);
+        let params = resolve_params(
+            definition,
+            &BTreeMap::from([
+                ("pattern".into(), Value::PatternGraph(Box::new(graph))),
+                ("color_mode".into(), Value::Bool(false)),
+                ("roughness".into(), Value::Float(roughness)),
+                ("opacity".into(), Value::Float(opacity)),
+            ]),
+        );
+        let vars = BTreeMap::new();
+        let context = CookContext {
+            input_formats: &[],
+            format: materialcraft_core::OutputFormat::F32,
+            w: 16,
+            h: 16,
+            seed: 7,
+            tile: false,
+            inputs: &[],
+            params: &params,
+            resource: &|_| None,
+            vars: &vars,
+        };
+        let image = (definition.cook)(&context).unwrap().remove(0);
+        assert_eq!(image.get_gray(0, 0, false).to_bits(), bits, "drawing depth {draw} of {last}, roughness {roughness}, opacity {opacity}");
+    }
+}
+
+#[test]
 fn roughness_attenuates_quadrants_by_depth_and_keeps_background() {
     for color in [false, true] {
         for (roughness, depth, weight) in [(0.0, 2, 1.0), (1.0, 0, 1.0), (1.0, 1, 0.5), (0.5, 2, 1.0 / 7.0), (2.0, 2, 4.0 / 7.0)] {

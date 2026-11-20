@@ -29,8 +29,7 @@ pub(super) fn render(context: &CookContext, stamps: &[PatternStamp], max_depth: 
     }
 
     let channels = kind.channels();
-    let opacity = context.f("opacity").max(0.0);
-    let weights = depth_weights(context.f("roughness"), max_depth)?;
+    let opacities = depth_opacities(context.f("roughness"), max_depth, context.f("opacity"))?;
     let integer_sampling = background.integer_sampling();
     let mut data = Arc::clone(background.shared_data());
     drop(background);
@@ -71,7 +70,7 @@ pub(super) fn render(context: &CookContext, stamps: &[PatternStamp], max_depth: 
             return Err(format!("unsupported pattern {}", stamp.pattern));
         }
 
-        let opacity = opacity * weights.get(stamp.depth as usize).copied().ok_or("invalid pattern depth")?;
+        let opacity = opacities.get(stamp.depth as usize).copied().ok_or("invalid pattern depth")?;
         if !opacity.is_finite() {
             return Err("pattern roughness overflowed its depth opacity".into());
         }
@@ -179,35 +178,26 @@ pub(super) fn render(context: &CookContext, stamps: &[PatternStamp], max_depth: 
     Image::from_data(width, height, kind, data, &Limits::default()).map(|image| image.with_integer_sampling(integer_sampling)).map_err(|e| e.to_string())
 }
 
-fn depth_weights(roughness: f32, max_depth: u32) -> Result<Vec<f32>, String> {
+fn depth_opacities(roughness: f32, max_depth: u32, opacity: f32) -> Result<Vec<f32>, String> {
     // Match the depth allocation cap to the 4096-node acyclic traversal limit
     if max_depth >= 4096 || !roughness.is_finite() || roughness < 0.0 {
         return Err("pattern roughness must be finite and nonnegative, with depth below 4096".into());
     }
 
-    let mut weights = vec![1.0_f64; max_depth as usize + 1];
-
-    // Zero is the native no-attenuation mode, not the limit of the normalized geometric weights
+    let count = max_depth + 1;
+    // A zero roughness gives every visited depth the full opacity.
     if roughness == 0.0 {
-        return Ok(weights.into_iter().map(|value| value as f32).collect());
+        return Ok(vec![opacity; count as usize]);
     }
 
-    // Normalize depth weights across drawing and non-drawing ancestors
-    // Start at the largest weight to avoid overflow
-    let mut weight = 1.0;
-    let ratio = f64::from(roughness);
-    if roughness <= 1.0 {
-        for value in &mut weights {
-            *value = weight;
-            weight *= ratio;
-        }
+    // Round the geometric endpoint before subtracting it, particularly near unit roughness.
+    let first_weight = if roughness == 1.0 {
+        1.0 / count as f32
     } else {
-        for value in weights.iter_mut().rev() {
-            *value = weight;
-            weight /= ratio;
-        }
-    }
+        let endpoint = roughness.powf(count as f32);
+        (1.0 - roughness) / (1.0 - endpoint)
+    };
 
-    let sum: f64 = weights.iter().sum();
-    Ok(weights.into_iter().map(|value| (value / sum) as f32).collect())
+    // Each child inherits its parent's stored opacity, including the global multiplier.
+    Ok(std::iter::successors(Some(first_weight * opacity), |parent| Some(parent * roughness)).take(count as usize).collect())
 }

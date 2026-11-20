@@ -208,6 +208,44 @@ For the thin-gradient row use a 256² F32 canvas, height 1 and widths 1/8, 1/32 
 
 Arc Pavement previously had a maximum F32 error of .00000987946987. Gradient Linear 1 still has 16 unequal pixels in each of U8, U16 and F16 and 176 in F32. On the 24 profiles per root, Fluid and Noise Fluid give the same counts and maxima as the earlier [pattern-stage comparison](#fibers-and-fluid-pattern-stages). All 3,211,776 pixels from 159 equal-resolution renders of 19 previously matched pattern roots are exact. For the separate file check, save the original test graph, Gradient Linear 1, Fibers and Fluid through the normal save command with input header `1.1.0.202502`. Reopen each save in the reference app and compare to the original in that same app. Across 14 extended-angle controls and nine settings per root, all 134,144 pixels in 41 renders match, with maximum error zero.
 
+### Stored opacity across pattern depths
+
+| Direct pattern control | Renders | Exact pixels / compared | Maximum U8 / U16 / F16 / F32 error |
+|---|---:|---:|---|
+| One white square at a selected depth | 1080 | 359,424/359,424 | 0 / 0 / 0 / 0 |
+| Independent roughness values and large exponents | 288 | 73,442/73,728 | — / — / — / 4.34931234e-39 |
+| Power-rounding and overflow controls | 85 | 21,760/21,760 | — / — / — / 0 |
+| Signed and extended global opacity | 192 | 49,152/49,152 | — / — / — / 0 |
+
+On the main single-square matrix the previous cook matched 286,511/359,424 pixels. The updated cook matches 359,424/359,424, maximum error zero. In noise_fur_1 the isolated square at depth five now gives F32 bits `3ebaf23c` in both apps. On the complete pattern layout the flat square improves from 3,072/26,880 and the disc from 3,078/26,880 to 26,880/26,880 each. The isolated square and disc also match all 26,880 pixels each. The original soft profile at the root still differs. [Fur inputs and layout isolation](#fur-pattern-sources-and-downstream-filters)
+
+Draw one white square with maximum blending at depth `d`. Give it size `(2^d,2^d)`, disable tiling and leave every other quadrant empty. Connect the only child of quadrant `j` at slot `j mod 4`. The following lists specify maximum depth and drawing depths. Use 0/[0], 1/[0,1], 2/[0,1,2], 3/[0..3], 4/[0..4], 5/[0..5], 6/[0,3,6], 8/[0,1,4,7,8], 10/[0,5,9,10] and 12/[0,6,12]. The deepest visited quadrant counts even when it draws nothing. For the main matrix use gain 1 with roughness [0,.125,.1875,.375,.5,.5625,.75,.8125,.9,.9375,.95,.99,.9999998807907104,1,1.03125,1.125,1.5,2,4]. Then use [.375,.95,1,1.5] with each gain in [.6137,2.500080108642578]. Number those settings `j` from zero. Use 32×16 when `j mod 3 = 0` and 16² otherwise, with seed `81799 + 13 × maximum depth + d + j`. Read F32 for every case and also U8, U16 and F16 at roughness .95 with the larger gain.
+
+For positive roughness `r` and `n` visited depths, the first depth uses the geometric normalization `(1 − r) / (1 − pow(r,n))`. Store the endpoint power in F32 before subtraction. At unit roughness the first weight is `1/n`. Multiply the first weight by the global opacity, then multiply each stored parent opacity by the roughness to obtain the child. Zero roughness gives every depth the full global opacity. A chain with a square at depth 2, roughness .99 and gain 1 returns `3ea8f445`. With roughness 1.5 and gain .6137 it returns `3e94d6a2`. The 37 rounding-boundary cases distinguish the native single-precision power from a power evaluated in double precision and rounded once. For one witness use roughness 1.2230699062347412, depth 5 of 5 and gain 1. The observed output is `3e852977`. The 48 overflow controls use roughness `2^e` with `e` in [6,10,15,22,31,45] at (maximum depth, drawing depth) [(5,5),(1,0),(3,1),(10,10),(2,2),(8,4),(4,3),(12,12)]. A depth-five square with roughness 4,194,304 returns zero. MaterialCraft previously limited the roughness passed to the cook to 34.
+
+In the 192 additive square controls use (0,0), (1,0), (3,1) and (5,5), the six roughness values [0,.95,1,1.5,34,64] and global opacity [−1,0,.6137,10,170,171,327.125,65536]. Render at 16² F32 with seed `86917 + j`. The unit square at depth zero returns the input opacity, including negative values and values above 170. With a four-component quadrant tint and a colored background the additional 84 renders match 29,448/35,328 pixels. Their maximum F32 error is 8064.03027. Those controls expose a separate tint discrepancy.
+
+For the independent roughness controls, use (2,0), (3,1), (4,4), (5,5), (6,3), (8,7), (10,10) and (12,12). Use F32 16² with seed `87211 + 23j` and gains [1,.37,1.73,2.500080108642578] cycling by case. The roughness list starts with [.0001,2^-18,.03125,.32,.73,.86,.9823,.99873], the adjacent F32 values below and above one, then [1.000012,1.0043,1.33,2.71,4.125,7,13]. Append 13 values drawn uniformly from [.01,2.25] with one NumPy PCG64 stream seeded 80627 across the eight depth pairs, followed by the six powers of two above.
+
+The independent controls have 286 remaining differing pixels. For depth 7 of 8, roughness 2^-18 and gain .37, the local covered pixels have F32 bits `002f5c1d`. For depth 10 of 10, roughness .0001 and gain 1, they have bits `000116bb`. Each capture differs in 143 pixels and the reference output stores zero. Further controls are needed to separate subnormal arithmetic from output storage. The power-rounding measurements use the Windows reference session.
+
+| Original root | Renders | Exact pixels before | Exact pixels after / compared | Maximum U8 / U16 / F16 / F32 error after |
+|---|---:|---:|---:|---|
+| brick_3 | 34 | 200,505 | 201,968/204,288 | 0 / 3 / 0 / 1.33514404e-05 |
+| clouds_1 | 17 | 144,184 | 144,178/145,664 | 1 / 11 / 0.00048828125 / 0.000111341476 |
+| clouds_2 | 16 | 128,259 | 128,263/129,280 | 1 / 3 / 0.00048828125 / 2.29477882e-05 |
+| creased | 17 | 143,936 | 143,936/145,664 | 0 / 29 / 0.00048828125 / 1.52587891e-05 |
+| crystal_2 | 17 | 144,774 | 144,774/145,664 | 0 / 2 / 0 / 3.05175781e-05 |
+| dirt_1 | 17 | 145,626 | 145,661/145,664 | 0 / 1 / 0 / 1.51991844e-05 |
+| dirt_3 | 17 | 145,297 | 145,351/145,664 | 0 / 1 / 1.52587891e-05 / 1.52736902e-05 |
+| dirt_5 | 16 | 129,218 | 129,226/129,280 | 0 / 4 / 6.10351562e-05 / 5.0842762e-05 |
+| dirt_6 | 16 | 117,822 | 117,822/129,280 | 0 / 8 / 0.133789062 / 0.140006408 |
+| dirt_gradient | 16 | 128,383 | 128,449/129,280 | 0 / 2 / 0.000244140625 / 1.98483467e-05 |
+| fur_1 | 21 | 164,031 | 164,031/178,432 | 1 / 2 / 0.00048828125 / 3.05771828e-05 |
+| noise_fur_1 | 21 | 122,553 | 122,549/178,432 | 1 / 3 / 0.00048828125 / 8.31484795e-05 |
+
+These are full root outputs on the [original generator inputs](#square-and-rectangular-pattern-generators) and the linked Fur settings. Clouds 1 and noise_fur_1 have slightly fewer exact pixels on those inputs after the depth correction. Dirt 1 retains three differing pixels across 17 renders. All 19 previously verified roots in the direct FX-Map guard set still match 3,211,776/3,211,776 pixels in 159 renders, maximum error zero. The independently authored depth-five chain, fur_1 and noise_fur_1 were also saved via MaterialCraft and opened again in the reference app. Against the source-file renders, the 26 reopened cases match 61,184/61,184 pixels, maximum error 0. The root files used the current-format header for this handoff. Open each file at its save destination so package-relative dependencies resolve. A separately moved copy of noise_fur_1 lost its relative link to `functions.sbs` and matched only 24/28,928 pixels. Reopening the identical saved bytes at the original destination matches 28,928/28,928.
+
 ### Fur pattern sources and downstream filters
 
 Each root has 21 raw comparisons, totaling 178,432 pixels per root. Each format cell gives exact pixels / maximum error. The denominators are 5,120 U8, 130,048 U16, 5,120 F16 and 38,144 F32. Integer errors are stored levels. Every differing stage-traced case first diverges in the FX-Map.
