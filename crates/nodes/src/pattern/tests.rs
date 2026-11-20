@@ -82,7 +82,6 @@ fn cook(graph: PatternGraph) -> crate::CookResult {
 fn stamp_tint_preserves_the_authored_type_and_scales_before_coverage() {
     let rgba = Value::Float4([0.9, 0.11, 0.57, 0.732]);
     let constant = |value| Value::Function(Box::new(FunctionGraph::constant(value)));
-    let definition = find("fx_map").unwrap();
     for (shape, color, tint, gain, expected) in [
         (2, false, rgba.clone(), 1.0, [0x3f06_d3a0; 4]),
         (2, false, constant(rgba.clone()), 1.0, [0x3f3b_645a; 4]),
@@ -90,35 +89,69 @@ fn stamp_tint_preserves_the_authored_type_and_scales_before_coverage() {
         (5, true, rgba.clone(), 0.6137, [0x3ecd_6456, 0x3d48_d3e4, 0x3e82_14e2, 0x3ee4_3699]),
         (17, true, constant(rgba), 327.125, [0x42de_3ea0, 0x4159_4e4d, 0x428c_c144, 0x42f6_f041]),
     ] {
-        let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
-        graph.nodes[0].parameters =
-            BTreeMap::from([("patterntype".into(), Value::Int(shape)), ("opacity".into(), tint), ("blendingmode".into(), Value::Int(0))]);
-        let params = resolve_params(
-            definition,
-            &BTreeMap::from([
-                ("pattern".into(), Value::PatternGraph(Box::new(graph))),
-                ("roughness".into(), Value::Float(0.0)),
-                ("color_mode".into(), Value::Bool(color)),
-                ("opacity".into(), Value::Float(gain)),
-                ("background".into(), Value::Color([0.0; 4])),
-            ]),
-        );
-        let context = CookContext {
-            input_formats: &[],
-            format: materialcraft_core::OutputFormat::F32,
-            w: 32,
-            h: 32,
-            seed: 7,
-            tile: true,
-            inputs: &[],
-            params: &params,
-            resource: &|_| None,
-            vars: &BTreeMap::new(),
-        };
-        let image = (definition.cook)(&context).unwrap().remove(0);
-        let pixel = image.get(16, 16, false).map(f32::to_bits);
-        assert_eq!(&pixel[..image.channels()], &expected[..image.channels()], "shape {shape}, color {color}, opacity {gain}");
+        assert_stamp_pixel(shape, color, tint, gain, 0.0, expected);
     }
+}
+
+#[test]
+fn pattern_opacity_flushes_subnormals_at_their_arithmetic_boundaries() {
+    let normal = f32::MIN_POSITIVE;
+    let tiny = f32::from_bits(0x0037_1245);
+    let large = f32::from_bits(0x5d80_0000);
+    for (tint, gain, background, expected) in [
+        ([large, large, large, 0.25], normal, 0.0, [0; 4]),
+        ([1.0, 1.0, 1.0, tiny], large, 0.0, [0; 4]),
+        ([tiny, tiny, tiny, 1.0], large, 0.0, [0, 0, 0, large.to_bits()]),
+        ([1.0, 1.0, 1.0, -1.0], f32::from_bits(0x0080_0001), normal, [0x8000_0000; 4]),
+        ([1.0; 4], normal, 0.0, [normal.to_bits(); 4]),
+    ] {
+        assert_stamp_pixel(2, true, Value::Float4(tint), gain, background, expected);
+    }
+    for color in [false, true] {
+        for shape in [0, 2] {
+            assert_stamp_pixel(shape, color, Value::Float4([1.0; 4]), 0.0, -tiny, [0x8000_0000; 4]);
+        }
+    }
+}
+
+#[test]
+fn solid_stamps_round_the_alpha_blend_at_accumulator_precision() {
+    for (background, expected) in
+        [(0x393f_a080, [0x3e81_77f4, 0x3e0f_efe8, 0x3eba_f7f4, 0x3ee6_0d32]), (0xbb89_bb22, [0x3e7e_7227, 0x3e0b_7227, 0x3eb8_b913, 0x3ee4_d090])]
+    {
+        assert_stamp_pixel(2, true, Value::Float4([0.5625, 0.3125, 0.8125, 0.71875]), 0.625, f32::from_bits(background), expected);
+    }
+}
+
+fn assert_stamp_pixel(shape: i32, color: bool, tint: Value, gain: f32, background: f32, expected: [u32; 4]) {
+    let definition = find("fx_map").unwrap();
+    let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
+    graph.nodes[0].parameters = BTreeMap::from([("patterntype".into(), Value::Int(shape)), ("opacity".into(), tint), ("blendingmode".into(), Value::Int(0))]);
+    let params = resolve_params(
+        definition,
+        &BTreeMap::from([
+            ("pattern".into(), Value::PatternGraph(Box::new(graph))),
+            ("roughness".into(), Value::Float(0.0)),
+            ("color_mode".into(), Value::Bool(color)),
+            ("opacity".into(), Value::Float(gain)),
+            ("background".into(), Value::Color([background; 4])),
+        ]),
+    );
+    let context = CookContext {
+        input_formats: &[],
+        format: materialcraft_core::OutputFormat::F32,
+        w: 32,
+        h: 32,
+        seed: 7,
+        tile: true,
+        inputs: &[],
+        params: &params,
+        resource: &|_| None,
+        vars: &BTreeMap::new(),
+    };
+    let image = (definition.cook)(&context).unwrap().remove(0);
+    let pixel = image.get(16, 16, false).map(f32::to_bits);
+    assert_eq!(&pixel[..image.channels()], &expected[..image.channels()], "shape {shape}, color {color}, opacity {gain}");
 }
 
 #[test]

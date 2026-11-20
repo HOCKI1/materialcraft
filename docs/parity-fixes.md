@@ -208,6 +208,30 @@ For the thin-gradient row use a 256² F32 canvas, height 1 and widths 1/8, 1/32 
 
 Arc Pavement previously had a maximum F32 error of .00000987946987. Gradient Linear 1 still has 16 unequal pixels in each of U8, U16 and F16 and 176 in F32. On the 24 profiles per root, Fluid and Noise Fluid give the same counts and maxima as the earlier [pattern-stage comparison](#fibers-and-fluid-pattern-stages). All 3,211,776 pixels from 159 equal-resolution renders of 19 previously matched pattern roots are exact. For the separate file check, save the original test graph, Gradient Linear 1, Fibers and Fluid through the normal save command with input header `1.1.0.202502`. Reopen each save in the reference app and compare to the original in that same app. Across 14 extended-angle controls and nine settings per root, all 134,144 pixels in 41 renders match, with maximum error zero.
 
+### Pattern opacity near zero and color accumulation
+
+| Measured output | Renders | Exact pixels / compared | Maximum component error |
+|---|---:|---:|---:|
+| Independent depth, roughness and opacity | 288 | 73,728/73,728 | 0 |
+| Smallest stored gains, signed values and very large tints | 165 | 42,240/42,240 | 0 |
+| Point-sampled original F32 gray and RGBA bitmaps | 32 | 8,192/8,192 | 0 |
+| Positive and negative subnormal clear colors | 40 | 10,240/10,240 | 0 |
+| Mixed-channel clear colors and transparent or signed squares | 56 | 14,336/14,336 | 0 |
+| Three color blend modes on generated F32 backgrounds, four output formats | 63 | 76,032/76,032 | 0 |
+| Earlier mixed-size backgrounds with a square or an opposite-type input | 105 | 188,160/188,160 | 0 |
+
+The first row improves from 73,442 exact pixels and closes both 143-pixel discrepancies in the [depth controls](#stored-opacity-across-pattern-depths). A solid RGBA square with RGB 2⁶⁰, alpha .25, roughness zero and gain 2⁻¹²⁶ has all four components zero. With RGB 1, alpha −1, gain F32 bits `00800001` and a 2⁻¹²⁶ background, each result has bits `80000000`. The renderer flushes subnormal operands and intermediate products to signed zero before later stages can amplify them. For an authored gray clear color the mean uses F32 RGB before flushing. For example the mixed swatch (smallest normal, −next-to-largest subnormal, −next-to-largest subnormal) gives negative zero. A zero additive contribution retains the destination sign.
+
+For the 165 depth renders use a 16² F32 output, seed 91813 + 7j, one square at depth 0, 7 of 8 or 10 of 10. At depth zero use signed gains with F32 magnitude bits 1, 00100000, 00370011, 007fffff, 00800000, 00800001 and 01000000. Use tints 1, 2⁶⁰, .25 and 2⁻¹⁶ over zero or 2⁻¹²⁶. At the other depths cross roughness 2⁻¹⁸, .0001, .00032 and 2⁻¹² with gains .37, 1, 2¹⁸ and 2⁻¹². For the point-sampled bitmap use a 16² field with white pixels or an eleven-entry repeated sequence [1, t, n, .25, 2⁶⁰, 0, −.3125, −n, −t, 2n, 1.125], where t has bits 00371245 and n is the smallest positive normal. Select element (11y + 3x + 5c) mod 11 for channel c. The clear-color series also draws on ±t, draws on mixed normal and subnormal color components and compares an empty map with a half-width square.
+
+The 63 blend renders previously matched 66,507/76,032 pixels. F32 matched 38,861/48,384 with maximum .5. U16 matched 9,214/9,216 with maximum one level. F16 and U8 each matched 9,216/9,216. A built-in color stamp now uses the same measured accumulator precision as the bitmap stamp. With alpha .71875 and gain .625 over destination alpha `393fa080`, the stored result is `3ee60d32`. A single F32 multiply-add gives `3ee60d31`. On the 105 previous mixed-size renders this closes the two one-ULP alpha differences. [Background resize controls](#pattern-backgrounds-and-center-culling)
+
+For each blend mode use one unit square and (R,G,B,A,gain) values (.5625,.3125,.8125,.71875,.625), (.35,−.6971,1.78125,.6337,.7723) and (−.372,.8123,1.326,1.1873,−1.359). Generate F32 RGBA backgrounds using PCG64 with seeds 100049 through 100052, drawing channels uniformly from [−1.25,1.625). Use 16², 32×64, 64×32 and 32² fields in order. Replace the first eight rows of field zero with F32 bits `393fa080 bb89bb22 3ee60000 393fa080`. Multiply field one by powers of two with integer exponents from −22 through 21, drawn from the same generator. Set R to zero in rows 0–7, A to one in rows 8–15 and G to negative zero in rows 16–23 of field two. Store field three in all four formats.
+
+The remaining F32 gradient measurements separate coverage from the tint arithmetic. Across 204 gray and RGBA renders the actual output matches 48,128/52,224 pixels. A gain of 2⁶⁰ amplifies a coverage difference to 68,719,476,736. Using identical measured unit-tint coverage gives 52,224/52,224 exact pixels. Compare shapes 2 and 17 at 16², on zero or ±2⁻¹²⁶, with seeds 96259 + j. Additional connected F32 backgrounds match 854/2,048 pixels in eight renders, maximum 1.17549421e−38. This difference is visible with an empty pattern. The gray input bridge retains the negative sign for subnormal values and negative zero, while the empty gray output gives positive zero. The color output preserves their sign.
+
+Six current-header saves reopened in the reference app and matched 34,816/34,816 pixels across 58 renders, maximum error zero. The 19 previously verified pattern roots retained 3,211,776/3,211,776 exact pixels in 159 renders, maximum error zero.
+
 ### Trapezoid coordinates under fixed clipping
 
 | Root | [Original inputs](#quad-swirl-trapezoid-and-vector-morph-comparisons) | Boundary fields | Four tiling settings on the boundary fields | Maximum component error |
@@ -305,7 +329,7 @@ In the 192 additive square controls use (0,0), (1,0), (3,1) and (5,5), the six r
 
 For the independent roughness controls, use (2,0), (3,1), (4,4), (5,5), (6,3), (8,7), (10,10) and (12,12). Use F32 16² with seed `87211 + 23j` and gains [1,.37,1.73,2.500080108642578] cycling by case. The roughness list starts with [.0001,2^-18,.03125,.32,.73,.86,.9823,.99873], the adjacent F32 values below and above one, then [1.000012,1.0043,1.33,2.71,4.125,7,13]. Append 13 values drawn uniformly from [.01,2.25] with one NumPy PCG64 stream seeded 80627 across the eight depth pairs, followed by the six powers of two above.
 
-The independent controls have 286 remaining differing pixels. For depth 7 of 8, roughness 2^-18 and gain .37, the local covered pixels have F32 bits `002f5c1d`. For depth 10 of 10, roughness .0001 and gain 1, they have bits `000116bb`. Each capture differs in 143 pixels and the reference output stores zero. Further controls are needed to separate subnormal arithmetic from output storage. The power-rounding measurements use the Windows reference session.
+At this revision the independent controls had 286 differing pixels. For depth 7 of 8, roughness 2^-18 and gain .37, the local covered pixels have F32 bits `002f5c1d`. For depth 10 of 10, roughness .0001 and gain 1, they have bits `000116bb`. Each capture differs in 143 pixels and the reference output stores zero. The later [opacity and accumulator controls](#pattern-opacity-near-zero-and-color-accumulation) reproduce both cases exactly. The power-rounding measurements use the Windows reference session.
 
 | Original root | Renders | Exact pixels before | Exact pixels after / compared | Maximum U8 / U16 / F16 / F32 error after |
 |---|---:|---:|---:|---|

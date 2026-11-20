@@ -2,9 +2,10 @@ use craft_texture::{Image, Kind, Limits};
 use materialcraft_core::OutputFormat;
 use std::sync::Arc;
 
-use super::{bitmap, pattern_stamp::PatternStamp, region::Region, shape};
+use super::{bitmap, blend, pattern_stamp::PatternStamp, region::Region, shape};
 use crate::CookContext;
 use crate::atomic::input_resize::{InputResize, resized_input};
+use crate::function::flush_subnormal;
 
 const MAX_SAMPLES: u64 = 256_000_000;
 const MAX_STAMP_COPIES: u64 = 1_048_576;
@@ -21,7 +22,7 @@ pub(super) fn render(context: &CookContext, stamps: &[PatternStamp], max_depth: 
             if kind == Kind::Gray {
                 color[0] = (color[0] + color[1] + color[2]) / 3.0;
             }
-            Image::filled(width, height, kind, color)
+            Image::filled(width, height, kind, color.map(flush_subnormal))
         })
     };
     if stamps.is_empty() {
@@ -75,9 +76,10 @@ pub(super) fn render(context: &CookContext, stamps: &[PatternStamp], max_depth: 
             return Err("pattern roughness overflowed its depth opacity".into());
         }
 
-        let [red, green, blue, alpha] = stamp.color;
-        let alpha = alpha * opacity;
-        let channel_tint = [red * alpha, green * alpha, blue * alpha, alpha];
+        let [red, green, blue, alpha] = stamp.color.map(flush_subnormal);
+        // Flush the stored alpha before a large tint could amplify a subnormal product.
+        let alpha = flush_subnormal(alpha * flush_subnormal(opacity));
+        let channel_tint = [red * alpha, green * alpha, blue * alpha, alpha].map(flush_subnormal);
         let tinted_offset = matches!(stamp.pattern, 17 | 18);
 
         let angle = stamp.rotation * std::f32::consts::TAU;
@@ -132,33 +134,36 @@ pub(super) fn render(context: &CookContext, stamps: &[PatternStamp], max_depth: 
                         }
 
                         let (foreground, stamp_alpha) = if let Some((input, format)) = &texture {
-                            let sample = bitmap::sample(input, local, *format, stamp.filtering == 2);
+                            let sample = bitmap::sample(input, local, *format, stamp.filtering == 2).map(flush_subnormal);
                             if kind == Kind::Gray {
                                 ([(sample[0] - 1.0).mul_add(alpha, alpha); 4], 1.0)
                             } else {
                                 let coverage = sample[3] * alpha;
                                 let image_alpha = if stamp.premultiplied { 1.0 } else { 1.0 - (1.0 - sample[3]) };
-                                let mut color = std::array::from_fn(|i| (sample[i] * image_alpha) * channel_tint[i]);
+                                let mut color = std::array::from_fn(|i| flush_subnormal(sample[i] * image_alpha) * channel_tint[i]);
                                 color[3] = coverage;
                                 (color, coverage)
                             }
                         } else {
                             let (coverage, offset) = shape::profile(stamp.pattern, local[0], local[1], stamp.variation)?;
+                            let coverage = flush_subnormal(coverage);
+                            let offset = flush_subnormal(offset);
                             let color = channel_tint.map(|tint| if tinted_offset { coverage.mul_add(tint, offset) } else { coverage * tint });
                             (color, color[3])
                         };
 
                         let pixel = (y as usize * width as usize + x as usize) * channels;
                         let target = pixels.get_mut(pixel..pixel + channels).ok_or("invalid pattern pixel")?;
+                        let stamp_alpha = flush_subnormal(stamp_alpha);
                         for (channel, target) in target.iter_mut().enumerate() {
-                            let value = foreground[channel];
-                            *target = match (kind, stamp.blend) {
-                                (Kind::Gray, 1 | 2) => target.max(value),
-                                (Kind::Color, 0..=2) if texture.is_some() => bitmap::composite(*target, value, stamp_alpha, stamp.blend, channel),
-                                (Kind::Color, 0) if channel == 3 => value.mul_add(1.0 - *target, *target),
-                                (Kind::Color, 1 | 2) => target.mul_add(1.0 - stamp_alpha, value),
-                                _ => *target + value,
-                            };
+                            let value = flush_subnormal(foreground[channel]);
+                            let background = flush_subnormal(*target);
+                            *target = flush_subnormal(match (kind, stamp.blend) {
+                                (Kind::Color, _) => blend::color(background, value, stamp_alpha, stamp.blend, channel),
+                                (Kind::Gray, 1 | 2) => background.max(value),
+                                (Kind::Gray, _) if value == 0.0 => background,
+                                (Kind::Gray, _) => background + value,
+                            });
                             if !target.is_finite() {
                                 return Err("pattern accumulation overflowed".into());
                             }

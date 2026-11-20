@@ -2,7 +2,7 @@ use super::value_type::{dimensions, floats, integer_value, integers, intermediat
 use materialcraft_core::Value;
 
 /// Runtime arithmetic treats subnormals as signed zero at its inputs and rounded results.
-pub(super) fn flush_subnormal(value: f32) -> f32 {
+pub(crate) fn flush_subnormal(value: f32) -> f32 {
     if value.is_subnormal() { 0.0_f32.copysign(value) } else { value }
 }
 

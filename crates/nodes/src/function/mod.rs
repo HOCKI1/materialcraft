@@ -44,6 +44,7 @@ pub mod value_type;
 mod vector;
 mod warnings;
 
+pub(crate) use arithmetic::flush_subnormal;
 pub(crate) use binary_exponential::{exp2 as pixel_exp2, signed_pixel_power};
 pub use catalog::{FUNCTIONS, default_value, definition};
 pub use compile::{compile, compile_with_literal_inputs};
