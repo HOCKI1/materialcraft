@@ -333,6 +333,19 @@ fn snapped_stamp_vertices_preserve_fractional_positions() {
 }
 
 #[test]
+fn stamp_precision_at_the_far_vertex_precedes_the_coordinate_scale() {
+    let region = super::region::Region::new([0.0, 1.0, 0.0, 1.0]).unwrap();
+    let size = [0.166_012_8_f32, 0.652_076_1];
+    let center = [0.029_354_721, 0.792_399_17];
+    for (cosine, expected) in [(1.0, 0x3ed5_a7fc), (-1.0, 0x3f15_2c02)] {
+        let frame = super::footprint::Footprint { sine: 0.0, cosine, radius: size.map(|s| s * 0.5) };
+        let planes = super::coordinates::PixelPlanes::new(&frame, &region, center, size, [32, 64]).unwrap();
+        let [x, _] = planes.row(30)(0);
+        assert_eq!(((x + 1.0) * 0.5).to_bits(), expected, "cosine {cosine}");
+    }
+}
+
+#[test]
 fn snapped_stamp_vertices_clip_the_last_solid_sample() {
     let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
     graph.nodes[0].parameters = BTreeMap::from([

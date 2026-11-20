@@ -50,7 +50,7 @@ impl PixelPlanes {
             let far_radius = f64::from((3.0 * radius) as f32);
             let far_vertex = (center + far_radius) as f32;
             let low = (near[axis] - f64::from(near_vertex) - radius) as f32 * scale;
-            let high = ((far[axis] - f64::from(far_vertex) + far_radius) * f64::from(scale)) as f32;
+            let high = (far[axis] - f64::from(far_vertex) + far_radius) as f32 * scale;
             let span = truncate_float(f64::from(high) - f64::from(low)) * 0.5;
             let gradient = gradient_product(basis, span);
             let unit = f64::from(gradient.next_up() - gradient);

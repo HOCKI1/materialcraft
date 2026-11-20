@@ -534,6 +534,14 @@ For each root’s 25 follow-up renders, the 5,120 U8, 553,728 U16, 78,336 F16 an
 
 In a single-worker release run, four interleaved measurements of the 128² default, 256² default and 512² filled cases gave median whole-graph cook times of 46, 259 and 1,138 ms for Alveolus (previously 45, 247 and 1,068 ms). Pattern Alveolus took 45, 253 and 1,083 ms (previously 43, 238 and 1,045 ms).
 
+### Scaling the far vertex of an analytic stamp
+
+The two remaining square-edge ramp differences in the 264-render unit-region sweep have the same cause. Use a 32×64 output, center (.029354721,.79239917), normalized size (.1660128,.6520761), unit opacity, and zero or half a turn. At (0,30) the zero-turn F32 bits were 3ed5a7fa instead of 3ed5a7fc. The half-turn bits were 3f152c03 instead of 3f152c02. The signed displacement from the far vertex is stored in F32 before multiplication by the coordinate scale. A two-orientation regression failed on the previous implementation.
+
+All 1,802,240/1,802,240 raw F32 pixels in those 264 original renders now match, maximum absolute error zero. An independent 16-render replay using explicit F32 widths or their immediate neighbors also matches all 49,152/49,152 pixels. Both brick roots retain every measured output in the two 32-case decimal matrices, 1,910,784/1,910,784 pixels per root in four formats, including their reopened packages. [Input generation, unit-region dimensions and prior root totals](#fractional-stamp-vertices-and-the-last-covered-pixel)
+
+The wider recheck of the preceding vertex and coverage changes retained all 3,139,328 pixels over 17 previously verified roots. In the earlier root matrices, Crystal 1 gained 386 exact pixels, Directional Noise gained 361, Dirt 3 gained 35 and Dirt 6 gained 1,043. Dirt Gradient lost 20, with 128,939/129,280 exact and maximum errors of zero U8, two U16 levels, .000244140625 F16 and .0000198483467 F32. Brick 3 still had 32 different U16 or F32 pixels at that checkpoint.
+
 ### Fractional stamp vertices and the last covered pixel
 
 Brick 1 and Brick 2 now match all 255 measured original renders, including defaults, changed graph controls, several seeds, rectangular outputs and four storage formats. An original horizontal F32 ramp localized the first difference in Brick 2. At 64² use center (.425,.375), size (28.625/64,12.625/64), zero rotation and unit opacity. Before the change, pixel (16,18) read `3e013acc` instead of `3e013ace` and (33,18) read `3f3857a2` instead of `3f3857a4`. Translating the same ramp in two-pixel increments changed its step when a far vertex crossed 64, even though its fractional position on the grid stayed the same.
