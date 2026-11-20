@@ -372,6 +372,8 @@ For each of these seven generators isolate a shortest connected path from the pa
 
 The two original cloud graphs and both crystal graphs produce bit-exact downstream outputs with original procedural fields substituted for all source generators, **87,040/87,040 pixels in 40 renders**, maximum error zero. The v2 packages draw into the preceding stage. In noise_clouds_1_v2 two independent captures used the same field in place of the first generator and retained the final generator. Those captures matched 8,174/9,472 and 8,163/9,472 whole pixels. Both reached the execution limit at seven settings. The maximum errors were .00048828125 F16 and .00000234693289 F32. See also the [gradient warp measurements for Crystal 2](#gradient-warp-displacement-and-sampling).
 
+For noise_clouds_2_v2, replace its first or second pattern stage with the original field at that stage’s resolution and precision. The two comparable sets match 8,348/9,472 and 8,352/9,472 pixels, with seven execution-limit settings in each set. F32 maxima are .000000834465027 in both sets. F16 maxima are .0001220703125 and .000244140625.
+
 Use the archive, four-format and independent cases, then the ten [spots scale, resolution and field controls](#bnw-spots-3-and-cells-1-pattern-sources) with inventory indices 244, 245, 246, 247, 249 and 250 in table order. The reference produced all 114 whole outputs. The two missing local outputs for noise_clouds_1 are the scale-five rectangular cases. For each v2 cloud graph the scale-three and scale-five settings reached the execution limit.
 
 Isolate the shortest connected path from the pattern root to a drawing quadrant in each of the 13 source stages. Keep the original Iterate and Switch controls, disconnect image inputs, and omit the 64² render from the ten new cases. Each solid square and each disc matched every compared pixel. The authored profile retains the following differences across the same paths.
@@ -400,6 +402,48 @@ In an empty quadrant, branch offset and random seed can change a variable that a
 Use an Iterate with zero repeats. In its count expression set a Float4 variable to (.125,.25,.375,1) before returning zero. Connect the initial child to an empty quadrant, a solid square or an image stamp bound to an original white 16² image. Make that quadrant transparent, except for the stamp being tested. In each property under test first assign (.625,.75,.875,1) to the variable, then return the authored property value. Let a solid child in quadrant zero read the variable as its color. In order, test branch offset, frame offset, opacity, rotation, size, variation, blend mode, image filter, image index, premultiplication, seed, seed inheritance and pattern type. Use zero offsets and rotation, unit size, zero variation, additive blend, image filter 1, index 0, premultiplication enabled, seed 0 and inheritance enabled. At property index j render 16² F32 with seed 100477+j, then 32×16 F32 and U16 with seed 100519+j.
 
 The child retained its initial color for property writes in blend mode, image filter, premultiplication, seed inheritance and pattern type on all three kinds of parent. Some local children still see those assignments. Independent single-stamp controls confirm that literal, computed-constant and exposed-variable settings choose the same reference draw in 33,280/33,280 pixels across 78 comparisons against 39 literal renders. The 19 previously verified pattern roots match 3,211,776/3,211,776 pixels in 159 renders.
+
+### Directional noise and scratch pattern sources
+
+The ten directional generators produced **135 comparable whole outputs across 190 cases**. The reference produced all 190. The other 55 local evaluations reached the pattern execution limit. Integer errors below are stored levels. A missing error value indicates an unavailable image.
+
+| Root package | Whole outputs compared / attempted | Exact pixels / compared | Maximum U8 / U16 / F16 / F32 error |
+|---|---:|---:|---|
+| noise_directional_noise_1 | 19/19 | 136,222/144,640 | 1 / 2 / 0.00048828125 / 4.19616699e-05 |
+| noise_directional_noise_1_v2 | 18/19 | 133,251/142,592 | 1 / 1 / 0.00048828125 / 4.15444374e-05 |
+| noise_directional_noise_2 | 11/19 | 103,497/107,776 | 0 / 4 / 0.00048828125 / 1.06692314e-05 |
+| noise_directional_noise_2_v2 | 11/19 | 105,116/107,776 | 1 / 1 / 0.000244140625 / 1.57654285e-05 |
+| noise_directional_noise_3 | 0/19 | No comparable image | — / — / — / — |
+| noise_directional_noise_3_v2 | 0/19 | No comparable image | — / — / — / — |
+| noise_directional_noise_4 | 19/19 | 134,015/144,640 | 0 / 1 / 0.00048828125 / 6.67572021e-06 |
+| noise_directional_noise_4_v2 | 19/19 | 134,664/144,640 | 1 / 1 / 0.00048828125 / 4.76837158e-06 |
+| noise_directional_scratches | 19/19 | 119,970/144,640 | 1 / 1 / 0.00048828125 / 2.37524509e-05 |
+| noise_directional_scratches_v2 | 19/19 | 137,786/144,640 | 1 / 1 / 0.000244140625 / 2.8796494e-05 |
+
+Use the four archived defaults, seed and changed cases, the [four-format sweep and independent seed](#four-format-inventory-comparison), and ten stage-instrumented renders. For the latter, seed j is 100537+13i plus [0,1,2,2,2,2,6,7,8,9], with i = 251 through 260 in table order. Start at 16² F32 with defaults. Use A at 32² F32, B at 32² in U8/U16/F16/F32, C at 64×32 F32, B at 32×64 U16, D at 32² F32 and A at 64×32 F16.
+
+| Exposed controls | A | B | C | D |
+|---|---|---|---|---|
+| Scale, disorder, expand nonsquare, angle, angle random | 1, 0, on, 0, 0 | 1, .3125, off, .15625, .21875 | 2, .6875, on, −.21875, .40625 | 3, .125, off, .375, .03125 |
+| v2 speed, anisotropy, anisotropy angle, tile offset | 1, 0, 0, (0,0) | .6875, .25, .3125, (.125,−.1875) | 1.4375, .625, −.21875, (−.3125,.4375) | .875, .125, .15625, (−.0625,.125) |
+| Scratch amount, size, size random | 1, (.5,20), (0,0) | .5625, (.6875,3.25), (.0625,.21875) | .8125, (1.25,7.5), (.15625,.3125) | .375, (.375,1.75), (.03125,.09375) |
+
+For each of the 19 source stages, isolate the shortest connected path to a drawing quadrant, retain its original controls and clear the stage background. Repeat for a square and disc, skipping the 32² D case. All **146,520/146,520 square pixels** and **146,520/146,520 disc pixels** match across 171 renders per shape. The authored wave and directional profiles retain differences on these same paths.
+
+| Root package | Authored shape number | Exact square or disc pixels per shape | Authored profile exact / compared | Maximum U8 / U16 / F16 / F32 profile error |
+|---|---:|---:|---:|---|
+| noise_directional_noise_1 | 11 | 34,560 | 30,657/34,560 | 0 / 1 / 3.05175781e-05 / 2.33855098e-06 |
+| noise_directional_noise_1_v2 | 11 | 15,120 | 14,847/15,120 | 0 / 1 / 5.96046448e-08 / 4.270114e-07 |
+| noise_directional_noise_2 | 11 | 11,520 | 7,926/11,520 | 0 / 1 / 6.10351562e-05 / 1.34110451e-06 |
+| noise_directional_noise_2_v2 | 11 | 14,400 | 13,476/14,400 | 0 / 1 / 1.52587891e-05 / 9.83476639e-07 |
+| noise_directional_noise_3 | 11 | 12,420 | 12,336/12,420 | 0 / 0 / 1.90734863e-06 / 1.1920929e-07 |
+| noise_directional_noise_3_v2 | 11 | 12,420 | 12,345/12,420 | 0 / 0 / 0 / 2.51457095e-07 |
+| noise_directional_noise_4 | 6 | 11,520 | 11,485/11,520 | 0 / 0 / 0 / 8.34465027e-07 |
+| noise_directional_noise_4_v2 | 6 | 11,520 | 11,462/11,520 | 0 / 0 / 0 / 4.76837158e-07 |
+| noise_directional_scratches | 16 | 11,520 | 11,515/11,520 | 0 / 0 / 0 / 1.51991844e-06 |
+| noise_directional_scratches_v2 | 16 | 11,520 | 11,479/11,520 | 0 / 0 / 0 / 3.03983688e-06 |
+
+At 32² and scale one, noise_directional_noise_3 completes its 4² and 8² sources before its 32² source reaches the traversal limit. Replace all three source generators with the [original grayscale fields](#bnw-spots-3-and-cells-1-pattern-sources) at each source's measured size and precision. The remaining two blends and Levels match 12,544/12,544 pixels over the ten new cases, maximum zero. The same substitution in noise_directional_noise_1 also matches 12,544/12,544. In noise_directional_noise_1_v2, retaining the two later generators or just the terminal generator gives 7,067/10,496 and 7,001/10,496 pixels respectively. Each substitution reaches the execution limit at 64×32, scale two. The respective F32 maxima are .0000418424606 and .0000414848328. Both have maxima of zero U8, one U16 level and .00048828125 F16.
 
 ### Pattern expression variables and cook time
 
