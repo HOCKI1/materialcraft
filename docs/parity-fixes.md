@@ -534,6 +534,40 @@ For each root’s 25 follow-up renders, the 5,120 U8, 553,728 U16, 78,336 F16 an
 
 In a single-worker release run, four interleaved measurements of the 128² default, 256² default and 512² filled cases gave median whole-graph cook times of 46, 259 and 1,138 ms for Alveolus (previously 45, 247 and 1,068 ms). Pattern Alveolus took 45, 253 and 1,083 ms (previously 43, 238 and 1,045 ms).
 
+### Interpolation across pairs of pixels in Cells 1
+
+The last differing Cells 1 sample came from a white paraboloid at (1,52) on a 64×128 image. Given the same three vertices, an independently drawn triangle reproduced the reference’s two signed F32 coordinates, .3740799427 and .2336531430. The previous CPU result was .3740799129 for the first coordinate. The pattern output stored `3f4e334f` in the reference and `3f4e3350` in MaterialCraft. Reuse the [single stamp, resolution and seed](#bounds-and-pixel-coordinates-of-rotated-pattern-stamps). Its pixels (1,48), (1,52) and (5,52) now store `3ecb3c42`, `3f4e334f` and `3ee8375a` in both apps.
+
+An original right triangle isolates the interpolation step. Give its vertices screen coordinates (0,0), (1024,0) and (0,1024) with clip W=1. Assign a scalar attribute A, A+1024g and A+1024h. Select integer x and y from 0 through 15, set A to F32(−g(x+.5)−h(y+.5)), and store the three attributes as F32 before drawing. This puts the sample near zero and exposes low bits that would disappear on conversion to the output format. In 6,240 signed samples with gradient exponent differences from 0 through 12, the new calculation matched 6,240/6,240, maximum error zero. On three independent sets with other starting values and translated triangles, all 819,200, 819,200 and 652,280 measured coordinate components matched the device. Across a further 77,822 components from stamp triangles, 77,821 matched, maximum 1.90734863e−6.
+
+The opposite half-steps of a two-pixel pair use a common precision. Taking one ULP of the larger gradient as U, truncate each signed gradient to multiples of U/4 for the half-step from the pair midpoint. Store the accumulated sample on a grid of U/64 before conversion to F32. A second regression checks the shallow horizontal ramp at (8,31) on a 32×64 image. Use center (.415625,.48046875), size (.38671875,.25), rotation .0002734375 turns, tiling off and seed 360680. The reference stores `3de5bb68`. Both regressions failed on the preceding build.
+
+| F32 stamp comparison | Renders | Previous exact | Current exact / pixels | Maximum error now |
+|---|---:|---:|---:|---:|
+| Translated ramp | 210 | 860,128 | 860,160/860,160 | 0 |
+| Translated paraboloid | 210 | 860,071 | 860,160/860,160 | 0 |
+| Extended-turn ramp | 99 | 337,757 | 337,920/337,920 | 0 |
+| Extended-turn paraboloid | 99 | 337,743 | 337,920/337,920 | 0 |
+| Pyramid at ordinary angles | 30 | 159,717 | 159,744/159,744 | 0 |
+| Rotated subpixel ramp | 220 | 309,757 | 309,759/309,760 | 9.53674316e−07 |
+| Rotated subpixel paraboloid | 220 | 309,749 | 309,759/309,760 | 2.98023224e−06 |
+| Individual draws from BNW Spots 1 | 1,052 | 820,191 | 820,249/820,304 | 1.67638063e−07 |
+
+The rotated subpixel ramp and paraboloid each have one differing pixel. Both use the 16×32 placement, the first pair of subpixel extents and .3305 turns. In a separate angular sweep, use turns (.0001220703125,.0002734375,−.0007453125,.00128125,.00390625,.01607,.2499,.5003,−1.0001,−.74934,1.50014,.43065130710601807,.1171875). At zero-based angle i and size j, select (32×64,64×32,64²,128×64)[j] and seed 360607+73i+j. Center the stamp at (.415625+.03125j, .53125−.05078125(i mod 3)). Set the width to .375+.01171875(i mod 5), negated at j=2, and the height to .25+.046875j. Across the 52 geometries all 212,992 pixels matched for each of square, horizontal ramp, paraboloid and pyramid. The previous exact counts were 212,992, 212,868, 212,811 and 212,819 respectively. [Translated, extended-turn and subpixel settings](#bounds-and-pixel-coordinates-of-rotated-pattern-stamps)
+
+| Intact root, distinct settings | Renders | U8 exact · max | U16 exact · max | F16 exact · max | F32 exact · max |
+|---|---:|---:|---:|---:|---:|
+| Cells 1, union of original settings | 89 | 615,168/615,168 · 0 | 916,736/916,736 · 0 | 615,168/615,168 · 0 | 828,160/828,160 · 0 |
+| Crystal 2, new settings | 40 | 414,208/414,208 · 0 | 693,243/693,248 · 1 | 414,208/414,208 · 0 | 693,243/693,248 · 1.52587891e−05 |
+
+Cells 1 matches all 2,975,232 pixels in 89 distinct combinations of dimensions, seed, exposed values and output format. The 42-render expansion uses (16²,32²,64×128,128×64,128²,256×128,128×256,256²,512×256,256×512,512²,256²). Use (distance, disorder) = (default), (1,0), (23,21.875), (7,51.5625), (16,37.5), (3,2.34375), (11,71.875), (19,93.75), (9,12.5), (29,100), (default), (default). The seeds at j=0,2,10,11 are 0,350314,0,42. Elsewhere use 361003+41j. Render U16/F32 at every size and add U8/F16 at j=0,1,2,5,6,7,9,10,11. MaterialCraft saves of this matrix and the preceding 24-render matrix reopened in both apps and retained all 2,708,480 and 113,664 pixels respectively. [Earlier Cells 1 matrices and parameter controls](#bounds-and-pixel-coordinates-of-rotated-pattern-stamps)
+
+Crystal 2 improved from 145,662 to 145,664/145,664 on 17 earlier renders and matches 40,192/40,192 on ten additional historical settings. It remains in progress. For the 40 new settings use dimensions (16×32,32×16,64²,128×64,64×128,128²,256×128,128×256,256²,512²,512×256,256×512) and warp intensities (default,0,1.25,3.4375,9.625,13.875,27.75,42.5,61.75,default,31,.125). Defaults use seed 0. Use seed 42 at j=1 and 364651+53j elsewhere. Render all four formats at j=0,2,3,4,6,7,8,9 and U16/F32 elsewhere. At 256², intensity 61.75 and seed 365075, three of the 65,536 U16 pattern samples differ by one level. At (108,73) the pattern stage stores 34,666 against 34,665, then levels stores 28,192 against 28,191. The warp spreads the three differences to five output pixels. All 2,214,912 pixels in the root’s MaterialCraft save reproduce the original within each app.
+
+The other 39 rechecked intact roots retained their counts and maximum errors on their earlier matrices. Across eight saved graphs, all 5,420,032 pixels matched the corresponding originals after reopening in each app. The extended-angle ramp that previously differed on 19 saved-file samples now matches all 49,152 cross-app samples. The two spots roots retain their outstanding differences in the intact graphs.
+
+In four alternating single-worker release runs at 64², median cook times for BNW Spots 1 and BNW Spots 3 went from 186.2 to 211.4 ms and from 150.9 to 176.9 ms. On the 16² four-way stress graph, depth seven went from 33.2 to 33.5 ms and depth nine from 527.0 to 548.5 ms. All 296 release node tests, formatting, strict workspace Clippy, layers and WebAssembly passed.
+
 ### Bounds and pixel coordinates of rotated pattern stamps
 
 A white square, horizontal ramp and paraboloid distinguish the bounding rectangle of a stamp from its coordinate rotation. Translating both the stamp and its render window by an integer preserves their relative positions and exposes rounding when the corners are stored. The measured bounds use the uniform sine and cosine of the original rotation in turns. Each vertex retains its snapping displacement in pattern space. The two signed coordinates use the pixel rotation of the angle in radians and the original stamp dimensions. A rotated stamp narrower than one pixel still interpolates across the padded triangle. MaterialCraft now uses these coordinates for drawing and for culling repeated subpixel stamps.

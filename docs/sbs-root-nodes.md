@@ -35,7 +35,7 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **386 Parity**, **160 In progress** and **0 Too hard**. The November 17–20 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons) · [November 19 measurements](parity-fixes.md#2026-11-19-root-comparisons) · [November 20 measurements](parity-fixes.md#2026-11-20-root-comparisons)
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **387 Parity**, **159 In progress** and **0 Too hard**. The November 17–20 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons) · [November 19 measurements](parity-fixes.md#2026-11-19-root-comparisons) · [November 20 measurements](parity-fixes.md#2026-11-20-root-comparisons)
 
 [Pattern tiling axes and copy bounds across 215 renders](parity-fixes.md#tiling-axes-and-pattern-copy-bounds) · [Grayscale sampler measurements](parity-fixes.md#grayscale-sampling-of-color-inputs) · [Value sampling across 240 typed comparisons](parity-fixes.md#value-processor-texture-filtering) · [Five saved graphs reopened in the reference](parity-fixes.md#saved-filter-graphs-and-scalar-levels-controls)
 
@@ -82,6 +82,8 @@ All 368,640 square-mask pixels match in the 135 extended quarter-turn renders. T
 All 185,856 pixels match on 44 unrotated subpixel geometries across three patterns. Four intact roots gained exact pixels. Dirt 3 has one U16 difference in its 17-render matrix. [Subpixel stamp measurements, saved files and intact roots](parity-fixes.md#drawing-axis-aligned-stamps-smaller-than-one-pixel)
 
 Seven of 40 intact roots gained exact pixels after correcting rotated stamp bounds. Cells 1 matches 145,664/145,664 in its original matrix and 113,662/113,664 on new settings. All six saves reproduce 496,640/496,640 pixels after reopening in each app. [Root measurements, single-stamp reproductions and saved files](parity-fixes.md#bounds-and-pixel-coordinates-of-rotated-pattern-stamps)
+
+Cells 1 reached measured parity across 89 distinct settings, including 512² and reopened files. Crystal 2 retains five differing positions on a new 256² setting. [Pixel counts, parameters and remaining differences](parity-fixes.md#interpolation-across-pairs-of-pixels-in-cells-1)
 
 ## Complete inventory
 
@@ -154,7 +156,7 @@ Seven of 40 intact roots gained exact pixels after correcting rotated stamp boun
 | [cartesian_polar_transformation.sbs/cartesian_to_polar_grayscale](../assets/sbs/cartesian_polar_transformation.sbs) | 1 | No | [Parity · 171,264 exact pixels in 18 renders](parity-fixes.md#segment-mapping-and-normal-graph-rechecks) |
 | [cartesian_polar_transformation.sbs/polar_to_cartesian](../assets/sbs/cartesian_polar_transformation.sbs) | 1 | No | [Parity · 28 renders, all 306,688 pixels exact](parity-fixes.md#reverse-polar-sampling-in-color-and-grayscale) |
 | [cartesian_polar_transformation.sbs/polar_to_cartesian_grayscale](../assets/sbs/cartesian_polar_transformation.sbs) | 1 | No | [Parity · 28 renders, all 306,688 pixels exact](parity-fixes.md#reverse-polar-sampling-in-color-and-grayscale) |
-| [cells_1.sbs/cells_1](../assets/sbs/cells_1.sbs) | 0 | Yes | [In progress · 113,662/113,664 pixels on 24 additional renders](parity-fixes.md#bounds-and-pixel-coordinates-of-rotated-pattern-stamps) · [27,136/27,136 downstream pixels](parity-fixes.md#isolating-the-generators-in-spots-bricks-and-cells) |
+| [cells_1.sbs/cells_1](../assets/sbs/cells_1.sbs) | 0 | Yes | [Parity · 89 settings, 2,975,232/2,975,232 pixels](parity-fixes.md#interpolation-across-pairs-of-pixels-in-cells-1) · [27,136/27,136 downstream pixels](parity-fixes.md#isolating-the-generators-in-spots-bricks-and-cells) |
 | [channel_mixer.sbs/channel_mixer](../assets/sbs/channel_mixer.sbs) | 1 | No | [Parity · 18 cases, 171,264 exact pixels](parity-fixes.md#large-transform-offsets-and-additive-blends) |
 | [checker_1.sbs/checker_1](../assets/sbs/checker_1.sbs) | 0 | Yes | [Parity · eight cases, four formats](parity-fixes.md#transform-edges-and-floating-point-filtering) |
 | [checker_2.sbs/checker_2](../assets/sbs/checker_2.sbs) | 0 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
@@ -205,7 +207,7 @@ Seven of 40 intact roots gained exact pixels after correcting rotated stamp boun
 | [crop.sbs/crop](../assets/sbs/crop.sbs) | 1 | No | [Parity · 48 renders, all 377,344 pixels across both outputs exact](parity-fixes.md#half-precision-crop-area-and-input-sizes) |
 | [crop.sbs/crop_grayscale](../assets/sbs/crop.sbs) | 1 | No | [Parity · 48 renders, all 377,344 pixels across both outputs exact](parity-fixes.md#half-precision-crop-area-and-input-sizes) |
 | [crystal_1.sbs/crystal_1](../assets/sbs/crystal_1.sbs) | 0 | Yes | [Parity · 1,966,336/1,966,336 pixels in 64 distinct renders, 32 reopened settings](parity-fixes.md#stored-stamp-vertices-in-crystal-1) |
-| [crystal_2.sbs/crystal_2](../assets/sbs/crystal_2.sbs) | 0 | Yes | [In progress · 145,662/145,664 pixels across 17 renders](parity-fixes.md#bounds-and-pixel-coordinates-of-rotated-pattern-stamps) · [Stamp-width recheck](parity-fixes.md#pixel-reciprocals-for-stamp-edge-widths) |
+| [crystal_2.sbs/crystal_2](../assets/sbs/crystal_2.sbs) | 0 | Yes | [In progress · five differing positions across 40 new renders](parity-fixes.md#interpolation-across-pairs-of-pixels-in-cells-1) · [Stamp-width recheck](parity-fixes.md#pixel-reciprocals-for-stamp-edge-widths) |
 | [curvature.sbs/curvature](../assets/sbs/curvature.sbs) | 1 | No | [Parity · 20 renders, 176,384 exact pixels](parity-fixes.md#sampling-integer-bitmap-inputs-through-wider-bridges) |
 | [curvature_smooth.sbs/curvature_smooth](../assets/sbs/curvature_smooth.sbs) | 1 | Yes | [Parity · 20 renders, 176,384 exact pixels](parity-fixes.md#sampling-integer-bitmap-inputs-through-wider-bridges) |
 | [curvature_smooth_v2.sbs/compute_curvature_v2](../assets/sbs/curvature_smooth_v2.sbs) | 2 | Yes | [Parity: 6 cases](parity-fixes.md#verified-cases) |

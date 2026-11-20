@@ -438,6 +438,38 @@ fn subpixel_rotated_stamp_interpolates_its_ramp_and_paraboloid() {
 }
 
 #[test]
+fn rotated_paraboloid_interpolates_across_neighboring_pixel_pairs() {
+    let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
+    graph.nodes[0].parameters = BTreeMap::from([
+        ("patterntype".into(), Value::Int(4)),
+        ("branchoffset".into(), Value::Float2([-0.5; 2])),
+        ("frameoffset".into(), Value::Float2([0.046_721_816, 0.413_024_96])),
+        ("patternsize".into(), Value::Float2([0.106_382_97; 2])),
+        ("patternrotation".into(), Value::Float(0.430_651_3)),
+    ]);
+    let variables = BTreeMap::from([("$tiling".into(), Value::Int(3))]);
+    let image = cook_at_dimensions(graph, &variables, 350314, 64, 128).unwrap().remove(0);
+    for (x, y, bits) in [(1, 48, 0x3ecb_3c42), (1, 52, 0x3f4e_334f), (5, 52, 0x3ee8_375a)] {
+        assert_eq!(image.get_gray(x, y, false).to_bits(), bits);
+    }
+}
+
+#[test]
+fn shallow_rotated_ramp_stores_the_interpolated_coordinate_before_shading() {
+    let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
+    graph.nodes[0].parameters = BTreeMap::from([
+        ("patterntype".into(), Value::Int(10)),
+        ("branchoffset".into(), Value::Float2([-0.5; 2])),
+        ("frameoffset".into(), Value::Float2([0.415_625, 0.480_468_75])),
+        ("patternsize".into(), Value::Float2([0.386_718_75, 0.25])),
+        ("patternrotation".into(), Value::Float(0.000_273_437_5)),
+    ]);
+    let variables = BTreeMap::from([("$tiling".into(), Value::Int(0))]);
+    let image = cook_at_dimensions(graph, &variables, 360680, 32, 64).unwrap().remove(0);
+    assert_eq!(image.get_gray(8, 31, false).to_bits(), 0x3de5_bb68);
+}
+
+#[test]
 fn oblique_stamp_retains_the_small_cross_axis_step_on_a_thin_ramp() {
     let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
     graph.nodes[0].parameters = BTreeMap::from([("patterntype".into(), Value::Int(10)), ("patternrotation".into(), Value::Float(1.5))]);

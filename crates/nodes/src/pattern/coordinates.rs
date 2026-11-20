@@ -114,7 +114,7 @@ impl PixelPlanes {
     pub fn row(&self, y: u32) -> impl Fn(u32) -> Option<[f32; 2]> + '_ {
         let vertical = match &self.mapping {
             Mapping::Aligned { axes, .. } => [f64::from(axes[1].sample(y)), 0.0],
-            Mapping::Oblique { planes, origin } => planes.each_ref().map(|plane| plane.y_term(f64::from(y) + 0.5 - origin[1])),
+            Mapping::Oblique { planes, origin } => planes.each_ref().map(|plane| plane.y_term(y, f64::from(y) + 0.5 - origin[1])),
         };
         move |x| match &self.mapping {
             Mapping::Aligned { axes, swap } => {
@@ -124,7 +124,7 @@ impl PixelPlanes {
             }
             Mapping::Oblique { planes, origin } => {
                 let dx = f64::from(x) + 0.5 - origin[0];
-                let uv: [f32; 2] = std::array::from_fn(|i| planes[i].sample(dx, vertical[i]));
+                let uv: [f32; 2] = std::array::from_fn(|i| planes[i].sample(x, dx, vertical[i]));
                 uv.iter().all(|v| v.abs() <= 1.0).then_some(uv)
             }
         }

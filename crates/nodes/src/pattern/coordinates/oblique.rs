@@ -4,17 +4,20 @@ use crate::function::{pixel_divide, truncate_float};
 pub(super) struct Plane {
     base: f64,
     step: [f64; 2],
-    negative_bias: f64,
+    pair_offset: [[f64; 2]; 2],
+    quantum: f64,
+    inverse_quantum: f64,
 }
 
 impl Plane {
-    pub(super) fn y_term(&self, dy: f64) -> f64 {
-        dy * self.step[1]
+    pub(super) fn y_term(&self, y: u32, dy: f64) -> f64 {
+        dy * self.step[1] + self.pair_offset[1][(y & 1) as usize]
     }
 
-    pub(super) fn sample(&self, dx: f64, y_term: f64) -> f32 {
-        let value = self.base + dx * self.step[0] + y_term;
-        truncate_float(if value < 0.0 { value + self.negative_bias } else { value })
+    pub(super) fn sample(&self, x: u32, dx: f64, y_term: f64) -> f32 {
+        let value = self.base + dx * self.step[0] + self.pair_offset[0][(x & 1) as usize] + y_term;
+        let fixed = (value * self.inverse_quantum).floor();
+        truncate_float((if fixed < 0.0 { fixed + 1.0 } else { fixed }) * self.quantum)
     }
 }
 
@@ -26,7 +29,7 @@ pub(super) fn planes(triangle: &Triangle, frame: &Footprint, size: [f32; 2], [[l
         return None;
     }
     let anchor = triangle.far_axis.map_or(0, |axis| axis + 1);
-    Some(std::array::from_fn(|component| {
+    let planes: [Plane; 2] = std::array::from_fn(|component| {
         let gradient: [f32; 2] = std::array::from_fn(|axis| {
             let difference = aligned_sum([f64::from(vertices[axis + 1][component]), -f64::from(vertices[0][component])], 1);
             let span = truncate_float(difference * 0.5);
@@ -44,8 +47,19 @@ pub(super) fn planes(triangle: &Triangle, frame: &Footprint, size: [f32; 2], [[l
             if gradient[i].is_sign_negative() { -magnitude } else { magnitude }
         });
         let base = truncate_float(aligned_sum([terms[0], terms[1], f64::from(vertices[anchor][component])], 5));
-        Plane { base: f64::from(base), step: gradient.map(f64::from), negative_bias: units[0].max(units[1]) / 64.0 }
-    }))
+        let step = gradient.map(f64::from);
+        let unit = units[0].max(units[1]);
+        // The two samples of a pair share the value at their midpoint. Its signed
+        // half-step discards gradient bits below a quarter of the larger gradient's ULP.
+        let quarter = unit * 0.25;
+        let pair_offset = step.map(|v| {
+            let half_remainder = (v - (v / quarter).trunc() * quarter) * 0.5;
+            [half_remainder, -half_remainder]
+        });
+        let quantum = unit / 64.0;
+        Plane { base: f64::from(base), step, pair_offset, quantum, inverse_quantum: quantum.recip() }
+    });
+    planes.iter().all(|p| p.quantum.is_finite()).then_some(planes)
 }
 
 /// Align signed operands at a shared exponent before cancellation in the interpolation setup.
