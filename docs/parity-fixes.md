@@ -813,6 +813,20 @@ For the threshold series, take the 128² U16 field from j=0 at the 32² setting.
 
 For the two signed series, generate a 32² U16 image with level ((17x+113y+59xy+19)×7919) mod 65536. Reduce to 8² U8, F16 and F32. At seed 15709 test box intensities 0, 2⁻¹⁰, 3.2, 16, −2⁻¹⁰ and −3.2. At U8 the row-zero pixels at columns 2 and 5 are 145 and 139 at zero and 146 and 140 at ±3.2. At seed 15709, repeat both filter types at 0, 2⁻¹⁰, 3.2, −3.2, 64 and −64, with an eighth turn for directional blur. The +64 directional F32 result matches 62/64 pixels, maximum 2.98023224e−8. The independent directional angles retain the F32 differences shown above.
 
+### Linear gradient sampling on rectangular targets
+
+Gradient Linear 1 at 64² F32, seed 462, Tiling 4 and rotation 3 draws one centered gradient into a 256×16 U16 intermediate. An independently authored graph reproduces all 4,096 native intermediate pixels. Use a white, unit-size horizontal gradient (shape 10), maximum intensity, zero variation, 1.5 turns, additive blending, black background and tiling in both axes. In MaterialCraft the reproduction matches 4,080/4,096 pixels. On row 6, columns 128–143 are each one level low. At column 128 the reference reads 32,640 and MaterialCraft reads 32,639. Applying U16 storage to the independent native F32 readback reproduces all 4,096 native U16 levels.
+
+| Independent centered gradient | Cases | Exact MaterialCraft pixels | Maximum error |
+|---|---:|---:|---:|
+| Extended turns, F32 | 112 | 395,513/647,168 | 1.19209290e−7 |
+| Extended turns, U16 | 28 | 160,616/161,792 | 1 level |
+| Zero and half turns, F32 | 72 | 1,319,136/2,032,128 | 5.96046448e−8 |
+
+For the extended turns use dimensions (256,16), (128,16), (64,16), (256,32), (256,64), (512,16) and (32,16), then transpose each. Use turns 0, .5, 1.5, −.5, −1.5, 2.5, 1.5−2⁻²³ and 1.5+2⁻²³. For dimension index h and angle index j the seed is 189773+29h+j. Use F32 for all angles and repeat ±1.5 in U16. For the last row, choose the width and height independently from 16, 32, 64, 128, 256 and 512. For zero-based width and height indices j,h use seed 192403+37j+11h plus one for the half turn.
+
+An independent Direct3D 11 draw on the same device reproduces all 2,032,128 native F32 pixels of the last row. In pixel space, draw a triangle strip ordered top right, top left, bottom right, bottom left. Use bounds [0,width+.5] × [0,height+.5]. Set the horizontal vertex attribute to (2x/width−1) at zero turns and its negative at half a turn. Write (interpolated attribute+1)/2. Moving the half-pixel extension to the low ends of both axes also reproduces all 2,032,128 pixels. The extended-angle F32 controls retain differences with this construction. The intact root remains in progress. [Whole-root format and save/reopen checks](#pattern-rotation-phase)
+
 ### Pattern rotation phase
 
 An original horizontal gradient distinguishes .5 from 1.5 turns and .75 from 1.75 turns. The latter rotations leave a small cross-axis component. At 1.5 turns, a stamp four pixels wide and 256 pixels high gives a fitted component of 1.87244e−7. At −3.75 turns the corresponding component is −7.49176e−7. MaterialCraft’s pixel sine and cosine give 1.87261e−7 and −7.49045e−7 from the stored F32 angles (bits 34491200 and b5491200). The pattern renderer now uses that same phase calculation. Edges with an exactly zero axis component keep their image-space boundary rule.
