@@ -208,6 +208,34 @@ For the thin-gradient row use a 256² F32 canvas, height 1 and widths 1/8, 1/32 
 
 Arc Pavement previously had a maximum F32 error of .00000987946987. Gradient Linear 1 still has 16 unequal pixels in each of U8, U16 and F16 and 176 in F32. On the 24 profiles per root, Fluid and Noise Fluid give the same counts and maxima as the earlier [pattern-stage comparison](#fibers-and-fluid-pattern-stages). All 3,211,776 pixels from 159 equal-resolution renders of 19 previously matched pattern roots are exact. For the separate file check, save the original test graph, Gradient Linear 1, Fibers and Fluid through the normal save command with input header `1.1.0.202502`. Reopen each save in the reference app and compare to the original in that same app. Across 14 extended-angle controls and nine settings per root, all 134,144 pixels in 41 renders match, with maximum error zero.
 
+### Gaussian pattern sources and repeat limits
+
+At commit `793e0b7`, each root received 21 reference renders. The first table gives exact pixels / compared pixels / maximum error in each stored format. Integer errors are stored levels. The two Spots packages with a scale control exceeded the local traversal limit in two cases each. Their pixel denominators include the 19 cases that emitted comparable images. The reference app completed all four of the omitted renders.
+
+| Package root | Whole pixels exact / compared | U8 | U16 | F16 | F32 |
+|---|---:|---|---|---|---|
+| gaussian_spots_2 | 137,856/178,432 | 5,119/5,120/1 | 126,779/130,048/1 | 5,057/5,120/0.000244140625 | 901/38,144/6.40749931e-06 |
+| noise_gaussian_noise | 139,833/178,432 | 5,120/5,120/0 | 127,801/130,048/43886 | 5,116/5,120/0.000122070312 | 1,796/38,144/0.668966413 |
+| noise_gaussian_noise_v2 | 140,152/178,432 | 119,802/119,808/1 | 13,718/15,360/51197 | 5,113/5,120/0.000244140625 | 1,519/38,144/1.0108676 |
+| noise_gaussian_spots_2 | 132,670/174,336 | 5,118/5,120/1 | 121,908/128,000/3 | 4,907/5,120/0.000244140625 | 737/36,096/3.65674496e-05 |
+| noise_gaussian_spots_2_v2 | 136,601/174,336 | 119,790/119,808/1 | 11,396/13,312/3 | 4,951/5,120/0.000244140625 | 464/36,096/3.70144844e-05 |
+
+Include the previous defaults, seed, parameter and four-format cases, plus the independent 32² input. For the twelve stage-traced renders use seed 85919 + 7i + k with i = 163, 281, 282, 285 or 286 in table order. Use 16²/default/k=0, 32²/A/k=1, 32²/B/k=2 in U8, U16, F16 and F32, 64×32/C/k=6 in F32, 32×64/C/k=7 in U16, 64²/B/k=8 and 128×64/B/k=9 in F32, 64×128/B/k=9 in U16 and 128²/default/k=11 in F32. Other single-format controls use F32. Every unequal case with comparable stage images first differs in the pattern generator.
+
+For gaussian_spots_2 set Disorder to 0, .3125 and .8125 for A/B/C. For the Noise packages use (scale,disorder,non-square expansion) tuples (1,0,on), (3,.3125,off) and (7,.8125,on). In the two Gaussian Noise packages use 19 for the last scale. For the v2 packages also set (disorder speed, anisotropy, angle, tile offset) to (1,0,0,(0,0)), (.625,.375,.1875,(.1875,−.3125)) and (1.375,.625,−.3125,(−.4375,.0625)).
+
+Isolate the shortest reachable path to a drawing quadrant. Select sibling connections in ascending identifier order. Start at the first quadrant on that path and retain only the connections leading to the drawing quadrant. Draw the authored soft profile, a unit square or a disc while preserving the other authored properties. Also draw the square with every original branch connected. Compare the 16² default, 32²/A, all four 32²/B formats, 64²/B and 128×64/B. Each cell gives exact pixels / 17,664, followed by maximum error across formats. These 160 renders use the updated [stamp tint](#pattern-tint-coverage-and-grayscale-conversion).
+
+| Package root | Isolated square | Isolated disc | Isolated soft profile | Complete square layout |
+|---|---:|---:|---:|---:|
+| gaussian_spots_2 | 17,664 / 0 | 17,664 / 0 | 17,657 / 1.37090683e-06 | 17,664 / 0 |
+| noise_gaussian_noise | 17,664 / 0 | 17,664 / 0 | 3,565 / 6.10351562e-05 | 17,664 / 0 |
+| noise_gaussian_noise_v2 | 17,664 / 0 | 17,664 / 0 | 3,547 / 1 | 17,664 / 0 |
+| noise_gaussian_spots_2 | 17,664 / 0 | 17,664 / 0 | 17,664 / 0 | 17,663 / 0.254905939 |
+| noise_gaussian_spots_2_v2 | 17,664 / 0 | 17,664 / 0 | 17,663 / 5.40167093e-08 | 14,329 / 0.161732554 |
+
+All 176,640 isolated square and disc pixels agree. The complete square layout and the original soft stamp must be considered separately. The isolated soft stamp in noise_gaussian_spots_2 is exact across these eight renders, while the complete square layout has a differing pixel. The large rectangular cases and the full soft generators remain open.
+
 ### Pattern tint, coverage and grayscale conversion
 
 | Original stamp control | Renders | Previous exact | Current exact / pixels | Maximum U8 / U16 / F16 / F32 error |

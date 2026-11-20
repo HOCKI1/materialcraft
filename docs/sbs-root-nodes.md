@@ -35,7 +35,7 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **365 Parity**, **82 In progress** and **99 Too hard**. The November 17–19 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons) · [November 19 measurements](parity-fixes.md#2026-11-19-root-comparisons)
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **365 Parity**, **87 In progress** and **94 Too hard**. The November 17–19 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons) · [November 19 measurements](parity-fixes.md#2026-11-19-root-comparisons)
 
 [Pattern tiling axes and copy bounds across 215 renders](parity-fixes.md#tiling-axes-and-pattern-copy-bounds) · [Grayscale sampler measurements](parity-fixes.md#grayscale-sampling-of-color-inputs) · [Value sampling across 240 typed comparisons](parity-fixes.md#value-processor-texture-filtering) · [Five saved graphs reopened in the reference](parity-fixes.md#saved-filter-graphs-and-scalar-levels-controls)
 
@@ -216,7 +216,7 @@ Pattern center culling matched all 356,352 pixels across 204 renders. Background
 | [gaussian_1.sbs/gaussian_1](../assets/sbs/gaussian_1.sbs) | 0 | Yes | [In progress · 168,522/171,264 pixels across 18 renders](parity-fixes.md#radial-stamp-profiles-and-pattern-generators) |
 | [gaussian_2.sbs/gaussian_2](../assets/sbs/gaussian_2.sbs) | 0 | Yes | [In progress · 169,796/171,264 pixels across 18 renders](parity-fixes.md#radial-stamp-profiles-and-pattern-generators) |
 | [gaussian_spots_1.sbs/gaussian_spots_1](../assets/sbs/gaussian_spots_1.sbs) | 0 | Yes | [In progress · 1,573/132,096 pixels across 9 renders](parity-fixes.md#radial-stamp-profiles-and-pattern-generators) |
-| [gaussian_spots_2.sbs/gaussian_spots_2](../assets/sbs/gaussian_spots_2.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [gaussian_spots_2.sbs/gaussian_spots_2](../assets/sbs/gaussian_spots_2.sbs) | 0 | Yes | [In progress · 137,856/178,432 exact pixels · first difference in FX-Map](parity-fixes.md#gaussian-pattern-sources-and-repeat-limits) |
 | [glow.sbs/clamp](../assets/sbs/glow.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [gradient_axial.sbs/gradient_axial](../assets/sbs/gradient_axial.sbs) | 0 | No | [Parity · 15 cases, 165,120 exact pixels](parity-fixes.md#luminosity-axial-gradients-color-lookup-and-luminance-merge) |
 | [gradient_axial.sbs/gradient_axial_reflected](../assets/sbs/gradient_axial.sbs) | 0 | No | [Parity · 15 cases, 165,120 exact pixels](parity-fixes.md#luminosity-axial-gradients-color-lookup-and-luminance-merge) |
@@ -334,12 +334,12 @@ Pattern center culling matched all 356,352 pixels across 204 renders. Background
 | [noise_fur_1.sbs/fur_1](../assets/sbs/noise_fur_1.sbs) | 0 | No | [In progress · 122,549/178,432 exact pixels in 21 renders](parity-fixes.md#stored-opacity-across-pattern-depths) |
 | [noise_fur_2.sbs/fur_2](../assets/sbs/noise_fur_2.sbs) | 0 | No | [In progress · 130,666/178,432 exact pixels, first difference in FX-Map](parity-fixes.md#fur-pattern-sources-and-downstream-filters) |
 | [noise_fur_3.sbs/fur_3](../assets/sbs/noise_fur_3.sbs) | 0 | No | [In progress · 132,982/178,432 exact pixels, first difference in FX-Map](parity-fixes.md#fur-pattern-sources-and-downstream-filters) |
-| [noise_gaussian_noise.sbs/gaussian_noise](../assets/sbs/noise_gaussian_noise.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [noise_gaussian_noise_v2.sbs/gaussian_noise](../assets/sbs/noise_gaussian_noise_v2.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [noise_gaussian_noise.sbs/gaussian_noise](../assets/sbs/noise_gaussian_noise.sbs) | 0 | Yes | [In progress · 139,833/178,432 exact pixels · first difference in FX-Map](parity-fixes.md#gaussian-pattern-sources-and-repeat-limits) |
+| [noise_gaussian_noise_v2.sbs/gaussian_noise](../assets/sbs/noise_gaussian_noise_v2.sbs) | 0 | No | [In progress · 140,152/178,432 exact pixels · first difference in FX-Map](parity-fixes.md#gaussian-pattern-sources-and-repeat-limits) |
 | [noise_gaussian_spots_1.sbs/gaussian_spots_1](../assets/sbs/noise_gaussian_spots_1.sbs) | 0 | Yes | [In progress · 493/132,096 pixels across 9 renders](parity-fixes.md#radial-stamp-profiles-and-pattern-generators) |
 | [noise_gaussian_spots_1_v2.sbs/gaussian_spots_1](../assets/sbs/noise_gaussian_spots_1_v2.sbs) | 0 | No | [In progress · 2,984/132,096 pixels across 9 renders](parity-fixes.md#radial-stamp-profiles-and-pattern-generators) |
-| [noise_gaussian_spots_2.sbs/gaussian_spots_2](../assets/sbs/noise_gaussian_spots_2.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [noise_gaussian_spots_2_v2.sbs/gaussian_spots_2](../assets/sbs/noise_gaussian_spots_2_v2.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [noise_gaussian_spots_2.sbs/gaussian_spots_2](../assets/sbs/noise_gaussian_spots_2.sbs) | 0 | Yes | [In progress · 132,670/174,336 exact pixels · 2 additional cases exceeded the traversal limit](parity-fixes.md#gaussian-pattern-sources-and-repeat-limits) |
+| [noise_gaussian_spots_2_v2.sbs/gaussian_spots_2](../assets/sbs/noise_gaussian_spots_2_v2.sbs) | 0 | No | [In progress · 136,601/174,336 exact pixels · 2 additional cases exceeded the traversal limit](parity-fixes.md#gaussian-pattern-sources-and-repeat-limits) |
 | [noise_liquid.sbs/liquid](../assets/sbs/noise_liquid.sbs) | 0 | No | [Too hard · 127,452/132,096 exact pixels in 9 renders](parity-fixes.md#gradient-warp-displacement-and-sampling) |
 | [noise_messy_fibers_1.sbs/messy_fibers_1](../assets/sbs/noise_messy_fibers_1.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [noise_messy_fibers_1_v2.sbs/messy_fibers_1](../assets/sbs/noise_messy_fibers_1_v2.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
