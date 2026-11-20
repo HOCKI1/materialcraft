@@ -687,6 +687,19 @@ fn patterns_reject_cycles_and_bound_exponential_traversal() {
 }
 
 #[test]
+fn deep_quadrants_draw_only_the_leaves_covering_output_samples() {
+    let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
+    for depth in 0..10 {
+        let child = graph.add(PatternNodeKind::Quadrant).unwrap();
+        graph.nodes[depth].children.fill(Some(child));
+    }
+    let increment = 1.0 / 1_048_576.0;
+    graph.nodes[10].parameters = BTreeMap::from([("patterntype".into(), Value::Int(2)), ("opacity".into(), Value::Float(increment))]);
+    let image = cook_at_size(graph, &BTreeMap::new(), 107185, 4).unwrap().remove(0);
+    assert_eq!(image.data(), &[increment; 16]);
+}
+
+#[test]
 fn image_selectors_use_zero_based_slots_and_override_packed_patterns() {
     use craft_texture::{Image, Kind};
 

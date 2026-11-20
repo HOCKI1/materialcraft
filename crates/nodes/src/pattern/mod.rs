@@ -2,6 +2,7 @@ mod bitmap;
 mod blend;
 mod catalog;
 mod evaluation;
+mod footprint;
 mod pattern_stamp;
 mod pattern_visit;
 mod raster;

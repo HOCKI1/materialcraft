@@ -2,7 +2,7 @@ use craft_texture::{Image, Kind, Limits};
 use materialcraft_core::OutputFormat;
 use std::sync::Arc;
 
-use super::{bitmap, blend, pattern_stamp::PatternStamp, region::Region, shape};
+use super::{bitmap, blend, footprint::Footprint, pattern_stamp::PatternStamp, region::Region, shape};
 use crate::CookContext;
 use crate::atomic::input_resize::{InputResize, resized_input};
 use crate::function::flush_subnormal;
@@ -82,26 +82,17 @@ pub(super) fn render(context: &CookContext, stamps: &[PatternStamp], max_depth: 
         let channel_tint = [red * alpha, green * alpha, blue * alpha, alpha].map(flush_subnormal);
         let tinted_offset = matches!(stamp.pattern, 17 | 18);
 
-        let angle = stamp.rotation * std::f32::consts::TAU;
-        if !angle.is_finite() {
-            return Err("pattern rotation exceeds the finite angle range".into());
-        }
-        // Extended quarter turns can retain a small cross-axis component at the stored phase.
-        let (sine, cosine) = crate::function::pixel_sin_cos(angle);
-        let cardinal = sine == 0.0 || cosine == 0.0;
+        let frame = Footprint::new(stamp)?;
         let texture = if stamp.pattern >= 256 {
             let index = (stamp.pattern - 256) as usize + 1;
             let Some(input) = context.input(index).filter(|image| image.kind() == kind) else { continue };
             let format = context.input_formats.get(index).copied().unwrap_or(if input.integer_sampling() { OutputFormat::U16 } else { OutputFormat::F32 });
-            let level = if stamp.filtering == 0 { bitmap::mip_level(input, stamp.size, pixel_size, sine, cosine) } else { 0 };
+            let level = if stamp.filtering == 0 { bitmap::mip_level(input, stamp.size, pixel_size, frame.sine, frame.cosine) } else { 0 };
             Some((mipmaps.image(index, input, format, level)?, format))
         } else {
             None
         };
-        let radius = [
-            (stamp.size[0] * cosine).abs() * 0.5 + (stamp.size[1] * sine).abs() * 0.5,
-            (stamp.size[0] * sine).abs() * 0.5 + (stamp.size[1] * cosine).abs() * 0.5,
-        ];
+        let radius = frame.radius;
         let center = std::array::from_fn(|axis| if axes[axis] { stamp.center[axis].rem_euclid(period[axis]) } else { stamp.center[axis] });
         let repeats = tile_region.repeats(&render_region, center, radius, axes)?;
         let count = |axis: usize| (i64::from(repeats[axis][1]) - i64::from(repeats[axis][0]) + 1).max(0) as u64;
@@ -119,19 +110,7 @@ pub(super) fn render(context: &CookContext, stamps: &[PatternStamp], max_depth: 
                 for y in top..bottom {
                     for x in left..right {
                         let point = render_region.point([x, y], [width, height]);
-                        let delta = [point[0] - center[0], point[1] - center[1]];
-                        let local = [(delta[0] * cosine + delta[1] * sine) * 2.0 / stamp.size[0], (-delta[0] * sine + delta[1] * cosine) * 2.0 / stamp.size[1]];
-
-                        // On axis-aligned stamps the preceding image interval owns a shared sample center,
-                        // including when a quarter turn reverses a local axis.
-                        let outside = if cardinal {
-                            delta.iter().zip(radius).any(|(&v, r)| v <= -r || v > r)
-                        } else {
-                            local.iter().any(|coordinate| *coordinate <= -1.0 || *coordinate > 1.0)
-                        };
-                        if outside {
-                            continue;
-                        }
+                        let Some(local) = frame.local(point, center, stamp.size) else { continue };
 
                         let (foreground, stamp_alpha) = if let Some((input, format)) = &texture {
                             let sample = bitmap::sample(input, local, *format, stamp.filtering == 2).map(flush_subnormal);

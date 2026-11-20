@@ -1,13 +1,13 @@
 use materialcraft_core::{PatternNodeKind, Value};
 use std::collections::{BTreeMap, BTreeSet};
 
-use super::{catalog, pattern_stamp::PatternStamp, pattern_visit::PatternVisit, raster, variables::PatternVariables};
+use super::{catalog, footprint::SampleGrid, pattern_stamp::PatternStamp, pattern_visit::PatternVisit, raster, variables::PatternVariables};
 use crate::function::{EvaluationContext, EvaluationState, compile_with_literal_inputs};
 use crate::random::FunctionRandom;
 use crate::{CookContext, CookResult};
 
-// A 512-by-512 quadtree needs 349,525 visits including internal quadrants
-// Cap deeper trees; the rasterizer separately bounds pixel work
+// A 512-by-512 quadtree takes 349,525 visits. Each discarded stamp can fund one extra visit,
+// up to this same limit again. Retained stamps, raster copies and pixel work stay bounded.
 const MAX_VISITS: usize = 1_048_576;
 
 pub(crate) fn cook(context: &CookContext) -> CookResult {
@@ -48,6 +48,10 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
     let mut max_depth = 0;
     let mut state = EvaluationState::default();
     let mut remaining = MAX_VISITS;
+    let mut discard_allowance = MAX_VISITS;
+    let grid = SampleGrid::new(context, graph.nodes.len());
+    let mut parameter_values = Vec::new();
+    let mut children = Vec::new();
     let mut empty_switches = BTreeSet::new();
     let grayscale = !context.b("color_mode");
     while let Some(mut visit) = pending.pop() {
@@ -67,9 +71,13 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
         }
 
         let definition = catalog::definition(node.kind).ok_or("missing pattern definition")?;
-        variables.drawing.insert("$depth".into(), Value::Float(visit.depth as f32));
-        variables.drawing.insert("$depthpow2".into(), Value::Float(visit.extent));
-        variables.drawing.insert("$number".into(), Value::Float(visit.number as f32));
+        for (name, value) in [("$depth", visit.depth as f32), ("$depthpow2", visit.extent), ("$number", visit.number as f32)] {
+            if let Some(bound) = variables.drawing.get_mut(name) {
+                *bound = Value::Float(value);
+            } else {
+                variables.drawing.insert(name.into(), Value::Float(value));
+            }
+        }
         let mut declared = Vec::new();
 
         let mut evaluate = |id: &str, random: &mut FunctionRandom| -> Result<Option<Value>, String> {
@@ -108,7 +116,7 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
         let offset = evaluate("randomseed", &mut FunctionRandom::uniform(visit.seed))?.and_then(|v| v.as_i32()).unwrap_or(0) as u32;
         let inherits = evaluate("randominherited", &mut FunctionRandom::image(visit.seed))?.and_then(|v| v.as_bool()).unwrap_or(true);
         visit.seed = if inherits { visit.seed.wrapping_add(offset) } else { offset };
-        let mut parameters = BTreeMap::new();
+        parameter_values.clear();
         let mut random = FunctionRandom::image(visit.seed);
         let mut pattern = if node.kind == PatternNodeKind::Quadrant { evaluate("patterntype", &mut random)?.and_then(|v| v.as_i32()).unwrap_or(0) } else { 0 };
         let image_pattern = pattern == 1 || (256..256 + crate::MAX_IMAGE_INPUTS as i32).contains(&pattern);
@@ -122,13 +130,14 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
         for parameter in definition.params.iter().filter(|p| active(p.id)) {
             let mut stream = FunctionRandom::pattern(visit.seed, parameter.id);
             let value = evaluate(parameter.id, stream.as_mut().unwrap_or(&mut random))?.unwrap_or_else(|| parameter.default.clone());
-            parameters.insert(parameter.id, value);
+            parameter_values.push((parameter.id, value));
         }
 
-        let scalar = |name: &str| parameters.get(name).and_then(Value::as_f32).unwrap_or(0.0);
-        let integer = |name: &str| parameters.get(name).and_then(Value::as_i32).unwrap_or(0);
-        let vector = |name: &str| parameters.get(name).and_then(Value::as_vec4).map(|value| [value[0], value[1]]).unwrap_or([0.0; 2]);
-        let mut children = Vec::new();
+        let field = |name: &str| parameter_values.iter().find_map(|(id, value)| (*id == name).then_some(value));
+        let scalar = |name: &str| field(name).and_then(Value::as_f32).unwrap_or(0.0);
+        let integer = |name: &str| field(name).and_then(Value::as_i32).unwrap_or(0);
+        let vector = |name: &str| field(name).and_then(Value::as_vec4).map(|value| [value[0], value[1]]).unwrap_or([0.0; 2]);
+        children.clear();
         match node.kind {
             PatternNodeKind::Dot => {}
             PatternNodeKind::Quadrant => {
@@ -148,7 +157,7 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
                 }
                 if pattern != 0 {
                     let offset = vector("frameoffset");
-                    let tint = parameters.get("opacity").unwrap_or(&Value::Float4([1.0; 4]));
+                    let tint = field("opacity").unwrap_or(&Value::Float4([1.0; 4]));
                     let rgba = tint.as_vec4().ok_or("pattern color must be a float or float4")?;
                     if !rgba.iter().all(|v| v.is_finite()) {
                         return Err("pattern color must be finite".into());
@@ -163,7 +172,7 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
                         _ => rgba,
                     };
 
-                    stamps.push(PatternStamp {
+                    let stamp = PatternStamp {
                         center: [visit.center[0] + offset[0], visit.center[1] + offset[1]],
                         size: vector("patternsize").map(|size| size * visit.extent),
                         rotation: scalar("patternrotation"),
@@ -173,8 +182,18 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
                         variation: scalar("patternsuppl"),
                         blend: integer("blendingmode"),
                         filtering: integer("imagefiltering"),
-                        premultiplied: parameters.get("imagepremul").and_then(Value::as_bool).unwrap_or(false),
-                    });
+                        premultiplied: field("imagepremul").and_then(Value::as_bool).unwrap_or(false),
+                    };
+                    // Evaluate every property before discarding a stamp. Its assignments can reach
+                    // later visits. Keep the first stamp so raster setup still validates depth weights.
+                    if !stamps.is_empty() && grid.as_ref().is_some_and(|grid| grid.misses(&stamp)) {
+                        if discard_allowance > 0 {
+                            discard_allowance -= 1;
+                            remaining += 1;
+                        }
+                    } else {
+                        stamps.push(stamp);
+                    }
                 }
 
                 let mut child_random = visit.seed;
@@ -195,7 +214,7 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
                 }
             }
             PatternNodeKind::Switch => {
-                let slot = usize::from(parameters.get("switch").and_then(Value::as_bool).unwrap_or(false));
+                let slot = usize::from(field("switch").and_then(Value::as_bool).unwrap_or(false));
                 if let Some(Some(child)) = node.children.get(slot) {
                     visit.node = *child;
                     children.push(visit);
@@ -247,7 +266,7 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
         }
 
         variables.keep_for_children(pending.len(), declared);
-        pending.extend(children.into_iter().rev());
+        pending.extend(children.drain(..).rev());
     }
 
     Ok(vec![raster::render(context, &stamps, max_depth)?])

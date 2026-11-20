@@ -363,7 +363,7 @@ To isolate the pattern stages, connect the identified stage directly to the outp
 
 Ten isolated packages at indices 441, 466, 522 and 523 opened in the reference after saving them with MaterialCraft. All 48,640 local pixels in these 60 renders were bit-identical before and after the save. Nine packages matched all 4,864 reference pixels each. The authored shape at index 466 differed at 234 F32 pixels and four U16 pixels. Its disc matched in all four formats.
 
-Across all 25 stages, 150 authored single-branch renders matched 94,097/96,984 pixels, and 150 disc controls matched 96,569/96,984. A differing disc leaves placement, coverage or evaluation upstream of the original shape open. Sphere displacement and K-means first differ in their pixel processors. Wood fibers 2 still needs a bounded whole-graph cook.
+Across all 25 stages, 150 authored single-branch renders matched 94,097/96,984 pixels, and 150 disc controls matched 96,569/96,984. A differing disc leaves placement, coverage or evaluation upstream of the original shape open. Sphere displacement and K-means first differ in their pixel processors. The later [bounded whole-graph cook](#discarding-pattern-stamps-that-miss-every-output-sample) completed 17 of 18 Wood Fibers 2 renders.
 
 ### Signed Sharpen stencils and stored inputs
 
@@ -391,7 +391,7 @@ For the input-size and parent-size matrices, use source extents 2², 8×4 and 16
 
 For the independent field use Q=(269x+1723y+257xy+9587c+7919((x+3y+5c) mod 13)+7537) mod 65536 at 8×4 or 16². Write Q for U16 or (Q−31007)/15019+.03125(x mod 3) for F32. Use F32 output. At the source extent use strengths 0, 1, .375, .8125, 1.34375 and 2.71875, then double both axes at 0 and .8125, and halve both axes at 0 and 1.34375. Use seed 142867+19j. The 287 differing pixels were in the reduced nonzero-strength cases. At 16² on an independent x/15 F32 ramp, strength one gives bits 3d888887, 3e4ccccf, 3eeeeef1 and 3f5ddddc at columns 1, 3, 7 and 13. Three finite ramp controls match 768/768 pixels. A separate constant 2×10³⁸ input produces positive infinity in all 256 reference pixels. MaterialCraft preserves that finite HDR plateau.
 
-The two 4×4 reference outputs in the [deep traversal experiment](#bounded-traversal-of-deep-patterns) reproduce exactly when Sharpen alone receives the measured sources. Use U16 levels (30680,17968 / 0,24181) for dirt_4 and U8 levels (89,103 / 90,43) for its second version, in row order. Test 4² at strengths 1 and 0, 2² at 1, and 8×4 at .375. Use seeds 103307+13i at inventory indices i=266 and 267. All 136 F32 pixels match, including both whole-reference 4² outputs. Their full pattern traversal remains open. Dirt 6 improved from 117,826 to 125,252/129,280 exact pixels across 16 whole renders. Its U8 / U16 / F16 / F32 maxima are 0 / 8 / .000244140625 / .0000927746296.
+The two 4×4 reference outputs in the [deep traversal experiment](#bounded-traversal-of-deep-patterns) reproduce exactly when Sharpen alone receives the measured sources. Use U16 levels (30680,17968 / 0,24181) for dirt_4 and U8 levels (89,103 / 90,43) for its second version, in row order. Test 4² at strengths 1 and 0, 2² at 1, and 8×4 at .375. Use seeds 103307+13i at inventory indices i=266 and 267. All 136 F32 pixels match, including both whole-reference 4² outputs. Both 4×4 whole outputs subsequently matched with [bounded pattern traversal](#discarding-pattern-stamps-that-miss-every-output-sample). Dirt 6 improved from 117,826 to 125,252/129,280 exact pixels across 16 whole renders. Its U8 / U16 / F16 / F32 maxima are 0 / 8 / .000244140625 / .0000927746296.
 
 A MaterialCraft-saved U16 input graph and an independently saved RGBA32F graph reopened in the reference. The first six cases of each reproduced all 1,620 stored pixels byte for byte.
 
@@ -406,6 +406,26 @@ When the source is up to twice the output size on either axis and at least as la
 | Independent 32×16 fields with mixed axis sizes | 180 | 158,688/158,688 | 0 |
 
 The four requested 1² outputs still differ in extent. For the new fields, use level Q=(131x+6571y+409xy+83(c+3)(x+9y)+9973((x+7y+3c) mod 9)+45821) mod 65536 in channel c. Use gray U16, F16 and F32, and RGBA U8, U16 and F32. Store floor(Q/257) for U8, Q for U16, and (Q−31007)/15019+.03125 for floating point. At strengths 0 and .8125 render F32 at 16×8, 8×4, 4×2, 16², 32×8, 8×16, 16×32, 64×8, 64×4, 4×32, 32×16, 64×32 and 128×64. Seed is 147151+11j+s for zero-based extent j and strength index s. Repeat 16×8 at strength .8125, seed 147269, in U8, U16, F16 and F32. All 108 same-size controls and both independently supplied dirt inputs also remain exact.
+
+### Discarding pattern stamps that miss every output sample
+
+The evaluator tests small built-in shapes against the same pixel centers, rotated footprint and edge ownership as the rasterizer. It evaluates the stamp's parameters first so writes and seed changes still reach later visits. It retains the first stamp for raster validation. Each subsequent discarded stamp pays for one additional traversal step, up to 1,048,576 extra steps. The retained-stamp allowance is 1,048,576, with the existing limits of 1,048,576 raster copies and 256,000,000 candidate pixels. The shortcut applies to the full unit render and tiling regions when depth weights are bounded.
+
+The depth-ten cell-sized quadrant regression originally reached the traversal guard. It now matches 16/16 F32 pixels, each 2⁻²⁰, with a 2.02-second cook. The depth-ten wide-stamp control still reaches the guard. Both depth-nine controls match 16/16 pixels. The 60 repeat-and-assignment controls and 48 additional stage renders reproduce all 47,744 previously stored local pixels. Against the reference, the two groups match 11,904/23,040 and 24,566/24,704 respectively. Formatting, 258 release node tests, strict workspace Clippy, dependency layers and WebAssembly passed in the shared validation run.
+
+| Root | Whole renders completed | Exact pixels / compared | Maximum U8 / U16 / F16 / F32 | Extra small renders completed | Small F32 exact / compared | Maximum small F32 error |
+|---|---:|---:|---|---:|---:|---:|
+| noise_directional_noise_3 | 7/19 | 7,168/7,424 | 0 / 2 / 0.00048828125 / 2.85804272e-05 | 2/4 | 73/80 | 2.84314156e-05 |
+| noise_directional_noise_3_v2 | 2/19 | 1,280/1,280 | — / — / — / 0 | 2/4 | 80/80 | 0 |
+| noise_dirt_4 | 10/19 | 89,052/105,728 | 1 / 12 / 0.00122070312 / 7.62939453e-05 | 2/4 | 49/80 | 7.62939453e-05 |
+| noise_dirt_4_v2 | 5/19 | 99,535/99,584 | 5 / — / — / 0 | 2/4 | 80/80 | 0 |
+| wood_fibers_2 | 17/18 | 55,649/60,672 | 1 / 4 / 0.0009765625 / 8.55624676e-05 | 4/4 | 123/144 | 2.47359276e-05 |
+
+The whole renders repeat the recorded [directional](#directional-noise-and-scratch-pattern-sources), [dirt](#dirt-noise-sources-and-downstream-stages) and [wood fiber](#tile-weave-splatter-and-fiber-stage-comparisons) matrices. An em dash denotes a format without a completed output. Omitted renders reached the traversal guard. For each root also request F32 at 4² and 8² with defaults, then 8×4 and 4×8 with settings A from its matrix. At index i use seeds 103307+13i+j for j=0…3. Each directional and dirt root completed both squares. Wood Fibers 2 completed all four small renders. Its 256² default is the only whole render that still reaches the guard.
+
+Using one worker per fresh process, the 4² defaults for directional 3, its second version, dirt 4 and its second version took 12.64, 39.70, 12.57 and 37.87 cook seconds and peaked at 205.3, 205.2, 205.9 and 205.6 MiB respectively. Whole F32 counts were 13/16, 16/16, 16/16 and 16/16. The three differing directional pixels had maximum error 2.50339508e-05. The earlier [diagnostic run](#bounded-traversal-of-deep-patterns) used 289–292 MiB and took 14–42 seconds across these same inputs.
+
+The three independent patterns in Wood Fibers 2 already differ before Levels and Blend. Across the ten additional renders, stage 1070386767 matched 4,690/5,248 U16 pixels (maximum three levels), stage 1083954697 matched 40,412/40,960 (one level) and stage 1083954764 matched 162,125/163,840 (one level). The final output matched 9,591/10,496. The 128² default and seed 42 each completed, with 13,485 and 15,779 of 16,384 final U16 pixels exact.
 
 ## 2026-11-19 root comparisons
 
