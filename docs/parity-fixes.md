@@ -422,6 +422,68 @@ Use an Iterate with zero repeats. In its count expression set a Float4 variable 
 
 The child retained its initial color for property writes in blend mode, image filter, premultiplication, seed inheritance and pattern type on all three kinds of parent. Some local children still see those assignments. Independent single-stamp controls confirm that literal, computed-constant and exposed-variable settings choose the same reference draw in 33,280/33,280 pixels across 78 comparisons against 39 literal renders. The 19 previously verified pattern roots match 3,211,776/3,211,776 pixels in 159 renders.
 
+### Dirt noise sources and downstream stages
+
+The eleven dirt-noise roots produced **116/209 comparable whole outputs** and **1,045,373/1,067,264 exact pixels**. MaterialCraft reached its pattern execution limit in 93 cases, including every whole-graph case for both Dirt 4 packages. The counts below exclude replacement images emitted after a cook error. Integer errors are storage levels.
+
+| Root package | Whole outputs compared / attempted | Exact pixels / compared | Maximum U8 / U16 / F16 / F32 error |
+|---|---:|---:|---|
+| noise_dirt_1 | 11/19 | 104,064/107,776 | 0 / 538 / 0.00048828125 / 0.000222146511 |
+| noise_dirt_1_v2 | 11/19 | 107,082/107,776 | 1 / 14 / 0.00048828125 / 0.000208899379 |
+| noise_dirt_2 | 11/19 | 107,184/107,776 | 0 / 21 / 0.00048828125 / 0.000252112746 |
+| noise_dirt_3 | 19/19 | 135,236/142,592 | 1 / 3 / 0.000244140625 / 3.39820981e-05 |
+| noise_dirt_3_v2 | 17/19 | 136,738/141,568 | 1 / 2 / 0.000244140625 / 2.52574682e-05 |
+| noise_dirt_4 | 0/19 | No comparable image | — / — / — / — |
+| noise_dirt_4_v2 | 0/19 | No comparable image | — / — / — / — |
+| noise_dirt_5 | 11/19 | 107,751/107,776 | 0 / 4 / 0 / 5.08278608e-05 |
+| noise_dirt_5_v2 | 11/19 | 107,341/107,776 | 0 / 0 / 0 / 5.96046448e-08 |
+| noise_dirt_gradient | 19/19 | 141,554/142,592 | 0 / 1 / 0.000244140625 / 1.52587891e-05 |
+| noise_dirt_gradient_v2 | 6/19 | 98,423/101,632 | 10 / — / 0.16015625 / 0.027451098 |
+
+Use the four archived size, seed and parameter cases and the [four-format sweep and independent seed](#four-format-inventory-comparison). Add ten renders at sizes 16², 32², 32², 32², 32², 32², 32×16, 16×32, 64×32 and 32×64, in F32, F32, U8, U16, F16, F32, F32, U16, F32 and F16 respectively. Use defaults, A, B, B, B, B, C, C, B and A. Seed each graph at 100987+17i plus [0,1,2,2,2,2,6,7,8,9], with i from 261 through 271 in table order. Apply each setting where the root exposes it.
+
+| Controls | A | B | C |
+|---|---|---|---|
+| Scale, disorder, nonsquare expansion | 1, 0, on | 1, .3125, off | 2, .8125, on |
+| Disorder speed, anisotropy, anisotropy angle, tile offset | 1, 0, 0, (0,0) | .6875, .25, .3125, (.125,−.1875) | 1.4375, .625, −.21875, (−.3125,.4375) |
+
+For each of 20 pattern stages, retain the shortest connected path to an authored drawing quadrant, breaking ties by connection identifier. Clear the stage inputs. Render its authored shape, then a square and a disc, with all other properties preserved. Use the ten-case sequence above except the 64×32 case. The square and disc each match **115,032/115,032** with zero maximum error in 180 renders. The authored paths match 111,112/115,032. Of those 180 renders per shape, 97 authored renders, 102 square renders and 101 disc renders contained at least one nonzero pixel.
+
+| Root package | Reached shape numbers | Authored path exact / compared | Maximum U8 / U16 / F16 / F32 error | Exact pixels per hard shape |
+|---|---|---:|---|---:|
+| noise_dirt_1 | 1,4 | 16,416/17,664 | 0 / 0 / 0 / 3.57627869e-07 | 17,664 |
+| noise_dirt_1_v2 | 1,4 | 16,416/17,664 | 0 / 0 / 0 / 3.57627869e-07 | 17,664 |
+| noise_dirt_2 | 1,4 | 16,416/17,664 | 0 / 0 / 0 / 3.57627869e-07 | 17,664 |
+| noise_dirt_3 | 4,16 | 10,560/10,560 | 0 / 0 / 0 / 0 | 10,560 |
+| noise_dirt_3_v2 | 4,16 | 10,560/10,560 | 0 / 0 / 0 / 0 | 10,560 |
+| noise_dirt_4 | 8 | 2,071/2,112 | 0 / 0 / 0 / 7.15255737e-07 | 2,112 |
+| noise_dirt_4_v2 | 8 | 2,088/2,112 | 0 / 1 / 0 / 7.74860382e-07 | 2,112 |
+| noise_dirt_5 | 3 | 8,448/8,448 | 0 / 0 / 0 / 0 | 8,448 |
+| noise_dirt_5_v2 | 3 | 8,448/8,448 | 0 / 0 / 0 / 0 | 8,448 |
+| noise_dirt_gradient | 6 | 9,059/9,108 | 0 / 0 / 0 / 5.21540642e-08 | 9,108 |
+| noise_dirt_gradient_v2 | 6 | 10,630/10,692 | 0 / 0 / 0 / 3.7252903e-08 | 10,692 |
+
+Supply identical original fields to the downstream graph by replacing its source pattern stages with image inputs. The second substitution retains the final pattern and supplies its immediate source patterns. Use the same ten settings and the native source stage's width, height and storage in each case. For input index a starting at zero, use constant 8199(a+1) in the default case. For A at 32² place 59003−49a on (x+2a) mod width = y mod width and 302+69a elsewhere. For C use 32769+a where (7x+13y+3a) mod 11 is zero and 32767+a elsewhere. For the other cases use ((11x+31y+7xy+93+47a+(a+1)x)×7919) mod 65536. Use the integer field directly for U16, its quotient by 257 rounded down for U8, and its value divided by 65535 for floating storage.
+
+| Root package | Replaced stages | Outputs compared / attempted | Exact pixels / compared | Maximum U8 / U16 / F16 / F32 error |
+|---|---|---:|---:|---|
+| noise_dirt_1 | Source stages | 8/10 | 8,735/9,472 | 1 / 48 / 0.000915527344 / 0.000764921308 |
+| noise_dirt_1 | Inputs of final pattern | 8/10 | 8,740/9,472 | 1 / 48 / 0.000915527344 / 0.000764921308 |
+| noise_dirt_1_v2 | Source stages | 8/10 | 8,207/9,472 | 1 / 47 / 0.00317382812 / 0.000719666481 |
+| noise_dirt_1_v2 | Inputs of final pattern | 8/10 | 8,220/9,472 | 1 / 47 / 0.00317382812 / 0.000719666481 |
+| noise_dirt_2 | Source stages | 8/10 | 9,420/9,472 | 0 / 38 / 0.00105667114 / 0.000882223248 |
+| noise_dirt_2 | Inputs of final pattern | 8/10 | 9,420/9,472 | 0 / 38 / 0.00105667114 / 0.000882223248 |
+| noise_dirt_3 | Source stages | 10/10 | 9,438/10,496 | 0 / 3 / 0.00048828125 / 2.8192997e-05 |
+| noise_dirt_3 | Inputs of final pattern | 10/10 | 9,444/10,496 | 0 / 3 / 0.00048828125 / 2.8192997e-05 |
+| noise_dirt_3_v2 | Source stages | 8/10 | 8,722/9,472 | 0 / 0 / 0.00048828125 / 2.68220901e-07 |
+| noise_dirt_3_v2 | Inputs of final pattern | 8/10 | 8,730/9,472 | 0 / 0 / 0.00048828125 / 2.68220901e-07 |
+| noise_dirt_4 | Source stages | 10/10 | 3,097/10,496 | 1 / 3 / 0.349609375 / 0.349553674 |
+| noise_dirt_4_v2 | Source stages | 10/10 | 1,902/10,496 | 4 / 3 / 0.352294922 / 0.352193475 |
+| noise_dirt_5 | Source stages | 10/10 | 10,496/10,496 | 0 / 0 / 0 / 0 |
+| noise_dirt_gradient | Source stages | 10/10 | 10,496/10,496 | 0 / 0 / 0 / 0 |
+| noise_dirt_gradient_v2 | Source stages | 3/10 | 1,617/3,328 | — / — / 0.122558594 / 0.0274509192 |
+| noise_dirt_gradient_v2 | Inputs of final pattern | 3/10 | 2,167/3,328 | — / — / 0 / 9.53674316e-07 |
+
 ### Directional noise and scratch pattern sources
 
 The ten directional generators produced **135 comparable whole outputs across 190 cases**. The reference produced all 190. The other 55 local evaluations reached the pattern execution limit. Integer errors below are stored levels. A missing error value indicates an unavailable image.
@@ -463,6 +525,8 @@ For each of the 19 source stages, isolate the shortest connected path to a drawi
 | noise_directional_scratches_v2 | 16 | 11,520 | 11,479/11,520 | 0 / 0 / 0 / 3.03983688e-06 |
 
 At 32² and scale one, noise_directional_noise_3 completes its 4² and 8² sources before its 32² source reaches the traversal limit. Replace all three source generators with the [original grayscale fields](#bnw-spots-3-and-cells-1-pattern-sources) at each source's measured size and precision. The remaining two blends and Levels match 12,544/12,544 pixels over the ten new cases, maximum zero. The same substitution in noise_directional_noise_1 also matches 12,544/12,544. In noise_directional_noise_1_v2, retaining the two later generators or just the terminal generator gives 7,067/10,496 and 7,001/10,496 pixels respectively. Each substitution reaches the execution limit at 64×32, scale two. The respective F32 maxima are .0000418424606 and .0000414848328. Both have maxima of zero U8, one U16 level and .00048828125 F16.
+
+For the final-pattern input substitution in noise_directional_noise_2_v2, 6,832/9,472 pixels match, with maximum U8 / U16 / F16 / F32 errors 0 / 1 / 0.00048828125 / 1.56760216e-05. In noise_directional_noise_3_v2 both substitutions reached the execution limit in all ten runs.
 
 ### Pattern expression variables and cook time
 

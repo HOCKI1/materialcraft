@@ -35,7 +35,7 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **367 Parity**, **110 In progress** and **69 Too hard**. The November 17–19 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons) · [November 19 measurements](parity-fixes.md#2026-11-19-root-comparisons)
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **367 Parity**, **121 In progress** and **58 Too hard**. The November 17–19 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons) · [November 19 measurements](parity-fixes.md#2026-11-19-root-comparisons)
 
 [Pattern tiling axes and copy bounds across 215 renders](parity-fixes.md#tiling-axes-and-pattern-copy-bounds) · [Grayscale sampler measurements](parity-fixes.md#grayscale-sampling-of-color-inputs) · [Value sampling across 240 typed comparisons](parity-fixes.md#value-processor-texture-filtering) · [Five saved graphs reopened in the reference](parity-fixes.md#saved-filter-graphs-and-scalar-levels-controls)
 
@@ -328,17 +328,17 @@ Reading inherited variables directly reduced cook time on six Dirt 1 and BNW Spo
 | [noise_directional_noise_4_v2.sbs/directional_noise_4](../assets/sbs/noise_directional_noise_4_v2.sbs) | 0 | No | [In progress · 134,664/144,640 pixels in 19 comparable renders](parity-fixes.md#directional-noise-and-scratch-pattern-sources) |
 | [noise_directional_scratches.sbs/directional_scratches](../assets/sbs/noise_directional_scratches.sbs) | 0 | Yes | [In progress · 119,970/144,640 pixels in 19 comparable renders](parity-fixes.md#directional-noise-and-scratch-pattern-sources) |
 | [noise_directional_scratches_v2.sbs/directional_scratches](../assets/sbs/noise_directional_scratches_v2.sbs) | 0 | No | [In progress · 137,786/144,640 pixels in 19 comparable renders](parity-fixes.md#directional-noise-and-scratch-pattern-sources) |
-| [noise_dirt_1.sbs/dirt_1](../assets/sbs/noise_dirt_1.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [noise_dirt_1_v2.sbs/dirt_1](../assets/sbs/noise_dirt_1_v2.sbs) | 0 | No | [Too hard: measurement timeout](parity-fixes.md#remaining-differences) |
-| [noise_dirt_2.sbs/dirt_2](../assets/sbs/noise_dirt_2.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [noise_dirt_3.sbs/dirt_3](../assets/sbs/noise_dirt_3.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [noise_dirt_3_v2.sbs/dirt_3](../assets/sbs/noise_dirt_3_v2.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [noise_dirt_4.sbs/dirt_4](../assets/sbs/noise_dirt_4.sbs) | 0 | Yes | [Too hard: cook timeout](parity-fixes.md#remaining-differences) |
-| [noise_dirt_4_v2.sbs/dirt_4](../assets/sbs/noise_dirt_4_v2.sbs) | 0 | No | [Too hard: cook timeout](parity-fixes.md#remaining-differences) |
-| [noise_dirt_5.sbs/dirt_5](../assets/sbs/noise_dirt_5.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [noise_dirt_5_v2.sbs/dirt_5](../assets/sbs/noise_dirt_5_v2.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [noise_dirt_gradient.sbs/dirt_gradient](../assets/sbs/noise_dirt_gradient.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [noise_dirt_gradient_v2.sbs/dirt_gradient](../assets/sbs/noise_dirt_gradient_v2.sbs) | 0 | No | [Too hard: cook timeout](parity-fixes.md#remaining-differences) |
+| [noise_dirt_1.sbs/dirt_1](../assets/sbs/noise_dirt_1.sbs) | 0 | Yes | [In progress · 11/19 whole outputs, 104,064/107,776 pixels](parity-fixes.md#dirt-noise-sources-and-downstream-stages) |
+| [noise_dirt_1_v2.sbs/dirt_1](../assets/sbs/noise_dirt_1_v2.sbs) | 0 | No | [In progress · 11/19 whole outputs, 107,082/107,776 pixels](parity-fixes.md#dirt-noise-sources-and-downstream-stages) |
+| [noise_dirt_2.sbs/dirt_2](../assets/sbs/noise_dirt_2.sbs) | 0 | Yes | [In progress · 11/19 whole outputs, 107,184/107,776 pixels](parity-fixes.md#dirt-noise-sources-and-downstream-stages) |
+| [noise_dirt_3.sbs/dirt_3](../assets/sbs/noise_dirt_3.sbs) | 0 | Yes | [In progress · 19/19 whole outputs, 135,236/142,592 pixels](parity-fixes.md#dirt-noise-sources-and-downstream-stages) |
+| [noise_dirt_3_v2.sbs/dirt_3](../assets/sbs/noise_dirt_3_v2.sbs) | 0 | No | [In progress · 17/19 whole outputs, 136,738/141,568 pixels](parity-fixes.md#dirt-noise-sources-and-downstream-stages) |
+| [noise_dirt_4.sbs/dirt_4](../assets/sbs/noise_dirt_4.sbs) | 0 | Yes | [In progress · whole graph reaches its execution limit in all 19 cases, 2,112 hard-shape pixels per shape](parity-fixes.md#dirt-noise-sources-and-downstream-stages) |
+| [noise_dirt_4_v2.sbs/dirt_4](../assets/sbs/noise_dirt_4_v2.sbs) | 0 | No | [In progress · whole graph reaches its execution limit in all 19 cases, 2,112 hard-shape pixels per shape](parity-fixes.md#dirt-noise-sources-and-downstream-stages) |
+| [noise_dirt_5.sbs/dirt_5](../assets/sbs/noise_dirt_5.sbs) | 0 | Yes | [In progress · 11/19 whole outputs, 107,751/107,776 pixels](parity-fixes.md#dirt-noise-sources-and-downstream-stages) |
+| [noise_dirt_5_v2.sbs/dirt_5](../assets/sbs/noise_dirt_5_v2.sbs) | 0 | No | [In progress · 11/19 whole outputs, 107,341/107,776 pixels](parity-fixes.md#dirt-noise-sources-and-downstream-stages) |
+| [noise_dirt_gradient.sbs/dirt_gradient](../assets/sbs/noise_dirt_gradient.sbs) | 0 | Yes | [In progress · 19/19 whole outputs, 141,554/142,592 pixels](parity-fixes.md#dirt-noise-sources-and-downstream-stages) |
+| [noise_dirt_gradient_v2.sbs/dirt_gradient](../assets/sbs/noise_dirt_gradient_v2.sbs) | 0 | No | [In progress · 6/19 whole outputs, 98,423/101,632 pixels](parity-fixes.md#dirt-noise-sources-and-downstream-stages) |
 | [noise_fluid.sbs/fluid](../assets/sbs/noise_fluid.sbs) | 0 | No | [In progress · 396,306/424,192 pixels in 24 renders, first difference in the FX-Map](parity-fixes.md#fibers-and-fluid-pattern-stages) |
 | [noise_fractal_sum_base.sbs/fractal_sum_base](../assets/sbs/noise_fractal_sum_base.sbs) | 0 | Yes | [Parity · 18 renders, 145,664 exact pixels](parity-fixes.md#stored-grayscale-stops-and-scalar-levels-controls) |
 | [noise_fractal_sum_base.sbs/fractal_sum_base_2](../assets/sbs/noise_fractal_sum_base.sbs) | 0 | Yes | [Parity · 18 renders, 145,664 exact pixels](parity-fixes.md#stored-grayscale-stops-and-scalar-levels-controls) |
