@@ -534,6 +534,41 @@ For each root’s 25 follow-up renders, the 5,120 U8, 553,728 U16, 78,336 F16 an
 
 In a single-worker release run, four interleaved measurements of the 128² default, 256² default and 512² filled cases gave median whole-graph cook times of 46, 259 and 1,138 ms for Alveolus (previously 45, 247 and 1,068 ms). Pattern Alveolus took 45, 253 and 1,083 ms (previously 43, 238 and 1,045 ms).
 
+### Gradient Linear 3 and its reopened file
+
+Gradient Linear 3 matches 277,760/277,760 pixels across the earlier 23 renders and 569,856/569,856 across 27 additional renders. The maximum error is zero in U8, U16, F16 and F32. The reference app and MaterialCraft both reopened the ordinary MaterialCraft save. All 569,856 reopened pixels also match between apps and match their respective originals.
+
+The first additional case uses the authored parameters at 64² with seed 247003. For the others set the graph’s tiling, rotation index and position as follows. Number the rows from zero and use seed `246497 + 29 × row + format index`, indexing the formats in the order shown below. The 32×128 case exercises rotation index 2 on a tall output. Gradient Linear 1 still differs at 224/435,968 pixels across 47 measured renders. [Earlier settings and gradient measurements](#linear-gradient-sampling-on-rectangular-targets)
+
+| Size | Tiling | Rotation | Position | Formats |
+|---|---:|---:|---:|---|
+| 16×16 | 1 | 0 | .5 | F32, U16 |
+| 32×64 | 3 | 1 | .3 | U8, U16, F16, F32 |
+| 128×32 | 4 | 3 | .125 | U8, U16, F16, F32 |
+| 32×128 | 1 | 2 | .875 | U8, U16, F16, F32 |
+| 128×64 | 5 | 3 | .484375 | U8, U16, F16, F32 |
+| 256×128 | 3 | 0 | .0625 | F32, U16 |
+| 64×256 | 2 | 2 | .59375 | F32, U16 |
+| 256×256 | 4 | 1 | .75 | F32, U16 |
+| 512×256 | 3 | 3 | .15625 | F32, U16 |
+
+### Individual stamps in BNW Spots 1
+
+The intact root matches 197,288/204,288 pixels across 34 recorded renders. Maximum absolute errors are 1 in U8, 3 in U16, 0.00048828125 in F16 and 0.000043153762817382813 in F32. The earlier downstream-input replacement still matches all 64,000 pixels. [Generator and downstream settings](#isolating-the-generators-in-spots-bricks-and-cells)
+
+Render the original graph at 32² with seed 8852 and default parameters, then at 16² with seed 8853 and disorder .15625. For each of its three pattern generators, take the centers, sizes and rotations from MaterialCraft’s procedural traversal. Render each entry separately as an additive grayscale paraboloid with both tiling axes enabled, zero roughness and its original depth-weighted opacity. Use F32 for each render. Sum in traversal order in F32, then store in U16. The 1,052 independent renders give the following counts. Each cell reports exact raw pixels over total pixels with maximum absolute error in parentheses.
+
+| Root setting | Generator size | Stamps | Isolated F32 stamps between apps | Reference sum against its generator | MaterialCraft sum against its generator | Intact generator between apps |
+|---|---|---:|---:|---:|---:|---:|
+| Default | 16² | 413 | 105,403/105,728 (8.363277e-07) | 255/256 (1) | 256/256 (0) | 251/256 (1) |
+| Default | 64² | 84 | 331,046/344,064 (1.085573e-07) | 4,096/4,096 (0) | 4,096/4,096 (0) | 4,089/4,096 (1) |
+| Default | 8² | 306 | 19,383/19,584 (4.470348e-07) | 64/64 (0) | 64/64 (0) | 63/64 (1) |
+| Changed | 8² | 88 | 5,567/5,632 (7.115304e-07) | 63/64 (1) | 64/64 (0) | 62/64 (1) |
+| Changed | 64² | 84 | 331,176/344,064 (1.260778e-07) | 4,096/4,096 (0) | 4,096/4,096 (0) | 4,082/4,096 (1) |
+| Changed | 4² | 77 | 1,172/1,232 (6.146729e-07) | 16/16 (0) | 16/16 (0) | 16/16 (0) |
+
+On the changed 64² generator, stamp 63 (zero-based) has center (.49878266,1.0614731), size (.6508908,.5), rotation 278.50824 turns and opacity .05875. Substitute its reference contribution into the local sum. Pixel (18,6) moves from 2,127 to 2,128 and pixel (19,11) from 3,394 to 3,395. The reverse substitution restores both local values. Both apps reproduce every pixel of their own intact 64² generator from the separate stamps. The two smaller reference sums with one differing pixel and the oblique stamp coordinates remain open.
+
 ### Reopening SBS files with release-number headers
 
 Save both Alveolus roots, then open each saved file as a user package in the reference app (16.0.7). With the earlier writer both files declare format version `0.1.3` and updater `0.4.1`. Both opens fail. Changing only the format revision to `1.1.0.202502` makes both files open. Changing only the updater, package identity or graph name leaves both opens failing.
