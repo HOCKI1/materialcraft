@@ -82,7 +82,10 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
                 variables: &variables,
             };
             let value = program.evaluate_with_random(&evaluation, &mut state, random)?;
-            variables.extend(state.assignments().clone());
+            // A quadrant's mode expressions keep their own writes. A later stamp property can read writes from the draw expressions.
+            if node.kind != PatternNodeKind::Quadrant || !matches!(id, "patterntype" | "blendingmode" | "imagefiltering" | "imagepremul" | "randominherited") {
+                variables.extend(state.assignments().clone());
+            }
             Ok(Some(value))
         };
         // The seed expression reads the incoming stream before its offset applies to this stamp and its descendants.

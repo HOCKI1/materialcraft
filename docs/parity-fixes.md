@@ -385,6 +385,14 @@ Isolate the shortest connected path from the pattern root to a drawing quadrant 
 | noise_crystal_1 | 4 | 35,328 | 30,215/35,328 | 0 / 1 / .00048828125 / .00000101327896 |
 | noise_crystal_2 | 12 | 17,664 | 17,512/17,664 | 0 / 1 / .000244140625 / .00000238418579 |
 
+### Assignments in quadrant mode expressions
+
+Local assignments inside the pattern type, blend mode, image filter, premultiplication and seed-inheritance expressions affect that expression's result. Later properties and children retain their incoming variables. Across the [117 child-color controls](#active-properties-of-empty-and-drawing-quadrants), the count improved from 49,120 to **49,920/49,920 exact RGBA pixels**, maximum error zero. The image-index expression still publishes its assignment on a bound image stamp.
+
+Use an image, solid or empty parent and an initialized child color as in the linked measurements. Separately, render the parent without the child to verify these five settings. Use seed 43 inside the stamp, global seed 100673+j at 16² F32, and 100691+j at 32×16 F32 and U16 for property index j in the order above. Set its size to (.75,.625), offset to (.015625,−.03125), color to (.5,.625,.875,.75) and background to (.125,.3125,.6875,.5). For the image cases, generate a 16² texture with channels ((13x+7y) mod 17)/16, ((5x+11y+xy) mod 19)/18, ((3x+7y) mod 11)/10 and .125+.75((x+5y) mod 7)/6. Substitute a random color for the seed-inheritance cases.
+
+The native literal, computed-constant and exposed-input settings agree for all 33,280 pixels in the 78 nonliteral comparisons. The corresponding whole-stamp comparison between applications gives 47,760/49,920 exact pixels in 117 renders. Errors remain in bitmap filtering, up to 21504 U16 levels and .516796827 F32. In another 156 renders an outer Iterate assigns an integer or Boolean immediately before the quadrant. Compare a literal, a read of that outer variable, a read with a published graph default, and a Set followed by a Get inside the same expression. The cross-application result is 55,812/66,560, maximum 41882 U16 levels and .701812745 F32. Outer-variable reads in the reference select the property default in all five tests. Writes subsequently read within the same expression select the authored value.
+
 ### Active properties of empty and drawing quadrants
 
 In an empty quadrant, branch offset and random seed can change a variable that a child reads. Frame offset, opacity, rotation, size and variation publish their assignments on drawing quadrants. Image index publishes its assignment on a bound image stamp. MaterialCraft now skips the inactive draw and image properties. Across 117 independently authored renders the raw count improved from **48,160 to 49,120/49,920 RGBA pixels**. The F32 result is 29,472/29,952 with maximum .5, and U16 is 19,648/19,968 with maximum 32767 levels.

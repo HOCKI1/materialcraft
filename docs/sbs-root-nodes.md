@@ -47,6 +47,8 @@ The 32²-to-16² signed threshold controls match 2,048/2,048 pixels. [Floating t
 
 Connected F32 backgrounds now match all 2,048 same-size pixels. Across 132 further renders with changed input sizes, the maximum absolute error is zero. Some RGBA zeros still differ in sign. [Connected background counts and file checks](parity-fixes.md#connected-floating-point-pattern-backgrounds)
 
+Assignments in quadrant mode expressions now stay within the expression. All 49,920 child-color pixels match. [Mode writes and remaining input-scope differences](parity-fixes.md#assignments-in-quadrant-mode-expressions)
+
 Empty quadrants now skip inactive stamp properties. The variable-writing controls match 49,120/49,920 pixels over 117 renders. [Measured property scopes](parity-fixes.md#active-properties-of-empty-and-drawing-quadrants)
 
 Reading inherited variables directly reduced cook time on six Dirt 1 and BNW Spots 3 cases from 128–133 seconds to 43–44 seconds across two runs. The five completed cases retained every measured output bit. [Timings and root checks](parity-fixes.md#pattern-expression-variables-and-cook-time)

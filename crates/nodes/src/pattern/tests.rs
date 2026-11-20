@@ -398,6 +398,11 @@ fn a_quadrant_only_publishes_writes_from_active_stamp_properties() {
         (0, "branchoffset", Value::Float2([0.0; 2]), 0.75),
         (2, "opacity", Value::Float(0.0), 0.75),
         (2, "imageindex", Value::Int(0), 0.125),
+        (2, "patterntype", Value::Int(2), 0.125),
+        (2, "blendingmode", Value::Int(0), 0.125),
+        (1, "imagefiltering", Value::Int(1), 0.125),
+        (1, "imagepremul", Value::Bool(true), 0.125),
+        (2, "randominherited", Value::Bool(true), 0.125),
     ] {
         let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
         let child = graph.add(PatternNodeKind::Quadrant).unwrap();
