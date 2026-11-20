@@ -239,6 +239,7 @@ fn cached_instances_distinguish_fixed_and_bound_integer_arguments() {
     let (parent, instance) = instancing("Parent", "Selector");
     let mut child = Graph::new("Selector");
     child.exposed.push(ExposedParameter {
+        connectable: false,
         id: "index".into(),
         label: "Index".into(),
         default: Value::Int(0),

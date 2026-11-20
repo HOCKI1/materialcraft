@@ -11,6 +11,7 @@ fn source() -> Package {
     let mut package = Package::new("Functions");
     let mut graph = Graph::new("Twice");
     graph.exposed.push(ExposedParameter {
+        connectable: false,
         description: String::new(),
         editor: None,
         clamp: false,
@@ -319,6 +320,24 @@ fn calls_evaluate_arguments_once_and_share_the_variables_they_set() {
     caller.output = Some(caller.add("sequence", &[init, total], None));
 
     assert_eq!(evaluate(&caller), Value::Float(103.0));
+}
+
+#[test]
+fn open_connectable_function_arguments_read_zero_and_preserve_the_source_value() {
+    let mut package = source();
+    package.graphs[0].exposed[0].connectable = true;
+    let mut session = Session::new(package);
+    execute(&mut session, "file.new", &json!({"name": "Caller", "kind": "function"})).unwrap();
+    let target = json!({"kind": "graph"});
+    let instance = call(&mut session, 0, "Twice", &target);
+    edit(&mut session, &target, json!({"action": "output", "id": instance}));
+    assert_eq!(evaluate(session.graph().unwrap().function.as_ref().unwrap()), Value::Float(0.0));
+    let constant = edit(&mut session, &target, json!({"action": "add", "operation": "const_float1", "at": [0,0]}))["id"].as_u64().unwrap();
+    edit(&mut session, &target, json!({"action": "value", "id": constant, "value": Value::Float(0.1875)}));
+    edit(&mut session, &target, json!({"action": "connect", "from": constant, "to": instance, "input": 0}));
+    assert_eq!(evaluate(session.graph().unwrap().function.as_ref().unwrap()), Value::Float(0.375));
+    execute(&mut session, "package.activate", &json!({"document": 0})).unwrap();
+    assert_eq!(session.pkg.graphs[0].input_value("amount"), Some(&Value::Float(0.5)));
 }
 
 #[test]

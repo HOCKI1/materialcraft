@@ -213,10 +213,11 @@ impl SbsWriter {
             let default =
                 input_default_xml(graph.inputs.get(&exposed.id).unwrap_or(&exposed.default)).unwrap_or_else(|| "<constantValueFloat1 v=\"0\"/>".into());
             let group = if exposed.group.is_empty() { String::new() } else { format!("<group v=\"{}\"/>", xml_escape(&exposed.group)) };
+            let connection = if graph.function.is_some() && exposed.connectable { "<isConnectable v=\"1\"/>" } else { "" };
 
             let _ = write!(
                 out,
-                "<paraminput><identifier v=\"{}\"/><uid v=\"{}\"/><attributes><label v=\"{}\"/><description v=\"{}\"/></attributes><type v=\"{}\"/><defaultValue>{default}</defaultValue>",
+                "<paraminput><identifier v=\"{}\"/><uid v=\"{}\"/>{connection}<attributes><label v=\"{}\"/><description v=\"{}\"/></attributes><type v=\"{}\"/><defaultValue>{default}</defaultValue>",
                 xml_escape(&exposed.id),
                 self.next_uid(),
                 xml_escape(&exposed.label),

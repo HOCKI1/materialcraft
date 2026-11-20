@@ -306,7 +306,8 @@ impl<'text> SbsReader<'text, '_> {
             }
 
             let default = exposed_default(code, child_element(input, "defaultValue").and_then(sbs_constant).as_ref());
-            if child_value(input, "isConnectable") == Some("1") {
+            let connectable = child_value(input, "isConnectable") == Some("1");
+            if connectable && !element.has_tag_name("function") {
                 image_inputs.insert(
                     child_value(input, "uid").unwrap_or("").to_string(),
                     InputBridge { identifier: id, type_code: code as u32, usage: component_usage::read(input), default },
@@ -333,6 +334,7 @@ impl<'text> SbsReader<'text, '_> {
                 label,
                 group,
                 default,
+                connectable,
                 min,
                 max,
                 options: Vec::new(),

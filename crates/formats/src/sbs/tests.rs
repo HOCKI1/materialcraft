@@ -9,6 +9,25 @@ fn no_linked_files(_: &str) -> Option<Vec<u8>> {
 }
 
 #[test]
+fn connectable_function_argument_survives_save_and_reopen() {
+    let xml = br#"<package><content><function><identifier v="ReadAmount"/><uid v="1"/><type v="256"/>
+        <paraminputs><paraminput><identifier v="amount"/><uid v="2"/><isConnectable v="1"/>
+        <type v="256"/><defaultValue><constantValueFloat1 v=".1875"/></defaultValue></paraminput></paraminputs>
+        <paramValue><dynamicValue><rootnode v="3"/><paramNodes><paramNode><uid v="3"/><function v="get_float1"/>
+        <type v="256"/><funcDatas><funcData><name v="get"/><constantValue><constantValueString v="amount"/>
+        </constantValue></funcData></funcDatas></paramNode></paramNodes></dynamicValue></paramValue></function></content></package>"#;
+    let package = read_sbs(xml, "argument.sbs", &no_linked_files).unwrap().pkg;
+    let graph = &package.graphs[0];
+    assert_eq!(graph.input_value("amount"), Some(&Value::Float(0.1875)));
+    let saved = write_sbs(&package).unwrap();
+    let document = roxmltree::Document::parse(std::str::from_utf8(&saved).unwrap()).unwrap();
+    let argument = document.descendants().find(|node| node.has_tag_name("paraminput")).unwrap();
+    assert_eq!(super::xml::child_value(argument, "isConnectable"), Some("1"));
+    let reopened = read_sbs(&saved, "argument.sbs", &no_linked_files).unwrap().pkg;
+    assert_eq!(reopened.graphs[0].exposed, graph.exposed);
+}
+
+#[test]
 fn absolute_graph_output_size_survives_parent_size_changes_and_save() {
     let xml = br#"<package><content><graph><identifier v="Fixed"/>
         <baseParameters><parameter><name v="outputsize"/><relativeTo v="0"/>

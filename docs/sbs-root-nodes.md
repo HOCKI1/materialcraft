@@ -59,7 +59,7 @@ Empty quadrants now skip inactive stamp properties. The variable-writing control
 
 Reading inherited variables directly reduced cook time on six Dirt 1 and BNW Spots 3 cases from 128–133 seconds to 43–44 seconds across two runs. The five completed cases retained every measured output bit. [Timings and root checks](parity-fixes.md#pattern-expression-variables-and-cook-time)
 
-[Unconnected function arguments](parity-fixes.md#unconnected-function-arguments) records the measured difference between open ports and authored defaults.
+The reference reopened 26 function packages saved by MaterialCraft. All 6,400 pixels and 24 typed values match. [Saved argument checks](parity-fixes.md#connectable-numeric-arguments-in-saved-function-graphs) [Unconnected argument controls](parity-fixes.md#unconnected-function-arguments)
 
 [Runtime square-root measurements](parity-fixes.md#runtime-pixel-square-roots) cover both exponent parities and the signed domain.
 

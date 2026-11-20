@@ -479,6 +479,16 @@ Set 0 uses defaults. For sets 1…6 choose shape types 11, 1, 4, 7, 11 and 2. Se
 
 The reference reopened a MaterialCraft-saved graph using the same public math calls. Its ten reference outputs reproduce all 11,520 original reference pixels bit for bit. On the seventh field set, changing only the shape type to 2 reproduces the full discrepancy, 339/2,048 F32 pixels exact. In 31 single-setting and shape/displacement controls, 18 shape-2 outputs each match 339/2,048 and the other 13 each match 2,048/2,048. Sampling, the active predicate, ray distance and atlas position each match 6,656/6,656 pixels across four instrumented cases. The cube normal and the subsequent stored normal each match 970/6,656. The value before encoding matches 4,947/6,656 and differs only on shape 2. The whole root remains in progress.
 
+### Connectable numeric arguments in saved function graphs
+
+An explicitly connectable argument on a standalone function now retains its identifier, numeric type, authored default and connection flag when MaterialCraft reads and saves the package. Its value at a call with the port open is the typed zero. Connecting the port supplies the wire value. The save/reopen regression previously lost the .1875 source default during import. A second regression exercises the open and wired calls through the editing commands.
+
+Repeat the [wire-presence controls](#wire-presence-inside-a-called-function) with a separate package and function name for each case. Mark an open scalar argument connectable in each of the four calling scopes. In pixel and value processors also wire the scalar on connectable and explicitly non-connectable declarations. At 16²/seed 79 and 32²/seed 197 these eight packages match all 6,400 LUM32F pixels and 6/6 typed values. Maximum error is zero.
+
+For each of the nine [boolean, signed integer and float argument controls](#unconnected-function-arguments), mark the argument connectable, then wire it or leave it open. Repeat with a second scalar argument wired to .25. The first component of the result matches in all 36/36 typed outputs, maximum error zero. With the connection flag omitted and the second argument wired, 9/18 controls match at this revision, maximum error 9.
+
+Independently name and save the eight scalar packages and the 18 single-argument typed packages through MaterialCraft. Open each saved file in the reference under its fresh identifiers and repeat the comparisons. All 6,400/6,400 LUM32F pixels and 24/24 typed values across 34 outputs match, maximum error zero. Formatting, the release suites for core, nodes, formats, engine, eval and UI, strict workspace Clippy, dependency layers and WebAssembly passed.
+
 ## 2026-11-19 root comparisons
 
 ### Texture sampling in pattern functions

@@ -122,6 +122,7 @@ mod tests {
 
     fn manifest() -> Manifest {
         let param = ExposedParameter {
+            connectable: false,
             description: String::new(),
             editor: None,
             clamp: false,
