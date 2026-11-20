@@ -50,7 +50,6 @@ pub(super) fn render(context: &CookContext, stamps: &[PatternStamp], max_depth: 
         }
     }
     let tile_region = Region::new(tiling)?;
-    let period = tile_region.period();
     let mut mipmaps = bitmap::Mipmaps::new();
 
     for stamp in stamps {
@@ -94,7 +93,7 @@ pub(super) fn render(context: &CookContext, stamps: &[PatternStamp], max_depth: 
             None
         };
         let radius = frame.radius;
-        let center = std::array::from_fn(|axis| if axes[axis] { stamp.center[axis].rem_euclid(period[axis]) } else { stamp.center[axis] });
+        let center = tile_region.copy_origin(stamp.center, axes);
         let repeats = tile_region.repeats(&render_region, center, radius, axes)?;
         let count = |axis: usize| (i64::from(repeats[axis][1]) - i64::from(repeats[axis][0]) + 1).max(0) as u64;
         let copies = count(0).checked_mul(count(1)).ok_or("pattern repetition exceeds its budget")?;

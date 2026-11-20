@@ -37,10 +37,10 @@ impl Region {
         self.start[axis] + (pixel as f32 + 0.5) / size as f32 * self.span[axis]
     }
 
-    pub fn pixel_interval(&self, axis: usize, center: f32, radius: f32, pixels: u32) -> [f64; 2] {
-        let origin = f64::from(center) - f64::from(self.start[axis]);
-        let scale = f64::from(pixels) / f64::from(self.span[axis]);
-        [(origin - f64::from(radius)) * scale, (origin + f64::from(radius)) * scale]
+    pub fn stamp_vertices(&self, axis: usize, center: f32, radius: f32, pixels: u32) -> [f32; 2] {
+        let scale = pixels as f32 / self.span[axis];
+        // Store the two triangle vertices in pattern space before projecting them into the render window.
+        [center - radius, center + 3.0 * radius].map(|v| (v - self.start[axis]) * scale)
     }
 
     pub fn bounds(&self, center: [f32; 2], radius: [f32; 2], size: [u32; 2]) -> [[u32; 2]; 2] {
@@ -56,6 +56,16 @@ impl Region {
 
     pub fn period(&self) -> [f32; 2] {
         self.span
+    }
+
+    pub fn copy_origin(&self, center: [f32; 2], axes: [bool; 2]) -> [f32; 2] {
+        std::array::from_fn(|i| {
+            let start = f64::from(self.start[i]);
+            let offset = f64::from(center[i]) - start;
+            let period = f64::from(self.span[i]);
+            // Adjacent copy indices cease to be distinct F32 translations at 2^24.
+            if axes[i] && offset.abs() >= 16_777_216.0 * period { (start + offset.rem_euclid(period)) as f32 } else { center[i] }
+        })
     }
 
     pub fn copy_centers(&self, axis: usize, center: f32, [first, last]: [i32; 2]) -> impl Iterator<Item = f32> + Clone {

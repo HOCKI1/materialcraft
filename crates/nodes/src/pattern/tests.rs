@@ -249,6 +249,16 @@ fn cook_at_size(graph: PatternGraph, variables: &BTreeMap<String, Value>, seed: 
 }
 
 fn cook_at_dimensions(graph: PatternGraph, variables: &BTreeMap<String, Value>, seed: u32, width: u32, height: u32) -> crate::CookResult {
+    cook_in_regions(graph, variables, seed, [width, height], [[0.0, 1.0, 0.0, 1.0]; 2])
+}
+
+fn cook_in_regions(
+    graph: PatternGraph,
+    variables: &BTreeMap<String, Value>,
+    seed: u32,
+    [width, height]: [u32; 2],
+    [render, tiling]: [[f32; 4]; 2],
+) -> crate::CookResult {
     let definition = find("fx_map").unwrap();
 
     // These traversal fixtures measure unattenuated grayscale stamps
@@ -258,6 +268,8 @@ fn cook_at_dimensions(graph: PatternGraph, variables: &BTreeMap<String, Value>, 
             ("pattern".into(), Value::PatternGraph(Box::new(graph))),
             ("roughness".into(), Value::Float(0.0)),
             ("color_mode".into(), Value::Bool(false)),
+            ("render_region".into(), Value::Float4(render)),
+            ("tiling_region".into(), Value::Float4(tiling)),
         ]),
     );
     let context = CookContext {
@@ -370,6 +382,53 @@ fn stamp_vertices_snap_after_storage_at_pixel_precision() {
     let planes = super::coordinates::PixelPlanes::new(&frame, &region, [0.295_898_4, -0.031_547_427], size, [512, 128]).unwrap();
     let [x, y] = planes.row(0)(138);
     assert_eq!((coverage(4, x, y, 0.0) * 0.91).to_bits(), 0x3f36_8e3f);
+}
+
+#[test]
+fn shifted_region_preserves_the_vertices_before_projection() {
+    let region = super::region::Region::new([0.0, 1.0, -0.5, 1.5]).unwrap();
+    let size = [0.270_833_34, 0.162_500_01];
+    let frame = super::footprint::Footprint { sine: 0.0, cosine: 1.0, radius: size.map(|s| s * 0.5) };
+    let planes = super::coordinates::PixelPlanes::new(&frame, &region, [0.541_666_7, 0.437_499_97], size, [16, 32]).unwrap();
+    let [u, v] = planes.row(14)(7);
+    assert_eq!(coverage(4, u, v, 0.0).to_bits(), 0x3f0f_e7d1);
+}
+
+#[test]
+fn shifted_region_keeps_the_original_center_for_tiled_copies() {
+    let shifted = [-0.5, 1.5, 0.0, 1.0];
+    let fractional = [[0.0, 1.0, 0.0, 1.0], [-0.173, 0.369, 0.096, 0.869]];
+    for (regions, canvas, center, size, [x, y], expected) in [
+        ([shifted; 2], [32, 16], [-0.333_333_3, 0.637_500_05], [0.270_833_34, 0.162_5], [1, 9], 0x3e6c_4ec4),
+        (fractional, [32, 64], [-3.631_460_7, -3.076_536_2], [0.416_212_65, 0.932_240_3], [0, 32], 0x3e16_8cbc),
+    ] {
+        let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
+        graph.nodes[0].parameters = BTreeMap::from([
+            ("patterntype".into(), Value::Int(10)),
+            ("blendingmode".into(), Value::Int(0)),
+            ("branchoffset".into(), Value::Float2([-0.5; 2])),
+            ("frameoffset".into(), Value::Float2(center)),
+            ("patternsize".into(), Value::Float2(size)),
+        ]);
+        let image = cook_in_regions(graph, &BTreeMap::new(), 319091, canvas, regions).unwrap().remove(0);
+        assert_eq!(image.get_gray(x, y, false).to_bits(), expected, "center {center:?}");
+    }
+}
+
+#[test]
+fn shifted_region_stores_the_snap_offset_in_pattern_space() {
+    let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
+    graph.nodes[0].parameters = BTreeMap::from([
+        ("patterntype".into(), Value::Int(10)),
+        ("blendingmode".into(), Value::Int(0)),
+        ("branchoffset".into(), Value::Float2([-0.5; 2])),
+        ("frameoffset".into(), Value::Float2([0.005_702_4, 0.984_657_3])),
+        ("patternsize".into(), Value::Float2([0.203_478_44, 0.709_372_1])),
+        ("patternrotation".into(), Value::Float(0.25)),
+    ]);
+    let regions = [[-0.173, 0.369, 0.096, 0.869], [0.019, 0.631, -0.073, 0.689]];
+    let image = cook_in_regions(graph, &BTreeMap::new(), 319613, [32, 64], regions).unwrap().remove(0);
+    assert_eq!(image.get_gray(0, 2, false).to_bits(), 0x3cd4_7660);
 }
 
 #[test]

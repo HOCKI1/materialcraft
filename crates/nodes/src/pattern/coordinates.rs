@@ -24,16 +24,17 @@ impl PixelPlanes {
         } else {
             return None;
         };
-        let bounds: [[f64; 2]; 2] = std::array::from_fn(|axis| region.pixel_interval(axis, center[axis], frame.radius[axis], dimensions[axis]));
-        let extents = bounds.map(|[left, right]| right - left);
+        let pixel_size: [f32; 2] = std::array::from_fn(|i| region.period()[i] / dimensions[i] as f32);
+        let projected: [_; 2] = std::array::from_fn(|i| region.stamp_vertices(i, center[i], frame.radius[i], dimensions[i]));
         // Smaller stamps and extents too large to resolve half pixels use the ordinary footprint.
-        if extents.iter().any(|extent| !(1.0..8_388_608.0).contains(extent)) {
+        if (0..2).any(|i| {
+            !(1.0..8_388_608.0).contains(&(2.0 * f64::from(frame.radius[i]) / f64::from(pixel_size[i]))) || projected[i].iter().any(|v| !v.is_finite())
+        }) {
             return None;
         }
         // Store each vertex at pixel precision before both snapping and computing its coordinates.
-        let near_vertex = bounds.map(|[left, _]| left as f32);
-        let far_radius = extents.map(|extent| f64::from((1.5 * extent) as f32));
-        let far_vertex: [f32; 2] = std::array::from_fn(|i| ((bounds[i][0] + bounds[i][1]) * 0.5 + far_radius[i]) as f32);
+        let near_vertex = projected.map(|[near, _]| near);
+        let far_vertex = projected.map(|[_, far]| far);
         let near = near_vertex.map(|v| (f64::from(v) + 0.5).floor());
         let far = far_vertex.map(|v| (f64::from(v) + 0.5).floor() + 1.0);
         let padded: [f32; 2] = std::array::from_fn(|i| ((far[i] - near[i]) * 0.5) as f32);
@@ -46,10 +47,13 @@ impl PixelPlanes {
         let far_axis = (0..2).rev().find(|&i| far_offset[i].unsigned_abs().leading_zeros() >= near_offset[i].unsigned_abs().leading_zeros());
         let axes = std::array::from_fn(|axis| {
             let basis = truncate_float(f64::from(padded[1 - axis]) * f64::from(reciprocal));
-            let radius = extents[axis] * 0.5;
-            let scale = pixel_divide(2.0, extents[axis] as f32);
-            let low = (near[axis] - f64::from(near_vertex[axis]) - radius) as f32 * scale;
-            let high = (far[axis] - f64::from(far_vertex[axis]) + far_radius[axis]) as f32 * scale;
+            let radius = frame.radius[axis];
+            let scale = pixel_divide(2.0, 2.0 * radius);
+            // Store each snapping displacement in pattern space before adding it to the signed vertex.
+            let low_delta = (near[axis] - f64::from(near_vertex[axis])) as f32 * pixel_size[axis];
+            let high_delta = (far[axis] - f64::from(far_vertex[axis])) as f32 * pixel_size[axis];
+            let low = (low_delta - radius) * scale;
+            let high = (high_delta + 3.0 * radius) * scale;
             let span = truncate_float(f64::from(high) - f64::from(low)) * 0.5;
             let gradient = gradient_product(basis, span);
             let unit = f64::from(gradient.next_up() - gradient);

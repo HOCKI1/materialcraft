@@ -74,7 +74,7 @@ impl SampleGrid {
         if frame.radius.iter().zip(self.dimensions).any(|(&r, n)| r * n as f32 > 0.5) {
             return false;
         }
-        let center = std::array::from_fn(|i| if self.axes[i] { stamp.center[i].rem_euclid(1.0) } else { stamp.center[i] });
+        let center = self.region.copy_origin(stamp.center, self.axes);
         let Ok(repeats) = self.region.repeats(&self.region, center, frame.radius, self.axes) else { return false };
         let columns = self.region.copy_centers(0, center[0], repeats[0]);
         for y_center in self.region.copy_centers(1, center[1], repeats[1]) {

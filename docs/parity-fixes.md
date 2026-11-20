@@ -534,9 +534,41 @@ For each root’s 25 follow-up renders, the 5,120 U8, 553,728 U16, 78,336 F16 an
 
 In a single-worker release run, four interleaved measurements of the 128² default, 256² default and 512² filled cases gave median whole-graph cook times of 46, 259 and 1,138 ms for Alveolus (previously 45, 247 and 1,068 ms). Pattern Alveolus took 45, 253 and 1,083 ms (previously 43, 238 and 1,045 ms).
 
+### Projecting stamp vertices through shifted render regions
+
+Both Brick Generator Tile helpers now match every pixel in 106 renders each, including the rectangular cases and the four output formats. The second helper previously matched 341,035/347,136. Its 32 additional settings also match after reopening the MaterialCraft save in both apps. [Root parameters, input formula and seeds](#image-inputs-and-bell-stamps-in-brick-generator-tile) · [Earlier rectangular settings](#rectangular-fields-in-the-two-brick-generator-tile-helpers)
+
+| Output per helper | Renders | Exact pixels | Maximum error |
+|---|---:|---:|---:|
+| U8 | 16 | 33,280/33,280 | 0 levels |
+| U16 | 28 | 192,000/192,000 | 0 levels |
+| F16 | 16 | 33,280/33,280 | 0 |
+| F32 | 46 | 88,576/88,576 | 0 |
+| Reopened save, all formats | 32 | 196,608/196,608 | 0 |
+
+In the second helper the 16×32 render and tiling windows are (0,1,−.5,1.5). On a 32×16 output they are (−.5,1.5,0,1). A white, unrotated paraboloid centered at (.541666687,.437499970), sized (.270833343,.162500009), gives raw F32 `3f0fe7d1` at (7,14) in the first window. The previous result was `3f0fe7c8`. An unrotated horizontal ramp centered at (−.333333313,.637500048) and sized (.270833343,.162499994) gives `3e6c4ec4` at (1,9) in the second window. Reducing its center modulo the window width before placing the copies loses precision.
+
+The rasterizer stores the triangle vertices in pattern space, projects their offsets from the render origin at F32 precision, and snaps them in pixel space. It converts each snapping displacement back into pattern space before scaling the signed coordinate. The outer visible copy starts from the authored center. In a 32×64 quarter-turn ramp with center (.0057024003,.9846573), size (.20347844,.7093721), render window (−.173,.369,.096,.869) and tiling window (.019,.631,−.073,.689), pixel (0,2) is `3cd47660`. The previous result was `3cd47650`. All three regressions failed against the previous rasterizer. In 192 separate horizontal-ramp, vertical-ramp, paraboloid and square renders from the helper's stamp placements, 589,824/589,824 F32 pixels match with zero maximum error.
+
+**Independent windows.** Draw one white horizontal ramp over black with additive blending. For the vertical read, swap the two stamp dimensions and turn by .25. Use a root quadrant with branch offset (−.5,−.5) and set its frame offset to the desired center. Render each geometry with both tiling axes off and again with both on. The paired render/tiling windows in order are A/A, B/B, C/C, D/D, D/E, U/D and D/U. Here A=(0,1,−.5,1.5), B=(−.5,1.5,0,1), C=(−.375,1.125,.125,.875), D=(−.173,.369,.096,.869), E=(.019,.631,−.073,.689) and U=(0,1,0,1).
+
+Use NumPy PCG64 seed 319091. For each of 18 zero-based indices j, draw two independent uniform center coordinates in [−.7,1.4) followed by two sizes in [.147,1.07). Cycle through 32×64, 64×32 and 64². For window index i use render seed 319237 + 31j + i. Across those 504 renders, the number of exact F32 pixels increased from 1,264,469 to 1,374,592/1,376,256. Every render retained or improved its exact count. The 1,664 differences occur in the tiled C/C horizontal ramp at j=11 with a maximum error of 2⁻²². The four independently positioned copies sum to the reference tiled output exactly. Two of those individual horizontal copies still differ.
+
+A further 210 F32 renders cover centers several periods outside the windows. The exact count increased from 454,474 to 573,249/577,536 pixels, maximum error 2⁻²². Six renders lost exact pixels in this set. Isolated draws reproduce the tiled reference when the windows coincide on row 1. On row 2, four horizontal ramps still differ when the individually positioned copies are added. Start a fresh PCG64 stream at 320021 and continue it across the table. Restart the trial number at one in each row. On odd trials draw both center coordinates in [−4.02,3.2), on even trials in [−.219,.337), then both sizes in [.111,1.07). A trial number modulo three of 0, 1 or 2 selects 32×64, 64×32 or 64². Draw the listed trials with both tiling axes enabled, ending each row after its last listed trial. For the zero-based selected index j and row i use seed 320597 + 43j + i. Stamp sizes, centers and window coordinates are stored as F32.
+
+| Render / tiling windows | Selected trials | Exact F32 pixels | Maximum error |
+|---|---|---:|---:|
+| A / A | 6, 20, 24, 42, 44, 48, 50, 58, 72, 96, 100, 102, 106, 107, 108 | 77,824/77,824 | 0 |
+| D / D | 7, 11, 13, 21, 23, 24, 29, 31, 35, 46, 47, 48, 49, 53, 57 | 85,840/86,016 | 2⁻²³ |
+| D / E | 5, 19, 24, 27, 28, 35, 37, 41, 43, 48, 51, 55, 59, 61, 64 | 74,609/77,824 | 2⁻²² |
+| U / D | 3, 5, 15, 17, 21, 23, 24, 27, 35, 43, 48, 49, 55, 59, 63 | 81,920/81,920 | 0 |
+| (.37,1.723,−1.136,.197) / (−.391,.533,−.251,.194) | 1, 4, 5, 8, 10, 11, 13, 14, 17, 20, 24, 25, 26, 28, 29 | 94,208/94,208 | 0 |
+| (−.851,.95,−.151,.341) / same | 1, 4, 10, 21, 24, 25, 27, 36, 41, 43, 47, 48, 59, 63, 64 | 73,728/73,728 | 0 |
+| (.91,1.792,−.46,1.9) / same | 6, 11, 16, 24, 26, 27, 32, 34, 35, 37, 38, 42, 45, 47, 48 | 85,120/86,016 | 2⁻²³ |
+
 ### Image inputs and bell stamps in Brick Generator Tile
 
-The first Brick Generator Tile helper matches all 347,136 pixels in 106 renders. The 32 settings saved by MaterialCraft also match all 196,608 pixels after reopening in both apps. The second helper still differs on rectangular outputs. For the 32 additional settings, both saved graphs reproduce their respective original reference outputs exactly.
+The first Brick Generator Tile helper matches all 347,136 pixels in 106 renders. The 32 settings saved by MaterialCraft also match all 196,608 pixels after reopening in both apps. The second helper still differed on rectangular outputs at this checkpoint. For the 32 additional settings, both saved graphs reproduce their respective original reference outputs exactly. [Subsequent region measurements](#projecting-stamp-vertices-through-shifted-render-regions)
 
 | Helper and settings | Renders | U8 exact / pixels | U16 exact / pixels | F16 exact / pixels | F32 exact / pixels |
 |---|---:|---:|---:|---:|---:|
