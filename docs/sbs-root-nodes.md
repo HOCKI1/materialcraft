@@ -35,7 +35,7 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **367 Parity**, **94 In progress** and **85 Too hard**. The November 17–19 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons) · [November 19 measurements](parity-fixes.md#2026-11-19-root-comparisons)
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **367 Parity**, **100 In progress** and **79 Too hard**. The November 17–19 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons) · [November 19 measurements](parity-fixes.md#2026-11-19-root-comparisons)
 
 [Pattern tiling axes and copy bounds across 215 renders](parity-fixes.md#tiling-axes-and-pattern-copy-bounds) · [Grayscale sampler measurements](parity-fixes.md#grayscale-sampling-of-color-inputs) · [Value sampling across 240 typed comparisons](parity-fixes.md#value-processor-texture-filtering) · [Five saved graphs reopened in the reference](parity-fixes.md#saved-filter-graphs-and-scalar-levels-controls)
 
@@ -301,13 +301,13 @@ Reading inherited variables directly reduced cook time on six Dirt 1 and BNW Spo
 | [noise_cells_1_v2.sbs/cells_1](../assets/sbs/noise_cells_1_v2.sbs) | 0 | No | [In progress · 20 renders, 158,598/173,312 exact pixels](parity-fixes.md#tile-random-cell-fields-and-noise-upscaling) |
 | [noise_cells_4.sbs/cells_4](../assets/sbs/noise_cells_4.sbs) | 1 | Yes | [In progress · 215,500/215,552 pixels in 29 renders](parity-fixes.md#paths-caustics-and-cell-fields-after-pattern-sampling) |
 | [noise_cells_4_v2.sbs/cells_4](../assets/sbs/noise_cells_4_v2.sbs) | 1 | No | [In progress · 215,516/215,552 pixels in 29 renders](parity-fixes.md#paths-caustics-and-cell-fields-after-pattern-sampling) |
-| [noise_clouds_1.sbs/clouds_1](../assets/sbs/noise_clouds_1.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [noise_clouds_1_v2.sbs/clouds_1](../assets/sbs/noise_clouds_1_v2.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [noise_clouds_2.sbs/clouds_2](../assets/sbs/noise_clouds_2.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [noise_clouds_2_v2.sbs/clouds_2](../assets/sbs/noise_clouds_2_v2.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [noise_clouds_1.sbs/clouds_1](../assets/sbs/noise_clouds_1.sbs) | 0 | Yes | [In progress · 143,752/149,760 pixels, two execution-limit cases](parity-fixes.md#cloud-and-crystal-pattern-sources-across-scales) |
+| [noise_clouds_1_v2.sbs/clouds_1](../assets/sbs/noise_clouds_1_v2.sbs) | 0 | No | [In progress · 135,187/141,568 pixels, seven execution-limit cases](parity-fixes.md#cloud-and-crystal-pattern-sources-across-scales) |
+| [noise_clouds_2.sbs/clouds_2](../assets/sbs/noise_clouds_2.sbs) | 0 | Yes | [In progress · 152,152/153,856 pixels in 19 renders](parity-fixes.md#cloud-and-crystal-pattern-sources-across-scales) |
+| [noise_clouds_2_v2.sbs/clouds_2](../assets/sbs/noise_clouds_2_v2.sbs) | 0 | No | [In progress · 136,706/141,568 pixels, seven execution-limit cases](parity-fixes.md#cloud-and-crystal-pattern-sources-across-scales) |
 | [noise_creased.sbs/creased](../assets/sbs/noise_creased.sbs) | 0 | No | [In progress · 37,716/132,096 pixels across 9 renders](parity-fixes.md#directional-and-additive-stamp-profiles) |
-| [noise_crystal_1.sbs/crystal_1](../assets/sbs/noise_crystal_1.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
-| [noise_crystal_2.sbs/crystal_2](../assets/sbs/noise_crystal_2.sbs) | 0 | No | [Too hard · 131,037/132,096 exact pixels in 9 renders](parity-fixes.md#gradient-warp-displacement-and-sampling) |
+| [noise_crystal_1.sbs/crystal_1](../assets/sbs/noise_crystal_1.sbs) | 0 | No | [In progress · 151,000/153,856 pixels in 19 renders](parity-fixes.md#cloud-and-crystal-pattern-sources-across-scales) |
+| [noise_crystal_2.sbs/crystal_2](../assets/sbs/noise_crystal_2.sbs) | 0 | No | [In progress · 152,713/153,856 pixels in 19 renders](parity-fixes.md#cloud-and-crystal-pattern-sources-across-scales) |
 | [noise_directional_noise_1.sbs/directional_noise_1](../assets/sbs/noise_directional_noise_1.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [noise_directional_noise_1_v2.sbs/directional_noise_1](../assets/sbs/noise_directional_noise_1_v2.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
 | [noise_directional_noise_2.sbs/directional_noise_2](../assets/sbs/noise_directional_noise_2.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |

@@ -335,6 +335,32 @@ The v2 spots graph has three pattern stages in series. At the same 32² setting 
 
 For each of these seven generators isolate a shortest connected path from the pattern root to a drawing quadrant. Retain the original Iterate and Switch expressions on the path, keep one outgoing connection per node, and give the stage an empty background input. Compare its authored paraboloid, then substitute a solid square and a disc. Use the ten-case series above with the 64² case omitted. On those isolated paths the authored profiles match 23,180/23,184, 23,097/23,184 and 14,864/17,664 pixels respectively. The square and disc each match 64,032/64,032 pixels across all seven sources, maximum zero. The authored profiles retain F32 maxima of 4.17232513e−7, 6.25848770e−7 and 8.94069672e−7. These three roots remain in progress.
 
+### Cloud and crystal pattern sources across scales
+
+| Root package | Whole outputs compared / attempted | Exact pixels / compared | Maximum U8 / U16 / F16 / F32 error |
+|---|---:|---:|---|
+| noise_clouds_1 | 17/19 | 143,752/149,760 | 1 / 2 / .00048828125 / .0000305175781 |
+| noise_clouds_1_v2 | 12/19 | 135,187/141,568 | 1 / 1 / .00048828125 / .00000429153442 |
+| noise_clouds_2 | 19/19 | 152,152/153,856 | 1 / 3 / .00048828125 / .0000230669975 |
+| noise_clouds_2_v2 | 12/19 | 136,706/141,568 | 1 / 1 / .00048828125 / .00000119209290 |
+| noise_crystal_1 | 19/19 | 151,000/153,856 | 0 / 2 / .0001220703125 / .0000207051635 |
+| noise_crystal_2 | 19/19 | 152,713/153,856 | 0 / 46 / .00048828125 / .0000152597204 |
+
+The two original cloud graphs and both crystal graphs produce bit-exact downstream outputs with original procedural fields substituted for all source generators, **87,040/87,040 pixels in 40 renders**, maximum error zero. The v2 packages draw into the preceding stage. In noise_clouds_1_v2 two independent captures used the same field in place of the first generator and retained the final generator. Those captures matched 8,174/9,472 and 8,163/9,472 whole pixels. Both reached the execution limit at seven settings. The maximum errors were .00048828125 F16 and .00000234693289 F32. See also the [gradient warp measurements for Crystal 2](#gradient-warp-displacement-and-sampling).
+
+Use the archive, four-format and independent cases, then the ten [spots scale, resolution and field controls](#bnw-spots-3-and-cells-1-pattern-sources) with inventory indices 244, 245, 246, 247, 249 and 250 in table order. The reference produced all 114 whole outputs. The two missing local outputs for noise_clouds_1 are the scale-five rectangular cases. For each v2 cloud graph the scale-three and scale-five settings reached the execution limit.
+
+Isolate the shortest connected path from the pattern root to a drawing quadrant in each of the 13 source stages. Keep the original Iterate and Switch controls, disconnect image inputs, and omit the 64² render from the ten new cases. Each solid square and each disc matched every compared pixel. The authored profile retains the following differences across the same paths.
+
+| Root package | Authored shape number | Square or disc exact pixels per shape | Authored profile exact / compared | Maximum U8 / U16 / F16 / F32 profile error |
+|---|---:|---:|---:|---|
+| noise_clouds_1 | 8 | 22,080 | 22,074/22,080 | 0 / 0 / 0 / .000000894069672 |
+| noise_clouds_1_v2 | 8 | 22,080 | 22,071/22,080 | 0 / 0 / .00000762939453 / .000000834465027 |
+| noise_clouds_2 | 8 | 23,184 | 23,166/23,184 | 0 / 0 / .00000762939453 / .000000298023224 |
+| noise_clouds_2_v2 | 8 | 23,184 | 23,153/23,184 | 0 / 0 / 0 / .000000759959221 |
+| noise_crystal_1 | 4 | 35,328 | 30,215/35,328 | 0 / 1 / .00048828125 / .00000101327896 |
+| noise_crystal_2 | 12 | 17,664 | 17,512/17,664 | 0 / 1 / .000244140625 / .00000238418579 |
+
 ### Pattern expression variables and cook time
 
 Pattern expressions now read inherited graph variables from the active context. Each expression stores its local writes and passes explicit assignments to the next expression. A general evaluation still returns the complete variable environment. In two release runs in opposite order, raw outputs matched between builds on all five successful controls, **17,024/17,024 captured pixels per run**, maximum error zero. A sixth control reached the same execution limit and produced the same intermediate data. The independent reference comparisons on 19 previously verified roots matched 3,211,776/3,211,776 pixels in 159 renders.
