@@ -3,7 +3,8 @@ use materialcraft_core::{FunctionGraph, PatternGraph, PatternNodeKind, Value};
 use std::collections::BTreeMap;
 
 fn coverage(shape: i32, x: f32, y: f32, variation: f32) -> f32 {
-    let (base, offset) = super::shape::profile(shape, x, y, variation).unwrap();
+    let sample = super::shape::prepare(shape, variation);
+    let (base, offset) = sample(x, y).unwrap();
     base + offset
 }
 
@@ -42,6 +43,22 @@ fn beveled_square_multiplies_the_two_edge_profiles() {
     ] {
         assert_eq!(coverage(9, x, y, variation).to_bits(), expected);
     }
+}
+
+#[test]
+fn beveled_square_uses_the_pixel_reciprocal_for_its_edge_width() {
+    // Pixel (1, 31) in a centered 64 by 64 stamp lies 3/64 inside the left edge.
+    for (width, expected) in [(0.072_187_5, 0x3f37_a51f), (0.718_97, 0x3c47_d97b)] {
+        assert_eq!(coverage(9, -0.953125, -0.015625, width).to_bits(), expected);
+    }
+}
+
+#[test]
+fn horizontal_stamp_fades_use_the_pixel_reciprocal_for_the_remaining_width() {
+    let coordinate = f32::from_bits(0x3f03_fffe);
+    let variation = 86.0 / 1021.0;
+    assert_eq!(coverage(12, coordinate, coordinate, variation).to_bits(), 0x3c9f_e0f0);
+    assert_eq!(coverage(14, -0.265625, 0.109375, variation).to_bits(), 0x3e9b_3a66);
 }
 
 #[test]

@@ -813,6 +813,95 @@ For the threshold series, take the 128² U16 field from j=0 at the 32² setting.
 
 For the two signed series, generate a 32² U16 image with level ((17x+113y+59xy+19)×7919) mod 65536. Reduce to 8² U8, F16 and F32. At seed 15709 test box intensities 0, 2⁻¹⁰, 3.2, 16, −2⁻¹⁰ and −3.2. At U8 the row-zero pixels at columns 2 and 5 are 145 and 139 at zero and 146 and 140 at ±3.2. At seed 15709, repeat both filter types at 0, 2⁻¹⁰, 3.2, −3.2, 64 and −64, with an eighth turn for directional blur. The +64 directional F32 result matches 62/64 pixels, maximum 2.98023224e−8. The independent directional angles retain the F32 differences shown above.
 
+### Pixel reciprocals for stamp edge widths
+
+The beveled square (shape 9) scales its edge distance by the pixel reciprocal of the bevel width. The fading bell and ring (12 and 14) scale their horizontal positions by the pixel reciprocal of one minus the nonnegative variation. MaterialCraft now evaluates the reciprocal once per stamp and applies it to the two square edges or the horizontal fade. Two regressions failed on the previous calculations.
+
+On a centered 64² white stamp with unit dimensions, at pixel (1,31) the independently measured left edge distance is 3/64. At width .0721875 the reference square reads F32 `3f37a51f`, one bit above the previous `3f37a51e`. At width .71897 it reads `3c47d97b`, previously `3c47d977`. On the same canvas, use variation 86/1021 for the other two shapes. The bell gives `3c9fe0f0` at (48,48) and the ring gives `3e9b3a66` at (23,35).
+
+| Isolated factor, supplied with independently measured coordinates or profile values | F32 exact before | F32 exact after | U8 / U16 / F16 exact after, per format | Maximum error after |
+|---|---:|---:|---:|---:|
+| Square edge | 143,866/169,496 | 169,496/169,496 | 16,880/16,880 | 0 |
+| Bell fade | 44,795/47,800 | 47,800/47,800 | 3,585/3,585 | 0 |
+| Ring fade | 256,542/279,720 | 279,720/279,720 | 20,979/20,979 | 0 |
+
+Use three black backgrounds with tiling on both axes and white stamps at maximum blend. The tuples (canvas, center, extents) are (64², (.5,.5), (1,1)), (32×64, (.375,.625), (.8125,.96875)) and (128×64, (.2831,.7083), (.7313,.5329)). Set the quadrant branch offset to (−.5,−.5) and the frame offset to the stated center. Use shape 8 to measure the distance to the nearer square edge. Two shape 10 ramps with opposite horizontal extents measure the X distance, and two quarter-turned ramps with exchanged extents measure Y. For a positive width select interior pixels before the fade ends where the other edge distance exceeds the width by more than .000004. For nonpositive widths compare the interior plateau. The unattenuated bell comes from shape 5 at the same geometry. The unattenuated ring comes from shape 14 at variation 1.25. Use a base value above .00001. For the bell compare signed X above .5 using the complementary ramp, and for the ring use the positive horizontal ramp directly.
+
+For the square, take (23+17h)/1021 for h=0…41 followed by 0, −.25, 1, .0721875, .71897 and .375. Use seed 196903+59j+h for geometry index j. For the bell and ring use (17+23h)/1021 for h=0…31 followed by 0, .25, .75, .875, 1, 1.25, −.25 and .71897 and seed 198171+73j+h. Render all in F32. For the square also render U8, U16 and F16 at h=2,9,19,25,41,45. For the bell and ring repeat those formats at h=2,14,37.
+
+| Complete stamp outputs | Renders | Exact before | Exact after / compared | Maximum U8 / U16 / F16 / F32 after |
+|---|---:|---:|---:|---|
+| Square widths and rectangular canvases | 198 | 781,861 | 794,489/946,176 | 0 / 1 / 0.000244140625 / 1.97887421e-05 |
+| Bell, ring and their unattenuated controls | 297 | 1,080,989 | 1,082,447/1,419,264 | 0 / 1 / 0.00048828125 / 1.7285347e-06 |
+| Individual stamps from Brick 3 | 274 | 1,120,884 | 1,121,022/1,122,304 | 0 / 1 / 0 / 1.03116035e-05 |
+
+The full square width sweep gains 12,628 exact F32 pixels. In 1,207 pixels the earlier coordinate and edge-factor errors had canceled. Those pixels now differ. All 220,136 separately measured square-edge samples match when supplied with the reference coordinates.
+
+In Brick 3 at 128×32 U16, seed 9787, use Tiling 1, Roundness .34375, Lum_var .6875, Lum_seed 13 and Disorder .3125. Record the two generators’ emitted centers, extents, luminosities and variation at the raster entry. Draw each stamp on its own. Set branch offset to (−.5,−.5), frame offset to the recorded center, variation to .0721875, local roughness to zero and blend to maximum. Use opacity 1.3437529 for the 128 stamps from depth four of node 1035248938, and 3.0873783 for the two depth-one stamps from node 1065200619. For example, stamp 10 at depth four has center (.43812585,.031536788), extents (.12283202,.05915039) and luminosity .62089026. Use seed 194081+37b+j for stamp j with b=1 for the larger group and b=0 for the smaller. Render every stamp in F32 and U16, and also in U8 and F16 for available indices 0,1,4,23,87.
+
+Taking the per-pixel maximum reconstructs each app’s intact U16 stage exactly, 4,096/4,096 for each stage in each app. The two apps differ at 86 pixels in the first stage and 56 in the second, maximum one U16 level. Forty of the first stage’s stamps and one of the second stage’s stamps carry those differences. Converting the F32 maxima to U16 also reproduces all 8,192 levels per app. [Downstream source substitution](#isolating-the-generators-in-spots-bricks-and-cells)
+
+For intact Brick 1, Brick 2, Brick 3 and the two pattern brick roots, add 34 renders per root. For setting j=0…18 cycle canvas dimensions through 64², 128×32, 32×128, 128×64, 128² and 64×32. Use seed 199103+7i+17j, where i is the zero-based inventory index. Use defaults at j=0,1. For subsequent settings use scale or Tiling 1+(j mod 3), smoothness or Roundness (23+43j)/1021, and interstice width (7+(5j mod 23))/128 where present. For Brick 3 also use Lum_var (7+(13j mod 63))/71, Lum_seed 13+3j and Disorder (3+(17j mod 47))/53. Render F32 throughout, all four formats at j=0,4,12,18 and also U16 at j=6,8,15.
+
+| Intact root | New exact before | New exact after / compared | Maximum U8 / U16 / F16 / F32 after |
+|---|---:|---:|---|
+| 59 · brick_1 | 219,491 | 219,491/223,232 | 0 / 1 / 6.10351562e-05 / 1.52597204e-05 |
+| 60 · brick_2 | 221,106 | 221,106/223,232 | 0 / 1 / 0.000244140625 / 1.52885914e-05 |
+| 61 · brick_3 | 222,098 | 222,114/223,232 | 0 / 1 / 0 / 4.57763672e-05 |
+| 355 · pattern_brick_1 | 171,296 | 171,296/223,232 | 0 / 1 / 3.81469727e-06 / 3.32593918e-05 |
+| 356 · pattern_brick_2 | 171,846 | 171,846/223,232 | 0 / 1 / 6.10351562e-05 / 1.32322311e-05 |
+
+Across these new whole-root renders, 24 pixels become exact and eight previously exact pixels differ. Each change occurs in Brick 3, evenly divided between U16 and F32. The table below includes the new settings for the five brick roots. It also gives the archived defaults and applicable existing four-format, changed-parameter, seed and rectangular cases for every directly reachable stamp with shape 9, 12, 14 or a dynamic selector. A dynamic selector can choose a different shape in a given case. Only completed outputs contribute to the counts.
+
+| Inventory index and root | Renders | Exact before | Exact after / compared | Maximum U8 / U16 / F16 / F32 after |
+|---|---:|---:|---:|---|
+| 59 · brick_1 | 68 | 421,981 | 421,981/427,520 | 0 / 1 / 6.10351562e-05 / 1.52597204e-05 |
+| 60 · brick_2 | 61 | 406,666 | 406,666/409,088 | 0 / 1 / 0.000244140625 / 1.52885914e-05 |
+| 61 · brick_3 | 68 | 424,066 | 424,082/427,520 | 0 / 3 / 0 / 4.57763672e-05 |
+| 62 · brick_generator/resources/Tile | 74 | 149,415 | 149,415/150,528 | 175 / 45055 / 0.6875 / 1 |
+| 114 · creased | 17 | 143,948 | 143,948/145,664 | 0 / 29 / 0.00048828125 / 1.52587891e-05 |
+| 118 · crystal_2 | 17 | 144,770 | 144,770/145,664 | 0 / 2 / 0 / 3.05175781e-05 |
+| 153 · fluid | 28 | 538,504 | 538,504/538,880 | 0 / 201 / 0 / 0.00306707621 |
+| 157 · fur_3 | 21 | 145,101 | 145,101/178,432 | 1 / 4 / 0.00048828125 / 6.10351562e-05 |
+| 158 · fur_4 | 21 | 148,961 | 148,961/178,432 | 0 / 4 / 0.00048828125 / 6.10351562e-05 |
+| 222 · messy_fibers_3 | 9 | 127,012 | 127,012/132,096 | 1 / 3 / 0.0009765625 / 5.24520874e-05 |
+| 241 · noise_cells_1_v2/cells_1 | 9 | 132,092 | 132,092/132,096 | 1 / 0 / 0 / 0 |
+| 248 · noise_creased/creased | 9 | 131,312 | 131,312/132,096 | 0 / 1 / 0.000244140625 / 1.52885914e-05 |
+| 250 · noise_crystal_2/crystal_2 | 19 | 152,713 | 152,713/153,856 | 0 / 46 / 0.00048828125 / 1.52597204e-05 |
+| 272 · noise_fluid/fluid | 28 | 508,823 | 508,823/538,880 | 1 / 79 / 0.0009765625 / 0.00108343363 |
+| 292 · noise_messy_fibers_3/messy_fibers_3 | 19 | 123,834 | 123,834/142,592 | 0 / 2 / 0.00048828125 / 2.47955322e-05 |
+| 293 · noise_messy_fibers_3_v2/messy_fibers_3 | 19 | 132,391 | 132,391/142,592 | 1 / 3 / 0.00048828125 / 3.12328339e-05 |
+| 350 · paths_tools/paths_trace | 9 | 18,297 | 18,297/18,432 | 120 / 30822 / 0.62109375 / 1.22619528 |
+| 354 · pattern_arc_pavement/arc_pavement | 27 | 208,786 | 208,786/211,200 | 0 / 0 / 0 / 9.93907452e-06 |
+| 355 · pattern_brick_1/brick_1 | 53 | 310,861 | 310,861/365,824 | 0 / 1 / 3.81469727e-06 / 3.32593918e-05 |
+| 356 · pattern_brick_2/brick_2 | 53 | 310,928 | 310,928/365,824 | 0 / 1 / 6.10351562e-05 / 1 |
+| 357 · pattern_brick_generator/resources/Tile | 74 | 149,402 | 149,402/150,528 | 175 / 45055 / 0.6875 / 1 |
+| 369 · pattern_shape/shape_base | 19 | 139,876 | 139,876/142,592 | 0 / 1 / 0.00048828125 / 1.37090683e-06 |
+| 370 · pattern_splatter_circular/splatter_circular | 9 | 130,916 | 130,916/132,096 | 223 / 57311 / 0.874511719 / 0.921568625 |
+| 371 · pattern_splatter_circular/splatter_circular_color | 9 | 130,715 | 130,715/132,096 | 254 / 65535 / 0.996078491 / 0.996078431 |
+| 373 · pattern_tile_generator/tile_generator | 9 | 130,546 | 130,546/132,096 | 0 / 1 / 0 / 0 |
+| 374 · pattern_tile_generator/tile_generator_color | 9 | 128,338 | 128,338/132,096 | 0 / 1 / 0 / 0 |
+| 375 · pattern_tile_random/tile_random | 9 | 132,096 | 132,096/132,096 | 0 / 0 / 0 / 0 |
+| 376 · pattern_tile_random/tile_random_color | 9 | 132,096 | 132,096/132,096 | 0 / 0 / 0 / 0 |
+| 382 · pattern_weave_2/weave_2 | 9 | 130,307 | 130,307/132,096 | 1 / 59 / 0.0009765625 / 0.000900268555 |
+| 383 · pavement_1 | 9 | 130,912 | 130,912/132,096 | 0 / 2 / 0 / 2.06083059e-05 |
+| 465 · scratches_4 | 18 | 106,551 | 106,551/126,208 | 1 / 5 / 0.00048828125 / 4.57763672e-05 |
+| 466 · shape/shape_base | 19 | 139,931 | 139,931/142,592 | 0 / 1 / 0.00048828125 / 1.37090683e-06 |
+| 489 · splatter_circular | 19 | 139,297 | 139,297/142,592 | 231 / 59438 / 1 / 1.00000006 |
+| 490 · splatter_circular/splatter_circular_color | 19 | 140,218 | 140,218/142,592 | 247 / 65535 / 0.96862793 / 0.996078431 |
+| 509 · starburst | 19 | 141,503 | 141,503/142,592 | 0 / 1 / 1.52587891e-05 / 1.52592547e-05 |
+| 520 · tile_generator | 19 | 139,723 | 139,723/142,592 | 0 / 42 / 0.00048828125 / 0.000639975071 |
+| 521 · tile_generator_color | 19 | 137,445 | 137,445/142,592 | 1 / 103 / 0.00146484375 / 0.00199997425 |
+| 522 · tile_random | 19 | 111,364 | 111,364/142,592 | 223 / 57311 / 1 / 1.00000006 |
+| 523 · tile_random/tile_random_color | 19 | 111,228 | 111,228/142,592 | 250 / 65535 / 1 / 2.00000003 |
+| 535 · waveform_01_v2 | 9 | 124,848 | 124,848/132,096 | 255 / 0 / 0 / 0 |
+| 536 · waveform_1 | 9 | 131,931 | 131,931/132,096 | 0 / 1 / 0 / 0 |
+| 538 · weave_2 | 19 | 138,111 | 138,111/142,592 | 0 / 3 / 0.00048828125 / 4.57763672e-05 |
+
+These 42 inventory rows remain in progress. Additional previously measured settings in each linked root’s record retain their own scope.
+
+Both regressions, the release node suite, formatting, workspace Clippy with warnings denied, dependency layers and the WebAssembly checks passed.
+
 ### Linear gradient sampling on rectangular targets
 
 Gradient Linear 1 at 64² F32, seed 462, Tiling 4 and rotation 3 draws one centered gradient into a 256×16 U16 intermediate. An independently authored graph reproduces all 4,096 native intermediate pixels. Use a white, unit-size horizontal gradient (shape 10), maximum intensity, zero variation, 1.5 turns, additive blending, black background and tiling in both axes. In MaterialCraft the reproduction matches 4,080/4,096 pixels. On row 6, columns 128–143 are each one level low. At column 128 the reference reads 32,640 and MaterialCraft reads 32,639. Applying U16 storage to the independent native F32 readback reproduces all 4,096 native U16 levels.

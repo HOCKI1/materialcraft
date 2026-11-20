@@ -81,6 +81,7 @@ pub(super) fn render(context: &CookContext, stamps: &[PatternStamp], max_depth: 
         let alpha = flush_subnormal(alpha * flush_subnormal(opacity));
         let channel_tint = [red * alpha, green * alpha, blue * alpha, alpha].map(flush_subnormal);
         let tinted_offset = matches!(stamp.pattern, 17 | 18);
+        let sample_shape = shape::prepare(stamp.pattern, stamp.variation);
 
         let frame = Footprint::new(stamp)?;
         let texture = if stamp.pattern >= 256 {
@@ -124,7 +125,7 @@ pub(super) fn render(context: &CookContext, stamps: &[PatternStamp], max_depth: 
                                 (color, coverage)
                             }
                         } else {
-                            let (coverage, offset) = shape::profile(stamp.pattern, local[0], local[1], stamp.variation)?;
+                            let (coverage, offset) = sample_shape(local[0], local[1])?;
                             let coverage = flush_subnormal(coverage);
                             let offset = flush_subnormal(offset);
                             let color = channel_tint.map(|tint| if tinted_offset { coverage.mul_add(tint, offset) } else { coverage * tint });

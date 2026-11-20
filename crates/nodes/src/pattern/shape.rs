@@ -1,5 +1,15 @@
-/// Geometric coverage and the signed channel offset applied after tint and opacity.
-pub(super) fn profile(pattern: i32, x: f32, y: f32, variation: f32) -> Result<(f32, f32), String> {
+/// Prepare the per-stamp constants once, then sample coverage and the signed channel offset.
+pub(super) fn prepare(pattern: i32, variation: f32) -> impl Fn(f32, f32) -> Result<(f32, f32), String> {
+    let width = match pattern {
+        9 if variation > 0.0 => variation.max(f32::MIN_POSITIVE),
+        12 | 14 => 1.0 - variation.max(0.0),
+        _ => 0.0,
+    };
+    let inverse_width = if width == 0.0 { 0.0 } else { crate::function::pixel_divide(1.0, width) };
+    move |x, y| profile(pattern, x, y, variation, inverse_width)
+}
+
+fn profile(pattern: i32, x: f32, y: f32, variation: f32, inverse_width: f32) -> Result<(f32, f32), String> {
     let radius_squared = y.mul_add(y, x * x);
     let radial = (1.0 - radius_squared).max(0.0);
     let value = match pattern - 1 {
@@ -23,7 +33,6 @@ pub(super) fn profile(pattern: i32, x: f32, y: f32, variation: f32) -> Result<(f
         8 if variation <= 0.0 => 1.0,
         8 => {
             // Each edge fades independently, including at a corner.
-            let inverse_width = variation.max(f32::MIN_POSITIVE).recip();
             let fade = |coordinate: f32| {
                 let t = ((1.0 - coordinate.abs()) * inverse_width).clamp(0.0, 1.0);
                 let square = t * t;
@@ -42,13 +51,13 @@ pub(super) fn profile(pattern: i32, x: f32, y: f32, variation: f32) -> Result<(f
             let wave = parabola * CORRECTION.mul_add(parabola.abs(), 1.0 - CORRECTION);
             radial * (0.5 * wave + 0.5)
         }
-        11 => quartic_bell(radius_squared) * descending_fade(x, variation),
+        11 => quartic_bell(radius_squared) * descending_fade(x, inverse_width),
         12 => quartic_bell(radius_squared) * (1.0 - x.abs()).powi(2),
         13 => {
             let t = radius_squared.min(1.0);
             // Normalize t(1-t)² to one at t=1/3.
             let ring = 6.75_f32.mul_add(t, -13.5).mul_add(t, 6.75) * t;
-            ring * descending_fade((x + 1.0) * 0.5, variation)
+            ring * descending_fade((x + 1.0) * 0.5, inverse_width)
         }
         14 => {
             let tip = (x.abs() - 0.77 * variation.max(0.0)).max(0.0);
@@ -71,8 +80,7 @@ fn quartic_bell(radius_squared: f32) -> f32 {
     (t - 4.0).mul_add(t, 6.0).mul_add(t, -4.0).mul_add(t, 1.0)
 }
 
-fn descending_fade(position: f32, variation: f32) -> f32 {
-    let width = 1.0 - variation.max(0.0);
-    let t = if width == 0.0 { f32::from(position > 0.0) } else { (position * width.recip()).clamp(0.0, 1.0) };
+fn descending_fade(position: f32, inverse_width: f32) -> f32 {
+    let t = if inverse_width == 0.0 { f32::from(position > 0.0) } else { (position * inverse_width).clamp(0.0, 1.0) };
     (t * t).mul_add(2.0_f32.mul_add(t, -3.0), 1.0)
 }
