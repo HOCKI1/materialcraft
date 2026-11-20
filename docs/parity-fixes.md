@@ -534,6 +534,32 @@ For each root’s 25 follow-up renders, the 5,120 U8, 553,728 U16, 78,336 F16 an
 
 In a single-worker release run, four interleaved measurements of the 128² default, 256² default and 512² filled cases gave median whole-graph cook times of 46, 259 and 1,138 ms for Alveolus (previously 45, 247 and 1,068 ms). Pattern Alveolus took 45, 253 and 1,083 ms (previously 43, 238 and 1,045 ms).
 
+### Pixel-center rounding at the near stamp vertex
+
+BNW Spots 1 now matches 3,177,940/3,177,984 final pixels across 125 distinct settings. The earlier result was 3,177,789. Its remaining differences include deeper stages whose results change across repeated reference renders. BNW Spots 3 retains 3,159,552/3,159,552 exact final pixels across 118 settings. The same 40-setting save and reopen comparison again matched all 2,399,232 pixels in both applications. [Dimensions, settings and repeated renders](#draw-order-at-six-quadrant-subdivisions)
+
+| Root on the original file | U8 exact · max | U16 exact · max | F16 exact · max | F32 exact · max |
+|---|---:|---:|---:|---:|
+| BNW Spots 1, 125 settings | 649,984/649,984 · 0 | 949,470/949,504 · 2 | 649,983/649,984 · .000244140625 | 928,503/928,512 · 2.15768814e−5 |
+| BNW Spots 3, 118 settings | 647,936/647,936 · 0 | 943,360/943,360 · 0 | 647,936/647,936 · 0 | 920,320/920,320 · 0 |
+| Clouds 1, 32 settings | 154,112/154,112 · 0 | 199,670/199,680 · 4 | 154,112/154,112 · 0 | 199,668/199,680 · .000110566616 |
+| Clouds 2, 32 settings | 154,112/154,112 · 0 | 199,672/199,680 · 2 | 154,111/154,112 · .000244140625 | 199,677/199,680 · 2.28881836e−5 |
+
+A cropped quadrant with one stamp isolates the change. Use black F32 grayscale, additive blending, unit gain and tint, zero roughness, no tiling, branch offset (−.5,−.5) and seed 389119. Apply the center as the frame offset. The table gives the reference F32 bits at zero-based pixel coordinates. MaterialCraft previously returned 0x3dff4c20 for the first sample.
+
+| Dimensions | Profile | Center | Size | Rotation in turns | Pixel | F32 bits |
+|---|---|---|---|---:|---|---|
+| 64×32 | Linear ramp | (.5009855,.012967646) | (.024458896,.015625) | 136.94586 | (31,0) | 0x3dff4c1c |
+| 32² | Paraboloid | (.06045103,.2529377) | (.055972442,.03125) | 152.8708 | (1,8) | 0x3f0e3e7c |
+| 64² | Paraboloid | (−.0138504505,.07075971) | (.0723335,.0625) | 189.57106 | (0,5) | 0x3eeba3c2 |
+| 256² | Linear ramp | (−.010898113,.7042948) | (.02902194,.03125) | 325.4251 | (0,179) | 0x3d678fd8 |
+
+Each axis rounds the projected near edge minus half a pixel to F32, then rounds the interval to the snapped first sample center to F32. Subtracting one pixel gives the displacement of the near vertex. This reproduces the ramp, pyramid and paraboloid measurements on both sides of a clipped edge. The 297 translation and scale controls moved eleven measured stamps by (0,0), (1,0), (0,1), (5,−3) and (−4,4) pixels at the original size, by (0,0) and (2,3) at double size, and by (0,0) at four and eight times the size. Together they match 27,426,816/27,426,816 F32 pixels, up from 27,426,354. A further 112 geometries, each rendered with all three profiles, match 6,669,312/6,669,312 pixels, up from 6,669,285. They include 16×32 through 512×128, rotated, axis-aligned and out-of-bounds vertices. The maximum error is zero in both sets.
+
+In BNW Spots 3's 256² U16 stage at a requested 16², disorder .15625 and seed 8866, pixel (118,0) now stores 44,702 in both apps. At (236,1) the reference stores 29,396 and MaterialCraft stores 29,397. Across eight renders the intermediate matches 524,287/524,288 pixels, maximum one U16 level. In Clouds 2 all seven pyramid stamps contributing at (19,0) of the 32×16 stage now match individually across all 3,584 F32 pixels. Larger Clouds renders still vary across reference recooks. [Root settings and variability](#draw-order-at-six-quadrant-subdivisions)
+
+Seventeen of the 152 earlier stamp-control sets gained a combined 2,645 exact pixels. The other 135 retained their exact counts and maxima. All 98,304 pixels in the 36-render cropped-boundary set now match. Across 1,052 isolated BNW Spots 1 draws, 820,301/820,304 F32 pixels match. In the 40-root recheck BNW Spots 1 gained 97 exact pixels in its original 34-render matrix. The other 39 retained their results. Four alternating single-worker release runs had median cook times of 198 ms for BNW Spots 1 and 179 ms for BNW Spots 3, previously 202 ms and 175 ms.
+
 ### Draw order at six quadrant subdivisions
 
 BNW Spots 3 matched every final output in 118 distinct combinations of dimensions, seed, disorder and format. The preceding 27-render comparison gained 213 exact pixels. BNW Spots 1 gained 71 exact pixels in its 34-render comparison and still has differences at higher resolutions.

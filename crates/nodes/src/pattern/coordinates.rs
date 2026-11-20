@@ -43,7 +43,11 @@ impl PixelPlanes {
         let triangle = Triangle::new(projected);
         // Move each stored vertex by its snapping displacement in pattern space.
         let displacements: [[f32; 2]; 2] = std::array::from_fn(|axis| {
-            let low_delta = (triangle.near[axis] - f64::from(projected[axis][0])) as f32 * pixel_size[axis];
+            // The interval from the projected half-pixel to the first sample rounds
+            // before its one-pixel offset is removed, including at a clipped edge.
+            let first_sample = triangle.near[axis] + 0.5;
+            let interval = (first_sample - f64::from(projected[axis][0] - 0.5)) as f32;
+            let low_delta = (interval - 1.0) * pixel_size[axis];
             let high_delta = (triangle.far[axis] - f64::from(projected[axis][1])) as f32 * pixel_size[axis];
             [low_delta - frame.radius[axis], high_delta + 3.0 * frame.radius[axis]]
         });
