@@ -15,9 +15,15 @@ impl Footprint {
         }
         // Extended quarter turns can retain a cross-axis component at the stored phase.
         let (sine, cosine) = crate::function::pixel_sin_cos(angle);
+        // Exact quarter turns have axis-aligned draw bounds even when the sampling phase retains a residual.
+        let (bounds_sine, bounds_cosine) = match stamp.rotation.fract().abs() {
+            0.0 | 0.5 => (0.0, 1.0),
+            0.25 | 0.75 => (1.0, 0.0),
+            _ => (sine, cosine),
+        };
         let radius = [
-            (stamp.size[0] * cosine).abs() * 0.5 + (stamp.size[1] * sine).abs() * 0.5,
-            (stamp.size[0] * sine).abs() * 0.5 + (stamp.size[1] * cosine).abs() * 0.5,
+            (stamp.size[0] * bounds_cosine).abs() * 0.5 + (stamp.size[1] * bounds_sine).abs() * 0.5,
+            (stamp.size[0] * bounds_sine).abs() * 0.5 + (stamp.size[1] * bounds_cosine).abs() * 0.5,
         ];
         Ok(Self { sine, cosine, radius })
     }
@@ -76,8 +82,8 @@ impl SampleGrid {
         }
         let center = self.region.copy_origin(stamp.center, self.axes);
         let Ok(repeats) = self.region.repeats(&self.region, center, frame.radius, self.axes) else { return false };
-        let columns = self.region.copy_centers(0, center[0], repeats[0]);
-        for y_center in self.region.copy_centers(1, center[1], repeats[1]) {
+        let columns = repeats[0].centers();
+        for y_center in repeats[1].centers() {
             for x_center in columns.clone() {
                 let center = [x_center, y_center];
                 let [[left, right], [top, bottom]] = self.region.bounds(center, frame.radius, self.dimensions);

@@ -77,6 +77,8 @@ Both Alveolus roots now match every measured pixel. The corrected stamp coordina
 
 The reference app reopened both intact Alveolus graphs saved with the corrected SBS schema header. In each app all 1,363,456 pixels across 50 reopened renders match that app’s output before saving. [Save and reopen measurements](parity-fixes.md#reopening-sbs-files-with-release-number-headers)
 
+All 368,640 square-mask pixels match in the 135 extended quarter-turn renders. The 45 displaced-window ramps match 101,216/101,376 pixels, with maximum F32 error 2⁻²². [Tiled draw controls, saved files and root rechecks](parity-fixes.md#tiled-draws-in-cropped-windows-and-quarter-turn-bounds)
+
 ## Complete inventory
 
 | SBS package / graph path | Input pins | Hidden in library | Parity status |

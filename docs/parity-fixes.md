@@ -534,6 +534,55 @@ For each root’s 25 follow-up renders, the 5,120 U8, 553,728 U16, 78,336 F16 an
 
 In a single-worker release run, four interleaved measurements of the 128² default, 256² default and 512² filled cases gave median whole-graph cook times of 46, 259 and 1,138 ms for Alveolus (previously 45, 247 and 1,068 ms). Pattern Alveolus took 45, 253 and 1,083 ms (previously 43, 238 and 1,045 ms).
 
+### Tiled draws in cropped windows and quarter-turn bounds
+
+A tiled stamp starts at the outermost copy in the tiling window, including when that copy is outside the render window. Its position is stored in F32, then each successive copy subtracts the F32 period. In the fractional-window controls, adding ten independently rendered, unwrapped copies at those centers reproduces all 16,384 reference pixels of eight tiled horizontal and vertical ramps. Four settings use trials 24, 28, 48 and 64 in the earlier D/E window. [Window definitions and trial sequence](#projecting-stamp-vertices-through-shifted-render-regions)
+
+For a single horizontal ramp, use both tiling axes, frame offset (.064685315,.20525344), size (.5799769,.4007881), zero rotation and additive blending. Use a 32×64 render window D and tiling window E. Pixel (29,0) is F32 `3f73a212`. Starting at the outermost visible copy gives `3f73a216`. With horizontal tiling only, use a 128×32 render window (−9.979,−9.558,.096,.869), the same E, center (−.9356832,.3353525) and size (33.7824,.8661607). Pixel (6,0) is `41607c0c`. The implementation can skip invisible copies in a run of equally spaced floats. At an exponent boundary it takes an individual subtraction to retain the rounding of the next center.
+
+At an exact multiple of a quarter turn the draw rectangle is axis-aligned. The stored sampling angle can still have a residual sine or cosine. Draw an unwrapped white square on a black 64² output with branch offset (−.5,−.5) and frame offset (.533203125,.3779296875). At 1.5 turns use size (.517578125,.271484375). Pixel (37,15) is black and (37,16) is white. Swapping the size components gives the same two rows at x=27 for −17.75 turns and at x=42 for 4096.25 turns. Both the cropped ramp and the quarter-turn regressions fail on the preceding cooker.
+
+| Grayscale F32 controls | Renders | Exact pixels before | Exact pixels after / compared | Maximum error before | Maximum error after |
+|---|---:|---:|---:|---:|---:|
+| Original render and tiling windows | 504 | 1,374,592 | 1,374,592/1,376,256 | 2.38418579e-07 | 2.38418579e-07 |
+| Fractional centers and windows | 210 | 573,249 | 575,479/577,536 | 2.38418579e-07 | 1.78813934e-07 |
+| Displaced render windows | 45 | 85,610 | 101,216/101,376 | 1.43051147e-05 | 2.38418579e-07 |
+| Tile stamp placements | 192 | 589,824 | 589,824/589,824 | 0 | 0 |
+| Square at exact quarter turns | 108 | 294,452 | 294,912/294,912 | 1 | 0 |
+| Ramp at exact quarter turns | 108 | 284,832 | 293,605/294,912 | 1 | 1.78813934e-07 |
+| Square across extended turns | 135 | 367,402 | 368,640/368,640 | 1 | 0 |
+| Ramp across extended turns | 135 | 321,277 | 364,604/368,640 | 1 | 2.38418579e-07 |
+| Square immediately beside 1.5 turns | 18 | 49,150 | 49,150/49,152 | 1 | 1 |
+| Ramp immediately beside 1.5 turns | 18 | 49,107 | 49,107/49,152 | 0.609433711 | 0.609433711 |
+| Earlier five geometries, square | 45 | 239,604 | 239,616/239,616 | 1 | 0 |
+| Earlier five geometries, ramp | 45 | 237,038 | 237,064/239,616 | 0.408296943 | 1.1920929e-07 |
+| Earlier five geometries, paraboloid | 45 | 236,980 | 237,006/239,616 | 5.96046448e-07 | 5.96046448e-07 |
+| Earlier five geometries, pyramid | 45 | 237,007 | 237,041/239,616 | 3.57627869e-07 | 3.57627869e-07 |
+
+For the 45 displaced-window cases use E as the tiling window, horizontal tiling only, and zero rotation. With period p=.631−.019, set the render window to (.019+dp−.206,.019+dp+.215,.096,.869). Use d=−.5, −1, −2, −4, −8, −16, .25, 1.75 and 5.25, in that order. At each d use five outputs in order, 32×16, 64×32, 16×32, 64² and 128×32. Starting from PCG64 seed 329457, draw each center x from [−2,1), center y from [.25,.6) and stamp height from [.5,1.25). Stamp width is max(.62,1.15|d|p) × (1+.5j) for size index j from zero. The graph seed is 329457+53i+j for shift index i from zero. The remaining 160 differences all occur in the 64×32 case at d=−16.
+
+For the quarter-turn controls, set the screen-aligned size in pixels and place the indicated edge at a half-pixel using the table. The center on that axis is the edge plus half the screen-aligned size. Normalize each component by the output dimension, then swap the two normalized stamp sizes at odd quarter turns. For each geometry use its edge-axis center rounded to F32 and the immediately smaller and larger F32 values, in increasing order. Use a white square or horizontal ramp, unit opacity and zero variation, with tiling off.
+
+| Output | Screen-aligned size | Placed edge | Center on the other axis |
+|---|---|---|---:|
+| 32×64 | 28.625 × 41.75 | y=8.5 | x=13.875 |
+| 64×32 | 41.75 × 28.625 | x=6.5 | y=15.375 |
+| 64² | 33.125 × 17.375 | y=15.5 | x=34.125 |
+
+For the first bank use turns .5, 1.5, −1.5, 2.5, −2.5, 1, −2, .25, .75, 1.25, 1.75, −1.75, 1.5−2⁻²³ and 1.5+2⁻²³. The last two angles account for the two remaining square-mask differences. For the extended bank use .25, 1.5, −1.75, 3.25, −17.75, 17.5, −127.5, 128.25, 511.75, −512, 4096.25, −4096.5, 32768.25, −32768.75 and 65536.5. In each bank use seed 323339+j for zero-based render index j in angle, geometry, center order. [Earlier five-geometry and thin-ramp settings](#rotated-stamp-coordinates-in-gradient-linear-1-and-bnw-spots)
+
+For the saved-file comparison use the five d=−16 ramps and extended-bank indices 9, 16, 43, 97 and 130 for both the square and ramp. Render each in U8, U16, F16 and F32, then reopen the three MaterialCraft saves in both apps. Each app reproduced all 176,128 of its own original pixels across the 60 reopened settings. The raw comparisons between apps give the same counts before and after saving.
+
+| Saved settings | Exact U8 | Exact U16 | Exact F16 | Exact F32 | Maximum F32 error |
+|---|---:|---:|---:|---:|---:|
+| Displaced ramp | 11,264/11,264 | 11,264/11,264 | 11,264/11,264 | 11,104/11,264 | 2.38418579e-07 |
+| Quarter-turn square | 16,384/16,384 | 16,384/16,384 | 16,384/16,384 | 16,384/16,384 | 0 |
+| Quarter-turn ramp | 16,384/16,384 | 16,384/16,384 | 16,384/16,384 | 16,373/16,384 | 5.96046448e-08 |
+
+The maximum U8, U16 and F16 errors in the saved settings are zero. The 108 additional noncardinal square controls match 619,520/619,520 pixels. At the same settings the horizontal ramps match 546,778/619,520 (maximum 3.57627869e−7) and the paraboloids match 552,416/619,520 (maximum 1.13248825e−6). The 140 thin ramps retain 161,784/161,792 U16 pixels and 645,506/647,168 F32 pixels, with maxima of one level and 5.96046448e−8.
+
+BNW Spots 1 still matches 197,377/204,288 pixels in 34 intact renders and BNW Spots 3 matches 180,975/185,856 in 27. Their U16 maxima are 3 and 2 levels, and their F32 maxima are .0000431537628 and .0000305175781. The two Tile helpers and Gradient Linear 1 remain exact in their four-format and saved-file controls. The exact counts and maximum errors agree with the preceding measurements for all 40 intact guard roots. Four alternating single-worker release measurements per version gave median times of 173.3 to 171.4 ms for 64² Spots 1, 147.1 to 147.7 ms for 64² Spots 3, 4.5 to 4.5 ms for the 128×32 d=−16 ramp. The Spots settings used disorder .84375 and seeds 8855 and 8868 respectively.
+
 ### Circular stamp coverage and zero stamp opacity
 
 A circular stamp preserves its background outside the unit disc. Samples exactly on the circumference still enter the blend, including a zero-valued sample. On a 64² F32 canvas, draw a white stamp centered at (32.5,32.5) pixels with size (32,32) pixels and maximum blending over −.25. At (20,20) a disc, paraboloid and bell each leave −.25. At (48,32) their values are 1, 0 and 0. A fully attenuated horizontal ramp and the capsule both write zero at (20,20). The circular selectors are 3–7, 11–14, 16 and 18.

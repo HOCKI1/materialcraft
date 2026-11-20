@@ -328,6 +328,24 @@ fn stamp_gradients_keep_the_phase_of_extended_turns() {
 }
 
 #[test]
+fn quarter_turn_square_snaps_its_bounds_before_the_residual_phase_affects_sampling() {
+    let variables = BTreeMap::from([("$tiling".into(), Value::Int(0))]);
+    for (turn, size, x) in [(1.5, [0.5175781, 0.27148438], 37), (-17.75, [0.27148438, 0.5175781], 27), (4096.25, [0.27148438, 0.5175781], 42)] {
+        let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
+        graph.nodes[0].parameters = BTreeMap::from([
+            ("patterntype".into(), Value::Int(2)),
+            ("branchoffset".into(), Value::Float2([-0.5; 2])),
+            ("frameoffset".into(), Value::Float2([0.5332031, 0.3779297])),
+            ("patternsize".into(), Value::Float2(size)),
+            ("patternrotation".into(), Value::Float(turn)),
+        ]);
+        let image = cook_at_size(graph, &variables, 323355, 64).unwrap().remove(0);
+        assert_eq!(image.get_gray(x, 15, false), 0.0, "{turn} turns");
+        assert_eq!(image.get_gray(x, 16, false), 1.0, "{turn} turns");
+    }
+}
+
+#[test]
 fn oblique_stamp_interpolates_both_coordinates_of_a_paraboloid() {
     let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
     graph.nodes[0].parameters = BTreeMap::from([
@@ -498,8 +516,30 @@ fn stamp_vertices_keep_the_last_sample_of_a_wrapped_square() {
 #[test]
 fn wrapped_centers_store_each_step_across_fractional_periods() {
     let region = super::region::Region::new([-0.173, 0.369, 0.096, 0.869]).unwrap();
-    let leftmost = region.copy_centers(0, 0.307_120_5, [-4, 3]).min_by(f32::total_cmp);
+    let copies = region.repeats(&region, [0.307_120_5, 0.5], [2.0, 0.0], [true, false]).unwrap();
+    let leftmost = copies[0].centers().min_by(f32::total_cmp);
     assert_eq!(leftmost.map(f32::to_bits), Some(0xbfee_314e));
+}
+
+#[test]
+fn tiled_ramp_retains_the_phase_of_copies_above_the_visible_window() {
+    let tiling = [0.019, 0.631, -0.073, 0.689];
+    for (axes, canvas, center, size, render, [x, y], expected) in [
+        (3, [32, 64], [0.064_685_315, 0.205_253_44], [0.579_976_9, 0.400_788_1], [-0.173, 0.369, 0.096, 0.869], [29, 0], 0x3f73_a212),
+        (1, [128, 32], [-0.935_683_2, 0.335_352_5], [33.782_4, 0.866_160_7], [-9.979, -9.558, 0.096, 0.869], [6, 0], 0x4160_7c0c),
+    ] {
+        let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
+        graph.nodes[0].parameters = BTreeMap::from([
+            ("patterntype".into(), Value::Int(10)),
+            ("blendingmode".into(), Value::Int(0)),
+            ("branchoffset".into(), Value::Float2([-0.5; 2])),
+            ("frameoffset".into(), Value::Float2(center)),
+            ("patternsize".into(), Value::Float2(size)),
+        ]);
+        let variables = BTreeMap::from([("$tiling".into(), Value::Int(axes))]);
+        let image = cook_in_regions(graph, &variables, 329457, canvas, [render, tiling], 0.0).unwrap().remove(0);
+        assert_eq!(image.get_gray(x, y, false).to_bits(), expected, "render window {render:?}");
+    }
 }
 
 #[test]
