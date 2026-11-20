@@ -299,6 +299,28 @@ fn stamp_gradients_keep_the_phase_of_extended_turns() {
 }
 
 #[test]
+fn oblique_stamp_interpolates_both_coordinates_of_a_paraboloid() {
+    let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
+    graph.nodes[0].parameters = BTreeMap::from([
+        ("patterntype".into(), Value::Int(4)),
+        ("patternsize".into(), Value::Float2([0.25; 2])),
+        ("patternrotation".into(), Value::Float(0.0625)),
+    ]);
+    let variables = BTreeMap::from([("$tiling".into(), Value::Int(0))]);
+    let image = cook_at_size(graph, &variables, 301067, 64).unwrap().remove(0);
+    assert_eq!(image.get_gray(31, 24, false).to_bits(), 0x3df0_0010);
+}
+
+#[test]
+fn oblique_stamp_retains_the_small_cross_axis_step_on_a_thin_ramp() {
+    let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
+    graph.nodes[0].parameters = BTreeMap::from([("patterntype".into(), Value::Int(10)), ("patternrotation".into(), Value::Float(1.5))]);
+    let variables = BTreeMap::from([("$tiling".into(), Value::Int(0))]);
+    let image = cook_at_dimensions(graph, &variables, 189775, 256, 16).unwrap().remove(0);
+    assert_eq!(image.get_gray(128, 6, false).to_bits(), 0x3eff_0000);
+}
+
+#[test]
 fn fractional_stamp_edges_set_both_coordinate_gradients() {
     for (size, shift, turn, x, y, expected) in [
         ([0.375, 0.23046875], [0.0, 0.0], 0.0, 21, 32, 0x3d80_0004),
@@ -342,7 +364,7 @@ fn clipped_stamp_gradients_use_one_triangle_vertex_for_both_axes() {
     ] {
         let frame = super::footprint::Footprint { sine: 0.0, cosine: 1.0, radius: size.map(|s| s.abs() * 0.5) };
         let planes = super::coordinates::PixelPlanes::new(&frame, &region, center, size, canvas).unwrap();
-        let [x, _] = planes.row(0)(0);
+        let [x, _] = planes.row(0)(0).unwrap();
         assert_eq!(((x + 1.0) * 0.5).to_bits(), expected, "center {center:?}, size {size:?}");
     }
 }
@@ -369,7 +391,7 @@ fn stamp_precision_at_the_far_vertex_precedes_the_coordinate_scale() {
     for (cosine, expected) in [(1.0, 0x3ed5_a7fc), (-1.0, 0x3f15_2c02)] {
         let frame = super::footprint::Footprint { sine: 0.0, cosine, radius: size.map(|s| s * 0.5) };
         let planes = super::coordinates::PixelPlanes::new(&frame, &region, center, size, [32, 64]).unwrap();
-        let [x, _] = planes.row(30)(0);
+        let [x, _] = planes.row(30)(0).unwrap();
         assert_eq!(((x + 1.0) * 0.5).to_bits(), expected, "cosine {cosine}");
     }
 }
@@ -380,7 +402,7 @@ fn stamp_vertices_snap_after_storage_at_pixel_precision() {
     let size = [0.1875; 2];
     let frame = super::footprint::Footprint { sine: 0.0, cosine: 1.0, radius: [0.09375; 2] };
     let planes = super::coordinates::PixelPlanes::new(&frame, &region, [0.295_898_4, -0.031_547_427], size, [512, 128]).unwrap();
-    let [x, y] = planes.row(0)(138);
+    let [x, y] = planes.row(0)(138).unwrap();
     assert_eq!((coverage(4, x, y, 0.0) * 0.91).to_bits(), 0x3f36_8e3f);
 }
 
@@ -390,7 +412,7 @@ fn shifted_region_preserves_the_vertices_before_projection() {
     let size = [0.270_833_34, 0.162_500_01];
     let frame = super::footprint::Footprint { sine: 0.0, cosine: 1.0, radius: size.map(|s| s * 0.5) };
     let planes = super::coordinates::PixelPlanes::new(&frame, &region, [0.541_666_7, 0.437_499_97], size, [16, 32]).unwrap();
-    let [u, v] = planes.row(14)(7);
+    let [u, v] = planes.row(14)(7).unwrap();
     assert_eq!(coverage(4, u, v, 0.0).to_bits(), 0x3f0f_e7d1);
 }
 

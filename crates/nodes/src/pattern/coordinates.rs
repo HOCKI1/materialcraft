@@ -1,29 +1,36 @@
 use super::{footprint::Footprint, region::Region};
 use crate::function::{pixel_divide, truncate_float};
 
-/// The two signed coordinate gradients for an axis-aligned stamp.
+mod oblique;
+
+/// Interpolated signed coordinates of a stamp's padded triangle.
 pub(super) struct PixelPlanes {
-    axes: [Axis; 2],
-    swap: bool,
+    first_pixel: [u32; 2],
+    mapping: Mapping,
+}
+
+enum Mapping {
+    Aligned { axes: [Axis; 2], swap: bool },
+    Oblique { planes: [oblique::Plane; 2], origin: [f64; 2] },
 }
 
 struct Axis {
-    first_pixel: u32,
     base: f64,
     step: f64,
     negative_bias: f64,
 }
 
+struct Triangle {
+    near: [f64; 2],
+    far: [f64; 2],
+    origin: [f64; 2],
+    basis: [f32; 2],
+    offset: [i32; 2],
+    far_axis: Option<usize>,
+}
+
 impl PixelPlanes {
     pub fn new(frame: &Footprint, region: &Region, center: [f32; 2], size: [f32; 2], dimensions: [u32; 2]) -> Option<Self> {
-        let swap = frame.cosine == 0.0;
-        let signs = if swap && frame.sine.abs() == 1.0 {
-            [-frame.sine * size[1].signum(), frame.sine * size[0].signum()]
-        } else if frame.sine == 0.0 && frame.cosine.abs() == 1.0 {
-            [frame.cosine * size[0].signum(), frame.cosine * size[1].signum()]
-        } else {
-            return None;
-        };
         let pixel_size: [f32; 2] = std::array::from_fn(|i| region.period()[i] / dimensions[i] as f32);
         let projected: [_; 2] = std::array::from_fn(|i| region.stamp_vertices(i, center[i], frame.radius[i], dimensions[i]));
         // Smaller stamps and extents too large to resolve half pixels use the ordinary footprint.
@@ -32,46 +39,44 @@ impl PixelPlanes {
         }) {
             return None;
         }
-        // Store each vertex at pixel precision before both snapping and computing its coordinates.
-        let near_vertex = projected.map(|[near, _]| near);
-        let far_vertex = projected.map(|[_, far]| far);
-        let near = near_vertex.map(|v| (f64::from(v) + 0.5).floor());
-        let far = far_vertex.map(|v| (f64::from(v) + 0.5).floor() + 1.0);
-        let padded: [f32; 2] = std::array::from_fn(|i| ((far[i] - near[i]) * 0.5) as f32);
-        let reciprocal = area_reciprocal(truncate_float(f64::from(padded[0]) * f64::from(padded[1])));
-        let origin = near.map(|n| (n.max(0.0) * 0.25).floor() * 4.0);
-        let near_offset: [i32; 2] = std::array::from_fn(|i| (origin[i] - near[i]) as i32);
-        let far_offset: [i32; 2] = std::array::from_fn(|i| (origin[i] - far[i]) as i32);
-        // The triangle has only one far vertex on each axis. When both offsets fit the same
-        // number of bits, the vertical far vertex has priority, then the horizontal one.
-        let far_axis = (0..2).rev().find(|&i| far_offset[i].unsigned_abs().leading_zeros() >= near_offset[i].unsigned_abs().leading_zeros());
+        let triangle = Triangle::new(projected);
+        let first_pixel = triangle.near.map(|n| n as u32);
+        let swap = frame.cosine == 0.0;
+        let signs = if swap && frame.sine.abs() == 1.0 {
+            [-frame.sine * size[1].signum(), frame.sine * size[0].signum()]
+        } else if frame.sine == 0.0 && frame.cosine.abs() == 1.0 {
+            [frame.cosine * size[0].signum(), frame.cosine * size[1].signum()]
+        } else {
+            let planes = oblique::planes(&triangle, frame, region, center, size, dimensions)?;
+            return Some(Self { first_pixel, mapping: Mapping::Oblique { planes, origin: triangle.origin } });
+        };
         let axes = std::array::from_fn(|axis| {
-            let basis = truncate_float(f64::from(padded[1 - axis]) * f64::from(reciprocal));
             let radius = frame.radius[axis];
             let scale = pixel_divide(2.0, 2.0 * radius);
             // Store each snapping displacement in pattern space before adding it to the signed vertex.
-            let low_delta = (near[axis] - f64::from(near_vertex[axis])) as f32 * pixel_size[axis];
-            let high_delta = (far[axis] - f64::from(far_vertex[axis])) as f32 * pixel_size[axis];
+            let low_delta = (triangle.near[axis] - f64::from(projected[axis][0])) as f32 * pixel_size[axis];
+            let high_delta = (triangle.far[axis] - f64::from(projected[axis][1])) as f32 * pixel_size[axis];
             let low = (low_delta - radius) * scale;
             let high = (high_delta + 3.0 * radius) * scale;
             let span = truncate_float(f64::from(high) - f64::from(low)) * 0.5;
-            let gradient = gradient_product(basis, span);
+            let gradient = gradient_product(triangle.basis[axis], span);
             let unit = f64::from(gradient.next_up() - gradient);
-            let (offset, vertex) = if far_axis == Some(axis) { (far_offset[axis], high) } else { (near_offset[axis], low) };
-            let base = origin_coordinate(offset, gradient, unit, vertex);
+            let vertex = if triangle.far_axis == Some(axis) { high } else { low };
+            let base = truncate_float(f64::from(vertex) + offset_product(triangle.offset[axis], gradient, unit));
             let sign = f64::from(signs[axis]);
             let step = f64::from(gradient);
-            Axis { first_pixel: near[axis] as u32, base: ((0.5 - origin[axis]) * step + f64::from(base)) * sign, step: step * sign, negative_bias: unit / 64.0 }
+            Axis { base: ((0.5 - triangle.origin[axis]) * step + f64::from(base)) * sign, step: step * sign, negative_bias: unit / 64.0 }
         });
-        Some(Self { axes, swap })
+        Some(Self { first_pixel, mapping: Mapping::Aligned { axes, swap } })
     }
 
     pub fn clip(&self, bounds: [[u32; 2]; 2]) -> [[u32; 2]; 2] {
         std::array::from_fn(|axis| {
             let [mut start, mut end] = bounds[axis];
             // The triangle starts at the snapped vertex. Its interpolated coordinates include both stamp edges.
-            start = start.max(self.axes[axis].first_pixel).min(end);
-            let contains = |pixel| self.axes[axis].sample(pixel).abs() <= 1.0;
+            start = start.max(self.first_pixel[axis]).min(end);
+            let Mapping::Aligned { axes, .. } = &self.mapping else { return [start, end] };
+            let contains = |pixel| axes[axis].sample(pixel).abs() <= 1.0;
             while start < end && !contains(start) {
                 start += 1;
             }
@@ -82,12 +87,40 @@ impl PixelPlanes {
         })
     }
 
-    pub fn row(&self, y: u32) -> impl Fn(u32) -> [f32; 2] + '_ {
-        let v = self.axes[1].sample(y);
-        move |x| {
-            let u = self.axes[0].sample(x);
-            if self.swap { [v, u] } else { [u, v] }
+    pub fn row(&self, y: u32) -> impl Fn(u32) -> Option<[f32; 2]> + '_ {
+        let vertical = match &self.mapping {
+            Mapping::Aligned { axes, .. } => [f64::from(axes[1].sample(y)), 0.0],
+            Mapping::Oblique { planes, origin } => planes.each_ref().map(|plane| plane.y_term(f64::from(y) + 0.5 - origin[1])),
+        };
+        move |x| match &self.mapping {
+            Mapping::Aligned { axes, swap } => {
+                let u = axes[0].sample(x);
+                let v = vertical[0] as f32;
+                Some(if *swap { [v, u] } else { [u, v] })
+            }
+            Mapping::Oblique { planes, origin } => {
+                let dx = f64::from(x) + 0.5 - origin[0];
+                let uv: [f32; 2] = std::array::from_fn(|i| planes[i].sample(dx, vertical[i]));
+                uv.iter().all(|v| v.abs() <= 1.0).then_some(uv)
+            }
         }
+    }
+}
+
+impl Triangle {
+    fn new(projected: [[f32; 2]; 2]) -> Self {
+        let near = projected.map(|[v, _]| (f64::from(v) + 0.5).floor());
+        let far = projected.map(|[_, v]| (f64::from(v) + 0.5).floor() + 1.0);
+        let padded: [f32; 2] = std::array::from_fn(|i| ((far[i] - near[i]) * 0.5) as f32);
+        let reciprocal = area_reciprocal(truncate_float(f64::from(padded[0]) * f64::from(padded[1])));
+        let basis = std::array::from_fn(|i| truncate_float(f64::from(padded[1 - i]) * f64::from(reciprocal)));
+        let origin = near.map(|n| (n.max(0.0) * 0.25).floor() * 4.0);
+        let near_offset: [i32; 2] = std::array::from_fn(|i| (origin[i] - near[i]) as i32);
+        let far_offset: [i32; 2] = std::array::from_fn(|i| (origin[i] - far[i]) as i32);
+        // The horizontal and vertical far corners are distinct. Prefer the vertical corner on a tie.
+        let far_axis = (0..2).rev().find(|&i| far_offset[i].unsigned_abs().leading_zeros() >= near_offset[i].unsigned_abs().leading_zeros());
+        let offset = std::array::from_fn(|i| if far_axis == Some(i) { far_offset[i] } else { near_offset[i] });
+        Self { near, far, origin, basis, offset, far_axis }
     }
 }
 
@@ -98,7 +131,10 @@ impl Axis {
     }
 }
 
-fn origin_coordinate(offset: i32, gradient: f32, unit: f64, vertex: f32) -> f32 {
+fn offset_product(offset: i32, gradient: f32, unit: f64) -> f64 {
+    if !gradient.is_normal() {
+        return f64::from(offset) * f64::from(gradient);
+    }
     let magnitude = offset.unsigned_abs();
     // The integer offset times the 24-bit gradient retains 29 product columns. Each
     // partial row loses its low columns before the remaining rows are added.
@@ -112,7 +148,7 @@ fn origin_coordinate(offset: i32, gradient: f32, unit: f64, vertex: f32) -> f32 
         }
     }
     let product = f64::from(magnitude) * f64::from(gradient) - discarded as f64 * unit;
-    truncate_float(f64::from(vertex) + if offset < 0 { -product } else { product })
+    if offset < 0 { -product } else { product }
 }
 
 // Interpolate 1/x from its two endpoints and midpoint in each normalized mantissa interval.

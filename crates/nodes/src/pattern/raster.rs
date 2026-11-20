@@ -121,9 +121,9 @@ pub(super) fn render(context: &CookContext, stamps: &[PatternStamp], max_depth: 
                             row(x)
                         } else {
                             let point = render_region.point([x, y], [width, height]);
-                            let Some(local) = frame.local(point, center, stamp.size) else { continue };
-                            local
+                            frame.local(point, center, stamp.size)
                         };
+                        let Some(local) = local else { continue };
 
                         let (foreground, stamp_alpha) = if let Some((input, format)) = &texture {
                             let sample = bitmap::sample(input, local, *format, stamp.filtering == 2).map(flush_subnormal);

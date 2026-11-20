@@ -534,6 +534,56 @@ For each root’s 25 follow-up renders, the 5,120 U8, 553,728 U16, 78,336 F16 an
 
 In a single-worker release run, four interleaved measurements of the 128² default, 256² default and 512² filled cases gave median whole-graph cook times of 46, 259 and 1,138 ms for Alveolus (previously 45, 247 and 1,068 ms). Pattern Alveolus took 45, 253 and 1,083 ms (previously 43, 238 and 1,045 ms).
 
+### Rotated stamp coordinates in Gradient Linear 1 and BNW Spots
+
+Gradient Linear 1 matches 958,208/958,208 pixels across 79 renders, with zero maximum error in U8, U16, F16 and F32. The earlier 47 renders differed on 16 U8, 16 U16, 16 F16 and 176 F32 pixels. Maximum errors were one integer level, .000244140625 F16 and .0000152587890625 F32. All 32 additional settings match after reopening the MaterialCraft save in both apps. The reference also reproduces every original output from the saved file. [Earlier root settings and phase measurements](#pattern-rotation-phase) · [Rectangular gradient controls](#linear-gradient-sampling-on-rectangular-targets)
+
+| Gradient Linear 1 | U8 exact | U16 exact | F16 exact | F32 exact | Total exact |
+|---|---:|---:|---:|---:|---:|
+| Earlier 47 renders | 34,816 | 149,504 | 34,816 | 216,832 | 435,968 |
+| Additional 32 renders | 57,344 | 203,776 | 57,344 | 203,776 | 522,240 |
+
+For the additional cases use the following (output, tiling, rotation selector) tuples in order. Use F32 and U16 throughout, and add U8 and F16 at indices 2, 3, 6 and 8. The seed is 317171 + 37j for zero-based index j.
+
+| j | Output | Tiling | Rotation | j | Output | Tiling | Rotation |
+|---:|---|---:|---:|---:|---|---:|---:|
+| 0 | 16×64 | 1 | 3 | 6 | 128×128 | 5 | 2 |
+| 1 | 32×128 | 3 | 1 | 7 | 256×128 | 7 | 1 |
+| 2 | 256×16 | 1 | 3 | 8 | 128×256 | 9 | 3 |
+| 3 | 16×256 | 1 | 3 | 9 | 64×32 | 2 | 0 |
+| 4 | 512×32 | 1 | 3 | 10 | 128×64 | 4 | 3 |
+| 5 | 32×512 | 1 | 3 | 11 | 512×128 | 3 | 3 |
+
+The pattern rasterizer now computes the signed U and V at each snapped triangle vertex, then interpolates both over the output. For each component, align the vertex differences with one guard bit and the two offset products and anchor value with five. A 256×16 unwrapped unit ramp at 1.5 turns reads F32 `3eff0000` at (128,6), which stores as U16 32,640. It previously read `3efeffff` and stored as 32,639. A 64² paraboloid centered at (.5,.5), sized (.25,.25), rotated .0625 turns, reads `3df00010` at (31,24). The previous value was `3df00018`. Both single-stamp regressions failed before interpolation was applied.
+
+| Independent F32 stamps | Renders | Previously exact | Now exact / compared | Maximum error |
+|---|---:|---:|---:|---:|
+| Square | 45 | 239,604 | 239,604/239,616 | 1 |
+| Horizontal ramp | 45 | 210,135 | 237,038/239,616 | .4082969427 |
+| Paraboloid | 45 | 213,413 | 236,980/239,616 | 5.96046448e−7 |
+| Square pyramid | 45 | 208,278 | 237,007/239,616 | 3.57627869e−7 |
+
+Use an unwrapped white stamp over black with unit opacity. The five (output, center in pixels, size in pixels) tuples are (64²,32/32,16/16), (128×64,37.2/23.15,27.125/16.375), (32×64,−2.125/29.375,28.625/41.75), (64²,−18.15/−3.21,70.25/32.5) and (128×64,41.125/17.375,97.123/38.157). Divide each component by its corresponding output dimension. At each geometry use turns .125, −.125, .0625, .21875, .3305, .04073, 1.5, 1.75 and 0. The seed is 301021 + 23j in geometry-major order. The square’s 12 differences are on row 8 of the third geometry at 1.5 turns. On the independent thin-ramp controls, 645,506/647,168 F32 pixels match with maximum error 5.96046448e−8. U16 matches 161,784/161,792 with maximum error one level. [Thin-ramp dimensions and seeds](#linear-gradient-sampling-on-rectangular-targets)
+
+| Intact root | Renders | Previously exact | Now exact / compared | Maximum U8 / U16 / F16 / F32 error |
+|---|---:|---:|---:|---|
+| BNW Spots 1 | 34 | 197,312 | 197,377/204,288 | 1 / 3 / .00048828125 / .0000431537628 |
+| BNW Spots 3 | 27 | 180,768 | 180,975/185,856 | 1 / 2 / .00048828125 / .0000305175781 |
+
+The 84 separate 64² paraboloids of Spots 1 now match 336,968/344,064 F32 pixels at defaults and 336,736/344,064 with changed disorder. The respective maximum errors are 7.03148544e−8 and 7.70669430e−8. Smaller stamps and their accumulation remain open. In 1,213 earlier bitmap and coordinate controls, the exact whole-pixel count rose from 4,791,431 to 4,791,757/4,821,760. Ten of the 471 groups lost exact pixels, including a rotated ramp and mip-filtered placements. The maximum gray errors are zero U8, 149 U16, zero F16 and .00361639261 F32. The corresponding RGBA maxima are zero, 34,583, zero and .527698517. [Isolated Spots 1 settings](#individual-stamps-in-bnw-spots-1) · [Bitmap filtering controls](#bitmap-stamp-filtering-and-compositing)
+
+The broader root guard covered 40 roots. These additional intact outputs changed their exact pixel counts. All five roots still have differences.
+
+| Root | Renders | Previously exact | Now exact / compared | Maximum U8 / U16 / F16 / F32 error |
+|---|---:|---:|---:|---|
+| Cells 1 | 17 | 145,061 | 145,267/145,664 | 1 / 3 / 0.00048828125 / 3.67760658e-05 |
+| Clouds 1 | 17 | 144,229 | 144,225/145,664 | 1 / 11 / 0.00048828125 / 0.000111341476 |
+| Clouds 2 | 16 | 128,332 | 128,440/129,280 | 1 / 2 / 0.00048828125 / 2.29477882e-05 |
+| Creased | 17 | 144,567 | 145,105/145,664 | 0 / 19 / 0.000244140625 / 1.52587891e-05 |
+| Crystal 2 | 17 | 144,766 | 145,213/145,664 | 0 / 2 / 0.000244140625 / 3.05473804e-05 |
+
+Four alternating single-worker release cooks per version gave median times of 169.1 to 175.7 ms for 64² Spots 1 (disorder .84375, seed 8855), 131.4 to 151.0 ms for 64² Spots 3 (disorder .84375, seed 8868), 11.4 to 11.3 ms for the 512×32 F32 gradient (index 4).
+
 ### Projecting stamp vertices through shifted render regions
 
 Both Brick Generator Tile helpers now match every pixel in 106 renders each, including the rectangular cases and the four output formats. The second helper previously matched 341,035/347,136. Its 32 additional settings also match after reopening the MaterialCraft save in both apps. [Root parameters, input formula and seeds](#image-inputs-and-bell-stamps-in-brick-generator-tile) · [Earlier rectangular settings](#rectangular-fields-in-the-two-brick-generator-tile-helpers)
