@@ -510,6 +510,38 @@ Draw an unrotated, white, single stamp on black with maximum blending and no til
 
 Every reference Gaussian pixel outside its paired disc was zero in both sweeps, 29,406/29,406 and 127,365/127,365. The probes leave equality at exactly r² = 1 unresolved. The implementation applies the cutoff only above one. Differences in the interior remain. On the earlier whole-root matrices, Alveolus still matches 332,280/334,336 pixels and the pattern variant 201,876/203,264. Their maximum U8/U16/F16/F32 errors are 0/1,000/0/3.05175781e−5 and 0/2/0/1.52587891e−5 respectively. The two brick-generator Tile helpers each retain 114,688/114,688 LUM16 pixels across four renders. The boundary regression failed before the fix. All 262 release node tests, formatting, strict workspace Clippy, layers and WebAssembly passed.
 
+### Reopening SBS files with release-number headers
+
+Save both Alveolus roots, then open each saved file as a user package in the reference app (16.0.7). With the earlier writer both files declare format version `0.1.3` and updater `0.4.1`. Both opens fail. Changing only the format revision to `1.1.0.202502` makes both files open. Changing only the updater, package identity or graph name leaves both opens failing.
+
+On the same saved Alveolus graph, revisions `1.1.0.201600`, `1.1.0.202101`, `1.1.0.202401` and `1.1.0.202502` all open. The three-part values `0.0.7`, `0.1.3`, `0.4.1`, `1.0.0` and `1.1.0` all fail. Explicitly enabling or disabling automatic package updates gives the same results for `0.1.3`, `0.4.1` and `1.1.0.202502`. A separate original uniform graph and an original Gaussian stamp both open with the dated revision and fail with `0.1.3`.
+
+MaterialCraft now writes schema `1.1.0.202401` on a first save or when replacing a three-part numeric app-release header. Files with other declared revisions retain them. The updater field records the saving workspace release. Save the intact graphs through the ordinary writer and open those exact bytes in both applications. In each app compare the reopened output with that app’s original graph output. The MaterialCraft comparison uses the preceding release-mode cooker for both inputs to isolate serialization.
+
+| Reopened graph | Renders | Reference before and after save | MaterialCraft before and after save | Maximum error |
+|---|---:|---:|---:|---:|
+| Alveolus | 25 | 681,728/681,728 | 681,728/681,728 | 0 |
+| Pattern Alveolus | 25 | 681,728/681,728 | 681,728/681,728 | 0 |
+
+For the first eight cases use default parameters at 128²/seed 0, 256²/seed 0 and 128²/seed 42 in U16. Then enable filled cells. Use default tiling and interstice width .1 in Alveolus, and tiling 2 and width .15 in Pattern Alveolus. Render at 128²/seed 0 in U16 and at 64²/seed 42 in U8, U16, F16 and F32. The next twelve runs use the following settings. For row `j`, starting at zero, use seed `221359 + 43j + i`, where `i` is 19 for Alveolus and 353 for Pattern Alveolus.
+
+| Size | Format | Tiling | Filled cells | Interstice width |
+|---|---|---:|---|---:|
+| 16×16 | U16 | 1 | On | .1 |
+| 32×16 | F32 | 1 | Off | .375 |
+| 16×32 | U8 | 2 | On | .125 |
+| 64×128 | F16 | 2 | Off | .015625 |
+| 128×64 | U16 | 1 | On | .1 |
+| 128×256 | F32 | 1 | On | .21875 |
+| 256×128 | U16 | 1 | Off | .0625 |
+| 256×256 | F16 | 2 | On | .1875 |
+| 512×512 | U16 | 1 | On | .1 |
+| 256×512 | U16 | 2 | On | .125 |
+| 64×32 | F32 | 3 | Off | .28125 |
+| 32×128 | F32 | 1 | On | .25 |
+
+The last five repeat the 32×16 row in F32, U8, U16, F16 and F32, advancing its seed by seven for each successive render.
+
 ### Four source pixels in the filled Alveolus cells
 
 At 128², seed 0, enable filled cells and set the interstice width to .1. The 64×128 U16 generator matches 8,096/8,192 pixels. Each differing pixel is one level away. The final U16 output matches 16,376/16,384, with a maximum error of 1,000 levels. In the saved graph with the generator exposed as an input, edit one source word at a time. Run each of the 96 edits forward from the local field and backward from the reference field. Include the two unedited endpoints, for 194 local renders.

@@ -229,9 +229,10 @@ cannot compile instead of substituting empty graphs. The source graph bodies are
 rewritten metadata does not establish redistribution rights.
 Local tests compare every converted body and evaluate all 171 functions against the supplied
 package with valid inputs and caller context. External runtime import and numerical compatibility
-still require validation. The first SBS save writes the workspace's Cargo version to both
-`formatVersion` and `updaterVersion`. The package model retains the baseline `formatVersion`
-when reopening a document; later saves refresh only `updaterVersion`.
+still require validation. New SBS files use schema revision `1.1.0.202401`. Saving a package
+with a three-part numeric app release in `formatVersion` writes that schema revision too.
+Other imported format headers carry through subsequent saves. `updaterVersion` records the
+workspace release that wrote the file.
 
 Every user-visible action is a `CommandSpec` (`engine/src/*_cmds.rs`): id, label, menu, shortcut,
 params doc, `enabled`, `run`. The UI calls them through `MaterialCraftApp::run`; the CLI, the JSON

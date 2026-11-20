@@ -7,8 +7,18 @@ use crate::Result;
 use materialcraft_core::Package;
 use std::{collections::BTreeMap, fmt::Write as _};
 
+/// Schema revision to declare when writing a package, including packages with older app-release headers.
+pub fn output_format_version(imported: Option<&str>) -> &str {
+    const SCHEMA: &str = "1.1.0.202401";
+    let Some(version) = imported.filter(|v| !v.trim().is_empty()) else { return SCHEMA };
+    // Earlier saves put the three-part app release in this field. Readers use it to select the XML grammar.
+    let mut parts = version.split('.');
+    let is_release = (0..3).all(|_| parts.next().is_some_and(|p| !p.is_empty() && p.bytes().all(|c| c.is_ascii_digit()))) && parts.next().is_none();
+    if is_release { SCHEMA } else { version }
+}
+
 pub fn write_sbs(pkg: &Package) -> Result<Vec<u8>> {
-    let format_version = pkg.format_version.as_deref().filter(|version| !version.trim().is_empty()).unwrap_or(UPDATER_VERSION);
+    let format_version = output_format_version(pkg.format_version.as_deref());
     let mut writer = SbsWriter { last_uid: FIRST_UID, external_packages: BTreeMap::new() };
     let self_uid = writer.next_uid();
 

@@ -71,6 +71,8 @@ Reduced Sharpen now matches 16,704/16,704 pixels on the held-out signed field an
 
 A change to Gaussian stamp coverage was checked against 61 roots. Additional rectangular captures reopened both brick-generator Tile helpers. [Root checks](parity-fixes.md#root-checks-after-clipping-gaussian-stamps) [Tile input and shape comparisons](parity-fixes.md#rectangular-fields-in-the-two-brick-generator-tile-helpers)
 
+The reference app reopened both intact Alveolus graphs saved with the corrected SBS schema header. In each app all 1,363,456 pixels across 50 reopened renders match that app’s output before saving. [Save and reopen measurements](parity-fixes.md#reopening-sbs-files-with-release-number-headers)
+
 ## Complete inventory
 
 | SBS package / graph path | Input pins | Hidden in library | Parity status |

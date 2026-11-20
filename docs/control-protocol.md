@@ -23,9 +23,10 @@ Agents drive MaterialCraft three ways, all dispatching the same engine commands:
    engine-command authority, including host file access.
    Set `MATERIALCRAFT_NO_PREFS=1` for scripted runs so the user's layout is left alone.
 
-The first SBS save sets `formatVersion` and `updaterVersion` to MaterialCraft's workspace release
-version. Later saves preserve the document's original `formatVersion` and refresh `updaterVersion`
-to the saving application's release version. Save As and archive packaging retain that baseline too.
+SBS saves, Save As and archive packaging use `formatVersion` to declare the file schema and
+`updaterVersion` to record MaterialCraft's workspace release. New files and earlier files with
+a three-part numeric release header use schema `1.1.0.202401`. Other imported format revisions
+carry through subsequent saves.
 
 ## Methods
 
