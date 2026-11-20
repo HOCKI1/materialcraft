@@ -591,6 +591,36 @@ For the 280 position controls, vary the horizontal width over 2, 5, 8, 11, 13, 1
 
 All 17 previously verified inventory roots with a reachable FX-Map retain 3,139,584/3,139,584 pixels across 168 equal-resolution checks, maximum zero. The previously documented mixed-resolution Position Debug control still differs at 20/256 pixels. The two Alveolus whole matrices also retain their [previous counts](#gaussian-coverage-at-the-disc-boundary). All 264 release node tests, formatting, strict workspace Clippy, dependency layers and WebAssembly passed.
 
+### Isolating the generators in spots, bricks and cells
+
+Six roots use one to three pattern fields before their final filters. Replace each source in a copy of the root with a U16 grayscale input bridge. Keep the original size and format expressions, downstream wires and final format. Save each graph with MaterialCraft, reopen it in the reference app and compare every output pixel at its stored precision. Use the square cases in their listed order followed by the seven rectangular cases where present. [Original settings, dimensions and seeds](#square-and-rectangular-pattern-generators)
+
+| Inventory index and root | Source node UIDs in slot order | Renders with all sources supplied | Exact output pixels | Maximum error |
+|---|---|---:|---:|---:|
+| 57 · Black and white spots 1 | `1065025864`, `1065025865`, `1065025871` | 30 | 64,000/64,000 | 0 |
+| 58 · Black and white spots 3 | `1083436001`, `1083436013`, `1086975888` | 16 | 27,136/27,136 | 0 |
+| 59 · Brick 1 | `1041346037` | 30 | 64,000/64,000 | 0 |
+| 60 · Brick 2 | `1041346033` | 16 | 27,136/27,136 | 0 |
+| 61 · Brick 3 | `1035248938`, `1065200619` | 30 | 64,000/64,000 | 0 |
+| 67 · Cells 1 | `1051010199` | 16 | 27,136/27,136 | 0 |
+
+Each setting has two inputs for each generator slot. First supply its measured native stage from the intact root. On these 69 cases, the reopened reference matches all 136,704 pixels of the intact reference. Then supply an independent field at the same resolution. For zero-based setting j and slot b, use integer pixel coordinates x,y. At j mod 3 = 0 use (709x + 571y + 139xy + 983b + 271j + 91bx) mod 65536. At j mod 3 = 1 use 32769 + 7b where (5x + 3y + b + j) mod 11 = 0 and 32767 − 7b elsewhere. At j mod 3 = 2 use 58913 − 331b where (x + 3b) mod 13 = (y + 2j) mod 13 and 977 + 419b elsewhere. Across the two input families all 273,408 pixels agree in U8, U16, F16 and F32.
+
+For the three roots with multiple sources, restore one measured source at a time and let the other generators run. All 99 reopened reference renders match their intact originals, 200,704/200,704 pixels. The table gives the raw MaterialCraft comparison against the reopened reference.
+
+| Root | Restored slot | Renders | Exact output pixels | Maximum U8 / U16 levels | Maximum F16 / F32 error |
+|---|---:|---:|---:|---:|---:|
+| Black and white spots 1 | 0 | 15 | 31,453/32,000 | 1 / 2 | 0.000244140625 / 4.31537628e-05 |
+| Black and white spots 1 | 1 | 15 | 31,138/32,000 | 1 / 3 | 0.00048828125 / 4.31537628e-05 |
+| Black and white spots 1 | 2 | 15 | 31,613/32,000 | 0 / 2 | 0.00048828125 / 2.16364861e-05 |
+| Black and white spots 3 | 0 | 8 | 13,157/13,568 | 0 / 1 | 0 / 2.7179718e-05 |
+| Black and white spots 3 | 1 | 8 | 13,207/13,568 | 0 / 1 | 0 / 2.7179718e-05 |
+| Black and white spots 3 | 2 | 8 | 13,452/13,568 | 0 / 1 | 0 / 1.53183937e-05 |
+| Brick 3 | 0 | 15 | 32,000/32,000 | 0 / 0 | 0 / 0 |
+| Brick 3 | 1 | 15 | 31,914/32,000 | 0 / 1 | 0 / 0 |
+
+For Brick 3, supplying the first field corrects every tested output. Supplying only the second leaves 86 U16 pixels one level off on the 128×32 case. Both spots graphs still differ when any one of the three fields is supplied. The whole-root inventory continues to report the intact graphs.
+
 ### Root checks after clipping Gaussian stamps
 
 A scan of the reachable pattern nodes in the 546 inventory graphs found 61 roots with an explicit Gaussian or a variable stamp type. The table reports the previous whole-root captures compared again after the [disc cutoff](#gaussian-coverage-at-the-disc-boundary). It includes the archived authored defaults, changed controls and seeds, the available four-format and independent-field captures, and the earlier square/rectangular sets where present. The inventory links the wider matrices for individual roots. Some dynamic selectors choose other shapes in these cases. The table records measured output agreement across all completed outputs. Dirt Gradient and Wood Fibers 2 also encountered the recorded evaluation budget in the rows marked with an asterisk. The [new rectangular Tile cases](#rectangular-fields-in-the-two-brick-generator-tile-helpers) are additional measurements.
