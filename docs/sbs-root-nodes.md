@@ -35,7 +35,7 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **367 Parity**, **143 In progress** and **36 Too hard**. The November 17–20 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons) · [November 19 measurements](parity-fixes.md#2026-11-19-root-comparisons) · [November 20 measurements](parity-fixes.md#2026-11-20-root-comparisons)
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **370 Parity**, **143 In progress** and **33 Too hard**. The November 17–20 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons) · [November 19 measurements](parity-fixes.md#2026-11-19-root-comparisons) · [November 20 measurements](parity-fixes.md#2026-11-20-root-comparisons)
 
 [Pattern tiling axes and copy bounds across 215 renders](parity-fixes.md#tiling-axes-and-pattern-copy-bounds) · [Grayscale sampler measurements](parity-fixes.md#grayscale-sampling-of-color-inputs) · [Value sampling across 240 typed comparisons](parity-fixes.md#value-processor-texture-filtering) · [Five saved graphs reopened in the reference](parity-fixes.md#saved-filter-graphs-and-scalar-levels-controls)
 
@@ -449,7 +449,7 @@ Reading inherited variables directly reduced cook time on six Dirt 1 and BNW Spo
 | [pattern_tile_random.sbs/tile_random](../assets/sbs/pattern_tile_random.sbs) | 2 | No | [In progress · 238,215/243,968 exact pixels across 32 renders](parity-fixes.md#tile-random-image-and-soft-patterns) |
 | [pattern_tile_random.sbs/tile_random_color](../assets/sbs/pattern_tile_random.sbs) | 2 | No | [In progress · 268,904/276,736 exact pixels in 40 renders](parity-fixes.md#signed-bitmap-blend-precision) |
 | [pattern_tile_random_2.sbs/functions/debug_find_cell](../assets/sbs/pattern_tile_random_2.sbs) | 0 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
-| [pattern_tile_random_2.sbs/tile_random_2](../assets/sbs/pattern_tile_random_2.sbs) | 5 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [pattern_tile_random_2.sbs/tile_random_2](../assets/sbs/pattern_tile_random_2.sbs) | 5 | No | [Parity · 285,184 exact pixels in 38 renders](parity-fixes.md#shared-lookups-and-environment-shadow-pass) |
 | [pattern_tile_sampler.sbs/arrow](../assets/sbs/pattern_tile_sampler.sbs) | 0 | Yes | [Parity · seven 512×512 runs, four formats](parity-fixes.md#transform-edges-and-floating-point-filtering) |
 | [pattern_triangle_grid.sbs/triangle_grid_base](../assets/sbs/pattern_triangle_grid.sbs) | 3 | Yes | [Parity · 18 renders, all 171,264 pixels exact](parity-fixes.md#high-pass-anisotropic-noise-and-triangle-grid-controls) |
 | [pattern_weave_1.sbs/weave_1](../assets/sbs/pattern_weave_1.sbs) | 0 | No | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
@@ -481,10 +481,10 @@ Reading inherited variables directly reduced cook time on six Dirt 1 and BNW Spo
 | [pbr_render2.sbs/raytraced_irradiance_is_pass_8](../assets/sbs/pbr_render2.sbs) | 9 | Yes | [Parity · 18 renders, 136,704 exact RGBA pixels](parity-fixes.md#material-bundles-and-the-eighth-irradiance-pass) |
 | [pbr_render2.sbs/raytraced_specular_pass_8](../assets/sbs/pbr_render2.sbs) | 9 | Yes | [In progress · 142,337/142,340 pixels, three F16 differences](parity-fixes.md#eighth-raytraced-specular-passes) |
 | [pbr_render2.sbs/sat/sat_iteration](../assets/sbs/pbr_render2.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
-| [pbr_render_ortho.sbs/blue_noise](../assets/sbs/pbr_render_ortho.sbs) | 0 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [pbr_render_ortho.sbs/blue_noise](../assets/sbs/pbr_render_ortho.sbs) | 0 | Yes | [Parity · 285,184 exact pixels in 38 renders](parity-fixes.md#shared-lookups-and-environment-shadow-pass) |
 | [pbr_render_ortho.sbs/environment_map_rescale](../assets/sbs/pbr_render_ortho.sbs) | 1 | Yes | [Parity · 171,264 exact pixels in 18 renders](parity-fixes.md#centered-transform-resizing-and-untiled-edges) |
 | [pbr_render_ortho.sbs/get_max_coord](../assets/sbs/pbr_render_ortho.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
-| [pbr_render_ortho.sbs/ibl_shadow_pass](../assets/sbs/pbr_render_ortho.sbs) | 3 | Yes | [Too hard: remaining pixel differences](parity-fixes.md#remaining-differences) |
+| [pbr_render_ortho.sbs/ibl_shadow_pass](../assets/sbs/pbr_render_ortho.sbs) | 3 | Yes | [Parity · 151,040 exact pixels in 27 renders](parity-fixes.md#shared-lookups-and-environment-shadow-pass) |
 | [pbr_render_ortho.sbs/mipmap_generator](../assets/sbs/pbr_render_ortho.sbs) | 1 | Yes | [Parity · 171,264 exact pixels in 18 renders](parity-fixes.md#centered-transform-resizing-and-untiled-edges) |
 | [pbr_render_ortho.sbs/rotate_environment](../assets/sbs/pbr_render_ortho.sbs) | 1 | Yes | [Parity · 18 renders, all 171,264 RGBA pixels exact](parity-fixes.md#environment-rotation-and-wired-irradiance-samples) |
 | [pbr_render_ortho.sbs/sphere_displace](../assets/sbs/pbr_render_ortho.sbs) | 1 | Yes | [Too hard: cook timeout](parity-fixes.md#remaining-differences) |

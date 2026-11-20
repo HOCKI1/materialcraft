@@ -59,6 +59,33 @@ The first pass classifies all 546 roots: 166 Parity and 380 Too hard. These meas
 
 ## 2026-11-20 root comparisons
 
+### Shared lookups and environment shadow pass
+
+Three whole roots matched all 721,408 pixels across 103 renders. The tile and noise roots used two original lookup images in both applications. Their earlier comparisons used different lookup data. The parity measurements below apply to the two common inputs.
+
+| Root | Renders | Exact pixels / compared | Pixels in U8 / U16 / F16 / F32 | Maximum error in U8 / U16 / F16 / F32 |
+|---|---:|---:|---|---|
+| tile_random_2 | 38 | 285,184/285,184 | 10,240 / 240,640 / 14,336 / 19,968 | 0 / 0 / 0 / 0 |
+| blue_noise | 38 | 285,184/285,184 | 10,240 / 11,264 / 14,336 / 249,344 | 0 / 0 / 0 / 0 |
+| ibl_shadow_pass | 27 | 151,040/151,040 | 6,144 / 6,656 / 9,728 / 128,512 | 0 / 0 / 0 / 0 |
+
+Generate two 256² grayscale U16 lookups with zero-based coordinates. The first is `19*(809*x+4079*y+127*x*y+3121) mod 65536`. The second is 53249 where `(5*x+13*y) mod 17 < 4` and 1023 elsewhere. Bind the same image to the active Bitmap in each application. For each lookup repeat the archived 128² and 256² defaults, 128² seed 42, 128² changed settings, and the [five precision and seed cases](#four-format-inventory-comparison).
+
+For the ten additional cases use zero-based inventory index i=378, 410 or 413. Add [0,1,2,2,2,2,6,7,8,9] to seed 104351+17i. Use [16²,32²,32²,32²,32²,32²,32×16,16×32,64×32,32×64], storage [F32,F32,U8,U16,F16,F32,F32,U16,F32,F16] and settings [defaults,A,B,B,B,B,C,C,B,A].
+
+| Published controls | A | B | C |
+|---|---|---|---|
+| Tile counts X/Y, random size and random position multipliers | 2/2, 0, 0 | 3/5, .5625, .3125 | 5/3, .875, .6875 |
+| Corner radius, random size map multiplier, mask start, shape rotation | 0, 0, 0, 0 | .15625, .375, .1875, .15625 | .4375, .6875, .4375, −.21875 |
+| Dithering | 0 | .3125 | .8125 |
+| Shadow sequence, total samples, horizontal rotation | 1, 2, 0 | 2, 5, .15625 | 5, 9, −.21875 |
+
+For bound inputs number each component n=4p+c with zero-based input index p and channel c. Use random_size_map, random_slant_map, round_corners_radius_map, bevel_distance_map, mask_map in the tile graph and blue_noise, environment, normal in the shadow graph. The first two cases use U8, taking the floor of the following levels divided by 257. The flat level is 8199+2413n. The impulse field is 59003−391n where `(x+2n) mod 11 = (y+3n) mod 11` and 302+67n elsewhere. For the two C settings use U16 with level 32769+n where `(7x+13y+3n) mod 11 = 0`, and 32767−n elsewhere. The other cases use F32 with level `7919*(11x+31y+7xy+93+47n+(n+1)x) mod 65536` divided by 65535. Import the fields as linear data. Swapping lookup images changes 4,766 tile pixels numerically across these ten cases. The noise root also changes with the input, including 1,024/1,024 pixels in the 32² F32 B case.
+
+Eight additional shadow renders use curved normals and a bright diagonal band in an HDR environment. At pixel centers u=(x+.5)/width and v=(y+.5)/height, set z=2v−1 and angle=2π(u+m/16). Encode the unit normal (sqrt(1−z²) cos(angle), sqrt(1−z²) sin(angle), z) in [0,1]. The environment RGB is (u+1.5b, v+.75b, .125+.75uv), with b=1 where `abs((x+4y+3m) mod width−width/2) < max(width/9,1)` and zero elsewhere. Both alphas are one. The noise input's channel c is `(37x+59y+13xy+47c+11m) mod 251` divided by 250.
+
+Use m=[0,1,2,3,3,3,4,5], seed 106399+17m, sizes [16²,32×16,16×32,32²,32²,32²,64×32,32×64] and storage [F32,F32,F16,U8,U16,F32,F32,F16]. For m=0..5 use sequences [1,2,4,3,5,7], sample counts [2,3,5,6,9,11] and rotations [0,.125,−.1875,.375,.5625,−.125]. All 8,448 shadow pixels match. The 16² F32 output contains values as high as 35.6196213.
+
 ### Paper, brick, fiber, mesh, polygon and shape roots
 
 All eight roots produced 19 whole outputs apiece. Across 152 renders, 915,896/1,140,736 pixels matched. Every root differs in at least one recorded case. Integer error counts storage levels. Floating-point error is the largest absolute difference in a stored channel.
