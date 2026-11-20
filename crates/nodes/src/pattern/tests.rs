@@ -424,6 +424,82 @@ fn missing_direct_pattern_inputs_use_the_field_default() {
 }
 
 #[test]
+fn a_sibling_can_update_a_binding_declared_by_the_parent() {
+    use materialcraft_core::ValueType;
+
+    for (published, initialized, writer_first, expected) in
+        [(None, false, true, 1.0), (Some(0.25), false, true, 0.25), (Some(0.25), true, true, 0.75), (None, true, true, 0.75), (Some(0.25), true, false, 0.5625)]
+    {
+        let mut graph = PatternGraph::with_root(PatternNodeKind::Iterate);
+        let writer = graph.add(PatternNodeKind::Quadrant).unwrap();
+        let reader = graph.add(PatternNodeKind::Quadrant).unwrap();
+        graph.nodes[0].children = if writer_first { vec![Some(writer), Some(reader)] } else { vec![Some(reader), Some(writer)] };
+        if initialized {
+            graph.nodes[0].parameters.insert("numberadded".into(), set_then_return("tint", Value::Float(0.5625), Value::Int(1)));
+        }
+        graph.nodes[1].parameters.insert("patterntype".into(), Value::Int(2));
+        graph.nodes[1].parameters.insert("opacity".into(), set_then_return("tint", Value::Float(0.75), Value::Float(0.0)));
+        graph.nodes[2].parameters.insert("patterntype".into(), Value::Int(2));
+        graph.nodes[2].parameters.insert("opacity".into(), Value::Function(Box::new(FunctionGraph::input("tint", ValueType::Float))));
+        let variables = published.map(|v| ("tint".into(), Value::Float(v))).into_iter().collect();
+        let image = cook_with_variables(graph, &variables, 17).unwrap().remove(0);
+        assert_eq!(image.get_gray(8, 8, false), expected, "published {published:?}, initialized {initialized}, writer first {writer_first}");
+    }
+}
+
+fn set_then_return(name: &str, value: Value, result: Value) -> Value {
+    let mut function = FunctionGraph::default();
+    let value = function.add_constant(value);
+    let set = function.add("set", &[value], Some(Value::Text(name.into())));
+    let result = function.add_constant(result);
+    function.output = Some(function.add("sequence", &[set, result], None));
+    Value::Function(Box::new(function))
+}
+
+#[test]
+fn quadrant_modes_read_published_inputs_and_shadow_outer_pattern_bindings() {
+    use materialcraft_core::ValueType;
+
+    let direct = FunctionGraph::input("form", ValueType::Integer);
+    let mut add_two = direct.clone();
+    let read = add_two.output.unwrap();
+    let two = add_two.add_constant(Value::Int(2));
+    add_two.output = Some(add_two.add("add", &[read, two], None));
+    for (shadowed, expression, expected_corner) in [(false, direct.clone(), 1.0), (true, direct, 0.0), (true, add_two, 1.0)] {
+        let mut graph = PatternGraph::with_root(PatternNodeKind::Iterate);
+        let child = graph.add(PatternNodeKind::Quadrant).unwrap();
+        graph.nodes[0].children[0] = Some(child);
+        if shadowed {
+            graph.nodes[0].parameters.insert("numberadded".into(), set_then_return("form", Value::Int(3), Value::Int(0)));
+        }
+        graph.nodes[1].parameters.insert("patterntype".into(), Value::Function(Box::new(expression)));
+        let image = cook_with_variables(graph, &BTreeMap::from([("form".into(), Value::Int(2))]), 17).unwrap().remove(0);
+        assert_eq!(image.get_gray(0, 0, false), expected_corner, "shadowed {shadowed}");
+        if expected_corner == 0.0 {
+            assert_eq!(image.get_gray(8, 8, false), 0.0);
+        }
+    }
+}
+
+#[test]
+fn a_quadrant_mode_evaluates_before_it_has_a_traversal_depth() {
+    let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
+    let child = graph.add(PatternNodeKind::Quadrant).unwrap();
+    graph.nodes[0].children[0] = Some(child);
+    let mut shape = FunctionGraph::default();
+    let extent = shape.add("get_float1", &[], Some(Value::Text("$depthpow2".into())));
+    let threshold = shape.add_constant(Value::Float(0.25));
+    let test = shape.add("gt", &[extent, threshold], None);
+    let disc = shape.add_constant(Value::Int(3));
+    let square = shape.add_constant(Value::Int(2));
+    shape.output = Some(shape.add("ifelse", &[test, disc, square], None));
+    graph.nodes[1].parameters.insert("patterntype".into(), Value::Function(Box::new(shape)));
+
+    let image = cook(graph).unwrap().remove(0);
+    assert_eq!(image.get_gray(0, 0, false), 1.0);
+}
+
+#[test]
 fn a_quadrant_only_publishes_writes_from_active_stamp_properties() {
     for (pattern, property, result, expected) in [
         (0, "opacity", Value::Float(0.0), 0.125),
@@ -699,6 +775,24 @@ fn render_bitmap(
         vars: &BTreeMap::new(),
     };
     (definition.cook)(&context).unwrap().remove(0)
+}
+
+#[test]
+fn an_unbound_image_selector_keeps_the_fixed_slot() {
+    use materialcraft_core::{OutputFormat, ValueType};
+
+    let source = craft_texture::Image::gray(4, 4, |_, _| 0.75);
+    for (pattern, offset, expected) in [(259, None, 0.0), (259, Some(0), 0.0), (1, Some(0), 0.75), (1, Some(2), 0.0)] {
+        let mut selector = FunctionGraph::input("missing", ValueType::Integer);
+        if let Some(offset) = offset {
+            let index = selector.output.unwrap();
+            let step = selector.add_constant(Value::Int(offset));
+            selector.output = Some(selector.add("add", &[index, step], None));
+        }
+        let stamp = [("patterntype", Value::Int(pattern)), ("imageindex", Value::Function(Box::new(selector)))];
+        let image = render_bitmap(source.clone(), OutputFormat::F32, 4, &stamp, &[("color_mode", Value::Bool(false))]);
+        assert_eq!(image.get_gray(2, 2, false), expected, "pattern {pattern}, offset {offset:?}");
+    }
 }
 
 #[test]
@@ -1039,10 +1133,11 @@ fn an_iteration_reads_the_variables_the_previous_iteration_set() {
     function.output = Some(function.add("set", &[next], Some(Value::Text("total".into()))));
     graph.nodes[1].parameters.insert("opacity".into(), Value::Function(Box::new(function)));
 
-    let image = cook_with_variables(graph, &BTreeMap::from([("total".into(), Value::Float(0.0))]), 7).unwrap().remove(0);
-
-    // 0.25, 0.5 and 0.75 add up; three separate copies of the variable would add 0.25 three times
-    assert!((image.mean()[0] - 1.5).abs() < 1e-5, "{}", image.mean()[0]);
+    for published in [0.0, 0.125] {
+        let image = cook_with_variables(graph.clone(), &BTreeMap::from([("total".into(), Value::Float(published))]), 7).unwrap().remove(0);
+        // The pattern declares a local accumulator. Its three visits add 0.25, 0.5 and 0.75.
+        assert_eq!(image.mean()[0], 1.5, "published {published}");
+    }
 }
 
 #[test]

@@ -267,7 +267,7 @@ For the second row use both source formats, sizes 8², 16², 32², 4² and 8×32
 
 For the half threshold row use source sizes 16², 32², 8², 4² and 8×32. Draw three fields with sign mask (5x+3y+7xy+i) mod 16 and magnitudes (0,2⁻²⁴,2⁻²⁵,2⁻²³,2⁻²⁶,2⁻²¹,2⁻²⁴,.3125). For field 0 index the magnitudes by (floor(x/2)+5floor(y/2)+2c) mod 8. For fields 1 and 2 use (3x+y+3c+i) mod 8. Use seed 103109+7j+i and render both source formats to F32, F16, U16 and U8.
 
-All 15,360 RGBA pixels in the earlier mixed-storage controls now match. The remaining 121 unequal grayscale pixels differ only in their zero sign. The reference input bridge already clears negative zero in the measured half-gray source. [Earlier texture filtering measurements](#signed-zero-in-floating-point-texture-filtering) · [Original background inputs](#connected-floating-point-pattern-backgrounds)
+The 19 previously verified roots match all 3,211,776 pixels in 159 renders after the zero-sign correction. All 15,360 RGBA pixels in the earlier mixed-storage controls now match. The remaining 121 unequal grayscale pixels differ only in their zero sign. The reference input bridge already clears negative zero in the measured half-gray source. [Earlier texture filtering measurements](#signed-zero-in-floating-point-texture-filtering) · [Original background inputs](#connected-floating-point-pattern-backgrounds)
 
 ### Signed zero in floating-point texture filtering
 
@@ -408,6 +408,37 @@ Isolate the shortest connected path from the pattern root to a drawing quadrant 
 | noise_crystal_1 | 4 | 35,328 | 30,215/35,328 | 0 / 1 / .00048828125 / .00000101327896 |
 | noise_crystal_2 | 12 | 17,664 | 17,512/17,664 | 0 / 1 / .000244140625 / .00000238418579 |
 
+### Pattern variable declarations and fixed image selectors
+
+A draw expression that declares a variable can update its previous value within the same cook. The declaration is visible to that node's later draw properties and descendants. A sibling that only reads the name sees the published graph input, or the field default for an unbound direct link. If their parent declares that name, both siblings can read and write the shared pattern value. The declaration exists even when its Set is on an untaken conditional branch. In a quadrant's five mode expressions a shadowed graph input is unavailable. Its direct link uses the field default and an arithmetic read contributes zero.
+
+| Original control | Renders | Previous exact | Exact pixels / compared | Previous maximum F32 / U16 | Maximum F32 / U16 |
+|---|---:|---:|---:|---|---|
+| Pattern type or tint in a sibling, Iterate child or quadrant child | 120 | 48,560 | 51,200/51,200 | 0.65625 / 32,767 | 0 / 0 |
+| Sibling order with and without an ancestor declaration | 144 | 59,040 | 61,440/61,440 | 0.75 / 49,151 | 0 / 0 |
+| Five read expressions with an earlier sibling assignment | 120 | 48,800 | 51,200/51,200 | 0.5 / 32,767 | 0 / 0 |
+| Conditional ancestor assignment with both branches exercised | 84 | 35,840 | 35,840/35,840 | 0 / 0 | 0 / 0 |
+| Five quadrant modes reading traversal and image variables | 150 | 59,204 | 62,440/64,000 | 1.75195312 / 32,768 | 0.84176302 / 27,569 |
+
+Use an Iterate with one repeat and a square on each branch. In the reader use size (.75,.625), offset (.015625,−.03125), seed offset 43 and RGBA background (.125,.3125,.6875,.5). Use 16² F32 at seed 100673, then 32×16 F32 and U16 at 100691. The small writer square has size (.125,.125) and offset (−.375,−.375). For the type controls publish 2 and assign 3. For tint publish (.25,.375,.5,1) and assign (.75,.625,.5,1). Move the assignment from the preceding to the following sibling, the parent Iterate count or the parent quadrant tint. Compare bare getters and getter plus zero with each literal alternative. An integer getter plus 2 in a shadowed child mode selects square 2.
+
+For the ancestor test, remove or retain the published tint, interchange the children, and either omit the parent assignment or initialize it to (.5625,.1875,.75,1). The first child can update the parent's value before the second reads it. Repeat with an unrelated assignment, a random red addition in [0,.125], a red addition of .125 times the horizontal stamp position, a copy to another name, and a copy to the same name. Only the same-name copy reopens the preceding sibling's pattern value when the parent has no declaration. For the conditional control let a published Boolean choose between the tint assignment followed by count 1, and a bare count 1. Both choices expose the declaration to the children.
+
+A further 120 same-node controls matched 51,200/51,200 RGBA pixels with zero maximum error. Assign size (.75,.4375) in the seed, frame offset or pattern variation and read it in size. Assign tint in the seed or branch offset and read it in opacity. Run with the published value present and absent and compare each getter to the published, assigned and default literals. The seed and frame offset precede size. Variation follows size, and branch offset follows opacity.
+
+For the mode controls use the [five original quadrant settings and input field](#assignments-in-quadrant-mode-expressions). At quadrant depth one test depth > .5, depth scale > .25 and > .75, horizontal position > .125, and image width > 24. Use the iteration number > .5 on three repeats. Choose disc or square for the shape and 1 or 0 for the other four modes. Use 16² F32 at seed 100673+j, then 32×16 F32 and U16 at 100691+j, for zero-based mode index j. All five read the traversal depth, depth scale, position and iteration number as zero, and image width follows the output size. Each of shape, blending, premultiplication and seed inheritance matches 12,800/12,800 pixels. Filtering matches 11,240/12,800, with maximum .841763020 F32 and 27569 U16. The separate direct-link seed-inheritance controls now match 8,960/8,960 pixels, maximum zero.
+
+| Original image selector | Renders | Previous exact | Exact pixels / compared | Previous maximum F32 / U16 / F16 | Maximum F32 / U16 / F16 |
+|---|---:|---:|---:|---|---|
+| Generic and packed selectors with four, two or one wired slots | 108 | 28,160 | 46,080/46,080 | 0.776470602 / 50,886 / 0.776428223 | 0 / 0 / 0 |
+| Offsets to missing and published integer selectors | 99 | 28,160 | 42,240/42,240 | 0.898039222 / 58,853 / 0.897949219 | 0 / 0 / 0 |
+
+Use four original 16² gray U8 stamps at levels 31, 79, 151 and 229. Wire slots {0,1,2,3}, {1,3} or {2}. Render at 16² F32, 32×16 U16 and 16×32 F16. Add offsets 0, 1 and 2 to seed 102667, 102682 or 102687 for the three wiring cases. For pattern 1, 257 or 259, omit the index, set it to zero, bind it directly to a missing integer, or add zero to that getter. All four choices preserve the fixed slot. For pattern 259 add 0, 1, 2 or 4 to a missing integer, then add a published integer of 2. Compare against direct literal indices and a direct link to the published 2. An expression containing only constants and missing user getters selects the fixed numbered slot. A live selector advances across unwired slots.
+
+The reference's renders also varied when a property incremented a variable without first initializing it. With a 0.25 increment per square, three visits in a fresh file produced 1.5, and a subsequent render of the same graph could give 6.0. Run at 16²/103779 and 32×16/103781 singly and in both orders, using one visit, three visits, two sibling nodes, two quadrant children or an explicit initial value .125. Across 60 renders MaterialCraft matches 18,304/23,040 F32 pixels, maximum 9. All 12 explicitly initialized renders match 4,608/4,608 pixels and both sizes give 1.875 for three visits.
+
+Seven new original packages saved through MaterialCraft at format version 1.1.0.202502 reopened in the reference app. Across 20 source-to-save renders covering ancestor and sibling reads, a conditional declaration, mode arithmetic, two sparse image selectors and the initialized counter, all 8,448 pixels match with maximum zero. The 19 previously verified roots match all 3,211,776 pixels in 159 renders after the changes.
+
 ### Direct pattern links with an unbound variable
 
 An unbound user variable connected directly to a pattern property leaves that property at its default. Within an arithmetic expression the same getter contributes its typed zero. A bound zero supplies an actual zero. MaterialCraft now distinguishes these cases when evaluating a pattern graph.
@@ -424,6 +455,8 @@ For the first row, render a centered square of size (.75,.75). In each output ki
 For the next three rows start with an outer Iterate's initial child. Use a square of size (.8125,.625) and RGBA (.125,.25,.375,1). Compare omission, an unbound read, explicit constant-return expressions for zero and a second value, matching assignments in the outer Iterate, and a derived expression. Use (.375,.625) for the second size. To measure count, insert a second Iterate and draw (.125,.25,.375,.25) on its repeated branch with a changed count of 2. For seed inheritance, use a seed offset of 43, a random stamp color, true as the second value and logical negation for the derived expression. For property index j in the displayed order use the same sizes and formats at seed 101621+11j+i, with i from 0 through 2. Together these rows improved from 23,650 to 26,230/26,880. The remaining 650 pixels occur when the outer Iterate assigns false to the seed-inheritance variable. The reference uses the field default there. [Quadrant mode reads and writes](#assignments-in-quadrant-mode-expressions)
 
 Six additional original files at format version 1.1.0.202502 were saved by MaterialCraft, reopened in the reference app and compared against their source-file renders. The four pattern files exercise writes from empty and drawing squares, an image-index expression and an exposed bilinear filter. The two pixel-read files exercise an 8² source and a 32×16 source feeding a 16² output. All 19 stored-image comparisons matched, **6,912/6,912 pixels**, maximum error zero. [Pattern properties](#active-properties-of-empty-and-drawing-quadrants) · [Filtered pixel reads](#subnormal-values-in-filtered-pixel-reads)
+
+Five further saved-file checks cover an unbound scalar opacity, an outer-bound Float4 opacity, missing size, derived count and a false seed-inheritance binding. All 6,400 pixels in 15 source-to-save renders match, maximum zero.
 
 The 19 previously verified roots also match all 3,211,776 pixels in 159 renders after the direct-link change, maximum error zero.
 

@@ -30,6 +30,17 @@ impl Program {
         self.instructions.get(self.output).is_some_and(|instruction| instruction.literal)
     }
 
+    /// Unbound user inputs in a fixed pattern image selector contribute their typed zero.
+    pub(crate) fn uses_fixed_image_slot(&self, variables: &std::collections::BTreeMap<String, Value>) -> bool {
+        self.output_is_literal()
+            || self.instructions.iter().all(|op| {
+                op.literal
+                    || op.depends_only_on_operands()
+                    || (op.definition.id.starts_with("get_")
+                        && matches!(&op.value, Some(Value::Text(name)) if !name.starts_with('$') && !variables.contains_key(name)))
+            })
+    }
+
     /// A pattern can reuse a size predicate across positions, random streams and variable assignments.
     pub(crate) fn depends_only_on_image_size(&self) -> bool {
         self.instructions.iter().all(|op| {

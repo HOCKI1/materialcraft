@@ -1,7 +1,7 @@
 use materialcraft_core::{PatternNodeKind, Value};
 use std::collections::{BTreeMap, BTreeSet};
 
-use super::{catalog, pattern_stamp::PatternStamp, pattern_visit::PatternVisit, raster};
+use super::{catalog, pattern_stamp::PatternStamp, pattern_visit::PatternVisit, raster, variables::PatternVariables};
 use crate::function::{EvaluationContext, EvaluationState, compile_with_literal_inputs};
 use crate::random::FunctionRandom;
 use crate::{CookContext, CookResult};
@@ -25,7 +25,9 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
             if let Value::Function(function) = value {
                 let program = compile_with_literal_inputs(function, context.seed, context.vars.literal_inputs())?;
                 fixed = fixed && name == "switch" && program.depends_only_on_image_size();
-                functions.insert((node.id, name.as_str()), program);
+                let mut names = BTreeMap::new();
+                super::variables::declarations(&program, &mut names);
+                functions.insert((node.id, name.as_str()), (program, names));
             }
         }
         if fixed {
@@ -42,15 +44,14 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
 
     let mut stamps = Vec::new();
 
-    // Keep Set assignments across iterations within this FX-Map cook
-    let mut variables = context.vars.graph_values().clone();
-    variables.remove("$randomseed");
+    let mut variables = PatternVariables::new(context.vars.graph_values());
     let mut max_depth = 0;
     let mut state = EvaluationState::default();
     let mut remaining = MAX_VISITS;
     let mut empty_switches = BTreeSet::new();
     let grayscale = !context.b("color_mode");
     while let Some(mut visit) = pending.pop() {
+        variables.resume(pending.len());
         max_depth = max_depth.max(visit.depth);
         if empty_switches.contains(&visit.node) {
             continue;
@@ -66,29 +67,40 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
         }
 
         let definition = catalog::definition(node.kind).ok_or("missing pattern definition")?;
-        variables.insert("$depth".into(), Value::Float(visit.depth as f32));
-        variables.insert("$depthpow2".into(), Value::Float(visit.extent));
-        variables.insert("$number".into(), Value::Float(visit.number as f32));
+        variables.drawing.insert("$depth".into(), Value::Float(visit.depth as f32));
+        variables.drawing.insert("$depthpow2".into(), Value::Float(visit.extent));
+        variables.drawing.insert("$number".into(), Value::Float(visit.number as f32));
+        let mut declared = Vec::new();
 
         let mut evaluate = |id: &str, random: &mut FunctionRandom| -> Result<Option<Value>, String> {
-            let Some(program) = functions.get(&(node.id, id)) else { return Ok(node.parameters.get(id).cloned()) };
+            let Some((program, names)) = functions.get(&(node.id, id)) else { return Ok(node.parameters.get(id).cloned()) };
+            let mode =
+                node.kind == PatternNodeKind::Quadrant && matches!(id, "patterntype" | "blendingmode" | "imagefiltering" | "imagepremul" | "randominherited");
+            if !mode {
+                variables.enter(names, &mut declared);
+            }
+            let inputs = if mode { &variables.modes } else { &variables.drawing };
             // An unbound direct link leaves the field at its default. A getter inside an expression still evaluates to its typed zero.
-            if program.input_identifier().is_some_and(|name| !name.starts_with('$') && !variables.contains_key(name)) {
+            if program.input_identifier().is_some_and(|name| !name.starts_with('$') && !inputs.contains_key(name)) {
                 return Ok(None);
             }
             let evaluation = EvaluationContext {
                 image_formats: context.input_formats.get(1..).unwrap_or(&[]),
                 scope: crate::function::FunctionScope::FxMap,
-                position: visit.center,
+                position: if mode { [0.0; 2] } else { visit.center },
                 size: [context.w as f32, context.h as f32],
                 images: context.inputs.get(1..).unwrap_or(&[]),
                 tile: context.tile,
-                variables: &variables,
+                variables: inputs,
             };
             let value = program.evaluate_with_random(&evaluation, &mut state, random)?;
             // A quadrant's mode expressions keep their own writes. A later stamp property can read writes from the draw expressions.
-            if node.kind != PatternNodeKind::Quadrant || !matches!(id, "patterntype" | "blendingmode" | "imagefiltering" | "imagepremul" | "randominherited") {
-                variables.extend(state.assignments().clone());
+            if !mode {
+                for (name, value) in state.assignments() {
+                    if let Some(bound) = variables.drawing.get_mut(name) {
+                        *bound = value.clone();
+                    }
+                }
             }
             Ok(Some(value))
         };
@@ -124,7 +136,7 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
                 visit.center = [visit.center[0] + offset[0], visit.center[1] + offset[1]];
                 if image_pattern {
                     let requested = integer("imageindex");
-                    let slot = if functions.get(&(node.id, "imageindex")).is_some_and(|program| !program.output_is_literal()) {
+                    let slot = if functions.get(&(node.id, "imageindex")).is_some_and(|(program, _)| !program.uses_fixed_image_slot(&variables.drawing)) {
                         // A runtime selector advances across disconnected slots and stops at the last wired image.
                         let pos = image_slots.partition_point(|&i| i < requested);
                         image_slots.get(pos).or_else(|| image_slots.last()).copied()
@@ -234,6 +246,7 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
             return Err("pattern graph exceeded its execution budget".into());
         }
 
+        variables.keep_for_children(pending.len(), declared);
         pending.extend(children.into_iter().rev());
     }
 

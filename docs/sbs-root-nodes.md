@@ -49,7 +49,9 @@ The 32²-to-16² signed threshold controls match 2,048/2,048 pixels. [Floating t
 
 Connected F32 backgrounds now match all 2,048 same-size pixels. Across 132 further renders with changed input sizes, the maximum absolute error is zero. Some RGBA zeros still differ in sign. [Connected background counts and file checks](parity-fixes.md#connected-floating-point-pattern-backgrounds)
 
-Direct links to missing pattern inputs now use the field default. All 53,760 opacity, size and iteration-count pixels match. In the separate seed-inheritance controls 8,310/8,960 pixels match. [Raw counts and six saved-file checks](parity-fixes.md#direct-pattern-links-with-an-unbound-variable)
+Direct links to missing pattern inputs use the field default. All 53,760 opacity, size and iteration-count pixels and all 8,960 seed-inheritance pixels match. [Direct-link cases and saved-file checks](parity-fixes.md#direct-pattern-links-with-an-unbound-variable)
+
+Pattern declarations and sparse image selectors match 199,680/199,680 and 88,320/88,320 pixels in their respective controls. Automatic filtering and uninitialized counters retain differences. [Declarations, image selections and remaining differences](parity-fixes.md#pattern-variable-declarations-and-fixed-image-selectors)
 
 Assignments in quadrant mode expressions now stay within the expression. All 49,920 child-color pixels match. [Mode writes and remaining input-scope differences](parity-fixes.md#assignments-in-quadrant-mode-expressions)
 
