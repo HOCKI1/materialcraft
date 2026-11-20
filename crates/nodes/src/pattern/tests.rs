@@ -299,6 +299,21 @@ fn quarter_turns_keep_stamp_edge_ownership_in_image_space() {
 }
 
 #[test]
+fn a_sample_on_the_stored_lower_stamp_edge_is_excluded() {
+    let size = [0.4, 0.3];
+    let frame = super::footprint::Footprint { sine: 0.0, cosine: 1.0, radius: size.map(|v| v * 0.5) };
+    let sample = [14.5 / 32.0, 9.5 / 16.0];
+    for axis in 0..2 {
+        let mut center = sample;
+        center[axis] += frame.radius[axis];
+        assert!(frame.local(sample, center, size).is_none());
+        let mut inside = sample;
+        inside[axis] += 1.0 / [32.0, 16.0][axis];
+        assert!(frame.local(inside, center, size).is_some());
+    }
+}
+
+#[test]
 fn pattern_functions_keep_host_time_and_quadrant_depth() {
     for (name, expected) in [("$time", 0.75), ("$depth", 1.0), ("$depthpow2", 0.5)] {
         let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);

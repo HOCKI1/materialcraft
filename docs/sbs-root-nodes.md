@@ -137,7 +137,7 @@ A change to Gaussian stamp coverage was checked against 61 roots. Additional rec
 | [brick_1.sbs/brick_1](../assets/sbs/brick_1.sbs) | 0 | Yes | [In progress · 202,490/204,288 pixels across 34 renders](parity-fixes.md#square-and-rectangular-pattern-generators) |
 | [brick_2.sbs/brick_2](../assets/sbs/brick_2.sbs) | 0 | Yes | [In progress · 185,560/185,856 pixels across 27 renders](parity-fixes.md#square-and-rectangular-pattern-generators) |
 | [brick_3.sbs/brick_3](../assets/sbs/brick_3.sbs) | 0 | Yes | [In progress · 201,968/204,288 exact pixels in 34 renders](parity-fixes.md#stored-opacity-across-pattern-depths) |
-| [brick_generator.sbs/resources/Tile](../assets/sbs/brick_generator.sbs) | 1 | Yes | [In progress · 138,265/139,264 pixels across 52 renders](parity-fixes.md#rectangular-fields-in-the-two-brick-generator-tile-helpers) |
+| [brick_generator.sbs/resources/Tile](../assets/sbs/brick_generator.sbs) | 1 | Yes | [In progress · 149,415/150,528 pixels across 74 renders](parity-fixes.md#the-lower-edge-of-an-axis-aligned-stamp) |
 | [cartesian_polar_transformation.sbs/cartesian_to_polar](../assets/sbs/cartesian_polar_transformation.sbs) | 1 | No | [Parity · 171,264 exact pixels in 18 renders](parity-fixes.md#segment-mapping-and-normal-graph-rechecks) |
 | [cartesian_polar_transformation.sbs/cartesian_to_polar_grayscale](../assets/sbs/cartesian_polar_transformation.sbs) | 1 | No | [Parity · 171,264 exact pixels in 18 renders](parity-fixes.md#segment-mapping-and-normal-graph-rechecks) |
 | [cartesian_polar_transformation.sbs/polar_to_cartesian](../assets/sbs/cartesian_polar_transformation.sbs) | 1 | No | [Parity · 28 renders, all 306,688 pixels exact](parity-fixes.md#reverse-polar-sampling-in-color-and-grayscale) |
@@ -432,7 +432,7 @@ A change to Gaussian stamp coverage was checked against 61 roots. Additional rec
 | [pattern_arc_pavement.sbs/arc_pavement](../assets/sbs/pattern_arc_pavement.sbs) | 1 | No | [In progress · 206,911/211,200 pixels across 27 renders](parity-fixes.md#pattern-rotation-phase) |
 | [pattern_brick_1.sbs/brick_1](../assets/sbs/pattern_brick_1.sbs) | 0 | No | [In progress · 139,565/142,592 exact pixels in 19 whole renders](parity-fixes.md#paper-brick-fiber-mesh-polygon-and-shape-roots) |
 | [pattern_brick_2.sbs/brick_2](../assets/sbs/pattern_brick_2.sbs) | 0 | No | [In progress · 139,074/142,592 exact pixels in 19 whole renders](parity-fixes.md#paper-brick-fiber-mesh-polygon-and-shape-roots) |
-| [pattern_brick_generator.sbs/resources/Tile](../assets/sbs/pattern_brick_generator.sbs) | 1 | Yes | [In progress · 138,162/139,264 pixels across 52 renders](parity-fixes.md#rectangular-fields-in-the-two-brick-generator-tile-helpers) |
+| [pattern_brick_generator.sbs/resources/Tile](../assets/sbs/pattern_brick_generator.sbs) | 1 | Yes | [In progress · 149,402/150,528 pixels across 74 renders](parity-fixes.md#the-lower-edge-of-an-axis-aligned-stamp) |
 | [pattern_checker_1.sbs/checker_1](../assets/sbs/pattern_checker_1.sbs) | 0 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [pattern_cube_3d.sbs/cube_3d](../assets/sbs/pattern_cube_3d.sbs) | 0 | No | [Parity · 18 renders, all 171,264 pixels exact](parity-fixes.md#normal-maps-panoramas-and-primitive-shapes) |
 | [pattern_cube_3d.sbs/cube_3d_gbuffers](../assets/sbs/pattern_cube_3d.sbs) | 0 | No | [Parity · 60 renders, all 685,056 pixels exact](parity-fixes.md#normal-maps-panoramas-and-primitive-shapes) |

@@ -27,7 +27,8 @@ impl Footprint {
         let local = [(delta[0] * self.cosine + delta[1] * self.sine) * 2.0 / size[0], (-delta[0] * self.sine + delta[1] * self.cosine) * 2.0 / size[1]];
         // For axis-aligned stamps the preceding interval owns a sample on the shared edge.
         let outside = if self.sine == 0.0 || self.cosine == 0.0 {
-            delta.iter().zip(self.radius).any(|(&v, r)| v <= -r || v > r)
+            // Subtract the radius from the center before testing the open edge at pixel precision.
+            (0..2).any(|axis| point[axis] <= center[axis] - self.radius[axis] || delta[axis] > self.radius[axis])
         } else {
             local.iter().any(|v| *v <= -1.0 || *v > 1.0)
         };
