@@ -230,6 +230,31 @@ Six original sampler packages saved by MaterialCraft reopened in the reference. 
 
 Two further roots with these modes remain open. The shape-splatter normal processor matches 666/142,592 pixels over 19 renders. Maximum finite U8 / U16 / F16 / F32 errors are 255 / 65,462 / .998570919 / .998893440. Some outputs contain nonfinite channels. The point preview returned 27,904/27,904 equal final pixels in 15 comparable cases, but the text stage reports an external-font error. In the three separate count/offset wrappers the counts are 4, 8 and 12 and the offsets are 0, 1 and 2. The error prevents a whole-root comparison in those wrappers.
 
+### 3D noise with two original permutation tables
+
+The basic and ridged 3D noise roots matched all 872,960 output pixels across 112 renders with identical procedural lookups. In every render the Bitmap in each application also matched all 16,384 U16 lookup texels. Replacing one lookup with the other changed the result in all 17 basic cases and all 39 ridged cases. It changed 172,483 and 261,463 pixel values respectively.
+
+| Whole root | Renders | Exact / compared | Pixels in U8 / U16 / F16 / F32 | Maximum error |
+|---|---:|---:|---|---:|
+| 3D_perlin_noise | 34 | 347,136/347,136 | 231,424 / 34,816 / 38,912 / 41,984 | 0 |
+| 3D_ridged_noise_fractal | 78 | 525,824/525,824 | 239,616 / 43,008 / 47,104 / 196,096 | 0 |
+
+For each table initialize Python 3.12 `random.Random` once, using seed 104729 for the first and 1299709 for the second. In each of 16 rows, shuffle a fresh list of integers 0 through 1023 using that generator. Store each shuffled value k at level `round(k × 65535 / 1023)` in a linear grayscale 1024×16 U16 image. Bind the image to the active Bitmap in both applications. Repeat the [seven basic cases](#basic-and-ridged-3d-perlin) and the [29 ridged cases](#natural-exponential-and-ridged-noise) with each table.
+
+Add ten position fields per root and table. At integer coordinates x,y let u=(x+.5)/width, v=(y+.5)/height and R=((31x+47y+13xy+17m) mod 251)/250. Store the linear RGBA32F vector (u+.3125v−.25, 1.375v−.1875u−.125, 2R−.875+.0625m, 1). Use seed 134269+17m. Setting A uses defaults. B/C use scale 6/11 for basic noise. For ridged noise use octave levels 1–4 and roughness .6875 for B, and levels 2–6 and roughness .3125 for C.
+
+| Extent | Storage | m | Setting |
+|---|---|---:|---|
+| 16² | F32 | 0 | A |
+| 32×16 | F32 | 1 | B |
+| 16×32 | F32 | 2 | C |
+| 32² | U8, U16, F16, F32 | 1 | B |
+| 8×32 | F32 | 3 | C |
+| 64×32 | F32 | 2 | B |
+| 32×64 | F16 | 1 | C |
+
+After the sampler and Sharpen changes, 24 repeat renders reproduced all 21,504 pixels bit for bit. The inventory status covers the common procedural inputs. The applications' bundled tables give different default output. On the 128² seed-zero ramp, basic noise matched 173/16,384 U8 pixels (maximum 203 levels) and ridged noise matched 176/16,384 (maximum 139 levels). [Bundled table measurements](#natural-exponential-and-ridged-noise)
+
 ## 2026-11-19 root comparisons
 
 ### Texture sampling in pattern functions
