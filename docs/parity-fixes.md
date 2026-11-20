@@ -427,6 +427,23 @@ Using one worker per fresh process, the 4² defaults for directional 3, its seco
 
 The three independent patterns in Wood Fibers 2 already differ before Levels and Blend. Across the ten additional renders, stage 1070386767 matched 4,690/5,248 U16 pixels (maximum three levels), stage 1083954697 matched 40,412/40,960 (one level) and stage 1083954764 matched 162,125/163,840 (one level). The final output matched 9,591/10,496. The 128² default and seed 42 each completed, with 13,485 and 15,779 of 16,384 final U16 pixels exact.
 
+### Pattern coordinates under a change of render region
+
+Four original single-stamp probes isolate the remaining Alveolus coordinate differences. The same physical points can be rendered inside the unit square or inside a larger region at twice the width and height. Across 540 renders, MaterialCraft matched 2,237,142/2,654,208 reference pixels. The largest difference was one storage level for U8 and U16, .00048828125 for F16 and 1.13248825e-06 for F32.
+
+| Shape | All three regions, exact / compared | Maximum U8 / U16 / F16 / F32 | Reference unit vs centered crop | Reference unit vs translated crop |
+|---|---:|---|---:|---:|
+| 4 | 558,495/663,552 | 1 / 1 / 0.00048828125 / 1.13248825e-06 | 67,812/73,728 | 66,339/73,728 |
+| 6 | 537,415/663,552 | 0 / 1 / 3.05175781e-05 / 8.94069672e-07 | 61,230/73,728 | 58,446/73,728 |
+| 10 | 570,616/663,552 | 1 / 1 / 0.00048828125 / 2.98023224e-07 | 62,184/73,728 | 58,527/73,728 |
+| 17 | 570,616/663,552 | 1 / 1 / 0.00048828125 / 2.98023224e-07 | 62,184/73,728 | 58,527/73,728 |
+
+Start with a single untextured quadrant, a black background, unit opacity, maximum blending and no tiling. Use shapes 4, 6, 10 and 17. Set both render and tiling regions to [0,1] on both axes, then [−.5,1.5], then [−1,1]. In the latter two cases double the output dimensions and extract the pixels that cover the original region. The first crop starts halfway across the unit image width and height, the second starts one unit width and height into the expanded output. MaterialCraft reproduced every local crop bit across 589,824 such pixel comparisons.
+
+For the first four geometries center the stamp at (.25,.25), with sizes (3,1.5), (−3,1.5), (3,−1.5) and (−3,−1.5). For the fifth use center (.75,.75) and positive size (3,1.5). Use center (.376953125,.580078125) for the last four geometries. Their (width, height, turns) are (.931640625,.6171875,0), (−.931640625,.6171875,0), (.931640625,.6171875,.25) and (.931640625,.6171875,.21875). The first five use zero turns. Request 32×64 F32, 64×32 F32, 64×32 U16, 32² F16 and 32² U8. Use seed 152591+13g+j for zero-based geometry g and output case j.
+
+On the 64×32 F32 horizontal gradient at geometry zero, pixel (14,8) has bits 3efbffff in the unit reference and 3efc0000 in both expanded reference crops. MaterialCraft gives 3efc0000 for all three. In the Gaussian F32 cases the centered and translated reference crops respectively reach 1.78813934e-07 and 4.17232513e-07 absolute difference from the unit reference. The linear gradient also changes before any radial falloff is involved. The coordinate rounding rule and both whole Alveolus roots remain open.
+
 ## 2026-11-19 root comparisons
 
 ### Texture sampling in pattern functions

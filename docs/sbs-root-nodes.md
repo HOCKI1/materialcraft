@@ -92,7 +92,7 @@ Reduced Sharpen now matches 16,704/16,704 pixels on the held-out signed field an
 | [3d_viewer.sbs/ibl_specular_contrib_anisotropic/panoramic_lod](../assets/sbs/3d_viewer.sbs) | 1 | Yes | [Parity · 20 cases, 219,392 exact pixels](parity-fixes.md#large-transform-offsets-and-additive-blends) |
 | [3d_volume_mask.sbs/3d_volume_mask](../assets/sbs/3d_volume_mask.sbs) | 1 | No | [Parity · 116 renders, all 1,029,632 pixels exact](parity-fixes.md#pixel-quotients-and-volume-mask-interpolation) |
 | [3d_worley_noise.sbs/3D_worley_noise](../assets/sbs/3d_worley_noise.sbs) | 1 | No | [Parity · 34 renders, 312,832 exact pixels](parity-fixes.md#per-pixel-random-initialization) |
-| [alveolus.sbs/alveolus](../assets/sbs/alveolus.sbs) | 0 | Yes | [In progress · 332,280/334,336 pixels across 41 renders](parity-fixes.md#square-and-rectangular-pattern-generators) |
+| [alveolus.sbs/alveolus](../assets/sbs/alveolus.sbs) | 0 | Yes | [In progress · 332,280/334,336 pixels across 41 renders](parity-fixes.md#square-and-rectangular-pattern-generators) · [Single-stamp render-region comparisons](parity-fixes.md#pattern-coordinates-under-a-change-of-render-region) |
 | [angle_to_vector.sbs/angle_to_vector](../assets/sbs/angle_to_vector.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [anisotropic_blur.sbs/anisotropic_blur](../assets/sbs/anisotropic_blur.sbs) | 1 | No | [Parity · 29 renders, 200,192 exact pixels across four formats](parity-fixes.md#integer-and-oblique-directional-blur) |
 | [anisotropic_blur.sbs/anisotropic_blur_grayscale](../assets/sbs/anisotropic_blur.sbs) | 1 | No | [Parity · 29 renders, 200,192 exact pixels across four formats](parity-fixes.md#integer-and-oblique-directional-blur) |
@@ -426,7 +426,7 @@ Reduced Sharpen now matches 16,704/16,704 pixels on the held-out signed field an
 | [paths_tools.sbs/paths_trace](../assets/sbs/paths_tools.sbs) | 2 | No | [In progress · 58,213/58,624 pixels in 19 renders](parity-fixes.md#paths-caustics-and-cell-fields-after-pattern-sampling) |
 | [paths_tools.sbs/vertex_processor](../assets/sbs/paths_tools.sbs) | 9 | No | [Parity · 18 renders, all 57,600 pixels exact](parity-fixes.md#marked-variable-reads-in-path-and-mipmap-graphs) |
 | [paths_tools.sbs/vertex_processor_simple](../assets/sbs/paths_tools.sbs) | 5 | No | [Parity · 18 renders, all 57,600 pixels exact](parity-fixes.md#marked-variable-reads-in-path-and-mipmap-graphs) |
-| [pattern_alveolus.sbs/alveolus](../assets/sbs/pattern_alveolus.sbs) | 0 | No | [In progress · 201,876/203,264 pixels across 33 renders](parity-fixes.md#square-and-rectangular-pattern-generators) |
+| [pattern_alveolus.sbs/alveolus](../assets/sbs/pattern_alveolus.sbs) | 0 | No | [In progress · 201,876/203,264 pixels across 33 renders](parity-fixes.md#square-and-rectangular-pattern-generators) · [Single-stamp render-region comparisons](parity-fixes.md#pattern-coordinates-under-a-change-of-render-region) |
 | [pattern_arc_pavement.sbs/arc_pavement](../assets/sbs/pattern_arc_pavement.sbs) | 1 | No | [In progress · 206,911/211,200 pixels across 27 renders](parity-fixes.md#pattern-rotation-phase) |
 | [pattern_brick_1.sbs/brick_1](../assets/sbs/pattern_brick_1.sbs) | 0 | No | [In progress · 139,565/142,592 exact pixels in 19 whole renders](parity-fixes.md#paper-brick-fiber-mesh-polygon-and-shape-roots) |
 | [pattern_brick_2.sbs/brick_2](../assets/sbs/pattern_brick_2.sbs) | 0 | No | [In progress · 139,074/142,592 exact pixels in 19 whole renders](parity-fixes.md#paper-brick-fiber-mesh-polygon-and-shape-roots) |
