@@ -208,6 +208,39 @@ For the thin-gradient row use a 256² F32 canvas, height 1 and widths 1/8, 1/32 
 
 Arc Pavement previously had a maximum F32 error of .00000987946987. Gradient Linear 1 still has 16 unequal pixels in each of U8, U16 and F16 and 176 in F32. On the 24 profiles per root, Fluid and Noise Fluid give the same counts and maxima as the earlier [pattern-stage comparison](#fibers-and-fluid-pattern-stages). All 3,211,776 pixels from 159 equal-resolution renders of 19 previously matched pattern roots are exact. For the separate file check, save the original test graph, Gradient Linear 1, Fibers and Fluid through the normal save command with input header `1.1.0.202502`. Reopen each save in the reference app and compare to the original in that same app. Across 14 extended-angle controls and nine settings per root, all 134,144 pixels in 41 renders match, with maximum error zero.
 
+### Pattern tint, coverage and grayscale conversion
+
+| Original stamp control | Renders | Previous exact | Current exact / pixels | Maximum U8 / U16 / F16 / F32 error |
+|---|---:|---:|---:|---|
+| One solid square, changed source channels and global opacity | 92 | 8,448 | 23,552/23,552 | — / — / — / 0 |
+| 64 independently tinted squares | 78 | 16,612 | 26,112/26,112 | 0 / 0 / 0 / 0 |
+| White and hashed bitmap inputs | 56 | 10,248 | 14,336/14,336 | 0 / 0 / 0 / 0 |
+| Four nonconstant shapes with RGBA tint | 88 | 36,432 | 71,184/90,112 | 0 / 0 / 9.53674316e-07 / 0.000280380249 |
+| Four shapes with a scalar expression | 88 | 72,398 | 75,796/90,112 | 0 / 0 / 2.38418579e-07 / 5.76451421e-05 |
+
+Use additive blending, one full-size square on transparent black, roughness zero and a 16² F32 output. For the swatch (.9,.11,.57,.732), the grayscale square gives bits `3f06d3a0`. Returning the same value from a four-channel expression gives `3f3b645a`. Direct swatches use ((R + G) + B) / 3 in F32. Four-channel expressions supply A and scalar expressions supply their single value. A white point-sampled bitmap gives the same respective values. The alternate 16² input uses U8 intensity (41x + 29y + 13xy + 3) mod 256. Render both inputs with gains 1 and .6137. The solid-square controls also include red, green, blue, transparent black, signed and over-one channels, with gains 1, .6137, −1.1875 and 327.125.
+
+For the color grid, fully subdivide three times and draw one white square in each leaf. Use the original scalar and four-channel expressions as well as literal swatches. Draw on RGBA (.125,.25,.375,.5) under all three blend modes. The 64 colors use PCG64 seed 90287 with four F32 draws per leaf, drawn uniformly from [−1.25,1.625). Include primary colors, equal RGB, zero and unit alpha, signed cancelling channels and values up to 32 times the original amplitude. Use (roughness,gain) pairs (0,1), (.95,.6137), (0,−1.1875), (1.03125,327.125), (.75,2.500080108642578), (0,.37) and (1,1). Alternate 32×16 and 16², with seeds 90739 + 11j. Cases j=1 and j=3 also cover U8, U16 and F16.
+
+In color mode, first round A × depth opacity. Multiply each RGB channel by that result before applying shape coverage. Shapes 17 and 18 add their variation as part of the final multiply-add. Using the reference app’s unit-tint coverage as identical input reproduces 53,248/53,248 F32 pixels across shapes 5, 10, 17 and 18, with maximum error zero. MaterialCraft’s own nonconstant coverage still differs on the cases in the table. At (16,16) of a 32² shape 5 with the example swatch and gain .6137, RGBA gives `3ecd6456 3d48d3e4 3e8214e2 3ee43699`. A scalar expression returning .732 gives `3ee43699` in all four channels. Use seeds 91117 + 17j and variations 0, .125 and −.25.
+
+| Full root on the [previous inputs](#stored-opacity-across-pattern-depths) | Renders | Previous exact | Current exact / pixels | Maximum U8 / U16 / F16 / F32 error |
+|---|---:|---:|---:|---|
+| brick_3 | 34 | 201,968 | 201,968/204,288 | 0 / 3 / 0 / 1.33514404e-05 |
+| clouds_1 | 17 | 144,178 | 144,178/145,664 | 1 / 11 / 0.00048828125 / 0.000111341476 |
+| clouds_2 | 16 | 128,263 | 128,263/129,280 | 1 / 3 / 0.00048828125 / 2.29477882e-05 |
+| creased | 17 | 143,936 | 143,948/145,664 | 0 / 29 / 0.00048828125 / 1.52587891e-05 |
+| crystal_2 | 17 | 144,774 | 144,770/145,664 | 0 / 2 / 0 / 3.05175781e-05 |
+| dirt_1 | 17 | 145,661 | 145,661/145,664 | 0 / 1 / 0 / 1.51991844e-05 |
+| dirt_3 | 17 | 145,351 | 145,359/145,664 | 0 / 1 / 1.52587891e-05 / 1.52736902e-05 |
+| dirt_5 | 16 | 129,226 | 129,226/129,280 | 0 / 4 / 6.10351562e-05 / 5.0842762e-05 |
+| dirt_6 | 16 | 117,822 | 117,826/129,280 | 0 / 8 / 0.133789062 / 0.140006408 |
+| dirt_gradient | 16 | 128,449 | 128,396/129,280 | 0 / 2 / 0.000244140625 / 1.98483467e-05 |
+
+Dirt 1 also has 12 new comparisons per setting. Repeat seed S eight times interleaved with S+1, S+2 and S+19 in the sequence 0,0,1,0,2,0,0,19,0,0,1,0 relative to S. At the default 128² U16 output with S=0, three pixels vary by one stored level within the eight reference runs. Every MaterialCraft value appears in at least one reference run, and two entire reference frames match it. At 64² with the recorded changed controls and S=42, one U16 pixel varies by one level and the local frame matches one entire repeat. The corresponding F32 reference output is byte-identical across all eight runs. It differs from MaterialCraft at the same single pixel by .0000151991844. Dirt 1 remains in progress.
+
+Opening six MaterialCraft saves in the reference app reproduces 37,632/37,632 source-file pixels in 69 renders, maximum error zero. The files exercise a grayscale swatch, constant expression, color grid, gradient with a four-channel getter, radial shape with a scalar getter and a bitmap with an expression. Rerunning 19 previously verified pattern roots gives 3,211,776/3,211,776 exact pixels across 159 renders.
+
 ### Stored opacity across pattern depths
 
 | Direct pattern control | Renders | Exact pixels / compared | Maximum U8 / U16 / F16 / F32 error |

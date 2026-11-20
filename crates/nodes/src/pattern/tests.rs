@@ -79,6 +79,49 @@ fn cook(graph: PatternGraph) -> crate::CookResult {
 }
 
 #[test]
+fn stamp_tint_preserves_the_authored_type_and_scales_before_coverage() {
+    let rgba = Value::Float4([0.9, 0.11, 0.57, 0.732]);
+    let constant = |value| Value::Function(Box::new(FunctionGraph::constant(value)));
+    let definition = find("fx_map").unwrap();
+    for (shape, color, tint, gain, expected) in [
+        (2, false, rgba.clone(), 1.0, [0x3f06_d3a0; 4]),
+        (2, false, constant(rgba.clone()), 1.0, [0x3f3b_645a; 4]),
+        (5, true, constant(Value::Float(0.732)), 0.6137, [0x3ee4_3699; 4]),
+        (5, true, rgba.clone(), 0.6137, [0x3ecd_6456, 0x3d48_d3e4, 0x3e82_14e2, 0x3ee4_3699]),
+        (17, true, constant(rgba), 327.125, [0x42de_3ea0, 0x4159_4e4d, 0x428c_c144, 0x42f6_f041]),
+    ] {
+        let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
+        graph.nodes[0].parameters =
+            BTreeMap::from([("patterntype".into(), Value::Int(shape)), ("opacity".into(), tint), ("blendingmode".into(), Value::Int(0))]);
+        let params = resolve_params(
+            definition,
+            &BTreeMap::from([
+                ("pattern".into(), Value::PatternGraph(Box::new(graph))),
+                ("roughness".into(), Value::Float(0.0)),
+                ("color_mode".into(), Value::Bool(color)),
+                ("opacity".into(), Value::Float(gain)),
+                ("background".into(), Value::Color([0.0; 4])),
+            ]),
+        );
+        let context = CookContext {
+            input_formats: &[],
+            format: materialcraft_core::OutputFormat::F32,
+            w: 32,
+            h: 32,
+            seed: 7,
+            tile: true,
+            inputs: &[],
+            params: &params,
+            resource: &|_| None,
+            vars: &BTreeMap::new(),
+        };
+        let image = (definition.cook)(&context).unwrap().remove(0);
+        let pixel = image.get(16, 16, false).map(f32::to_bits);
+        assert_eq!(&pixel[..image.channels()], &expected[..image.channels()], "shape {shape}, color {color}, opacity {gain}");
+    }
+}
+
+#[test]
 fn gradient_stamp_offsets_apply_to_the_tinted_channels() {
     let background = [0.5, 0.375, 0.75, 0.875];
     for (shape, variation, blend, background, position, expected) in [
@@ -658,7 +701,8 @@ fn roughness_sample(roughness: f32, depth: usize, blend: i32, color: bool, repea
     let leaf = depth;
     let leaf_id = graph.nodes[leaf].id;
     graph.nodes[leaf].parameters.insert("patterntype".into(), Value::Int(2));
-    graph.nodes[leaf].parameters.insert("opacity".into(), Value::Float4([0.8, 0.4, 0.2, 1.0]));
+    let tint = if color { [0.8, 0.4, 0.2, 1.0] } else { [0.8, 0.8, 0.8, 1.0] };
+    graph.nodes[leaf].parameters.insert("opacity".into(), Value::Float4(tint));
     graph.nodes[leaf].parameters.insert("blendingmode".into(), Value::Int(blend));
     if repeat {
         let dot = graph.add(PatternNodeKind::Dot).unwrap();

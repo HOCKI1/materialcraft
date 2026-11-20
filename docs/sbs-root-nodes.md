@@ -167,11 +167,11 @@ Pattern center culling matched all 356,352 pixels across 204 renders. Background
 | [constant_values.sbs/integer/constant_integer4](../assets/sbs/constant_values.sbs) | 0 | No | [Parity · 41 exact typed vectors, authored constants checked on reload](parity-fixes.md#stored-integer-value-outputs) |
 | [contrast_luminosity.sbs/contrast_luminosity](../assets/sbs/contrast_luminosity.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [contrast_luminosity.sbs/contrast_luminosity_grayscale](../assets/sbs/contrast_luminosity.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
-| [creased.sbs/creased](../assets/sbs/creased.sbs) | 0 | Yes | [In progress · 143,706/145,664 pixels across 17 renders](parity-fixes.md#square-and-rectangular-pattern-generators) |
+| [creased.sbs/creased](../assets/sbs/creased.sbs) | 0 | Yes | [In progress · 143,948/145,664 exact pixels in 17 renders](parity-fixes.md#pattern-tint-coverage-and-grayscale-conversion) |
 | [crop.sbs/crop](../assets/sbs/crop.sbs) | 1 | No | [Parity · 48 renders, all 377,344 pixels across both outputs exact](parity-fixes.md#half-precision-crop-area-and-input-sizes) |
 | [crop.sbs/crop_grayscale](../assets/sbs/crop.sbs) | 1 | No | [Parity · 48 renders, all 377,344 pixels across both outputs exact](parity-fixes.md#half-precision-crop-area-and-input-sizes) |
 | [crystal_1.sbs/crystal_1](../assets/sbs/crystal_1.sbs) | 0 | Yes | [In progress · 144,060/145,664 exact pixels in 17 renders](parity-fixes.md#gradient-warp-displacement-and-sampling) |
-| [crystal_2.sbs/crystal_2](../assets/sbs/crystal_2.sbs) | 0 | Yes | [In progress · 144,468/145,664 exact pixels in 17 renders](parity-fixes.md#gradient-warp-displacement-and-sampling) |
+| [crystal_2.sbs/crystal_2](../assets/sbs/crystal_2.sbs) | 0 | Yes | [In progress · 144,770/145,664 exact pixels in 17 renders](parity-fixes.md#pattern-tint-coverage-and-grayscale-conversion) |
 | [curvature.sbs/curvature](../assets/sbs/curvature.sbs) | 1 | No | [Parity · 20 renders, 176,384 exact pixels](parity-fixes.md#sampling-integer-bitmap-inputs-through-wider-bridges) |
 | [curvature_smooth.sbs/curvature_smooth](../assets/sbs/curvature_smooth.sbs) | 1 | Yes | [Parity · 20 renders, 176,384 exact pixels](parity-fixes.md#sampling-integer-bitmap-inputs-through-wider-bridges) |
 | [curvature_smooth_v2.sbs/compute_curvature_v2](../assets/sbs/curvature_smooth_v2.sbs) | 2 | Yes | [Parity: 6 cases](parity-fixes.md#verified-cases) |
@@ -181,11 +181,11 @@ Pattern center culling matched all 356,352 pixels across 204 renders. Background
 | [diffusion.sbs/impl/pass_normal](../assets/sbs/diffusion.sbs) | 2 | Yes | [Parity · 19 renders, 143,872 exact pixels](parity-fixes.md#per-pixel-random-initialization) |
 | [directional_distance.sbs/directional_distance](../assets/sbs/directional_distance.sbs) | 3 | No | [Parity · 32 renders, both outputs exact across 342,528 pixels](parity-fixes.md#distance-output-channels-axis-wrapping-and-cutoffs) |
 | [directionnal_noise.sbs/directionnal_noise](../assets/sbs/directionnal_noise.sbs) | 0 | Yes | [In progress · 145,135/147,712 pixels across 23 renders](parity-fixes.md#stored-input-resizing-and-grayscale-levels-controls) |
-| [dirt_1.sbs/dirt_1](../assets/sbs/dirt_1.sbs) | 0 | Yes | [In progress · 145,661/145,664 exact pixels in 17 renders](parity-fixes.md#stored-opacity-across-pattern-depths) |
-| [dirt_3.sbs/dirt_3](../assets/sbs/dirt_3.sbs) | 0 | Yes | [In progress · 145,351/145,664 exact pixels in 17 renders](parity-fixes.md#stored-opacity-across-pattern-depths) |
+| [dirt_1.sbs/dirt_1](../assets/sbs/dirt_1.sbs) | 0 | Yes | [In progress · 145,661/145,664 exact pixels in 17 renders](parity-fixes.md#pattern-tint-coverage-and-grayscale-conversion) |
+| [dirt_3.sbs/dirt_3](../assets/sbs/dirt_3.sbs) | 0 | Yes | [In progress · 145,359/145,664 exact pixels in 17 renders](parity-fixes.md#pattern-tint-coverage-and-grayscale-conversion) |
 | [dirt_5.sbs/dirt_5](../assets/sbs/dirt_5.sbs) | 0 | Yes | [In progress · 129,226/129,280 exact pixels in 16 renders](parity-fixes.md#stored-opacity-across-pattern-depths) |
-| [dirt_6.sbs/dirt_6](../assets/sbs/dirt_6.sbs) | 0 | Yes | [In progress · 117,822/129,280 pixels across 16 renders](parity-fixes.md#square-and-rectangular-pattern-generators) |
-| [dirt_gradient.sbs/dirt_gradient](../assets/sbs/dirt_gradient.sbs) | 0 | Yes | [In progress · 128,449/129,280 exact pixels in 16 renders](parity-fixes.md#stored-opacity-across-pattern-depths) |
+| [dirt_6.sbs/dirt_6](../assets/sbs/dirt_6.sbs) | 0 | Yes | [In progress · 117,826/129,280 exact pixels in 16 renders](parity-fixes.md#pattern-tint-coverage-and-grayscale-conversion) |
+| [dirt_gradient.sbs/dirt_gradient](../assets/sbs/dirt_gradient.sbs) | 0 | Yes | [In progress · 128,396/129,280 exact pixels in 16 renders](parity-fixes.md#pattern-tint-coverage-and-grayscale-conversion) |
 | [exposure.sbs/exposure](../assets/sbs/exposure.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [extend_shape.sbs/extend_shape_color](../assets/sbs/extend_shape.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [extend_shape.sbs/extend_shape_grayscale](../assets/sbs/extend_shape.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |

@@ -75,8 +75,9 @@ pub(super) fn render(context: &CookContext, stamps: &[PatternStamp], max_depth: 
             return Err("pattern roughness overflowed its depth opacity".into());
         }
 
-        // Scalar luminosity weights both RGB and alpha, unlike straight RGBA tint
-        let source_alpha = if stamp.scalar_color { stamp.color[0] } else { stamp.color[3] };
+        let [red, green, blue, alpha] = stamp.color;
+        let alpha = alpha * opacity;
+        let channel_tint = [red * alpha, green * alpha, blue * alpha, alpha];
         let tinted_offset = matches!(stamp.pattern, 17 | 18);
 
         let angle = stamp.rotation * std::f32::consts::TAU;
@@ -95,8 +96,6 @@ pub(super) fn render(context: &CookContext, stamps: &[PatternStamp], max_depth: 
         } else {
             None
         };
-        let gray_tint = (stamp.color[0] + stamp.color[1] + stamp.color[2]) / 3.0 * opacity;
-        let channel_tint = stamp.color.map(|tint| tint * (stamp.color[3] * opacity));
         let radius = [
             (stamp.size[0] * cosine).abs() * 0.5 + (stamp.size[1] * sine).abs() * 0.5,
             (stamp.size[0] * sine).abs() * 0.5 + (stamp.size[1] * cosine).abs() * 0.5,
@@ -135,9 +134,9 @@ pub(super) fn render(context: &CookContext, stamps: &[PatternStamp], max_depth: 
                         let (foreground, stamp_alpha) = if let Some((input, format)) = &texture {
                             let sample = bitmap::sample(input, local, *format, stamp.filtering == 2);
                             if kind == Kind::Gray {
-                                ([(sample[0] - 1.0).mul_add(gray_tint, gray_tint); 4], 1.0)
+                                ([(sample[0] - 1.0).mul_add(alpha, alpha); 4], 1.0)
                             } else {
-                                let coverage = sample[3] * (source_alpha * opacity);
+                                let coverage = sample[3] * alpha;
                                 let image_alpha = if stamp.premultiplied { 1.0 } else { 1.0 - (1.0 - sample[3]) };
                                 let mut color = std::array::from_fn(|i| (sample[i] * image_alpha) * channel_tint[i]);
                                 color[3] = coverage;
@@ -145,13 +144,8 @@ pub(super) fn render(context: &CookContext, stamps: &[PatternStamp], max_depth: 
                             }
                         } else {
                             let (coverage, offset) = shape::profile(stamp.pattern, local[0], local[1], stamp.variation)?;
-                            let alpha = if tinted_offset { coverage.mul_add(source_alpha * opacity, offset) } else { coverage * source_alpha * opacity };
-                            let color = std::array::from_fn(|i| {
-                                let tint_alpha = if kind == Kind::Color && i < 3 { stamp.color[3] } else { 1.0 };
-                                let tint = if i == 3 { source_alpha } else { stamp.color[i] };
-                                if tinted_offset { coverage.mul_add(tint * tint_alpha * opacity, offset) } else { coverage * tint * tint_alpha * opacity }
-                            });
-                            (color, alpha)
+                            let color = channel_tint.map(|tint| if tinted_offset { coverage.mul_add(tint, offset) } else { coverage * tint });
+                            (color, color[3])
                         };
 
                         let pixel = (y as usize * width as usize + x as usize) * channels;

@@ -49,6 +49,7 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
     let mut state = EvaluationState::default();
     let mut remaining = MAX_VISITS;
     let mut empty_switches = BTreeSet::new();
+    let grayscale = !context.b("color_mode");
     while let Some(mut visit) = pending.pop() {
         max_depth = max_depth.max(visit.depth);
         if empty_switches.contains(&visit.node) {
@@ -120,10 +121,19 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
                 }
                 if pattern != 0 {
                     let offset = vector("frameoffset");
-                    let color = match parameters.get("opacity") {
-                        Some(Value::Float(value)) => [*value, *value, *value, 1.0],
-                        Some(value) => value.as_vec4().ok_or("pattern color must be a float or float4")?,
-                        None => [1.0; 4],
+                    let tint = parameters.get("opacity").unwrap_or(&Value::Float4([1.0; 4]));
+                    let rgba = tint.as_vec4().ok_or("pattern color must be a float or float4")?;
+                    if !rgba.iter().all(|v| v.is_finite()) {
+                        return Err("pattern color must be finite".into());
+                    }
+                    let color = match tint {
+                        Value::Float(luminosity) => [1.0, 1.0, 1.0, *luminosity],
+                        _ if grayscale => {
+                            // A color expression supplies its alpha. A literal swatch supplies its mean RGB.
+                            let luminosity = if functions.contains_key(&(node.id, "opacity")) { rgba[3] } else { (rgba[0] + rgba[1] + rgba[2]) / 3.0 };
+                            [1.0, 1.0, 1.0, luminosity]
+                        }
+                        _ => rgba,
                     };
 
                     stamps.push(PatternStamp {
@@ -131,7 +141,6 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
                         size: vector("patternsize").map(|size| size * visit.extent),
                         rotation: scalar("patternrotation"),
                         color,
-                        scalar_color: matches!(parameters.get("opacity"), Some(Value::Float(_))),
                         depth: visit.depth,
                         pattern,
                         variation: scalar("patternsuppl"),
