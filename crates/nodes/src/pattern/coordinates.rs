@@ -8,6 +8,7 @@ pub(super) struct PixelPlanes {
 }
 
 struct Axis {
+    first_pixel: u32,
     base: f64,
     step: f64,
     negative_bias: f64,
@@ -29,9 +30,12 @@ impl PixelPlanes {
         if extents.iter().any(|extent| !(1.0..8_388_608.0).contains(extent)) {
             return None;
         }
-        // Snap the vertices of a right triangle spanning twice the stamp's bounding rectangle.
-        let near = bounds.map(|[left, _]| (left + 0.5).floor());
-        let far: [f64; 2] = std::array::from_fn(|i| (bounds[i][0] + 2.0 * extents[i] + 0.5).floor() + 1.0);
+        // Store each vertex at pixel precision before both snapping and computing its coordinates.
+        let near_vertex = bounds.map(|[left, _]| left as f32);
+        let far_radius = extents.map(|extent| f64::from((1.5 * extent) as f32));
+        let far_vertex: [f32; 2] = std::array::from_fn(|i| ((bounds[i][0] + bounds[i][1]) * 0.5 + far_radius[i]) as f32);
+        let near = near_vertex.map(|v| (f64::from(v) + 0.5).floor());
+        let far = far_vertex.map(|v| (f64::from(v) + 0.5).floor() + 1.0);
         let padded: [f32; 2] = std::array::from_fn(|i| ((far[i] - near[i]) * 0.5) as f32);
         let reciprocal = area_reciprocal(truncate_float(f64::from(padded[0]) * f64::from(padded[1])));
         let origin = near.map(|n| (n.max(0.0) * 0.25).floor() * 4.0);
@@ -42,15 +46,10 @@ impl PixelPlanes {
         let far_axis = (0..2).rev().find(|&i| far_offset[i].unsigned_abs().leading_zeros() >= near_offset[i].unsigned_abs().leading_zeros());
         let axes = std::array::from_fn(|axis| {
             let basis = truncate_float(f64::from(padded[1 - axis]) * f64::from(reciprocal));
-            let center = (bounds[axis][0] + bounds[axis][1]) * 0.5;
             let radius = extents[axis] * 0.5;
             let scale = pixel_divide(2.0, extents[axis] as f32);
-            // Store the unsnapped vertices at pixel precision before applying each snap displacement.
-            let near_vertex = (center - radius) as f32;
-            let far_radius = f64::from((3.0 * radius) as f32);
-            let far_vertex = (center + far_radius) as f32;
-            let low = (near[axis] - f64::from(near_vertex) - radius) as f32 * scale;
-            let high = (far[axis] - f64::from(far_vertex) + far_radius) as f32 * scale;
+            let low = (near[axis] - f64::from(near_vertex[axis]) - radius) as f32 * scale;
+            let high = (far[axis] - f64::from(far_vertex[axis]) + far_radius[axis]) as f32 * scale;
             let span = truncate_float(f64::from(high) - f64::from(low)) * 0.5;
             let gradient = gradient_product(basis, span);
             let unit = f64::from(gradient.next_up() - gradient);
@@ -58,17 +57,17 @@ impl PixelPlanes {
             let base = origin_coordinate(offset, gradient, unit, vertex);
             let sign = f64::from(signs[axis]);
             let step = f64::from(gradient);
-            Axis { base: ((0.5 - origin[axis]) * step + f64::from(base)) * sign, step: step * sign, negative_bias: unit / 64.0 }
+            Axis { first_pixel: near[axis] as u32, base: ((0.5 - origin[axis]) * step + f64::from(base)) * sign, step: step * sign, negative_bias: unit / 64.0 }
         });
         Some(Self { axes, swap })
     }
 
-    pub fn clip(&self, frame: &Footprint, region: &Region, center: [f32; 2], size: [u32; 2], bounds: [[u32; 2]; 2]) -> [[u32; 2]; 2] {
+    pub fn clip(&self, bounds: [[u32; 2]; 2]) -> [[u32; 2]; 2] {
         std::array::from_fn(|axis| {
             let [mut start, mut end] = bounds[axis];
-            // A shared physical edge has one owner. A rounded coordinate beyond the stamp is discarded as well.
-            let contains =
-                |pixel| frame.contains_axis(axis, region.pixel_center(axis, pixel, size[axis]), center[axis]) && self.axes[axis].sample(pixel).abs() <= 1.0;
+            // The triangle starts at the snapped vertex. Its interpolated coordinates include both stamp edges.
+            start = start.max(self.axes[axis].first_pixel).min(end);
+            let contains = |pixel| self.axes[axis].sample(pixel).abs() <= 1.0;
             while start < end && !contains(start) {
                 start += 1;
             }

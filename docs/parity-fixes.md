@@ -534,6 +534,21 @@ For each root’s 25 follow-up renders, the 5,120 U8, 553,728 U16, 78,336 F16 an
 
 In a single-worker release run, four interleaved measurements of the 128² default, 256² default and 512² filled cases gave median whole-graph cook times of 46, 259 and 1,138 ms for Alveolus (previously 45, 247 and 1,068 ms). Pattern Alveolus took 45, 253 and 1,083 ms (previously 43, 238 and 1,045 ms).
 
+### Stored stamp vertices in Crystal 1
+
+Crystal 1 now matches all 1,966,336 raw pixels across 64 distinct renders. At 512×128, graph seed 311203, warp intensity 5.137 and disorder .923, nine paraboloids cover source pixel (138,0). The maximum comes from a stamp centered at (.2958984076976776,.9684525728225708), size (.1875,.1875), rotation zero and opacity .91. Draw its upper wrapped copy alone at Y −.031547427. The reference reads `3f368e3f` in F32, and MaterialCraft previously read `3f368e41`. In the whole graph that changes the stored U16 source from 46,734 to 46,733. The warp then reproduces the measured output in all four formats.
+
+The rasterizer now stores both triangle vertices at F32 pixel precision before snapping their positions. Coverage starts at the snapped near vertex and includes samples whose interpolated coordinates reach exactly either edge. A separate 16×32 wrapped white square with center (.9583333,.4375) and size (.27083334,.8125) covers (1,1). Both pixel regressions failed before the change. The 180 square-edge renders gained 50 exact pixels and now match 184,320/184,320. Another 45 horizontal ramps and 45 squares placed near rounding thresholds matched all 1,179,648 F32 pixels. One such 128×64 case uses center (.1703786552,.3904481232), size (.3016948104,.6273717880), no rotation or tiling and seed 312407.
+
+| Distinct Crystal 1 outputs | U8 pixels | U16 pixels | F16 pixels | F32 pixels | Maximum absolute error |
+|---|---:|---:|---:|---:|---:|
+| 64 original renders, all exact | 170,496 | 557,568 | 449,024 | 789,248 | 0 in each format |
+| 32 of those settings reopened from a MaterialCraft save, all exact | 99,840 | 368,128 | 99,840 | 368,128 | 0 in each format |
+
+The 64 comprise 17 earlier renders, 32 changed-control renders and 15 further distinct settings. To reproduce the final 16 stage comparisons, start at 512×128, seed 311203, warp 5.137 and disorder .923. Render U8, U16, F16 and F32. Also render F16 and F32 for each of six changes, restoring the base after each one. Use 256×64, warp zero, disorder zero, seed 311204, 256² and 128×512. One base F16 output repeats the earlier 32-render matrix. All nine graph stages matched in every case. The independent paraboloid and horizontal and vertical ramp measurements at the suspect location also match all 3,145,728 F32 pixels. [Earlier control values, seeds and saved-file comparisons](#wrapped-stamp-centers-in-brick-3)
+
+In the two Brick Generator Tile helpers, independently drawing each of 84 unit-region stamp placements as a square, ramp and paraboloid matched 129,024/129,024 F32 pixels. The first helper now matches 150,508/150,528 pixels over 74 renders. Its five remaining differing pixels per format occur with image input at 16×32. The maximum errors are 58 U8 levels, 14,974 U16 levels, .2283935546875 F16 and .2284952700138092 F32. The second helper matches 150,174/150,528 with maximum errors of 175, 45,055, .6875 and .6875 respectively. Both remain in progress. In the separate unwrapped subpixel-square controls, 196,597/196,608 F32 pixels match and the maximum error is one. [Helper settings and input construction](#rectangular-fields-in-the-two-brick-generator-tile-helpers)
+
 ### Wrapped stamp centers in Brick 3
 
 Three stamps accounted for the last 16 differing U16 source pixels in the earlier Brick 3 cases. The downstream outputs repeated those differences in U16 and F32. All three stamps crossed the left edge. A single 64² horizontal ramp, center (.063709915,.9060309), size (.1280197,.06283637), zero rotation and horizontal tiling isolates the error. At (0,56) the F32 bits were `3d81c770`. The reference reads `3d81c730`. A regression for that pixel failed on the previous cooker.

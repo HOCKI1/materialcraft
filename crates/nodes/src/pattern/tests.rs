@@ -232,6 +232,10 @@ fn cook_with_variables(graph: PatternGraph, variables: &BTreeMap<String, Value>,
 }
 
 fn cook_at_size(graph: PatternGraph, variables: &BTreeMap<String, Value>, seed: u32, side: u32) -> crate::CookResult {
+    cook_at_dimensions(graph, variables, seed, side, side)
+}
+
+fn cook_at_dimensions(graph: PatternGraph, variables: &BTreeMap<String, Value>, seed: u32, width: u32, height: u32) -> crate::CookResult {
     let definition = find("fx_map").unwrap();
 
     // These traversal fixtures measure unattenuated grayscale stamps
@@ -246,8 +250,8 @@ fn cook_at_size(graph: PatternGraph, variables: &BTreeMap<String, Value>, seed: 
     let context = CookContext {
         input_formats: &[],
         format: materialcraft_core::OutputFormat::F32,
-        w: side,
-        h: side,
+        w: width,
+        h: height,
         seed,
         tile: true,
         inputs: &[],
@@ -343,6 +347,29 @@ fn stamp_precision_at_the_far_vertex_precedes_the_coordinate_scale() {
         let [x, _] = planes.row(30)(0);
         assert_eq!(((x + 1.0) * 0.5).to_bits(), expected, "cosine {cosine}");
     }
+}
+
+#[test]
+fn stamp_vertices_snap_after_storage_at_pixel_precision() {
+    let region = super::region::Region::new([0.0, 1.0, 0.0, 1.0]).unwrap();
+    let size = [0.1875; 2];
+    let frame = super::footprint::Footprint { sine: 0.0, cosine: 1.0, radius: [0.09375; 2] };
+    let planes = super::coordinates::PixelPlanes::new(&frame, &region, [0.295_898_4, -0.031_547_427], size, [512, 128]).unwrap();
+    let [x, y] = planes.row(0)(138);
+    assert_eq!((coverage(4, x, y, 0.0) * 0.91).to_bits(), 0x3f36_8e3f);
+}
+
+#[test]
+fn stamp_vertices_keep_the_last_sample_of_a_wrapped_square() {
+    let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
+    graph.nodes[0].parameters = BTreeMap::from([
+        ("patterntype".into(), Value::Int(2)),
+        ("branchoffset".into(), Value::Float2([-0.5; 2])),
+        ("frameoffset".into(), Value::Float2([0.958_333_3, 0.4375])),
+        ("patternsize".into(), Value::Float2([0.270_833_34, 0.8125])),
+    ]);
+    let image = cook_at_dimensions(graph, &BTreeMap::new(), 311024, 16, 32).unwrap().remove(0);
+    assert_eq!(image.get_gray(1, 1, false), 1.0);
 }
 
 #[test]
