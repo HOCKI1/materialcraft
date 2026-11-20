@@ -17,7 +17,7 @@ pub(super) fn render(context: &CookContext, stamps: &[PatternStamp], max_depth: 
     let background = if context.input(0).is_some_and(|image| image.kind() != kind) {
         Image::filled(width, height, kind, [0.0; 4])
     } else {
-        resized_input(context, 0, InputResize::Filter).unwrap_or_else(|| {
+        resized_input(context, 0, InputResize::PatternBackground).unwrap_or_else(|| {
             let mut color = context.v4("background");
             if kind == Kind::Gray {
                 color[0] = (color[0] + color[1] + color[2]) / 3.0;

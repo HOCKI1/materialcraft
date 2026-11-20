@@ -7,6 +7,7 @@ pub(crate) enum InputResize {
     Copy,
     Filter,
     Levels,
+    PatternBackground,
     Warp,
 }
 
@@ -24,9 +25,23 @@ pub(super) fn warp_input(context: &CookContext, port: usize) -> (Image, OutputFo
     resized_texture(context, port, InputResize::Warp).unwrap_or_else(|| (Image::filled(context.w, context.h, Kind::Gray, [0.0; 4]), context.format))
 }
 
+fn prepare_pattern_background(image: Image, mode: InputResize, source: OutputFormat) -> Image {
+    if mode != InputResize::PatternBackground || source != OutputFormat::F32 {
+        return image;
+    }
+    // Connected gray backgrounds clear the sign of zero. Color backgrounds retain it.
+    let gray = image.kind() == Kind::Gray;
+    let prepare = |v| {
+        let v = crate::function::flush_subnormal(v);
+        if gray && v == 0.0 { 0.0 } else { v }
+    };
+    if image.data().iter().any(|&v| prepare(v).to_bits() != v.to_bits()) { image.map(image.kind(), |pixel| pixel.map(prepare)) } else { image }
+}
+
 fn resized_texture(context: &CookContext, port: usize, mode: InputResize) -> Option<(Image, OutputFormat)> {
     let mut image = context.input(port)?.clone();
     let mut source = context.input_formats.get(port).copied().unwrap_or(if image.integer_sampling() { OutputFormat::U16 } else { OutputFormat::F32 });
+    image = prepare_pattern_background(image, mode, source);
     let target = craft_texture::clamp_size(context.w, context.h);
     let size = (image.width(), image.height());
     // A warp can take its final taps directly from an input up to one level larger on either axis.
@@ -61,6 +76,7 @@ fn resized_texture(context: &CookContext, port: usize, mode: InputResize) -> Opt
         let intermediate = (advance(current.0, target.0), advance(current.1, target.1));
         let (w, h) = if intermediate == current { target } else { intermediate };
         image = crate::texture_sampler::resize_input_level(&image, w, h, source, context.tiling_axes());
+        image = prepare_pattern_background(image, mode, source);
         // A final reduction can feed the Levels curve directly. An enlargement stores the
         // filtered texels first, which matters when the working image uses half precision.
         if mode == InputResize::Levels && (w, h) == target && w <= current.0 && h <= current.1 {

@@ -41,6 +41,8 @@ The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard
 
 Pattern center culling matched all 356,352 pixels across 204 renders. Background-only resizing matched all 150,528 pixels across 84 renders. The mixed-size square controls now match all 188,160 pixels, and the 288 independent depth controls match all 73,728 pixels. [Opacity and accumulator measurements](parity-fixes.md#pattern-opacity-near-zero-and-color-accumulation) [Pattern backgrounds, saved graphs and affected roots](parity-fixes.md#pattern-backgrounds-and-center-culling)
 
+Connected F32 backgrounds now match all 2,048 same-size pixels. Across 132 further renders with changed input sizes, the maximum absolute error is zero. Some RGBA zeros still differ in sign. [Connected background counts and file checks](parity-fixes.md#connected-floating-point-pattern-backgrounds)
+
 [Unconnected function arguments](parity-fixes.md#unconnected-function-arguments) records the measured difference between open ports and authored defaults.
 
 [Runtime square-root measurements](parity-fixes.md#runtime-pixel-square-roots) cover both exponent parities and the signed domain.

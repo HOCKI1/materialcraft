@@ -232,6 +232,27 @@ The remaining F32 gradient measurements separate coverage from the tint arithmet
 
 Six current-header saves reopened in the reference app and matched 34,816/34,816 pixels across 58 renders, maximum error zero. The 19 previously verified pattern roots retained 3,211,776/3,211,776 exact pixels in 159 renders, maximum error zero.
 
+### Connected floating-point pattern backgrounds
+
+| Original inputs, 16² output | Renders | Previously exact | Exact pixels / compared | Maximum absolute error |
+|---|---:|---:|---:|---:|
+| Same-size F32 inputs with an empty map or one square | 8 | 854 | 2,048/2,048 | 0 |
+| Signed F32 fields at six relative input sizes, four output formats | 72 | 12,921 | 17,715/18,432 | 0 |
+| Five F32 threshold fields at six relative input sizes | 60 | 1,924 | 11,851/15,360 | 0 |
+| U8, U16 or F16 source at four relative input sizes, four output formats | 120 | 30,559 | 30,559/30,720 | 0 |
+
+Keep the output pattern empty and feed it a floating-point image of the same channel type. In alternating columns, set one sample to F32 bits `007fffff` and its neighbor to twice the smallest positive normal. Reducing the two columns to one gives `00800000`. Averaging the unprepared input gives `00c00000`. Alternating the smallest normal and zero gives positive zero after reduction. A same-size gray input maps both signed subnormals and negative zero to positive zero. A same-size RGBA input retains the sign of each zero. MaterialCraft now prepares connected F32 samples before filtering and at each filter result. [Authored clear colors and stamp blending](#pattern-opacity-near-zero-and-color-accumulation)
+
+At 32² to 16², test those first two column pairs, then switch the second to negative values and finally fill the source with the negative largest subnormal. For RGBA alternate channel signs. At seeds 100391 through 100394, gray matches all 1,024 pixels. Color matches 768/1,024, with a zero-sign difference on the uniform field.
+
+For the eight same-size cases repeat F32 bits `00000000 80000000 00371245 80371245 007fffff 807fffff 00800000 80800000 00800001 80800001 3e8914f7 bf102ff3` at index (7x+5y+3c) mod 12 for channel c. Use seed 100109. Compare an empty map and a centered half-size square with gain zero, one or the smallest positive normal. For the 72 renders use input width and height relative to the output by factors (1,1), (2,2), (½,½), (2,1), (1,2), (½,2). Mix both signs of zero, subnormal and normal values around the smallest F32 normal, then replace every third sample of the last field with −.25. Store each field as F32 and the last in all four output formats. All 9,216 grayscale pixels match bit for bit. The only unequal RGBA pixels differ in their sign of zero.
+
+For the 60 threshold renders use 32², 8², 64², 4², 4×32 and 32×4 inputs. With n the smallest F32 normal and t the largest positive subnormal, alternate t and 2n by column. Use −t everywhere in the second field. Select −2n or −t according to (x+3y+2c) mod 5 in the third, and 2n or −2n on the same mask in the fourth. In the fifth field select −n or t by (floor(x/2)+floor(y/2)+c) mod 3. Use seed 100237+7j+i for size j and field i. All 7,680 gray pixels match bit for bit. RGBA matches 4,171/7,680. Before the fix the maximum error across these fields was 1.80915927e−38.
+
+For the 120 source-storage controls use 16², 32×16, 8² and 32×8 inputs. Read half words `0000 8000 0001 8001 03ff 83ff 0400 8400 3555 bffe 02ff 01ff 8000` at index (3x+7y+c) mod 13. Add floor(x/2)+5floor(y/3) to the index on a second field. For integer sources use (53i+17) mod 256 or (11677i+77) mod 65536 with index i. At 16² the first half-gray file contains 39 negative zeros. Its reference input bridge has already converted all 39 to positive zero. The corresponding half-color file retains all 156 negative zeros at the bridge. The remaining differences in these controls are signed zeros. Across six files saved by MaterialCraft, the reference app reproduced all 6,144/6,144 source-file pixels in 24 renders.
+
+The previous 105 mixed-size stamp renders still match 188,160/188,160 pixels. The 159 renders of 19 previously verified roots match 3,211,776/3,211,776, maximum error zero.
+
 ### Trapezoid coordinates under fixed clipping
 
 | Root | [Original inputs](#quad-swirl-trapezoid-and-vector-morph-comparisons) | Boundary fields | Four tiling settings on the boundary fields | Maximum component error |

@@ -677,6 +677,46 @@ fn bitmap_stamp_requires_an_input_matching_the_output_kind() {
 }
 
 #[test]
+fn connected_pattern_backgrounds_prepare_small_samples_before_filtering() {
+    use craft_texture::{Image, Kind};
+    use materialcraft_core::OutputFormat;
+
+    let smallest = f32::MIN_POSITIVE;
+    let largest_subnormal = f32::from_bits(0x007f_ffff);
+    let gray = Image::gray(2, 2, |x, _| if x == 0 { largest_subnormal } else { 2.0 * smallest });
+    let underflow = Image::gray(2, 2, |x, _| if x == 0 { smallest } else { 0.0 });
+    for (input, size, expected) in [
+        (gray, 1, [smallest.to_bits(); 4]),
+        (underflow, 1, [0; 4]),
+        (Image::filled(2, 2, Kind::Gray, [-largest_subnormal; 4]), 2, [0; 4]),
+        (Image::filled(2, 2, Kind::Color, [-largest_subnormal, -0.0, largest_subnormal, -smallest]), 2, [0x8000_0000, 0x8000_0000, 0, 0x8080_0000]),
+    ] {
+        let kind = input.kind();
+        let graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
+        let definition = find("fx_map").unwrap();
+        let params = resolve_params(
+            definition,
+            &BTreeMap::from([("pattern".into(), Value::PatternGraph(Box::new(graph))), ("color_mode".into(), Value::Bool(kind == Kind::Color))]),
+        );
+        let context = CookContext {
+            w: size,
+            h: size,
+            seed: 100237,
+            format: OutputFormat::F32,
+            tile: true,
+            input_formats: &[OutputFormat::F32],
+            inputs: &[Some(input)],
+            params: &params,
+            resource: &|_| None,
+            vars: &BTreeMap::new(),
+        };
+        let image = (definition.cook)(&context).unwrap().remove(0);
+        let pixel = image.get(0, 0, false).map(f32::to_bits);
+        assert_eq!(&pixel[..image.channels()], &expected[..image.channels()]);
+    }
+}
+
+#[test]
 fn bitmap_stamp_tint_and_coverage_compose_straight_and_premultiplied_colors() {
     use craft_texture::{Image, Kind};
     use materialcraft_core::OutputFormat;
