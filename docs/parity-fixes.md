@@ -510,6 +510,34 @@ Draw an unrotated, white, single stamp on black with maximum blending and no til
 
 Every reference Gaussian pixel outside its paired disc was zero in both sweeps, 29,406/29,406 and 127,365/127,365. The probes leave equality at exactly r² = 1 unresolved. The implementation applies the cutoff only above one. Differences in the interior remain. On the earlier whole-root matrices, Alveolus still matches 332,280/334,336 pixels and the pattern variant 201,876/203,264. Their maximum U8/U16/F16/F32 errors are 0/1,000/0/3.05175781e−5 and 0/2/0/1.52587891e−5 respectively. The two brick-generator Tile helpers each retain 114,688/114,688 LUM16 pixels across four renders. The boundary regression failed before the fix. All 262 release node tests, formatting, strict workspace Clippy, layers and WebAssembly passed.
 
+### Four source pixels in the filled Alveolus cells
+
+At 128², seed 0, enable filled cells and set the interstice width to .1. The 64×128 U16 generator matches 8,096/8,192 pixels. Each differing pixel is one level away. The final U16 output matches 16,376/16,384, with a maximum error of 1,000 levels. In the saved graph with the generator exposed as an input, edit one source word at a time. Run each of the 96 edits forward from the local field and backward from the reference field. Include the two unedited endpoints, for 194 local renders.
+
+| Source (x, y) | Affected final pixels (x, y) |
+|---|---|
+| (2, 62) | (33, 62), (97, 62) |
+| (29, 62) | (62, 62), (126, 62) |
+| (34, 126) | (1, 126), (65, 126) |
+| (61, 126) | (30, 126), (94, 126) |
+
+In each row, changing 17,074 to 17,075 changes both output pixels from 46,140 to 47,140. Undoing the edit reverses both changes. Individually editing any of the other 92 differing source pixels leaves the final frame intact in both directions. Restoring the four together reproduces all 16,384 original reference pixels. Restoring the other 92 together reproduces all 16,384 original local pixels. At final position (33,62), the second blur reads 216 locally and 215 in the reference. The following Levels maps those values to 46,140 and 47,140.
+
+Reopen the saved graph in the reference app and run the two endpoints, the four single edits in each direction, and six further single edits in each direction. For the six controls take indices 0, 11, 29, 47, 63 and 79 in row-major order among the 96 differing source pixels. Include the two grouped edits. MaterialCraft and the reference agree on **393,216/393,216 U16 pixels across 24 renders**, maximum error zero. [Saved graph and earlier four-format controls](#alveolus-filters-after-the-first-differing-stage)
+
+The original generator field can also be rebuilt from two independent white Gaussian stamps on black. Use centers (.25,.25) and (.75,.75), dimensions (3,1.5), zero rotation, maximum blend and opacity .995. For each center render the nine translations (dx,dy) in {−1,0,1}² with tiling off. The pixelwise maximum gives exactly the separately rendered tiled stamp in F32 at 94,720/94,720 pixels across sixteen comparisons. Combine the two stamps and store in U16. The reconstructed field matches the intact native generator at **47,360/47,360** pixels across sizes 16×32, 128×256, 32², 8×32, 64×32, 8×64, 32×64 and 64×128. The first six sizes use seeds 178403+19j+c for zero-based size j and center c. The final two use 83+c and 223+c. On the seven sizes with individual U16 readbacks the F32-to-U16 conversion also matches 815,616/815,616 stored words.
+
+To isolate coordinate interpolation, draw an independent Direct3D 11 triangle for each translated stamp. In pixel space place its first vertex at the top left of its footprint, its second two footprint widths to the right, and its third two heights down. Assign signed local coordinates (−1,−1), (3,−1), (−1,3). Sample the interpolated coordinates at pixel centers, apply the [Gaussian profile](#gaussian-coverage-at-the-disc-boundary), scale by .995 and take the pixelwise maximum. At 64×128 the U16 field matches all 8,192 original pixels, including the four decisive words. In 36 individual 32×64 and 64×128 F32 renders it matches 177,291/184,320 pixels, maximum 1.08033419e−7. On the eighteen individual 64×128 U16 renders it matches 147,455/147,456, maximum one level. All individual F32 differences in this sweep belong to the first stamp at translations (−1,0) and (−1,1).
+
+Repeat the eight [size and format controls](#alveolus-filters-after-the-first-differing-stage) and the fifteen [square and rectangular controls](#square-and-rectangular-pattern-generators) for each root. Supply the independently rasterized U16 field to the saved graph in both apps and compare the final result to the intact reference.
+
+| Root | Local generator / compared | Triangle generator / compared | Final U16 with triangle / compared | Final F32 with triangle / compared | Maximum final U16 / F32 error |
+|---|---:|---:|---:|---:|---|
+| Alveolus | 73,051/73,760 | 73,176/73,760 | 128,968/130,048 | 18,578/18,688 | 2 / 3.05175781e−5 |
+| Pattern Alveolus | 60,852/61,472 | 60,880/61,472 | 128,968/130,048 | 18,540/18,688 | 2 / 1.52587891e−5 |
+
+U8 and F16 each match 7,168/7,168 final pixels per root. The two apps supplied with identical triangle fields agree on all 326,144 final pixels across the 46 saved-graph renders. At the largest stage, 128×256, the current CPU matches 32,548/32,768 original generator pixels and the triangle matches 32,236/32,768. Both miss by at most one word. The general coordinate calculation and both intact roots remain open.
+
 ### Alveolus filters after the first differing stage
 
 Replace the single FX-Map in each Alveolus graph with a linear U16 image input. Give the input the same size expression and storage as the FX-Map so both transformations, both blurs, both Levels and both Blends still execute with their original settings. Save the two diagnostic graphs in MaterialCraft and reopen them in the reference app.
