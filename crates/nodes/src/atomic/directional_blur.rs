@@ -1,6 +1,7 @@
 use super::{ATOMIC, box_filter, direction, input_resize};
 use crate::{CookContext, CookResult, NodeDefinition, node};
 use craft_texture::Image;
+use materialcraft_core::Value;
 
 pub(super) fn definition() -> NodeDefinition {
     node("directional_blur", "Directional blur", ATOMIC)
@@ -22,8 +23,10 @@ pub(super) fn blur(context: &CookContext, angle: f32) -> CookResult {
     let (input, source_format) = input_resize::blur_input(context, intensity);
     const BASE_RESOLUTION: f32 = 256.0;
     const MAX_HALF_SAMPLES: i32 = 512;
-    let radius = intensity.max(0.0) * context.w.min(context.h) as f32 / BASE_RESOLUTION;
-    if radius <= 0.5 {
+    let stretched = context.w != context.h && context.vars.get("$pixelratio").and_then(Value::as_i32) == Some(0);
+    let extent = |side: u32| (intensity.max(0.0) * side as f32 / BASE_RESOLUTION - 0.5).max(0.0);
+    let [extent_x, extent_y] = if stretched { [context.w, context.h].map(extent) } else { [extent(context.w.min(context.h)); 2] };
+    if extent_x == 0.0 && extent_y == 0.0 {
         return Ok(vec![input]);
     }
 
@@ -33,8 +36,11 @@ pub(super) fn blur(context: &CookContext, angle: f32) -> CookResult {
         let horizontal = quarters % 2.0 == 0.0;
         // Rotated axial footprints project their reach one float below unity before normalization.
         let projection = if angle == 0.0 { 1.0 } else { f32::from_bits(0x3f7f_ffff) };
-        let reach = (radius - 0.5) * projection;
-        if reach <= 2.0 {
+        let reach = (if horizontal { extent_x } else { extent_y }) * projection;
+        if reach > 2.0 {
+            return Ok(vec![box_filter::axis(&input, reach, horizontal, tile[usize::from(!horizontal)], source_format, context.format)]);
+        }
+        if reach > 0.0 {
             let step = if !horizontal {
                 [0.0, -1.0]
             } else if reach <= 1.0 {
@@ -44,40 +50,48 @@ pub(super) fn blur(context: &CookContext, angle: f32) -> CookResult {
             };
             return Ok(vec![box_filter::short_line(&input, reach, step, tile, source_format)]);
         }
-        return Ok(vec![box_filter::axis(&input, reach, horizontal, tile[usize::from(!horizontal)], source_format, context.format)]);
+        // On stretched pixels the other axis can still have a nonzero projected footprint.
+        if angle == 0.0 {
+            return Ok(vec![input]);
+        }
     }
 
     let radians = angle * std::f32::consts::TAU;
     let sine = projected_sine(radians.abs()) * radians.signum();
     let cosine = projected_sine(radians.abs() + std::f32::consts::FRAC_PI_2);
-    let short_reach = (radius - 0.5) * sine.abs().max(cosine.abs());
+    let (reach_x, reach_y) = (extent_x * cosine, extent_y * sine);
+    let short_reach = reach_x.abs().max(reach_y.abs());
+    let (sample_x, sample_y) = if stretched { (reach_x, reach_y) } else { (cosine, sine) };
     if short_reach <= 1.0 {
         // Normalize the offsets in texture coordinates so the longer side keeps its texel scale.
-        let u = cosine / context.w as f32;
-        let v = sine / context.h as f32;
+        let u = sample_x / context.w as f32;
+        let v = sample_y / context.h as f32;
         // Tap order affects the fused sum. A rectangular image can change which UV axis dominates.
         let dominant = if u.abs() > v.abs() { u } else { v };
+        if dominant == 0.0 {
+            return Ok(vec![input]);
+        }
         let span = -dominant;
         return Ok(vec![box_filter::short_line(&input, short_reach, [u / span, v / span], tile, source_format)]);
     }
     if tile == [true; 2] && context.w == input.width() && context.h == input.height() {
         // Compare the components before rounding the direction to the sample grid.
         let (line_y, line_x) = f64::from(radians).sin_cos();
-        let horizontal = line_x.abs() / f64::from(context.w) > line_y.abs() / f64::from(context.h);
+        let horizontal = line_x.abs() * f64::from(extent_x) / f64::from(context.w) > line_y.abs() * f64::from(extent_y) / f64::from(context.h);
         // An authored eighth turn has an exact unit slope even after radian conversion.
         // On a rectangle the dominant UV direction can have the smaller texel
         // component. The window spans the projection along the chosen texel axis.
-        let (across, along) = if horizontal { (sine, cosine) } else { (cosine, sine) };
-        let slope = if (angle * 8.0).fract() == 0.0 { (line_y * line_x).signum() as f32 } else { across / along };
-        if let Some(image) = box_filter::sheared(&input, (radius - 0.5) * along.abs(), horizontal, slope, source_format, context.format) {
+        let (across, along, reach) = if horizontal { (sample_y, sample_x, reach_x) } else { (sample_x, sample_y, reach_y) };
+        let slope = if !stretched && (angle * 8.0).fract() == 0.0 { (line_y * line_x).signum() as f32 } else { across / along };
+        if let Some(image) = box_filter::sheared(&input, reach.abs(), horizontal, slope, source_format, context.format) {
             return Ok(vec![image]);
         }
     }
     let (dx, dy) = direction(angle);
     // Image-space rotation follows increasing rows.
-    let dy = -dy;
+    let (dx, dy) = if stretched { (extent_x * dx, -extent_y * dy) } else { (dx, -dy) };
     let major = dx.abs().max(dy.abs());
-    let reach = (radius - 0.5) * major;
+    let reach = if stretched { major } else { extent_x * major };
     let projected_radius = 0.5 + reach;
     let half_samples = (projected_radius + 0.5).floor().clamp(1.0, MAX_HALF_SAMPLES as f32) as i32;
 

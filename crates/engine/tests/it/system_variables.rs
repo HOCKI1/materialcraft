@@ -143,7 +143,7 @@ fn pixel_ratio_and_tiling_inherit_and_preserve_native_relative_modes() {
     let mut session = Session::new(package);
     session.selection = vec![pixel];
 
-    for (mode, expected) in [("relativeToInput", 2.0), ("relativeToParent", 3.0), ("absolute", 0.0)] {
+    for (mode, expected) in [("relativeToInput", 2.0), ("relativeToParent", 4.0), ("absolute", 0.0)] {
         execute(&mut session, "graph.node.base", &json!({"pixelRatio": 0, "tiling": false, "pixelRatioMode": mode, "tilingMode": mode})).unwrap();
         let bytes = write_sbs(&session.pkg).unwrap();
         let read = read_sbs(&bytes, "inheritance.sbs", &|_| None).unwrap();

@@ -21,6 +21,7 @@ pub struct ResolvedBaseParameters {
 impl ResolvedBaseParameters {
     pub(crate) fn graph(graph: &Graph, options: &crate::Options<'_>) -> Self {
         let parent = options.parent_base;
+        let parent_ratio = options.parent_pixel_ratio.or_else(|| parent.map(|base| base.pixel_ratio));
         Self {
             size: parent.map_or_else(|| graph.size_px(), |base| graph.output_size_px(base.size)),
             dynamic_size: graph.absolute_output_size.is_none() && parent.is_some_and(|base| base.dynamic_size),
@@ -28,7 +29,7 @@ impl ResolvedBaseParameters {
             seed: parent.map_or(graph.seed as u32, |base| base.seed),
             format: parent.map_or(graph.format, |base| base.format),
             tiling: graph.tiling_mode.resolve(graph.tiling, options.parent_tiling, options.parent_tiling.unwrap_or(graph.tiling)),
-            pixel_ratio: graph.pixel_ratio_mode.resolve(graph.pixel_ratio, options.parent_pixel_ratio, options.parent_pixel_ratio.unwrap_or(graph.pixel_ratio)),
+            pixel_ratio: graph.pixel_ratio_mode.resolve(graph.pixel_ratio, parent_ratio, parent_ratio.unwrap_or(1)),
             pixel_size: parent.map_or([1.0; 2], |base| base.pixel_size),
         }
     }
