@@ -1315,6 +1315,21 @@ Grayscale Splatter matched **403,712/403,712** pixels across 93 distinct setting
 
 The color Splatter and Weave 2 control roots retained their earlier perfect counts. Pattern Weave 2 retained its 351 differing pixels across 95 settings. Formatting, 401 release tests across the evaluator and node crates, strict workspace Clippy, dependency layers and WebAssembly passed.
 
+### Three measured taps reproduce the rectangular directional blur outputs
+
+Extend the [96-angle rectangular experiment](#independent-rectangular-directional-weights-at-96-angles) with 48 new F32 angles. Use the same two sizes (16 × 64 and 64 × 16), original red column and green row impulses, modular blue field, and five extents. Start with 0.046875, 0.0791015625, 0.203125, 0.4608612060546875, 0.7427520751953125, 1.4530487060546875 turns. For each center, change its positive F32 bit pattern by −5, −2, −1, +1, +2 and +5, in order. Then for each center add half a turn in F32 and change that result by −1 and +1 representable values. Use batches of 16 angles and seed 824091 + 17b + 5j + r, where b is the batch, j the size and r the extent, all indexed from zero.
+
+For each branch and extent, read the center and both adjacent weights from the impulse on the longer axis. Predict the entire raw output from the original input. Multiply the next texel by the weight measured one pixel before the impulse. Fuse the center multiply and addition, then fuse the previous texel multiply and addition using the weight measured one pixel after the impulse. Each operation stores an F32 result. The blue values used for this check are independent of all three measured weights. Count a pixel only when every stored channel agrees.
+
+| Original angles | Branch renders | MaterialCraft exact / compared | Maximum F32 error | Exact using measured weights | Exact with taps reversed |
+|---|---:|---:|---:|---:|---:|
+| 96 | 960 | 943,932/983,040 | 1.78813934e-07 | 983,040/983,040 | 696,407/983,040 |
+| 48 | 480 | 455,107/491,520 | 1.1920929e-07 | 491,520/491,520 | 346,645/491,520 |
+
+The three measured weights reproduce all 1,474,560 pixels with maximum error zero. Across the 48 new angles, the current projection satisfies the rounding bounds for 84/96 axes. On every axis, at least one F32 direction component satisfies the observations at all five extents. This isolates the short axial discrepancy to the calculation of the weights.
+
+Save the three new graphs in MaterialCraft and reopen them in both applications. Repeat both sizes at projected extents .3125 and 1. Each application reproduced all **196,608/196,608** pixels of its original renders. Across applications the 192 reopened branch renders matched **184,755/196,608**, maximum 1.1920929e-07. Both HQ blur roots remain in progress on their [78 whole-root settings](#directional-blur-weights-across-110-angles-and-two-projection-axes).
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color
