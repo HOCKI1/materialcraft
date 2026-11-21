@@ -10,6 +10,7 @@ const DEFAULT_LOOP_LIMIT: i32 = 32;
 
 mod arithmetic;
 mod binary_exponential;
+mod branch_assignments;
 mod branch_random;
 mod catalog;
 mod compile;

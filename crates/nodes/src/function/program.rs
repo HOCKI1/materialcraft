@@ -271,10 +271,10 @@ impl Program {
 
                     state.steps.push(Enter(self.input(index, slot)?));
                     if context.scope == super::FunctionScope::PixelProcessor {
-                        for &draw in self.instruction(index)?.control_registers.iter().rev() {
-                            if state.registers.get(draw).is_some_and(Option::is_none) {
+                        for &shared in self.instruction(index)?.control_registers.iter().rev() {
+                            if state.registers.get(shared).is_some_and(Option::is_none) {
                                 state.steps.push(Discard);
-                                state.steps.push(Enter(draw));
+                                state.steps.push(Enter(shared));
                             }
                         }
                     }

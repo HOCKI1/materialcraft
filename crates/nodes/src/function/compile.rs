@@ -271,6 +271,7 @@ fn mark_literals(program: &mut Program, mut arguments: BTreeSet<&str>, pixel: Op
     }
     let readers = pixel.and_then(|context| super::pixel_condition::live_readers(program, context));
     super::product_sum::identify(&mut program.instructions, readers.as_deref());
+    super::branch_assignments::identify(program);
     super::branch_random::identify(program);
     super::returned_product::identify(program, returned)
 }

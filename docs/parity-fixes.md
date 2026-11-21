@@ -139,6 +139,31 @@ In index order set scale to (8,3,7,2,5,11,9,4,8,13,6,15) and `d` to (0,.15625,.6
 
 For the 3D Voronoi cross-application comparison, also repeat indices 1, 2, 3, 4 and 6 with F32 and zero distortion. Across both tables and 82 original settings, U8 matches **20,028/24,064** (maximum 162), U16 **53,820/57,856** (41,505), F16 **20,028/24,064** (.633056641) and F32 **64,060/68,096** (.633334696). In the shuffled-table random-color case at 32 × 64, 32/2,048 pixels agree in each format. The four roots remain in progress. The writer regression failed on the earlier exporter. All 125 format release tests, formatting, strict workspace Clippy, dependency layers and WebAssembly checks passed.
 
+### Shared pixel assignments in Voronoi color selection
+
+In a pixel function, both arms of a conditional can use the same assignment, a sequence containing it, or a called function that exports it. MaterialCraft now evaluates that shared expression after the condition and before the selected arm. Uses in two alternatives inside a single arm stay inside that arm. A loop evaluates its own assignments on each iteration.
+
+For a minimal reproduction, initialize a scalar to .40625. Define one shared expression that stores the horizontal pixel coordinate in the scalar and reads it back. For selector values below .5 return that expression plus 1. For values below 1.5 return half the same expression. Otherwise read the scalar. At the first pixel center of a 16² image the last alternative previously returned .40625. Both applications now return .03125. When the first two alternatives are siblings inside one arm of an outer conditional, the other arm returns .40625.
+
+Fourteen original graphs used a single assignment, a sequence or a called function, a shared or independent expression in sibling or nested alternatives, and a final read after the conditional. Use selectors 0, 1, 2 and 7 at 16² F32 with seeds 0, 43, 373 and 1921. For spatial conditions substitute three times the vertical pixel coordinate. Seven additional graphs tested an operand outside the branch on either side of an addition, a following sequence, an inner conditional, two ordered writes, a two-iteration loop and a write in the condition. Use 16², 32 × 16, 16 × 32 and 32² F32 with those four selectors, then 32 × 16 U16 at 2, 16 × 32 F16 at 7 and 16² U8 at 2. Add the case index and 31 times the graph index to seed 463361.
+
+Across the 105 controls the old evaluator matched 22,424/39,424 pixels. U8 matched 712/1,792 with maximum 143, U16 matched 1,344/3,584 with maximum 37887, F16 matched 1,360/3,584 with maximum 0.578125, F32 matched 19,008/30,464 with maximum 0.578125. The current evaluator matches **39,424/39,424**, maximum zero in every format.
+
+Use the two original U16 lookup tables, 36 settings and five undistorted F32 cases described in the [saved function measurements](#package-ownership-of-saved-function-calls). For each root the 82 original comparisons include both lookup tables and all four output formats. The 24 saved-package comparisons reopen the file in both applications.
+
+| Root (inventory index) | Distinct settings | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|---:|
+| 3D Voronoi (304) | 82 | 24,064/24,064 · 0 | 57,856/57,856 · 0 | 24,064/24,064 · 0 | 68,096/68,096 · 0 |
+| 2D Voronoi (306) | 82 | 24,064/24,064 · 0 | 57,856/57,856 · 0 | 24,064/24,064 · 0 | 68,096/68,096 · 0 |
+
+Each root also matched **57,344/57,344** pixels after saving, with 12,800 U8, 32,256 U16, 4,096 F16 and 8,192 F32 pixels. Maximum error was zero. In the original shuffled-table, 32 × 64 random-color case, the previous evaluator matched 32/2,048 pixels in 3D and 0/2,048 in 2D in each format. Each now matches all 2,048. The 2D and 3D fractal versions also match in that setting with both tables and all four formats, 16,384/16,384 pixels per root.
+
+For each nonfractal root, 38 further comparisons matched **32,256/32,256**, maximum zero. These include the [seven shuffled-table settings](#voronoi-distortion-and-shared-noise-inputs) and the 16², 32² and signed 16² F32 cases repeated with the affine table. For the other 28 renders, start at index 7 of the 36-setting matrix. Repeat with zero distortion, graph seeds 0 and 37, graph-derived color seed with the original seed and zero, and explicit color seeds 0, 1, 42 and 257. At 16² repeat all seven styles, all four distance modes, with inversion disabled and with zero distortion. Repeat random color on default controls with seed 37 and graph-derived or explicit color seed 1477.
+
+An independent 3D control used six 1024 × 16 U16 tables filled with 0, 65535, horizontal ramp, vertical ramp, four times the row-major texel index, and the affine table. At 16² F32/seed 37 use the original position field and defaults, random color, explicit color seed 1477, scale 2 with zero disorder, scale 3 with distortion .2, and style 4 with distortion .15. Also repeat random color with the default seed, explicit seed 1477 and zero disorder at scale 1 on constant U16 RGB positions (0,0,0), (32768,16384,32768), (13107,26214,39321) and (65535,65535,65535). All **27,648/27,648** pixels across 108 renders agreed, maximum zero.
+
+The 2D and 3D nonfractal roots reach measured parity with the same procedural tables in both applications. The [stock-table measurements](#voronoi-distortion-and-shared-noise-inputs) still apply to the separate bundled resources. Three distorted 32² stock renders per root used different table contents. The two fractal roots remain in progress pending the wider comparisons. The shared-assignment release regression failed before the change and passed afterward. All 321 node release tests, formatting, strict workspace Clippy, dependency layers and WebAssembly checks passed.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color

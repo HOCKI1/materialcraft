@@ -1343,6 +1343,52 @@ fn branches_are_lazy_and_sequence_orders_side_effects() {
 }
 
 #[test]
+fn pixel_branches_share_an_assignment_across_nested_alternatives() {
+    let mut graph = FunctionGraph::default();
+    let name = Some(Value::Text("stored".into()));
+    let initial = graph.add_constant(Value::Float(0.40625));
+    let init = graph.add("set", &[initial], name.clone());
+    let uv = graph.add("get_float2", &[], Some(Value::Text("$pos".into())));
+    let x = graph.add("swizzle1", &[uv], Some(Value::Int(0)));
+    let write = graph.add("set", &[x], name.clone());
+    let after_write = graph.add("get_float1", &[], name.clone());
+    let shared = graph.add("sequence", &[write, after_write], None);
+    let one = graph.add_constant(Value::Float(1.0));
+    let half = graph.add_constant(Value::Float(0.5));
+    let upper = graph.add_constant(Value::Float(1.5));
+    let first = graph.add("add", &[shared, one], None);
+    let second = graph.add("mul", &[shared, half], None);
+    let last = graph.add("get_float1", &[], name);
+    let selector = graph.add("get_float1", &[], Some(Value::Text("selector".into())));
+    let low = graph.add("lr", &[selector, half], None);
+    let middle = graph.add("lr", &[selector, upper], None);
+    let inner = graph.add("ifelse", &[middle, second, last], None);
+    let across_arms = graph.add("ifelse", &[low, first, inner], None);
+    let siblings = graph.add("ifelse", &[low, first, second], None);
+    let within_arm = graph.add("ifelse", &[middle, siblings, last], None);
+    let chosen = graph.add("ifelse", &[low, shared, last], None);
+    let across_operands = graph.add("add", &[chosen, second], None);
+
+    for (root, expected) in [(across_arms, [1.03125, 0.015625, 0.03125]), (within_arm, [1.03125, 0.015625, 0.40625]), (across_operands, [0.046875; 3])] {
+        graph.output = Some(graph.add("sequence", &[init, root], None));
+        let program = compile(&graph, 0).unwrap();
+        for (selector, expected) in [0.0, 1.0, 2.0].into_iter().zip(expected) {
+            let variables = BTreeMap::from([("selector".into(), Value::Float(selector))]);
+            let context = EvaluationContext {
+                scope: super::FunctionScope::PixelProcessor,
+                position: [0.03125; 2],
+                size: [16.0; 2],
+                images: &[],
+                image_formats: &[],
+                tile: true,
+                variables: &variables,
+            };
+            assert_eq!(program.evaluate_pixel(&context, &mut EvaluationState::default()), Ok(Value::Float(expected)), "root {root}, selector {selector}");
+        }
+    }
+}
+
+#[test]
 fn time_and_tiling_variables_have_typed_defaults_and_host_overrides() {
     for (name, operation, default, supplied) in
         [("$time", "get_float1", Value::Float(0.0), Value::Float(2.5)), ("$tiling", "get_integer1", Value::Int(3), Value::Int(2))]
