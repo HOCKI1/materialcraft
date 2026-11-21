@@ -877,6 +877,54 @@ The reduced controls revisit the branch that first differed in the original comp
 | Shape Base, authored shape and disc | 12 | 9,728/9,728 | 0 |
 | Weave 1, authored shape and disc | 12 | 2,816/2,816 | 0 |
 
+### Distance propagation on rectangular and tied cellular fields
+
+Recheck the [earlier 59 settings and the relative dependency for the second root](#original-and-reopened-dirt-moisture-and-cellular-noise-fields), then add 20 settings per root. Use widths and heights 32 × 16, 16 × 128, 64 × 32, 128 × 256, 128², 256 × 64 and 32². With zero-based inventory index i and size index j, use seed S = 689287 + 19i + 239j. At j = 0 and 4 leave the controls at their defaults and leave the input disconnected. At the other sizes connect the original F32 gray field .75((61x + 103y + 11xy + S) mod 349)/348 + .25[(3x + 5y + S) mod 17 < 6]. Use F32 and U16 at every size, with U8 and F16 also at j = 1, 2 and 5. The speed control belongs to Cells 4 v2.
+
+| Size | Scale | Disorder | Speed | Color source | Pseudo-random seed | Nonsquare expansion |
+|---|---:|---:|---:|---:|---:|---|
+| 16 × 128 | 7 | 0.078125 | 0.59375 | 1 | 337 | on |
+| 64 × 32 | 11 | 0.734375 | 1.125 | 2 | 271 | off |
+| 128 × 256 | 18 | 0.40625 | 0.8125 | 0 | 89 | on |
+| 256 × 64 | 5 | 0.90625 | 1.5625 | 1 | 613 | off |
+| 32 × 32 | 23 | 0.171875 | 0.4375 | 2 | 719 | on |
+
+Before the Distance changes, revision `02d910f` matched 934,490/1,028,608 pixels for Cells 4 and 935,072/1,028,608 for v2. The maximum absolute stored-channel errors were 64,479 and 64,522 integer levels. The corrected whole-root results follow.
+
+| Root (inventory index) | Distinct settings | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|---:|
+| Cells 4 (242) | 79 | 111,872/111,872 · 0 | 433,920/433,920 · 0 | 111,872/111,872 · 0 | 370,944/370,944 · 0 |
+| Cells 4 v2 (243) | 79 | 226,560/226,560 · 0 | 319,232/319,232 · 0 | 111,872/111,872 · 0 | 370,944/370,944 · 0 |
+
+Save the first root with MaterialCraft and reopen it in both applications. For v2 keep the [compatible hash helper at the measured relative path](#original-and-reopened-dirt-moisture-and-cellular-noise-fields). The first save repeats all 30 earlier settings and all 20 independent settings. On the second save repeat F32 at all seven independent sizes and all formats at 64 × 32. The earlier 30-setting series also includes a second save for v2.
+
+| Root | Reopened renders | Exact pixels / compared | Maximum error |
+|---|---:|---:|---:|
+| Cells 4 | 60 | 890,368/890,368 | 0 |
+| Cells 4 v2 | 90 | 1,520,128/1,520,128 | 0 |
+
+Both applications reproduced their respective original buffers in every saved case. Across applications the two intact roots match **2,057,216/2,057,216** pixels across 158 distinct root settings, and **2,410,496/2,410,496** across 150 reopened renders. All maxima are zero.
+
+Both roots contain two Distance nodes. Pixel ratio 0 scales each texel displacement by min(W,H)/axis length. Pixel ratio 1 uses texel distances directly. A source texel at index i has a stored coordinate given by the nearest even integer to (i + .5)65535/N on an axis of length N. Decode that word before subtracting the pixel center. A wrapped axis uses the image midpoint as its origin during subtraction. At 512 × 32, a site at (1,30) and strength 87.625 gives F32 word `3f68a0de` one texel to the right with horizontal wrapping and `3f68a0d2` with that axis open. Vertical wrapping alone leaves the latter word intact.
+
+The propagation step covers the same fraction of each axis. For a step of j texels on the longest side L, point sampling on an axis of length N addresses offsets floor(.5 − jN/L) and floor(.5 + jN/L). Equal-distance candidates retain the current site. Among new candidates the observed priority is right, left, down, up, lower right, upper left, upper right and lower left. Rows increase downwards. With both axes open the final one-texel refinement remains in use.
+
+For a small Euclidean example, tile a 32 × 16 mask with sites (9,13), (21,5) and (7,1). Give them source values .125, .25 and .375 with .0625 elsewhere, set strength 256, choose ratio 1 and disable Combine. The value at (31,10) is .125. For a tie test at 32² set the mask where x and y are both multiples of three or (x + 2y) mod 7 equals 3. Give each source texel value (1 + x + 32y)/1024. At strength 256 the Manhattan result at (30,8) selects (29,8). With Chebyshev distance, (14,0) selects (15,0) and (19,0) selects (18,0).
+
+For the dense-mask series use the size, metric and tiling combinations (32², Euclidean, both), (64 × 16, Euclidean, both), (16 × 32, Euclidean, both), (32², Euclidean, neither), (32², Manhattan, both), (32², Chebyshev, both), (64 × 32, Euclidean, horizontal) and (32 × 64, Euclidean, vertical). Number them g = 0–7. For setting t = 0–5 use seed S = 711709 + 19g + 109t and strength 256, 206.5, 95.75, 256, 133.25 or 78.5 respectively. Set the mask where (17x + 31y + 5xy + S) mod 251 is below 64, 107, 144 or 193 at t = 0, 1, 2 or 5. At t = 3 use the lattice from the tie test. At t = 4 require x mod 2 = y mod 2 and (x + y) mod 3 different from zero. Use source (1 + x + Wy)/(WH) with Combine disabled.
+
+| Direct comparison | Renders | Exact pixels / compared | Maximum stored error |
+|---|---:|---:|---:|
+| Sparse two- to five-site sources, both axes tiled | 48 | 55,296/55,296 | 0 |
+| Same sparse sources with one or both axes open | 144 | 165,888/165,888 | 0 |
+| Six dense masks on eight combinations of size, tiling and metric | 48 | 58,368/58,368 | 0 |
+| Symmetric sparse sites on four tiled squares | 52 | 282,880/282,880 | 0 |
+| Symmetric sites with one or both axes open | 78 | 199,636/199,680 | 0.125 |
+| Identical isolated sites across all four tiling modes | 36 | 1,966,080/1,966,080 | 0 |
+| Center, adjacent and off-center sites in seven image sizes | 49 | 1,777,664/1,777,664 | 0 |
+
+Both internal Distance outputs also matched 1,135,616/1,135,616 pixels in 60 intermediate renders across the original, independent and earlier differing root settings. The sparse open-axis comparisons retain the differences listed above. Each regression reproduced its original failure. The release node suite ran with the committed resource fixtures. Formatting, strict all-target workspace Clippy, the dependency-layer check and WebAssembly passed.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color

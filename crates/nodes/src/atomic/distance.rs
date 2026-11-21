@@ -1,6 +1,7 @@
 use super::ATOMIC;
 use crate::{CookContext, CookResult, NodeDefinition, node};
 use craft_texture::{Image, Kind};
+use materialcraft_core::Value;
 
 mod mask_field;
 
@@ -27,6 +28,7 @@ fn distance(context: &CookContext) -> CookResult {
         return Ok(vec![Image::filled(mask.width(), mask.height(), kind, [0.0; 4])]);
     }
     let radius = (context.f("distance").max(0.0) * (mask.width().min(mask.height()) as f32 / 256.0)).min(f32::MAX);
-    let image = mask_field::render(&mask, source.as_ref(), radius, context.tiling_axes(), context.i("metric"), context.b("combine"))?;
+    let stretched = context.vars.get("$pixelratio").and_then(Value::as_i32) == Some(0);
+    let image = mask_field::render(&mask, source.as_ref(), radius, context.tiling_axes(), context.i("metric"), context.b("combine"), stretched)?;
     Ok(vec![if kind == Kind::Color && image.is_gray() { image.to_color() } else { image }])
 }
