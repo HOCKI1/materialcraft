@@ -582,6 +582,46 @@ At 256² with defaults and seed 0, repeat the original Gaussian Spots 2 six time
 | U16 | 6 | 65,532 · 1 | 65,535 | 1 | 1 |
 | F32 | 5 | 53,871 · 1.1920929e-07 | 61,912 | 3,565 | 1.1920929e-07 |
 
+### Short directional blur tap order on rectangular inputs
+
+Fluid matches **25,969,920/25,969,920 final pixels across 121 distinct settings** through 2048 pixels per side. Both applications reopened the MaterialCraft package and reproduced every pixel of their originals over 28, 38 and 36 settings (498,688, 8,654,848 and 17,588,224 pixels). The three instrumented renders at 512×1024, 1024×512 and 1024² match 9,961,472/9,961,472 intermediate and final samples. [First differing stage and earlier settings](#fibers-1-and-fluid-through-1024-pixels-per-side)
+
+| Storage | Distinct settings | Exact pixels | Maximum error |
+|---|---:|---:|---:|
+| U8 | 19 | 4,848,896/4,848,896 | 0 |
+| U16 | 41 | 8,206,592/8,206,592 | 0 |
+| F16 | 19 | 4,848,896/4,848,896 | 0 |
+| F32 | 42 | 8,065,536/8,065,536 | 0 |
+
+For the final 36 renders use the following (width×height, seed, d) tuples in order. Render U16 and F32 throughout, adding U8 and F16 at zero-based indices 0,3,4,6,9,11.
+
+| j | Dimensions | Seed | d |
+|---:|---|---:|---:|
+| 0 | 32×128 | 0 | .9375 |
+| 1 | 128×32 | 42 | .34375 |
+| 2 | 256×512 | 412351 | default |
+| 3 | 512×256 | 402971 | .09375 |
+| 4 | 512×1024 | 43016 | .6875 |
+| 5 | 512×1024 | 0 | .90625 |
+| 6 | 1024×512 | 42 | default |
+| 7 | 256×1024 | 13441 | .40625 |
+| 8 | 1024×256 | 67357 | .59375 |
+| 9 | 512×2048 | 31121 | .25 |
+| 10 | 2048×512 | 60149 | .796875 |
+| 11 | 1024×1024 | 31973 | default |
+
+Use disorder d, warp intensity 53d, flow .34375−d, pattern length .78125−.625d and width .09375+.625d for the changed settings. At j=4 use the earlier 512×1024 settings (warp intensity 41.9375, flow .21875, length .5546875, width .359375). The third directional blur now matches 131,072/131,072 U16 pixels there.
+
+A three-tap directional blur reads its outer taps in the order set by the dominant **normalized texture coordinate**. At −.125 turns it starts toward increasing x on a tall image and increasing y on a wide image. Reading the taps in reverse changes the last bit of the fused sum. Generate a linear U16 field with level ((17x+113y+59xy+19)×7919) mod 65536, enable both tile axes, and use intensity 2.64 at 64×128. At (1,0) the F32 bits change from 0x3ec0b936 to the measured 0x3ec0b937. With the same strength and 128×64 the measured bits are 0x3ed1f3e7.
+
+| Original input series | Renders | Exact pixels before | Exact pixels after / total | Maximum error after by storage |
+|---|---:|---:|---:|---|
+| ±.125 turns | 70 | 3,780,865 | 3,956,736/3,956,736 | 0 / 0 / 0 / 0 |
+| Seven other angles | 147 | 865,371 | 871,548/1,003,520 | 0 / 1 / 0.000122070312 / 1.1920929e-07 |
+| Earlier rectangle and square controls | 174 | 923,423 | 923,423/1,622,016 | 192 / 49199 / 1.05664062 / 1.06214854 |
+
+The last column gives U8, U16, F16 and F32 in order. For the new series use radii .515625, .66, .875 and 1.32, with intensity equal to radius×256/min(width,height). Render F32 throughout, adding U8, U16 and F16 at radius .66. At ±.125 use 64×128, 128×64, 64², 256×512 and 512×256. At .375, −.375, .875, −.0625, .3125, −.1875 and .09375 turns use the first three sizes. For native RGBA input, import the grayscale field into the fixed U16 color input. At .375 turns and radius .875 on 64×128, and at .875 turns and radius 1.32 on 128×64, exact F32 counts decrease from 4,055 to 3,517 and 3,130 to 2,941. In both cases maximum error falls from 1.1920929e−7 to 5.96046448e−8. These short oblique angles remain open. [Earlier oblique controls](#short-oblique-directional-blur)
+
 ### Fibers 1 and Fluid through 1024 pixels per side
 
 Fibers 1 matched 9,430,272/9,430,272 final pixels across 87 distinct combinations of dimensions, seed, parameter values and storage. Fluid matched 9,428,962/9,430,272 on the same matrix. The 655 differing locations in the 512×1024 Fluid render affect both the U16 and F32 outputs. Each application reproduced its original pixels when reopening the MaterialCraft package in the new 28 and 38 settings (498,688 and 8,654,848 pixels per root).

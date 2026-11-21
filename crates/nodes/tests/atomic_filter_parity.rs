@@ -471,6 +471,21 @@ fn rotated_axial_blurs_project_the_outer_texel_coverage() {
     }
 }
 
+#[test]
+fn short_diagonal_blur_orders_the_taps_in_texture_coordinates() {
+    let params = [("intensity", Value::Float(2.64)), ("angle", Value::Float(-0.125))];
+    for (size, corner, interior) in [([64, 128], 0x3ec0b937, 0x3ebf5a70), ([128, 64], 0x3ed1f3e7, 0x3ebf5a71), ([64, 64], 0x3ee9db4a, 0x3ea1a134)] {
+        let input = Image::gray(size[0], size[1], |x, y| {
+            let level = (17 * x + 113 * y + 59 * x * y + 19) % 65536;
+            ((level * 7919) % 65536) as f32 / 65535.0
+        })
+        .with_integer_sampling(true);
+        let image = cook("directional_blur", &[Some(input)], &params, size, true);
+        assert_eq!(image.get_gray(1, 0, false).to_bits(), corner, "{size:?}");
+        assert_eq!(image.get_gray(6, 4, false).to_bits(), interior, "{size:?}");
+    }
+}
+
 fn signed_modular_field(width: u32, height: u32) -> Image {
     Image::generate(width, height, Kind::Color, |x, y| {
         std::array::from_fn(|c| {

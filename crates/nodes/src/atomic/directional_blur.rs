@@ -54,11 +54,11 @@ pub(super) fn blur(context: &CookContext, angle: f32) -> CookResult {
     let reach = (radius - 0.5) * major;
     if reach <= 1.0 {
         // Normalize the offsets in texture coordinates so the longer side keeps its texel scale.
-        // The first tap lies in the positive direction of the dominant image axis.
         let u = dx / context.w as f32;
         let v = dy / context.h as f32;
-        let dominant = if dx.abs() > dy.abs() { dx } else { dy };
-        let span = -u.abs().max(v.abs()).copysign(dominant);
+        // Tap order affects the fused sum. A rectangular image can change which UV axis dominates.
+        let dominant = if u.abs() > v.abs() { u } else { v };
+        let span = -dominant;
         return Ok(vec![box_filter::short_line(&input, reach, [u / span, v / span], tile, source_format)]);
     }
     if tile == [true; 2] && context.w == input.width() && context.h == input.height() {

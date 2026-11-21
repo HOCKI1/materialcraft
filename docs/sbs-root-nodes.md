@@ -35,7 +35,7 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **398 Parity**, **148 In progress** and **0 Too hard**. The November 17–20 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons) · [November 19 measurements](parity-fixes.md#2026-11-19-root-comparisons) · [November 20 measurements](parity-fixes.md#2026-11-20-root-comparisons)
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **399 Parity**, **147 In progress** and **0 Too hard**. The November 17–20 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons) · [November 19 measurements](parity-fixes.md#2026-11-19-root-comparisons) · [November 20 measurements](parity-fixes.md#2026-11-20-root-comparisons)
 
 [Pattern tiling axes and copy bounds across 215 renders](parity-fixes.md#tiling-axes-and-pattern-copy-bounds) · [Grayscale sampler measurements](parity-fixes.md#grayscale-sampling-of-color-inputs) · [Value sampling across 240 typed comparisons](parity-fixes.md#value-processor-texture-filtering) · [Five saved graphs reopened in the reference](parity-fixes.md#saved-filter-graphs-and-scalar-levels-controls)
 
@@ -89,7 +89,7 @@ Crystal 2 now matches all 5,104,128 pixels across 99 distinct settings through 5
 
 BNW Spots 3 matches all 3,159,552 final pixels across 118 distinct settings. Both apps reopened its saved graph and reproduced all 2,399,232 pixels in the 40-setting file check. One U16 difference remains inside its 256² pattern stage. BNW Spots 1 matches 3,177,940/3,177,984 final pixels across 125 settings. [Pixel-center measurements and remaining differences](parity-fixes.md#pixel-center-rounding-at-the-near-stamp-vertex)
 
-Fibers 1 matched all 9,430,272 pixels across 87 settings. Fluid differed at one rectangular size. [Measurements and saved-file checks](parity-fixes.md#fibers-1-and-fluid-through-1024-pixels-per-side)
+Fibers 1 matched all 9,430,272 pixels across 87 settings. Fluid now matches all 25,969,920 across 121. [Fiber settings](parity-fixes.md#fibers-1-and-fluid-through-1024-pixels-per-side) · [Fluid measurements and package reopens](parity-fixes.md#short-directional-blur-tap-order-on-rectangular-inputs)
 
 Directional Noise matches 40,572,160/40,572,160 pixels over 136 settings through 2048². BNW Spots 3 now matches every captured intermediate. [Coordinate measurements and round-trip checks](parity-fixes.md#interpolated-coordinates-on-clipped-squares-and-quarter-turns)
 
@@ -252,7 +252,7 @@ Creased matches 10,947,840/10,947,840 pixels across 100 distinct settings throug
 | [flood_fill_2.sbs/flood_fill_to_random_color](../assets/sbs/flood_fill_2.sbs) | 1 | No | [Parity · 19 renders, 143,872 exact RGBA pixels](parity-fixes.md#packed-random-draws-in-flood-fill-color) |
 | [flood_fill_2.sbs/flood_fill_to_random_grayscale](../assets/sbs/flood_fill_2.sbs) | 1 | No | [Parity · 19 renders, 143,872 exact pixels](parity-fixes.md#scaled-random-draws-and-offsets) |
 | [floodfill_to_index.sbs/pass](../assets/sbs/floodfill_to_index.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
-| [fluid.sbs/fluid](../assets/sbs/fluid.sbs) | 0 | Yes | [In progress · 9,428,962/9,430,272 across 87 distinct settings](parity-fixes.md#fibers-1-and-fluid-through-1024-pixels-per-side) |
+| [fluid.sbs/fluid](../assets/sbs/fluid.sbs) | 0 | Yes | [Parity · 25,969,920/25,969,920 pixels across 121 distinct settings](parity-fixes.md#short-directional-blur-tap-order-on-rectangular-inputs) |
 | [fractal_sum_base.sbs/fractal_sum_base](../assets/sbs/fractal_sum_base.sbs) | 0 | Yes | [Parity · 18 renders, 145,664 exact pixels](parity-fixes.md#stored-grayscale-stops-and-scalar-levels-controls) |
 | [fur_1.sbs/fur_1](../assets/sbs/fur_1.sbs) | 0 | Yes | [Parity · 9,250,048/9,250,048 pixels across 85 distinct settings](parity-fixes.md#fur-across-two-rectangular-render-series) |
 | [fur_2.sbs/fur_2](../assets/sbs/fur_2.sbs) | 0 | Yes | [In progress · 8,768,470/9,250,048 pixels across 85 distinct settings](parity-fixes.md#fur-across-two-rectangular-render-series) |
