@@ -1580,6 +1580,23 @@ Save twelve of the graphs in MaterialCraft. Repeat the direct seed, sequence, ad
 
 The regression failed before the change and passed afterward. The 410 release node and evaluation tests passed with the committed resources. Formatting, strict workspace Clippy, layering and all ten WebAssembly checks passed.
 
+### Paired angles isolate the reduced phase of rectangular blur
+
+Use the [three-tap impulse and modular RGB field](#three-measured-taps-reproduce-the-rectangular-directional-blur-outputs). Compare two different angles chosen to have the same absolute folded phase in F32. First round the absolute turn count times F32(2π) to F32. For the horizontal component add F32(π/2) and round again. Subtract the nearest integer multiple of π in binary64, round to F32 and take the magnitude. The paired targets respectively use adjacent angles with identical stored radians, reflection about a half turn, a whole extra turn, and a shift between the vertical and horizontal axes. At each extent compare both the center coefficient and its immediate neighbor on the longer axis.
+
+Use the angles below as F32 bit patterns in hexadecimal. Each group lists twelve pairs in order. Batch sixteen consecutive angles per graph, alternating the two members of each pair. Render at 16 × 64 and 64 × 16 using projected extents .3125, .5, .734375, .953125 and 1. At batch b, size j and extent k use seed 116159 + 17b + 5j + k, with zero-based indices. The quarter-turn pairs compare the vertical component of the first angle with the horizontal component of the second. All other pairs compare the vertical components.
+
+| Pair family | First six angle pairs | Last six angle pairs |
+|---|---|---|
+| Stored radians | 3e5b467b/3e5b467a, 3e691d8a/3e691d8b, 3e59d225/3e59d226, 3e233d08/3e233d09, 3d7c45e2/3d7c45e1, 3dfb2fbb/3dfb2fbc | 3e54b7a4/3e54b7a3, 3e6dfaa1/3e6dfaa2, 3dd48687/3dd48688, 3dccab29/3dccab28, 3e355f14/3e355f13, 3e365ab0/3e365aaf |
+| Half-turn reflection | 3e25172f/3ead7468, 3e442a51/3e9dead7, 3e461361/3e9cf64f, 3e3f7c76/3ea041c4, 3dbf4a89/3ed02d5d, 3e214528/3eaf5d6b | 3df69059/3ec25be9, 3e54090d/3e95fb79, 3e1fa1dd/3eb02f11, 3e5063e3/3e97ce0e, 3d8468ac/3edee5d4, 3e2cc1a2/3ea99f2e |
+| Additional turn | 3e67ad41/3f9cf5a8, 3e4633b1/3f98c676, 3e25fc67/3f94bf8d, 3e34d233/3f969a46, 3da23131/3f8a2313, 3e672842/3f9ce508 | 3e1f45e9/3f93e8bd, 3e1be392/3f937c72, 3e55bd83/3f9ab7b0, 3e1a89d4/3f93513a, 3e32eceb/3f965d9d, 3e6b9b59/3f9d736b |
+| Quarter-turn axis change | 3e513a7c/3d3b1607, 3e63e822/3ce0bee5, 3e51fbc9/3d3810d7, 3e4e9407/3d45afdc, 3e0d7fb6/3de50090, 3e520f6f/3d37c23b | 3e407ed0/3d7e04ba, 3e3bbd67/3d88852d, 3dad0aec/3e297a88, 3e0d2fd6/3de5a050, 3e659e97/3cd30b3c, 3e6b9f4c/3ca30594 |
+
+All **480/480** paired coefficient words agree, maximum zero. Each of the 48 pairs admits at least one shared F32 direction value consistent with both coefficients at all five extents. The current approximation falls within the rounding bounds on 176/192 independently measured axes. Across the full three-channel field the 960 branch renders matched **942,690/983,040** raw pixels, maximum 1.78813934e-07.
+
+Save all six authored graphs in MaterialCraft. Reopen each in both applications at the two sizes and at the first and last extent. Match the sixteen outputs by identifier. Each application reproduced every pixel of its own original. Across applications, **377,468/393,216** pixels matched in 384 reopened branch renders, maximum 1.78813934e-07. The color and grayscale HQ blur roots remain open on their [78 whole-root settings](#directional-blur-weights-across-110-angles-and-two-projection-axes).
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color
