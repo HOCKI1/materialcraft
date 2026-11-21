@@ -10,7 +10,7 @@ pub(super) enum PatternComponent {
 /// A pattern that selects one packed channel visits only the expressions that supply it.
 pub(super) fn identify_pattern_components(program: &mut super::Program) {
     let instructions = &program.instructions;
-    if !instructions.iter().any(|op| op.definition.id == "swizzle1")
+    if !instructions.iter().any(|op| op.definition.id == "swizzle1" || op.call.is_some())
         || !instructions.iter().any(|op| matches!(op.definition.id, "rand" | "set") || op.call.is_some())
     {
         return;
@@ -23,6 +23,7 @@ pub(super) fn identify_pattern_components(program: &mut super::Program) {
         return;
     }
     let mut sources = Vec::with_capacity(instructions.len());
+    let mut projections = Vec::new();
     for (index, op) in instructions.iter().enumerate() {
         let mut lanes = [None; 4];
         if let Some(forwarded) = super::returned_product::forwarded(op, instructions, &sources, Some(PatternComponent::Zero)) {
@@ -32,13 +33,23 @@ pub(super) fn identify_pattern_components(program: &mut super::Program) {
             {
                 program.pattern_components.insert(index, source);
             }
-        } else if let Some(arguments) = op.call.as_ref().and_then(|call| call.pattern_arguments.as_ref()) {
-            lanes = arguments.channels.map(|register| register.map(PatternComponent::Scalar));
+        } else if let Some(call) = &op.call {
+            if let Some(arguments) = &call.pattern_arguments {
+                lanes = arguments.channels.map(|register| register.map(PatternComponent::Scalar));
+            } else if let Some(projection) = call.packed_projection(&op.inputs, &sources) {
+                lanes = projection.channels.map(|register| register.map(PatternComponent::Scalar));
+                projections.push((index, projection));
+            }
         }
         if op.type_code == 256 && lanes[0].is_none() {
             lanes[0] = Some(PatternComponent::Scalar(index));
         }
         sources.push(lanes);
+    }
+    for (index, projection) in projections {
+        if let Some(call) = program.instructions.get_mut(index).and_then(|op| op.call.as_mut()) {
+            call.pattern_arguments = Some(projection);
+        }
     }
 }
 

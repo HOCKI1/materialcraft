@@ -1233,6 +1233,54 @@ fn selecting_a_packed_pattern_channel_consumes_only_its_draw() {
 }
 
 #[test]
+fn pattern_call_reads_the_selected_components_of_a_packed_argument() {
+    let mut body = FunctionGraph::default();
+    let channels = body.add("get_float4", &[], Some(Value::Text("channels".into())));
+    let [alpha, blue, red] = [3, 2, 0].map(|i| body.add("swizzle1", &[channels], Some(Value::Int(i))));
+    let first = body.add("vector2", &[alpha, blue], None);
+    body.output = Some(body.add("vector3", &[first, red], None));
+
+    let mut graph = FunctionGraph::default();
+    let one = graph.add_constant(Value::Float(1.0));
+    let [r, g, b, a, next] = std::array::from_fn(|_| graph.add("rand", &[one], None));
+    let rg = graph.add("vector2", &[r, g], None);
+    let ba = graph.add("vector2", &[b, a], None);
+    let rgba = graph.add("vector4", &[rg, ba], None);
+    let result = graph.add("instance", &[rgba], None);
+    let call = graph.nodes.last_mut().unwrap();
+    call.type_code = 1024;
+    call.instance = Some(materialcraft_core::GraphInstance {
+        package: String::new(),
+        graph: "pick_channels".into(),
+        label: String::new(),
+        inputs: vec![materialcraft_core::GraphPort { identifier: "channels".into(), type_code: 2048 }],
+        outputs: Vec::new(),
+        defaults: BTreeMap::from([("channels".into(), Value::Color([0.0, 0.0, 0.0, 1.0]))]),
+    });
+    call.source = Some(Ok(std::sync::Arc::new(body)));
+    let variables = BTreeMap::new();
+    let context = EvaluationContext {
+        scope: super::FunctionScope::FxMap,
+        position: [0.5; 2],
+        size: [16.0; 2],
+        images: &[],
+        image_formats: &[],
+        tile: true,
+        variables: &variables,
+    };
+    let run = |graph: &FunctionGraph| compile(graph, 31).unwrap().evaluate(&context, &mut EvaluationState::default()).unwrap();
+    let draws = [0x3f34_57e6, 0x3f5a_33c2, 0x3f46_fab2].map(f32::from_bits);
+    graph.output = Some(result);
+    assert_eq!(run(&graph), Value::Float3(draws));
+
+    let outside = graph.add("swizzle1", &[rgba], Some(Value::Int(3)));
+    let inside = graph.add("swizzle1", &[result], Some(Value::Int(0)));
+    let pair = graph.add("vector2", &[outside, inside], None);
+    graph.output = Some(graph.add("vector3", &[pair, next], None));
+    assert_eq!(run(&graph), Value::Float3([draws[0], draws[0], draws[1]]));
+}
+
+#[test]
 fn pattern_call_arguments_follow_the_returned_channels() {
     let names = ["red", "green", "blue"];
     let mut body = FunctionGraph::default();

@@ -79,7 +79,15 @@ fn shared_draws(program: &Program, ranges: &[bool], components: Option<&BTreeMap
                 match components.and_then(|components| components.get(&index)) {
                     Some(PatternComponent::Scalar(source)) => stack.push(*source),
                     Some(PatternComponent::Zero) => {}
-                    None => stack.extend(node.inputs.iter().rev().copied()),
+                    None => {
+                        let inputs = node
+                            .call
+                            .as_ref()
+                            .and_then(|call| call.pattern_arguments.as_ref())
+                            .filter(|plan| components.is_some() && matches!(plan.target, super::function_call::PatternTarget::ReturnedChannels))
+                            .map_or(node.inputs.as_slice(), |plan| plan.registers.as_slice());
+                        stack.extend(inputs.iter().rev().copied());
+                    }
                 }
             }
         }

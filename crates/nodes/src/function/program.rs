@@ -244,6 +244,8 @@ impl Program {
                 Apply { instruction: index, base } => {
                     let instruction = self.instruction(index)?;
                     let arguments = state.values.get(base..).ok_or("invalid function operands")?;
+                    let pattern =
+                        instruction.call.as_ref().and_then(|call| call.pattern_arguments.as_ref()).filter(|_| context.scope == super::FunctionScope::FxMap);
                     let result = if context.scope == super::FunctionScope::PixelProcessor
                         && let Some(value) = instruction.pixel_interval.as_deref().and_then(|interval| interval.saturate(state))
                     {
@@ -252,6 +254,8 @@ impl Program {
                         && context.scope == super::FunctionScope::PixelProcessor
                     {
                         product.evaluate(arguments, instruction.definition.id == "sub", state)
+                    } else if pattern.is_some_and(|plan| matches!(plan.target, super::function_call::PatternTarget::ReturnedChannels)) {
+                        super::function_call::pack_scalars(arguments)
                     } else if let Some(call) = &instruction.call {
                         let factors = if let Some([a, b]) = call.argument_factors.filter(|_| context.scope == super::FunctionScope::PixelProcessor) {
                             let factor = |i| state.scalar_register(i).ok_or("missing scalar argument factor");
@@ -263,9 +267,11 @@ impl Program {
                         storage.argument_factors = factors;
                         storage.variables.clone_from(&state.variables);
                         storage.variables.extend(call.defaults.clone());
-                        let pattern = call.pattern_arguments.as_ref().filter(|_| context.scope == super::FunctionScope::FxMap);
                         for (i, value) in arguments.iter().enumerate() {
-                            let slot = pattern.map_or(Some(i), |params| params.slots.get(i).copied()).ok_or("missing function argument slot")?;
+                            let slot = match pattern.map(|plan| &plan.target) {
+                                Some(super::function_call::PatternTarget::Arguments(slots)) => *slots.get(i).ok_or("missing function argument slot")?,
+                                _ => i,
+                            };
                             let name = call.inputs.get(slot).ok_or("missing function argument name")?;
                             storage.variables.insert(name.clone(), value.clone());
                         }

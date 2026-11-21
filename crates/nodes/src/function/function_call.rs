@@ -18,8 +18,13 @@ pub(crate) struct FunctionCall {
 /// First uses of scalar arguments in a straight-line pattern function, including directly returned channels.
 pub(super) struct PatternArguments {
     pub registers: Vec<usize>,
-    pub slots: Vec<usize>,
+    pub target: PatternTarget,
     pub channels: [Option<usize>; 4],
+}
+
+pub(super) enum PatternTarget {
+    Arguments(Vec<usize>),
+    ReturnedChannels,
 }
 
 impl PatternArguments {
@@ -65,10 +70,53 @@ impl PatternArguments {
         }
         Some(Self {
             registers: slots.iter().map(|slot| registers.get(*slot).copied()).collect::<Option<_>>()?,
-            slots,
+            target: PatternTarget::Arguments(slots),
             channels: selected.map(|slot| slot.and_then(|i| registers.get(i)).copied()),
         })
     }
+}
+
+impl FunctionCall {
+    /// A function made entirely of argument reads, vector packs and swizzles can return
+    /// caller components directly. Sampling one of its return channels then stays lazy.
+    pub(super) fn packed_projection(&self, registers: &[usize], sources: &[[Option<super::vector::PatternComponent>; 4]]) -> Option<PatternArguments> {
+        if !self.defaults.values().any(|value| super::returned_product::float_width(super::value_type::type_code(value)) > 1) {
+            return None;
+        }
+        let mut origins = Vec::with_capacity(self.program.instructions.len());
+        for op in &self.program.instructions {
+            let lanes = match (op.definition.id, &op.value) {
+                ("get_float1" | "get_float2" | "get_float3" | "get_float4", Some(Value::Text(name))) => {
+                    if name.starts_with('$') || super::value_type::type_code(self.defaults.get(name)?) != op.type_code {
+                        return None;
+                    }
+                    let slot = self.inputs.iter().position(|input| input == name)?;
+                    sources.get(*registers.get(slot)?)?.map(|component| match component {
+                        Some(super::vector::PatternComponent::Scalar(register)) => Some(register),
+                        _ => None,
+                    })
+                }
+                _ => super::returned_product::forwarded(op, &self.program.instructions, &origins, None)?,
+            };
+            origins.push(lanes);
+        }
+        let channels = *origins.get(self.program.output)?;
+        let width = super::returned_product::float_width(self.program.output_type());
+        if width == 0 {
+            return None;
+        }
+        Some(PatternArguments { registers: channels.get(..width)?.iter().copied().collect::<Option<_>>()?, target: PatternTarget::ReturnedChannels, channels })
+    }
+}
+
+pub(super) fn pack_scalars(values: &[Value]) -> Result<Value, String> {
+    let mut channels = [0.0; 4];
+    let channels = channels.get_mut(..values.len()).ok_or("too many color components")?;
+    for (channel, value) in channels.iter_mut().zip(values) {
+        let Value::Float(component) = value else { return Err("expected a scalar color component".into()) };
+        *channel = *component;
+    }
+    super::value_type::intermediate_float_value(channels)
 }
 
 /// Wire presence is local to a call. Free variables can be defined by an executed Set in a caller.

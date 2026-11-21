@@ -1823,6 +1823,39 @@ Switching the reference child from F32 to the three lower depths preserved 24/24
 
 Both applications reproduce their original stored results on reopening every package in the table. Root 454 matches **677,376/677,376 pixels across 346 measured renders**. The typed and pattern regression reproduced the earlier conversion. All 418 release tests across the evaluator and node crates passed, along with formatting, strict workspace Clippy, dependency layers and WebAssembly.
 
+### Returned channels of a packed argument in pattern functions
+
+A pattern call that returns channels selected from a packed argument draws the caller’s scalar sources in the order the result needs them. Selecting the same source twice reuses its draw. The evaluator traces an argument through a function containing only typed argument reads, vector packs and channel selections. A scalar selection can then evaluate the supplying register directly. A whole vector result evaluates the supplying registers in return order. Both four-float and color-widget defaults represent a four-channel argument.
+
+Use the [full-coverage rectangle and seed-31 draw sequence](#shared-random-draws-in-pattern-branches-and-returned-color-channels). Pack four independent unit draws A, B, C and D into RGBA and pass them as one argument. Return (D,C,A), (A,D,B), (B,B,B) or (D,D,C). At seed 31 the whole (D,C,A) return has RGB words `3f3457e6 3f5a33c2 3f46fab2`. Return (D, first channel of the call, next draw E) instead to get `3f3457e6 3f3457e6 3f5a33c2`. Repeat with the caller selecting the third or second returned channel and with a Boolean selecting between D and the call’s first channel. The four F32 settings use 16²/31 with the switch off and on, 32 × 16/12071 with it off and 16 × 32/68047 with it on.
+
+| Callee at four F32 settings and five caller wirings | Renders | Earlier exact pixels / total · max | Current exact pixels / total · max |
+|---|---:|---:|---:|
+| Direct or repeated channels | 80 | 3,840/30,720 · 0.8360261917 | 30,720/30,720 · 0 |
+| Interpolation | 20 | 2,304/7,680 · 0.7985885143 | 2,304/7,680 · 0.7985885143 |
+| Addition | 20 | 1,536/7,680 · 0.8360261917 | 1,536/7,680 · 0.8360261917 |
+| Conditional | 20 | 2,304/7,680 · 0.8360261917 | 2,304/7,680 · 0.8360261917 |
+| Additional random draw | 20 | 0/7,680 · 0.8360261917 | 0/7,680 · 0.8360261917 |
+| Assignment | 20 | 1,536/7,680 · 0.8360261917 | 1,536/7,680 · 0.8360261917 |
+
+The complete 180-render family improved from 11,520 to 38,400 exact pixels out of 69,120. The direct and repeated channel cases are exact. The arithmetic, conditional and stateful cases retain the listed differences.
+
+Independently author a function with a two-, three- or four-channel slider argument, or a four-channel color argument. Give each function a distinct name and an explicit same-package reference. Pack independent draws into the argument and return (last, penultimate, first). Compare the whole return, (last original, first returned, E), and (third returned, second original, E). Use 16²/seed 0, 32 × 16/31, 16 × 32/12071 and 32²/68047. Compare each configuration at all four output depths.
+
+| Output depth | Renders | Earlier exact pixels / total · max | Current exact pixels / total · max |
+|---|---:|---:|---:|
+| RGBA8 | 48 | 2,304/27,648 · 213 | 27,648/27,648 · 0 |
+| RGBA16 | 48 | 2,304/27,648 · 54789 | 27,648/27,648 · 0 |
+| RGBA16F | 48 | 2,304/27,648 · 0.8357315063 | 27,648/27,648 · 0 |
+| RGBA32F | 48 | 2,304/27,648 · 0.8360261917 | 27,648/27,648 · 0 |
+
+| Saved graph family | Packages | Reopened renders | Earlier cross-application exact pixels / total · max | Current cross-application exact pixels / total · max |
+|---|---:|---:|---:|---:|
+| F32 function controls | 10 | 40 | 1,536/15,360 · 0.8360261917 | 10,752/15,360 · 0.8360261917 |
+| Independent widths and output depths | 4 | 16 | 0/9,216 · 36135 | 9,216/9,216 · 0 |
+
+Each application reproduced its own original buffers after reopening all 14 packages. Four earlier families covering scalar calls, channel arithmetic, swizzles and conditionals retain their original per-render counts and maxima. Across the 958 recorded settings for roots 373–376, 441, 488 and 491, all per-render counts and maxima are unchanged. Color Tile Generator still matches 621,344/765,184 pixels across 331 settings. Its per-channel tint order remains open. The packed-argument regression reproduced the wrong sequence with a color-widget default. All 418 node and evaluator release tests and the formatting, workspace Clippy, layer and WebAssembly checks passed.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color
