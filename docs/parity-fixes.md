@@ -707,6 +707,43 @@ For the fine sweep use 33 equally spaced values between 1.4130859375 and 1.41406
 
 Mesh 1 first differs in its two-stamp pattern source. Six original-only F32 captures agree across every pixel at 128×64 and 256². Against MaterialCraft the source matches 7,994/8,192 (maximum 2.38418579e−7) and 62,825/65,536 (4.17232513e−7). An original two-leaf graph reproduces those counts. With only the positive eighth-turn stamp, all 74,752 F32 pixels match across three sizes when both tiling axes are disabled. Wrapping both axes gives 70,822/74,752 with maximum 3.75672244e−7. Its rectangle is (.75,1.5) centered at (.5,.5). Changing either size or rotation to a graph input makes a separate four-size probe exact. Fixed size and rotation together give 86,299/91,136 at the same values. [Earlier per-stamp measurements](#directional-and-additive-stamp-profiles)
 
+### Moisture noise across repeated original renders
+
+Moisture Noise (226) matched **3,996,504/3,996,928 pixels across 82 distinct settings**. The primary table uses the first observation where a setting repeats. At 128², seed zero and default U16, earlier original renders matched either 16,382 or 16,384 of the 16,384 output pixels. Six fresh reads of that setting were identical to each other and matched 16,383 pixels, maximum difference five levels.
+
+| Stored output | Primary exact / total | Maximum error |
+|---|---:|---:|
+| U8 | 717,053/717,056 | 1 |
+| U16 | 1,318,957/1,319,168 | 6 |
+| F16 | 717,032/717,056 | 0.00048828125 |
+| F32 | 1,243,462/1,243,648 | 0.0000783205032 |
+
+Use the two tile-patch render series with i=226. Leave the controls at defaults in the indicated rows. For a changed row set disorder to d, pattern width to 31+141d and height to 61+129(1−d). The graph generates its own inputs. After saving and reopening the package, MaterialCraft reproduced every original pixel on the 521,216 smaller-series pixels and 3,313,664 larger-series pixels. The reference original/reopened comparisons matched 521,140 and 3,313,311 respectively, with maximum error six U16 levels. [Dimensions, seeds, formats and d values](#tile-patch-inputs-and-scratch-color-precision)
+
+Each series requests six frames from the original graph with identical settings. The varying-pixel count is the union of positions that changed across those frames. The last column counts MaterialCraft pixels outside the minimum and maximum values observed at the corresponding positions.
+
+| Setting | Format | Exact against first / total · max | Distinct frames | Varying pixels · largest span | Outside the six-frame range · max distance |
+|---|---|---:|---:|---:|---:|
+| 128², defaults, seed 0 | U16 | 16,383/16,384 · 5 | 1 | 0 · 0 | 1 · 5 |
+| 128², defaults, seed 0 | F32 | 16,384/16,384 · 0 | 1 | 0 · 0 | 0 · 0 |
+| 512×128, seed 18917, width 70.65625, height 153.71875, disorder .28125 | U16 | 65,524/65,536 · 5 | 6 | 24 · 6 | 2 · 5 |
+| Same rectangular setting | F32 | 65,522/65,536 · .0000780820847 | 6 | 22 · .0000780820847 | 0 · 0 |
+
+In the twelve earlier instrumented cases, the generator feeding the blend source matched 46,336/46,336 pixels. The generator feeding the destination and the blend each matched 46,334/46,336, maximum one U16 level. The independently requested final images matched 46,335/46,336, maximum .0000780224800 F32. The differing positions can change between requests for intermediate and final images. The stable 128² U16 discrepancy remains open. [Twelve stage settings](#scratches-messy-fibers-microscope-and-moisture)
+
+### Precision of two dense noise generators in custom regions
+
+At 64² with seed 42, scale 2 and disorder .37, the following roots now complete in all four storage formats. Both take procedural inputs only.
+
+| Root | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|
+| BnW Spots 3 (238) | 4,096/4,096 · 0 | 4,094/4,096 · 1 | 4,096/4,096 · 0 | 4,093/4,096 · .0000106692314 |
+| Dirt 5 (268) | 4,096/4,096 · 0 | 4,095/4,096 · 3 | 4,096/4,096 · 0 | 4,094/4,096 · .0000508129597 |
+
+For Spots 3, the 16² F32 default at seed 102951 matched 254/256 with maximum .0000106990337. Scale 1, zero disorder and expansion enabled matched all 1,024 F32 pixels at seed 102952 and all 8,192 F16 pixels at 128×64, seed 102960. Seven scale-3 and scale-5 cases still reached the traversal limit. [Original series](#cloud-and-crystal-pattern-sources-across-scales)
+
+For Dirt 5, the 16² F32 default at seed 105543 matched 256/256. At 32², scale 1, zero disorder and expansion enabled, seed 105544 matched 1,022/1,024 F32 pixels with maximum .0000508204103. Changing disorder to .3125 and disabling expansion matched all 4,096 pixels over the four formats at seed 105545. At 64×32 the same controls matched 2,047/2,048 F32 pixels at seed 105551, maximum .0000508278608. The 32×64 zero-disorder F16 case matched 2,048/2,048 at seed 105552. The 32×16 F32 and 16×32 U16 cases at scale 2 and disorder .8125 still reached the traversal limit. [Original series](#dirt-noise-sources-and-downstream-stages)
+
 ### Short directional blur tap order on rectangular inputs
 
 Fluid matches **25,969,920/25,969,920 final pixels across 121 distinct settings** through 2048 pixels per side. Both applications reopened the MaterialCraft package and reproduced every pixel of their originals over 28, 38 and 36 settings (498,688, 8,654,848 and 17,588,224 pixels). The three instrumented renders at 512×1024, 1024×512 and 1024² match 9,961,472/9,961,472 intermediate and final samples. [First differing stage and earlier settings](#fibers-1-and-fluid-through-1024-pixels-per-side)
