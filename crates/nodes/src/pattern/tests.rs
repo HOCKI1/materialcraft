@@ -1053,6 +1053,29 @@ fn iterate_sets_number_and_switch_selects_one_child() {
 }
 
 #[test]
+fn long_pattern_iterations_charge_only_connected_visits() {
+    let mut graph = PatternGraph::with_root(PatternNodeKind::Iterate);
+    let square = graph.add(PatternNodeKind::Quadrant).unwrap();
+    graph.nodes[1].parameters = BTreeMap::from([
+        ("patterntype".into(), Value::Int(2)),
+        ("blendingmode".into(), Value::Int(0)),
+        ("patternsize".into(), Value::Float2([1.0; 2])),
+        ("opacity".into(), Value::Float(1.0 / 32_768.0)),
+    ]);
+    for (initial, repeated, count, expected) in [
+        (None, Some(square), 12_003, 12_003.0 / 32_768.0),
+        (Some(square), None, 16_384, 1.0 / 32_768.0),
+        (None, None, 16_384, 0.0),
+        (Some(square), None, i32::MAX, 1.0 / 32_768.0),
+    ] {
+        graph.nodes[0].parameters.insert("numberadded".into(), Value::Int(count));
+        graph.nodes[0].children = vec![initial, repeated];
+        let image = cook_at_size(graph.clone(), &BTreeMap::new(), 452933, 4).unwrap().remove(0);
+        assert!(image.data().iter().all(|&v| v == expected));
+    }
+}
+
+#[test]
 fn repeated_empty_size_switches_leave_the_visit_budget_for_drawing() {
     let mut graph = PatternGraph::with_root(PatternNodeKind::Iterate);
     let mark = graph.add(PatternNodeKind::Quadrant).unwrap();

@@ -816,6 +816,22 @@ At 1024×512 the first difference in the color root is the last directional blur
 
 All 310 release node tests, formatting, strict workspace Clippy, dependency layers and WebAssembly passed. Seven alternating single-worker release runs gave median cook times of 326 to 328 ms for color at 512×128, 1,828 to 1,897 ms for color at 512², 1,839 to 1,813 ms for grayscale at 512² and 26.2 to 25.1 ms for the rectangular Tile helper.
 
+### Streaming repeated pattern visits
+
+A repeating pattern now advances its number and random seed one draw at a time. The initial child runs once and a disconnected repeat child takes no visits. The evaluator accounts for visited nodes and keeps its existing bounds on retained stamps, discarded stamps and raster work. A repeat count alone previously caused an error above 10,000, even with the repeat child disconnected.
+
+For an independent reproduction, connect a single unit white square to the repeated child of an Iterate node. Use additive blending on a black grayscale background, zero roughness and an opacity multiplier of 1/32768. Render counts 0, 1, 8192, 9999, 10000, 10001, 12003 and 16384 in F32 at 8×4 with seed 452933, and U16 at 4² with seed 452950. For counts 0, 10001 and 16384 also wire only the initial child or leave both children disconnected. The 28 original renders matched 672/672 pixels, maximum zero. In F32 every repeated square added exactly 1/32768. At 12,003 repeats the stored U16 value is 24,006. At 16,384 repeats F32 stores .5 and U16 stores 32,767. Another 42 renders with independent random colors and positions retained 258,048/258,048 identical RGBA pixels, maximum zero.
+
+| Root (inventory index) | Distinct settings | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|---:|
+| Cells 1, second package (241) | 49 | 135,940/136,448 · 255 | 197,357/243,968 · 65441 | 86,784/87,296 · 0.998535156 | 220,333/269,824 · 0.99857223 |
+
+Both applications reproduced their original Cells 1 outputs after reopening the saved graph across all 629,760 pixels of the new 30-setting series. All 30 now cook. The four 64×16 results formerly refused by MaterialCraft match 516/1,024 U8 pixels, 511/1,024 U16, 512/1,024 F16 and 511/1,024 F32. Their respective maxima are 255, 65,441, .998535156 and .99857223. The other settings include exact 16², 256² and 128×512 outputs. The root remains open. [Earlier field comparisons](#wire-presence-inside-a-called-function)
+
+To reproduce the new series, use dimensions 16², 64×16, 16×64, 64², 128×64, 64×128, 128², 256², 128×512 and 512×128 in order. Use defaults at j=0 and 7. The other rows use d from (default,.03125,.875,.34375,.96875,.1875,.65625,default,.53125,.09375). Use zero seed at the default rows, 42 at j=1 and 411416+61j otherwise. Render U16 and F32 throughout, adding U8 and F16 at j=0,1,3,5,7. For changed settings select scale and pattern from (8,16,5,11,27,4,19,32,7,12) and (4,3,4,9,5,7,1,4,3,10) respectively. Set disorder, disorder speed, disorder anisotropy, luminance random and angle random to d. Set angle and anisotropy angle to d−.25 and pattern scale to .375+1.25d. Use pattern size (.4375+.75d,.8125+.6875(1−d)), tile offset (d−.34375,.40625−.875d) and enable non-square expansion at odd j. The primary table counts distinct settings once.
+
+The new regression failed on the preceding evaluator. All 311 release node tests, formatting, strict workspace Clippy, dependency layers and WebAssembly passed. In seven alternating single-worker release runs, median times for 8,192 and 10,000 small repeats changed from 36.2 to 32.3 ms and 37.3 to 47.5 ms respectively. For Cells 1 the 64² changed case took 23.1 to 23.2 ms and the 256² default took 156.1 to 169.6 ms.
+
 ### Short directional blur tap order on rectangular inputs
 
 Fluid matches **25,969,920/25,969,920 final pixels across 121 distinct settings** through 2048 pixels per side. Both applications reopened the MaterialCraft package and reproduced every pixel of their originals over 28, 38 and 36 settings (498,688, 8,654,848 and 17,588,224 pixels). The three instrumented renders at 512×1024, 1024×512 and 1024² match 9,961,472/9,961,472 intermediate and final samples. [First differing stage and earlier settings](#fibers-1-and-fluid-through-1024-pixels-per-side)

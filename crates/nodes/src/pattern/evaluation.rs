@@ -44,7 +44,7 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
         context.inputs.iter().skip(1).take(crate::MAX_IMAGE_INPUTS).enumerate().filter_map(|(i, image)| image.as_ref().map(|_| i as i32)).collect();
     let mut pending = Vec::new();
     if let Some(root) = graph.root {
-        pending.push(PatternVisit { node: root, center: [0.5; 2], extent: 1.0, depth: 0, number: 0, seed: context.seed });
+        pending.push((PatternVisit { node: root, center: [0.5; 2], extent: 1.0, depth: 0, number: 0, seed: context.seed }, 0_u32));
     }
 
     let mut stamps = Vec::new();
@@ -61,7 +61,7 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
     let mut children = Vec::new();
     let mut empty_switches = BTreeSet::new();
     let grayscale = !context.b("color_mode");
-    while let Some(mut visit) = pending.pop() {
+    while let Some((mut visit, repeats_left)) = pending.pop() {
         // Returning below the previous stack size starts the next child of the root.
         if pending.len() < root_children_pending {
             root_children_pending = pending.len();
@@ -73,11 +73,17 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
             continue;
         }
         remaining = remaining.checked_sub(1).ok_or("pattern graph exceeded its execution budget")?;
+        if repeats_left != 0 {
+            // Resume the previous draw's scope before scheduling its sibling. Descendants of
+            // this draw run first and inherit its own number and seed.
+            let next = PatternVisit { number: visit.number + 1, seed: crate::random::iteration_child(visit.seed), ..visit.clone() };
+            pending.push((next, repeats_left - 1));
+        }
         let &(node, literal_geometry) = nodes.get(&visit.node).ok_or("missing pattern node")?;
         if node.kind == PatternNodeKind::Dot {
             if let Some(Some(child)) = node.children.first() {
                 visit.node = *child;
-                pending.push(visit);
+                pending.push((visit, 0));
             }
             continue;
         }
@@ -150,6 +156,7 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
         let integer = |name: &str| field(name).and_then(Value::as_i32).unwrap_or(0);
         let vector = |name: &str| field(name).and_then(Value::as_vec4).map(|value| [value[0], value[1]]).unwrap_or([0.0; 2]);
         children.clear();
+        let mut repeated = None;
         match node.kind {
             PatternNodeKind::Dot => {}
             PatternNodeKind::Quadrant => {
@@ -233,10 +240,7 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
                 }
             }
             PatternNodeKind::Iterate => {
-                let count = usize::try_from(integer("numberadded")).map_err(|_| "iteration count cannot be negative")?;
-                if count > remaining || count > 10_000 {
-                    return Err("pattern iteration count exceeds the execution budget".into());
-                }
+                let count = u32::try_from(integer("numberadded")).map_err(|_| "iteration count cannot be negative")?;
 
                 if let Some(Some(child)) = node.children.first() {
                     let mut first = visit.clone();
@@ -244,18 +248,17 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
                     first.number = 0;
                     children.push(first);
                 }
-                if let Some(Some(child)) = node.children.get(1)
+                if let Some(repeats_left) = count.checked_sub(1)
+                    && let Some(Some(child)) = node.children.get(1)
                     && !empty_switches.contains(child)
                 {
-                    let mut seed = visit.seed;
-                    for number in 0..count {
-                        let mut repeated = visit.clone();
-                        repeated.node = *child;
-                        repeated.number = number as u32;
-                        seed = crate::random::iteration_child(seed);
-                        repeated.seed = seed;
-                        children.push(repeated);
+                    // Each connected visit costs at least one unit, even if its stamp is discarded.
+                    // A fixed switch can discover an empty branch on its first visit and skip the rest.
+                    if count as usize > remaining + discard_allowance && !fixed_switches.contains(child) {
+                        return Err("pattern iteration count exceeds the execution budget".into());
                     }
+                    let first = PatternVisit { node: *child, number: 0, seed: crate::random::iteration_child(visit.seed), ..visit };
+                    repeated = Some((first, repeats_left));
                 }
             }
         }
@@ -271,7 +274,7 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
                 }
             });
         }
-        if children.len().saturating_add(pending.len()) > remaining {
+        if children.len() + pending.len() + usize::from(repeated.is_some()) > remaining {
             return Err("pattern graph exceeded its execution budget".into());
         }
 
@@ -279,7 +282,8 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
         if grayscale && node.kind == PatternNodeKind::Quadrant && Some(node.id) == graph.root {
             root_children_pending = children.len();
         }
-        pending.extend(children.drain(..).rev());
+        pending.extend(repeated);
+        pending.extend(children.drain(..).rev().map(|visit| (visit, 0)));
     }
 
     let mut groups = [&[][..]; 5];
