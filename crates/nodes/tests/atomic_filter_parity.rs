@@ -491,6 +491,26 @@ fn short_diagonal_blur_orders_the_taps_in_texture_coordinates() {
 }
 
 #[test]
+fn short_oblique_blur_rounds_the_projected_center_and_edge_weights() {
+    for (size, angle, intensity, point, expected) in [
+        ([128, 64], 0.4375, 3.625, [1, 1], 0x3f12_3b30),
+        ([128, 64], 0.4375, 6.3125, [2, 0], 0x3e8d_258d),
+        ([128, 64], 0.08203125, 3.625, [1, 1], 0x3f15_f9ba),
+        ([64, 128], -139.0 / 512.0, 3.625, [1, 0], 0x3e25_ead0),
+    ] {
+        let source = Image::gray(size[0], size[1], |x, y| if (x, y) == (1, 1) { 1.0 } else { 0.0 }).with_integer_sampling(true);
+        let params = [("angle", Value::Float(angle)), ("intensity", Value::Float(intensity))];
+        let output = cook("directional_blur", &[Some(source)], &params, size, true);
+        assert_eq!(output.get_gray(point[0], point[1], false).to_bits(), expected, "{angle}, {intensity}");
+    }
+
+    let square = [64; 2];
+    let params = [("angle", Value::Float(0.375)), ("intensity", Value::Float(2.64))];
+    let output = cook("directional_blur", &[Some(modular_blur_field(square))], &params, square, true);
+    assert_eq!(output.get_gray(2, 0, false).to_bits(), 0x3eb3_e6a6);
+}
+
+#[test]
 fn diagonal_blur_on_rectangles_carries_the_shear_across_tile_edges() {
     let intensity = Value::Float(f32::from_bits(0x416b_a592));
     for (size, angle, expected) in [
@@ -525,6 +545,7 @@ fn oblique_rectangular_blur_projects_the_window_onto_its_filtering_axis() {
 fn long_oblique_blur_keeps_the_projected_stripe_weight() {
     for (size, angle, strength, vertical_stripe, expected) in [
         ([16, 128], 0.1, 41.96875, true, 0x3e66_e1d7),
+        ([16, 128], 0.375, 41.96875, true, 0x3e7f_d802),
         ([128, 16], 0.265625, 46.6875, false, 0x3e30_2ae0),
         ([128, 16], -139.0 / 512.0, 34.89026, false, 0x3e6c_7382),
     ] {

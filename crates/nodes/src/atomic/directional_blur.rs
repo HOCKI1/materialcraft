@@ -47,40 +47,37 @@ pub(super) fn blur(context: &CookContext, angle: f32) -> CookResult {
         return Ok(vec![box_filter::axis(&input, reach, horizontal, tile[usize::from(!horizontal)], source_format, context.format)]);
     }
 
+    let radians = angle * std::f32::consts::TAU;
+    let sine = projected_sine(radians.abs()) * radians.signum();
+    let cosine = projected_sine(radians.abs() + std::f32::consts::FRAC_PI_2);
+    let short_reach = (radius - 0.5) * sine.abs().max(cosine.abs());
+    if short_reach <= 1.0 {
+        // Normalize the offsets in texture coordinates so the longer side keeps its texel scale.
+        let u = cosine / context.w as f32;
+        let v = sine / context.h as f32;
+        // Tap order affects the fused sum. A rectangular image can change which UV axis dominates.
+        let dominant = if u.abs() > v.abs() { u } else { v };
+        let span = -dominant;
+        return Ok(vec![box_filter::short_line(&input, short_reach, [u / span, v / span], tile, source_format)]);
+    }
+    if tile == [true; 2] && context.w == input.width() && context.h == input.height() {
+        // Compare the components before rounding the direction to the sample grid.
+        let (line_y, line_x) = f64::from(radians).sin_cos();
+        let horizontal = line_x.abs() / f64::from(context.w) > line_y.abs() / f64::from(context.h);
+        // An authored eighth turn has an exact unit slope even after radian conversion.
+        // On a rectangle the dominant UV direction can have the smaller texel
+        // component. The window spans the projection along the chosen texel axis.
+        let (across, along) = if horizontal { (sine, cosine) } else { (cosine, sine) };
+        let slope = if (angle * 8.0).fract() == 0.0 { (line_y * line_x).signum() as f32 } else { across / along };
+        if let Some(image) = box_filter::sheared(&input, (radius - 0.5) * along.abs(), horizontal, slope, source_format, context.format) {
+            return Ok(vec![image]);
+        }
+    }
     let (dx, dy) = direction(angle);
     // Image-space rotation follows increasing rows.
     let dy = -dy;
     let major = dx.abs().max(dy.abs());
     let reach = (radius - 0.5) * major;
-    if reach <= 1.0 {
-        // Normalize the offsets in texture coordinates so the longer side keeps its texel scale.
-        let u = dx / context.w as f32;
-        let v = dy / context.h as f32;
-        // Tap order affects the fused sum. A rectangular image can change which UV axis dominates.
-        let dominant = if u.abs() > v.abs() { u } else { v };
-        let span = -dominant;
-        return Ok(vec![box_filter::short_line(&input, reach, [u / span, v / span], tile, source_format)]);
-    }
-    if tile == [true; 2] && context.w == input.width() && context.h == input.height() {
-        // Compare the components before rounding the direction to the sample grid.
-        let radians = angle * std::f32::consts::TAU;
-        let (sine, cosine) = f64::from(radians).sin_cos();
-        let horizontal = cosine.abs() / f64::from(context.w) > sine.abs() / f64::from(context.h);
-        // An authored eighth turn has an exact unit slope even after radian conversion.
-        // On a rectangle the dominant UV direction can have the smaller texel
-        // component. The window spans the projection along the chosen texel axis.
-        let (slope, along) = if (angle * 8.0).fract() == 0.0 {
-            ((sine * cosine).signum() as f32, major)
-        } else {
-            let sine = projected_sine(radians.abs()) * radians.signum();
-            let cosine = projected_sine(radians.abs() + std::f32::consts::FRAC_PI_2);
-            let (across, along) = if horizontal { (sine, cosine) } else { (cosine, sine) };
-            (across / along, along.abs())
-        };
-        if let Some(image) = box_filter::sheared(&input, (radius - 0.5) * along, horizontal, slope, source_format, context.format) {
-            return Ok(vec![image]);
-        }
-    }
     let projected_radius = 0.5 + reach;
     let half_samples = (projected_radius + 0.5).floor().clamp(1.0, MAX_HALF_SAMPLES as f32) as i32;
 
@@ -108,7 +105,7 @@ pub(super) fn blur(context: &CookContext, angle: f32) -> CookResult {
     })])
 }
 
-/// The wide filter stores both direction components before deriving the window and shear.
+/// The filter stores both direction components before deriving sample weights and coordinates.
 fn projected_sine(radians: f32) -> f32 {
     use std::f64::consts::{FRAC_PI_2, PI, TAU};
 

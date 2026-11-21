@@ -234,6 +234,44 @@ The 2D fractal results also match **32,256/32,256** across 38 supplemental setti
 
 The [stock-table comparison](#voronoi-distortion-and-shared-noise-inputs) used different resources in the two applications. All 27 undistorted renders matched 146,688/146,688 pixels per root. The three distorted 32² stock renders differed throughout, with F32 maxima .175076187 for the 2D fractal and .205578864 for the 3D fractal. Those cases remain distinct from the shared-table results.
 
+### Projected weights and tap order in short directional blurs
+
+The short oblique blur measures its reach using the stored horizontal and vertical direction components. It derives the first and last tap from the dominant component in texture coordinates. The same stored component supplies the projected width of a long diagonal window. On 16 × 128, the vertical white stripe at .375 turns and intensity 41.96875 produces center F32 bits 0x3e7fd802. A single U16 impulse at (1,1) on 128 × 64, angle .4375 and intensity 3.625, produces 0x3f123b30 at that pixel. The previous result was 0x3f123b31.
+
+The 46 three-tap F32 cases in the [rectangular blur matrix](#oblique-directional-blur-on-rectangular-images) improved from **384,404/442,368** to **442,368/442,368**, maximum zero. The 217 original signed and axial field controls from the [short-line comparison](#short-directional-blur-tap-order-on-rectangular-inputs) also match exactly, including square inputs where ordering the positive and negative taps affects the stored result.
+
+For an independent field use U16 levels (19x² + 313y + 3137xy + 47(j+3) + 26213(x mod 3)) mod 65536. Cycle dimensions 32 × 16, 16 × 32, 32² and 64 × 16 in zero-based angle order. Use turns (37,−119,303,−431)/1024, (183,−377,693,−1043)/2048, (987,−645,1213,−1515)/1024, then .06250012, .43749989, .213798523, .394229889, .125, −.125, .375, −.375, .625, .875, .08203125 and −.271484375. Set intensity to 256 times the radius divided by the shorter side. Use radii .5009765625, .671875, .8984375, 1.0703125, 1.3515625, 1.49 and 1.595703125 with seed 469193+29j+k for radius index k. Render F32 throughout and all four formats at indices 2 and 4.
+
+| Original primitive series | Renders | Exact pixels / total | Maximum error |
+|---|---:|---:|---:|
+| Earlier short-field controls · RGBA16 | 31 | 708,608/708,608 | 0 |
+| Earlier short-field controls · RGBA16F | 31 | 708,608/708,608 | 0 |
+| Earlier short-field controls · RGBA32F | 124 | 2,834,432/2,834,432 | 0 |
+| Earlier short-field controls · RGBA8 | 31 | 708,608/708,608 | 0 |
+| Earlier oblique matrix · RGBA16 | 36 | 342,561/344,064 | 63 |
+| Earlier oblique matrix · RGBA16F | 36 | 343,693/344,064 | 0.0009765625 |
+| Earlier oblique matrix · RGBA32F | 204 | 1,922,736/1,949,696 | 0.000969707966 |
+| Earlier oblique matrix · RGBA8 | 36 | 344,030/344,064 | 1 |
+| Independent field · RGBA16 | 48 | 36,864/36,864 | 0 |
+| Independent field · RGBA16F | 48 | 36,864/36,864 | 0 |
+| Independent field · RGBA32F | 168 | 128,991/129,024 | 0.00146079063 |
+| Independent field · RGBA8 | 48 | 36,864/36,864 | 0 |
+| Original stripe angles · RGBA32F | 792 | 1,608,192/1,622,016 | 1.1920929e-07 |
+| Additional stripe angles · RGBA32F | 576 | 1,179,648/1,179,648 | 0 |
+| Signed eighth-turn stripes · RGBA32F | 240 | 491,520/491,520 | 0 |
+| Single impulses · RGBA32F | 30 | 2,752,512/2,752,512 | 0 |
+| Sparse periodic impulses · RGBA32F | 36 | 2,948,850/2,949,120 | 0.000616334379 |
+| Sparse periodic impulses · RGBA8 | 12 | 983,040/983,040 | 0 |
+
+For the eighth-turn controls orient the same 16-bit stripes perpendicular to each filter axis at 16 × 128 and 128 × 16. Use the first, second, fourth, sixth, seventh, ninth, thirteenth, fifteenth, seventeenth and eighteenth radii in the [long-stripe series](#direction-and-sample-coordinates-of-long-oblique-blurs). Use turns 0.125, 0.375, 0.625, 0.875, -0.125, -0.375, -0.625, -0.875, 1.125, -1.375, 1.625, -1.875 and seed 471329+71j+17h+i for angle j, orientation h and zero-based original radius index i.
+
+| Root (inventory index) | Distinct settings | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|---:|
+| Blur HQ (55) | 78 | 706,504/706,560 · 1 | 1,169,141/1,169,408 · 257 | 591,816/591,872 · 0.00439453125 | 1,192,949/1,193,216 · 0.0039215982 |
+| Blur HQ Grayscale (56) | 78 | 706,545/706,560 · 1 | 1,169,358/1,169,408 · 257 | 591,857/591,872 · 0.00390625 | 1,193,166/1,193,216 · 0.0039215982 |
+
+In the two complete roots, 646 color and 130 grayscale pixels still differ across 78 distinct settings per root. All 3,489,792 original pixels in each application reproduced after reopening 60 saved settings per root, maximum zero. The residuals include longer oblique passes. The new release regression failed before this change and passed afterward. All 323 node release tests, formatting, strict workspace Clippy, dependency layers and WebAssembly checks passed.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color
