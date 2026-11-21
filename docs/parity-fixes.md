@@ -1166,6 +1166,48 @@ To isolate the hash function, create a one-output pixel processor calling `hash2
 
 The table applies both before and after saving the caller. Each application reproduced its own six buffers after saving. With the older relative dependency, the reference returned zero throughout, and 3/5,376 pixels matched across applications on each run. The same caller matched 5,376/5,376 on each run with either the library function or the separately saved file. Waveform v2 remains in progress for the older relative dependency.
 
+### Isolated Arc Pavement draws in a nonunit render region
+
+Compare Arc Pavement (354) on revision `7ff64fa`. All 211,200 pixels in the earlier 27 whole-root settings now match. Add seven image sizes with defaults at 16² and 16 × 64, and changed settings at 64 × 32, 32 × 128, 64², 128 × 32 and 128². Use seed S = 717627 + 211j, indexing 16², 64 × 32, 32 × 128, 64², 128 × 32, 16 × 64 and 128² from zero. Leave the input disconnected at 16². At the other sizes connect a grayscale F32 field of the output size, except for a 32 × 16 source at 16 × 64. At coordinates x,y use .6875 × ((29x+73y+5xy+S) mod 257)/256 plus .3125 where (5x+3y+S) mod 19 < 7. Compare U16 and F32 at every size, adding U8 and F16 at 64 × 32, 64² and 128².
+
+| Changed setting | 64 × 32 | 32 × 128 | 64² | 128 × 32 | 128² |
+|---|---:|---:|---:|---:|---:|
+| `scale` | 1 | 2 | 3 | 1 | 3 |
+| `pattern_amount` | 5 | 9 | 7 | 11 | 8 |
+| `pattern_amount_random` | 0.171875 | 0.59375 | 0.34375 | 0.828125 | 0.6875 |
+| `pattern_min_amount` | 1 | 2 | 3 | 1 | 3 |
+| `arcs_amount` | 3 | 7 | 5 | 9 | 6 |
+| `pattern` | 1 | 3 | 7 | 1 | 4 |
+| `pattern_variation` | 0.171875 | 0.59375 | 0.34375 | 0.828125 | 0.6875 |
+| `pattern_scale` | 0.6484375 | 0.859375 | 0.734375 | 0.9765625 | 0.90625 |
+| `pattern_width` | 1.0390625 | 0.828125 | 0.953125 | 0.7109375 | 0.78125 |
+| `pattern_height` | 0.47265625 | 0.7890625 | 0.6015625 | 0.96484375 | 0.859375 |
+| `input_image_filtering` | 0 | 1 | 2 | 0 | 2 |
+| `pattern_height_decrease` | 0.04296875 | 0.1484375 | 0.0859375 | 0.20703125 | 0.171875 |
+| `color_random` | 0.171875 | 0.59375 | 0.34375 | 0.828125 | 0.6875 |
+| `non_square_expansion` | on | off | on | off | off |
+
+| Root (inventory index) | Distinct settings | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|---:|
+| Arc Pavement (354) | 47 | 30,720/30,720 · 0 | 155,891/155,904 · 1 | 30,710/30,720 · 0.00048828125 | 102,396/102,912 · 4.64916229e-06 |
+
+Across 47 distinct settings **319,717/320,256** pixels matched. Save the root in MaterialCraft and repeat all 20 seven-size renders. Save again and repeat F32 at every size, plus U8, U16 and F16 at 64². Across applications, **152,283/153,344** pixels matched after reopening, maximum one stored integer level. Both applications reproduced their own original buffers.
+
+At 64² and 128², retain the seven-size controls and seed, and vary just the shape selector from 0 through 9. In the bitmap setting (1), 4,095/4,096 and 16,383/16,384 F32 pixels match, with maximum errors .328675061 and .236963362 respectively. Setting scale, both pattern counts and arc count to 1, and amount randomness, color randomness and height decrease to zero, yields exact F32 buffers for all ten selectors at both sizes.
+
+Use an initialized draw counter to write each draw into a separate cell of a 256² F32 image. Capture the visit indicator, the two position offsets, the two sizes and the rotation on each of the two settings. The resulting twelve grids matched **786,432/786,432** pixels, maximum zero.
+
+For the paraboloid selector (4), isolate draws covering three differing pixels at each size. Keep each center, both dimensions and rotation, set the branch offset to (−.5,−.5), and draw one stamp at unit opacity. With render and tiling intervals [−1,2] on both axes, multiplying each reference stamp by its original opacity and taking the maximum reproduces the whole reference graph at (32,62), (32,63) and (32,3) at 64², and at the three 128² positions in the table. Repeat the individual draws with the horizontal ramp (10). For a unit-region control, map each center c to (c+1)/3 and each size s to s/3 in F32 and render on [0,1]².
+
+| Size | Paraboloid samples in whole root | Region | Paraboloid exact / total · max F32 | Horizontal ramp exact / total · max F32 |
+|---|---|---|---:|---:|
+| 64² | (32,62), (32,63), (32,3) | [−1,2] | 24,572/24,576 · 3.39746475e-06 | 24,571/24,576 · 1.40070915e-06 |
+| 64² | (32,62), (32,63), (32,3) | [0,1] | 24,576/24,576 · 0 | 24,576/24,576 · 0 |
+| 128² | (123,93), (123,122), (122,8) | [−1,2] | 131,045/131,072 · 4.88758087e-06 | 131,039/131,072 · 1.37090683e-06 |
+| 128² | (123,93), (123,122), (122,8) | [0,1] | 131,072/131,072 · 0 | 131,072/131,072 · 0 |
+
+Both shapes agree on all 311,296 unit-region pixels. Nonunit-region stamps retain F32 differences. At 64², the horizontal ramp differs at two pixels with center (.5393365, 1.9508762), size (.05541531, .08797855) and zero rotation, even with tiling disabled. At pixel (32,62), MaterialCraft gives .213091522 and the reference gives .213092923. The root stays in progress.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color
