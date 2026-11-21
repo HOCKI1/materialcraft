@@ -745,6 +745,44 @@ The independent comparison maxima above use stored units. The 28 saved arithmeti
 
 Nadir Patch matches **282,880/282,880** pixels across 56 distinct settings. The two saves of the banded root, two saves of the independent fields and the equator series with its saved companion match **244,224/244,224** across 80 reopened renders. Both applications reproduced their original buffers. Plane Light still differs in 781/199,936 pixels across 22 settings, maximum 4.76837158e−7 in F32. Its four reopened renders reproduce their originals and match 28,459/28,672 pixels across applications, maximum 1.19209290e−7. Both new regressions failed before the fixes. All 670 release tests in the node, evaluator and engine crates passed, as did formatting, strict workspace Clippy, dependency layers and WebAssembly.
 
+### Reopened paper, fiber, Gaussian and shape generators
+
+Recheck the intact roots on revision `02d910f`. The [older paper, fiber and shape comparisons](#paper-brick-fiber-mesh-polygon-and-shape-roots) covered 19 distinct settings per root. The [pattern-package Gaussian](#radial-stamp-profiles-and-pattern-generators) covered 18. Include those settings and all four 64² output precisions. For Shape Base also repeat the authored, square and disc variants selected with its published pattern parameter, retaining a repeated setting once.
+
+All four graphs generate their pixels procedurally. For an independent series use sizes 32 × 16, 16 × 64, 32², 128 × 64, 64 × 128, 128², 256 × 128 and 128 × 256. Use seed 662047 + 17i + 251j with zero-based inventory index i and size index j. Leave the parameters at their defaults for j = 0 and 5. At the six other sizes use the following controls. Fibers and Gaussian both expose tiling and nonsquare expansion. Shape Base exposes its own nonsquare control.
+
+| Size | Paper width / height / disorder | Fibers and Gaussian tiling / expand | Shape pattern / variation / scale | Shape XY size / angle in turns / nonsquare |
+|---|---|---|---|---|
+| 16 × 64 | 62.5 / 113.75 / .078125 | 2 / off | 1 / .125 / .59375 | (1.25,.46875) / .15625 / off |
+| 32² | 103.125 / 69.375 / .609375 | 3 / on | 7 / .328125 / 1.15625 | (.71875,1.125) / −.21875 / on |
+| 128 × 64 | 187.5 / 53.125 / .921875 | 5 / off | 11 / .71875 / .8125 | (.5625,1.4375) / .046875 / on |
+| 64 × 128 | 79.6875 / 147.5 / .3125 | 4 / on | 3 / .09375 / 1.28125 | (1.03125,.59375) / −.40625 / off |
+| 256 × 128 | 128.75 / 91.25 / .46875 | 1 / off | 15 / .625 / .9375 | (.84375,.53125) / .34375 / on |
+| 128 × 256 | 93.75 / 162.5 / .734375 | 3 / on | 8 / .4375 / .671875 | (.40625,.90625) / −.125 / on |
+
+Render U16 and F32 at every size. Add U8 and F16 at j = 1, 2, 3, 4 and 7. Each independent series matches 304,128/304,128 pixels across 26 renders. The table includes the earlier whole-root settings and reports maximum stored-channel error.
+
+| Root (inventory index) | Distinct settings | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|---:|
+| Paper Path (340) | 45 | 56,320/56,320 · 0 | 221,184/221,184 · 0 | 58,368/58,368 · 0 | 110,848/110,848 · 0 |
+| Pattern Fibers 2 (362) | 45 | 56,320/56,320 · 0 | 221,184/221,184 · 0 | 58,368/58,368 · 0 | 110,848/110,848 · 0 |
+| Pattern Gaussian 2 (364) | 44 | 59,392/59,392 · 0 | 223,744/223,744 · 0 | 59,392/59,392 · 0 | 132,864/132,864 · 0 |
+| Pattern Shape Base (369) | 61 | 58,368/58,368 · 0 | 224,256/224,256 · 0 | 62,464/62,464 · 0 | 115,456/115,456 · 0 |
+
+Across all four intact roots, **1,829,376/1,829,376** pixels match in 195 root settings. Save each package using MaterialCraft and open it in both applications for all 26 independent settings. Save each again and compare F32 at every size and all four formats at 64 × 128. Each graph matches 429,568/429,568 reopened pixels. All **1,718,272/1,718,272** pixels across 148 reopened renders match across applications and reproduce the respective original buffers. All maxima are zero.
+
+For the [reduced pattern and downstream controls](#paper-brick-fiber-mesh-polygon-and-shape-roots), the per-output comparisons on the current build are below. These diagnostics use the earlier input recipes and their own output dimensions.
+
+| Control | Renders | Exact pixels / compared | Maximum stored error |
+|---|---:|---:|---:|
+| Paper Path, authored shape | 9 | 8,448/8,448 | 0 |
+| Paper Path, square and disc | 18 | 16,896/16,896 | 0 |
+| Pattern Fibers 2, authored shape | 9 | 1,728/1,728 | 0 |
+| Pattern Fibers 2, square and disc | 18 | 3,456/3,456 | 0 |
+| Pattern Shape Base, authored shape | 9 | 8,448/8,448 | 0 |
+| Pattern Shape Base, square and disc | 18 | 16,896/16,896 | 0 |
+| Pattern Fibers 2, substituted grayscale source | 10 | 10,496/10,496 | 0 |
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color
