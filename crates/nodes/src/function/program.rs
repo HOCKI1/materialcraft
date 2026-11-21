@@ -43,8 +43,8 @@ impl Program {
             })
     }
 
-    /// A pattern can reuse a size predicate across positions, random streams and variable assignments.
-    pub(crate) fn depends_only_on_image_size(&self) -> bool {
+    /// Whether constants and the current image dimensions determine the entire computation.
+    pub fn depends_only_on_image_size(&self) -> bool {
         self.instructions.iter().all(|op| {
             op.definition.id.starts_with("const_")
                 || op.depends_only_on_operands()

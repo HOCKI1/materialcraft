@@ -1,5 +1,5 @@
-use materialcraft_core::{FunctionGraph, Value, ValueType};
-use materialcraft_nodes::function::{EvaluationContext, EvaluationState, compile_with_literal_inputs};
+use materialcraft_core::{Value, ValueType};
+use materialcraft_nodes::function::{EvaluationContext, EvaluationState, Program};
 use std::collections::BTreeMap;
 
 #[derive(Clone, Copy)]
@@ -11,16 +11,13 @@ pub(crate) enum ChannelMode {
 }
 
 pub(crate) fn evaluate(
-    function: &FunctionGraph,
+    program: &Program,
     expected: ValueType,
     variables: &mut BTreeMap<String, Value>,
-    seed: u32,
     size: [u32; 2],
     channels: ChannelMode,
     fallback: Option<&Value>,
-    literal_inputs: &[String],
 ) -> Result<(Value, bool), String> {
-    let program = compile_with_literal_inputs(function, seed, literal_inputs)?;
     let widened = expected == ValueType::Float4 && [ValueType::Float as u32, ValueType::Float3 as u32].contains(&program.output_type());
     if program.output_type() != expected as u32 && !widened {
         return Err(format!("output must be {}", expected.label()));

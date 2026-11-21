@@ -867,9 +867,17 @@ fn bound_image_resizing_filters_rgb_before_grayscale_conversion() {
     assert_eq!(image.get(2, 0, false)[0], level * (1.0 / 3.0));
 }
 
+fn unchanged_size_after_read(getter: &str, variable: &str) -> materialcraft_core::FunctionGraph {
+    let mut graph = materialcraft_core::FunctionGraph::default();
+    let read = graph.add(getter, &[], Some(Value::Text(variable.into())));
+    let zero = graph.add_constant(Value::Int2([0, 0]));
+    graph.output = Some(graph.add("sequence", &[read, zero], None));
+    graph
+}
+
 #[test]
 fn half_blends_store_integer_inputs_on_different_size_paths() {
-    use materialcraft_core::{BaseParameter, FunctionGraph, OutputFormat, SizeMode};
+    use materialcraft_core::{BaseParameter, OutputFormat, SizeMode};
 
     let mut graph = Graph::new("Blend sizing");
     graph.size = [1, 0];
@@ -892,12 +900,10 @@ fn half_blends_store_integer_inputs_on_different_size_paths() {
     let mut package = Package::new("Blend sizing");
     package.graphs.push(graph);
 
-    let literal = FunctionGraph::constant(Value::Int2([0, 0]));
-    let mut runtime = FunctionGraph::default();
-    let dimensions = runtime.add("get_float2", &[], Some(Value::Text("$size".into())));
-    let zero = runtime.add_constant(Value::Int2([0, 0]));
-    runtime.output = Some(runtime.add("sequence", &[dimensions, zero], None));
+    let dimensions = unchanged_size_after_read("get_float2", "$size");
+    let runtime = unchanged_size_after_read("get_float1", "gain");
     let mut options = Options::new(&no_res);
+    options.overrides.insert("gain".into(), Value::Float(0.375));
     for (name, levels) in [("foreground", [71.0, 55.0]), ("background", [155.0, 1.0])] {
         options.inputs.insert(name.into(), Image::gray(2, 1, |x, _| levels[x as usize] / 255.0));
     }
@@ -912,7 +918,7 @@ fn half_blends_store_integer_inputs_on_different_size_paths() {
     ] {
         let graph = &mut package.graphs[0];
         for (id, dynamic) in [(foreground, front), (background, back)] {
-            graph.node_mut(id).unwrap().base.functions.insert(BaseParameter::OutputSize, if dynamic { runtime.clone() } else { literal.clone() });
+            graph.node_mut(id).unwrap().base.functions.insert(BaseParameter::OutputSize, if dynamic { runtime.clone() } else { dimensions.clone() });
         }
         graph.node_mut(blend).unwrap().base.size_mode = if inherit { SizeMode::RelativeToInput } else { SizeMode::RelativeToParent };
         let result = cook(&package, 0, &options, &cache);
@@ -920,6 +926,47 @@ fn half_blends_store_integer_inputs_on_different_size_paths() {
         let pixels = result.image(blend, 0).unwrap();
         assert_eq!([0, 1].map(|x| pixels.get_gray(x, 0, false).to_bits()), expected);
         assert!(cook(&package, 0, &options, &cache).nodes[&blend].cached);
+    }
+}
+
+#[test]
+fn half_pattern_backgrounds_store_integer_inputs_on_different_size_paths() {
+    use materialcraft_core::{BaseParameter, FunctionGraph, OutputFormat, PatternGraph, PatternNodeKind, SizeMode};
+
+    let mut graph = Graph::new("Pattern background sizing");
+    graph.size = [4, 4];
+    graph.format = OutputFormat::U8;
+    let background = graph.add_node("input_grayscale", [0.0; 2]);
+    let draw = graph.add_node("fx_map", [0.0; 2]);
+    let mut pattern = PatternGraph::with_root(PatternNodeKind::Quadrant);
+    let stamp = &mut pattern.nodes[0].parameters;
+    stamp.insert("patterntype".into(), Value::Int(2));
+    let level = 3.0 / 32768.0;
+    stamp.insert("opacity".into(), Value::Float4([level, level, level, 1.0]));
+    let node = graph.node_mut(draw).unwrap();
+    node.base.size_mode = SizeMode::RelativeToParent;
+    node.base.format = OutputFormat::F16;
+    node.params.insert("color_mode".into(), Value::Bool(false));
+    node.params.insert("pattern".into(), Value::PatternGraph(Box::new(pattern)));
+    graph.connect(background, "output", draw, "background").unwrap();
+
+    let mut package = Package::new("Pattern sizing");
+    package.graphs.push(graph);
+    let mut options = Options::new(&no_res);
+    options.inputs.insert("input".into(), Image::gray(16, 16, |_, _| 58.0 / 255.0));
+    options.overrides.insert("gain".into(), Value::Float(0.375));
+    let cache = Mutex::new(Cache::default());
+    let fixed = FunctionGraph::constant(Value::Int2([0, 0]));
+    let system = unchanged_size_after_read("get_float2", "$sizelog2");
+    let exposed = unchanged_size_after_read("get_float1", "gain");
+    for (source_size, draw_size, expected) in [(&fixed, &system, 1864.0), (&fixed, &exposed, 1863.0), (&exposed, &fixed, 1863.0), (&exposed, &exposed, 1864.0)]
+    {
+        for (id, size) in [(background, source_size), (draw, draw_size)] {
+            package.graphs[0].node_mut(id).unwrap().base.functions.insert(BaseParameter::OutputSize, size.clone());
+        }
+        let result = cook(&package, 0, &options, &cache);
+        assert!(result.nodes.values().all(|node| node.error.is_none()));
+        assert_eq!(result.image(draw, 0).unwrap().get_gray(8, 8, false), expected / 8192.0);
     }
 }
 

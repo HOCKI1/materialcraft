@@ -1,5 +1,6 @@
 use crate::{ResolvedBaseParameters, parameter_function::ChannelMode};
 use materialcraft_core::{Node, OutputFormat, Package, Value, ValueType};
+use materialcraft_nodes::function::compile_with_literal_inputs;
 use materialcraft_nodes::{NodeDefinition, ParameterDescriptor, accepts_scalar_function, clamp_params, resolve_params};
 use std::collections::BTreeMap;
 
@@ -52,9 +53,9 @@ pub(crate) fn resolve_parameters(
             ("fx_map", "opacity", _) if parameters.get("color_mode") == Some(&Value::Bool(false)) => ChannelMode::GrayPatternOpacity,
             _ => ChannelMode::Opaque,
         };
-        let (value, literal) =
-            crate::parameter_function::evaluate(function, expected, variables.to_mut(), base.seed, base.size, channels, Some(current), literal_inputs)
-                .map_err(|error| format!("function of `{parameter}`: {error}"))?;
+        let (value, literal) = compile_with_literal_inputs(function, base.seed, literal_inputs)
+            .and_then(|program| crate::parameter_function::evaluate(&program, expected, variables.to_mut(), base.size, channels, Some(current)))
+            .map_err(|error| format!("function of `{parameter}`: {error}"))?;
         if matches!(channels, ChannelMode::GrayPatternOpacity) {
             // Keep the result in floating point until blending. JSON and slider limits lose signed infinities.
             gray_pattern_opacity = Some(value);

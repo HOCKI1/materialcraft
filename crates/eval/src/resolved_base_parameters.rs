@@ -1,11 +1,12 @@
 use materialcraft_core::{BaseParameter, BaseParameters, Graph, OutputFormat, ParameterInheritance, Value};
+use materialcraft_nodes::function::compile_with_literal_inputs;
 use std::collections::BTreeMap;
 
 #[derive(Clone, Copy, Debug, Default, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ResolvedBaseParameters {
     pub size: [u32; 2],
-    /// The texture dimensions depend on a runtime size expression in this path.
+    /// This texture inherits or evaluates a size controlled by a runtime parameter.
     #[serde(skip)]
     pub dynamic_size: bool,
     /// Negative requested exponents on axes whose allocated texture is one texel.
@@ -128,20 +129,21 @@ pub(crate) fn evaluate(
                 resolved.size
             };
 
-            let (value, literal) = crate::parameter_function::evaluate(
-                function,
-                parameter.value_type(),
-                variables.to_mut(),
-                resolved.seed,
-                size,
-                crate::parameter_function::ChannelMode::Opaque,
-                None,
-                literal_inputs,
-            )
-            .map_err(|error| format!("function of `{}`: {error}", parameter.identifier()))?;
-            if parameter == BaseParameter::OutputSize {
-                computed_size = !literal;
-            }
+            let (value, _) = compile_with_literal_inputs(function, resolved.seed, literal_inputs)
+                .and_then(|program| {
+                    if parameter == BaseParameter::OutputSize {
+                        computed_size = !program.output_is_literal() && !program.depends_only_on_image_size();
+                    }
+                    crate::parameter_function::evaluate(
+                        &program,
+                        parameter.value_type(),
+                        variables.to_mut(),
+                        size,
+                        crate::parameter_function::ChannelMode::Opaque,
+                        None,
+                    )
+                })
+                .map_err(|error| format!("function of `{}`: {error}", parameter.identifier()))?;
             parameter.set_value(&mut evaluated, &value)?;
             parameter.set_inheritance(&mut evaluated, parameter.inheritance(base));
             resolved = ResolvedBaseParameters::resolve(&evaluated, input, parent);

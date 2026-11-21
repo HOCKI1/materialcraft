@@ -284,10 +284,12 @@ pub(crate) fn cook_node(
             values
         })
     } else if let Some(definition) = definition {
-        if node.def == "blend" && base.format == OutputFormat::F16 {
-            // Even matching dimensions require half storage when one normalized input has a runtime size.
+        if base.format == OutputFormat::F16 && matches!(node.def.as_str(), "blend" | "fx_map") {
+            // Blend inputs and pattern backgrounds cross a half-storage boundary when only one size is parameter-controlled.
+            // Images stamped by a pattern keep their sampling precision.
             for ((image, format), port) in inputs.iter_mut().zip(&input_formats).zip(input_ports) {
-                if matches!(format, OutputFormat::U8 | OutputFormat::U16 | OutputFormat::Inherit)
+                if (node.def == "blend" || port.id == "background")
+                    && matches!(format, OutputFormat::U8 | OutputFormat::U16 | OutputFormat::Inherit)
                     && let Some(image) = image
                     && (image.width(), image.height()) == (w, h)
                     && prepared.source_base(node.id, &port.id, cooked).is_some_and(|source| source.dynamic_size != base.dynamic_size)

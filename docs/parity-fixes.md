@@ -1347,6 +1347,60 @@ Repeat the [1,213 bitmap and coordinate controls](#rotated-stamp-coordinates-in-
 
 All **4,821,760/4,821,760** pixels matched. Before the fix, 20,362 color pixels differed across word and full-float outputs. No group lost exact pixels or increased its maximum error. These are isolated sampling and placement measurements. The whole-root comparisons for grayscale and color Splatter retain their respective settings and reopen counts.
 
+### Parameter-controlled sizes and half-precision pattern backgrounds
+
+A normalized integer background can cross a half-precision storage boundary before the first pattern draws, even when its dimensions already match the output. In the measured cases this happens when exactly one of the upstream image and the F16 pattern output uses a size controlled by an exposed parameter. Computing a size solely from the current image dimensions follows the fixed-size path. The same distinction applies to normalized Blend inputs.
+
+For a minimal grayscale control, connect a U8 input holding 58/255 to the background of a 16² F16 pattern. Draw one centered, full-size square in additive mode with gray tint 3/32768, alpha 1 and unit overall opacity. Give the source and the pattern relative size offsets of (0,0). In a size function, read an exposed float set to .375, then return the original (0,0). With the function on just one side the stored output is **.2274169921875**. With fixed sizes on both sides, only a read of `$size` or `$sizelog2`, or an exposed size function on both sides, it is **.2275390625**. The difference is the initial conversion of the normalized background toward zero at half precision. Supplying the same field as a nearest-filtered bitmap stamp retains its original sampling precision.
+
+For the gray and RGBA controls, run matching U8 and U16 input bridges, then repeat with F16 and F32 sources. The single-square gray tint is 3/32768 and the RGBA tint is (.4814453125,.187835693359375,.5118408203125,.734375). In color use (.22745098,.49411765,.52931082,.61328125) for the constant input. At size index j = 0, 1, 2, 3, use 16², 32 × 16, 16 × 32 and 32², with seed 843173 + 19j. For j > 0 use (((73+4c)x + 29y + 13xy + 37j + 47c) mod 997)/996, where c is the zero-based channel. The j = 3 source is 16 × 32. At the constant setting compare all four output formats. Add F16 and F32 for j = 1, then F16 for j = 2 and 3. Exercise source only, output only, both, neither, and the nearest-filtered bitmap slot with tint .71875.
+
+In the separate 64² fading-square test use variation .2, tint 1, and the original 128² input reduced to a U8 background. Repeat on the field ((47x+83y+11xy+5) mod 257)/256, including tint .34375. Change the requested relative size using an exposed integer pair, a converted float, a Boolean choice, or a read followed by a constant result. Include a Boolean whose two branches both return (0,0), and a size-only choice between (0,0) and (1,0) based on the aspect ratio. An exposed setting that genuinely enlarged the result also matched. For the independent graph-property test, individually retain or remove the output size, opacity, background, render region, tiling region and their measured combinations. Changing only the size function moved all 375 differences on the original 64² F16 field. The F32 control remained exact.
+
+| Independent comparison | Renders | Exact before / compared | Exact after / compared | Maximum before | Maximum after |
+|---|---:|---:|---:|---:|---:|
+| Blend foreground/background reading the current size or its logarithm | 4 | 13,516/16,384 | 16,384/16,384 | 0.00048828125 | 0 |
+| Exposed-parameter size paths, gray and color | 136 | 54,159/60,928 | 60,928/60,928 | 0.0009765625 | 0 |
+| Dimensions-only size paths, gray and color | 136 | 60,928/60,928 | 60,928/60,928 | 0 | 0 |
+| Exposed size expressions and changed dimensions | 65 | 288,181/299,008 | 299,008/299,008 | 0.0009765625 | 0 |
+| Counterfactuals on the single-stamp generator | 48 | 190,808/196,608 | 196,608/196,608 | 0.0009765625 | 0 |
+
+The earlier 64 Blend controls also matched **262,144/262,144** pixels across the four formats. The two evaluator regressions failed against the preceding implementation and passed after the change.
+
+For the four whole roots, include prior defaults, parameter sweeps, all archived root outputs, and 20 new renders per root. At index j = 0 through 6 use 16 × 32, 64 × 32, 32 × 64, 16 × 64, 64², 128 × 32 and 64 × 128. Set seed S = 831997 + 37i + 113j, where i is the inventory index below. At j = 0 disconnect all image inputs. Use default controls at j = 0 and 3. At j = 4 connect the even-numbered input pins in identifier order, and at j = 6 the odd-numbered pins, counting from zero. Connect every pin at the other nonzero indices. Use the output dimensions for the source, except at j = 3 and 5 where the sources are 32 × 16 and 32 × 64.
+
+For input m and channel c, let U = (((31+2c)x + (59+3m)y + 11xy + S + 17c + 43m) mod 257)/256. The field is .625U plus .375 where (7x+3y+5c+m) mod 23 < 9. Set a unit impulse at x = (floor(width/2)+3c) mod width and y = (floor(height/3)+m) mod height. Store j = 1 as U8 PNG, j = 5 as U16 PNG, j = 4 as F16 EXR, and the other connected fields as F32 EXR. Compare U16 and F32 at all seven sizes, and also U8 and F16 at j = 1, 4 and 6.
+
+| j | x amount | y amount | Pattern | Parameter d | Generator image count |
+|---:|---:|---:|---:|---:|---:|
+| 1 | 3 | 5 | 1 | .1875 | 6 |
+| 2 | 5 | 3 | 7 | .609375 | 2 |
+| 4 | 2 | 7 | 3 | .34375 | 3 |
+| 5 | 7 | 2 | 1 | .8125 | 6 |
+| 6 | 4 | 4 | 5 | .46875 | 4 |
+
+For these five rows set image filtering to j mod 3 and pattern rotation randomness to .75d. On the generators use pattern size (.625+.5d,1.125−.625d), position randomness (.5d,.25d), rotation −.1875+.5d and opacity 1−.5d. On the random tilers use split threshold .25+.5d, shape scale .6875+.4375d, position randomness .25d, shape rotation −.09375+.25d and shape rotation randomness .5d.
+
+| Root (inventory index) | Distinct settings | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|---:|
+| Pattern Tile Generator (373) | 63 | 30,720/30,720 · 0 | 186,624/186,624 · 0 | 30,720/30,720 · 0 | 50,463/50,688 · 2.38418579e-07 |
+| Pattern Tile Generator Color (374) | 39 | 19,456/19,456 · 0 | 142,332/142,336 · 1 | 21,504/21,504 · 0 | 31,165/32,000 · 2.38418579e-07 |
+| Pattern Tile Random (375) | 52 | 23,208/26,624 · 255 | 169,553/177,664 · 65535 | 19,655/23,552 · 1 | 78,668/88,832 · 1.00000006 |
+| Pattern Tile Random Color (376) | 126 | 26,868/30,720 · 255 | 172,566/181,760 · 65535 | 23,591/27,648 · 1 | 275,964/379,648 · 1.00000006 |
+
+Save each graph in MaterialCraft, open the saved package in both applications, and repeat all 20 new renders. Save a second time and repeat all seven F32 settings plus the other three formats at 64². Both applications reproduced their original buffers on all 120 reopened renders.
+
+| Whole root | Before / compared | After / compared | Reopened exact / compared | Reopened maximum |
+|---|---:|---:|---:|---:|
+| Pattern Tile Generator | 296,952/298,752 | 298,527/298,752 | 106,558/107,008 | 2.38418579e-07 |
+| Pattern Tile Generator Color | 212,392/215,296 | 214,457/215,296 | 105,732/107,008 | 1 |
+| Pattern Tile Random | 291,037/316,672 | 291,084/316,672 | 76,704/107,008 | 65535 |
+| Pattern Tile Random Color | 498,869/619,776 | 498,989/619,776 | 75,455/107,008 | 65535 |
+
+Eleven more focused reopens per generator include the original background, a new modular background, reduced or zero opacity and disconnected pins. In grayscale **45,056/45,056** pixels matched, maximum zero. In color **11,212/11,264** matched, maximum 2.38418579e−7. Both applications reproduced their own originals. The four roots remain in progress. Both generators now match all measured F16 pixels. The whole grayscale generator still differs at 225 F32 pixels, and the color generator at four U16 and 835 F32 pixels. On the two new F32 bitmap settings, supplying any one of the six stamp images on its own, with or without the original background, matched in both generators. The combined images still differ. Both random tilers retain larger placement and pattern differences.
+
+Formatting, strict workspace Clippy, dependency layering, all ten WebAssembly crate checks and all 402 evaluator and node release tests passed. The release tests used the committed resource set.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color
