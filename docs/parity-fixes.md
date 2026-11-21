@@ -1658,6 +1658,84 @@ For the last two series, return the signed cancellation tuple after reading the 
 
 Across the seven series, **212,192/212,192** raw pixels matched across 1,503 renders. Save twelve of the system-variable and source graphs and reopen them in both applications. All 20,352/20,352 pixels matched in 48 F32 renders. The earlier 16 saved graphs cover widths, direct links, folded and bound parameters and extreme colors. All 5,568/5,568 pixels matched across 78 reopens. Both applications reproduced their own original buffers. The three regressions failed on the earlier evaluation paths and passed after correction. The 413 release node and evaluation tests, strict Clippy, formatting, layering and all ten WebAssembly checks passed using the committed resource set. In a separate control with the pattern random-order changes disabled, the grayscale and color tile generators and both random tiling roots matched the earlier totals of 757,504/757,504, 621,344/765,184, 291,084/316,672, 498,989/619,776, respectively.
 
+### Directional blur weights at signed and large rotations
+
+A directional blur accepts signed angles outside its slider range. A parameter check previously clipped every angle beyond ±33 turns to the endpoint. The regression uses a unit impulse in each of two rectangular images and reads the center pixel and its immediate neighbor along the longer axis. At strength 4, the F32 turn word `c5f564d9` on a 64 × 16 image gives center `3f0f4d94` and neighbor `3e6164db`. The turn word `46f0483d` on a 16 × 64 image gives `3f17a518` and `3e50b5d1`. Authored rotations can reach both results through the ordinary parameter resolver.
+
+For shorter phases, convert the turns to F32 radians. Use the magnitude of the radians for sine and add F32(π/2) to that magnitude for cosine. Subtract the nearest number of half turns using three parts of π. Start with 3.140625, round the remainder of π to F32 for the middle part, then round the residual to F32 for the low part. A fused multiply and subtraction produces each successive remainder. Restore the sign of the sine after odd half turns. Feeding those remainders to the existing sine polynomial predicts all 64 independently selected axes where the previous and revised reductions disagree. Both predictions fit the 16 controls. All 128 near-axis measurements admit the revised coefficient, up from 125. The earlier [equal-remainder pair](#equal-reduced-phases-with-distinct-rectangular-blur-coefficients) illustrates the lost bit.
+
+At large phases the implementation evaluates the sine in double precision and stores the F32 result. Eight deliberately distinguishable axes just below 10,000 radians select the split reduction. Eight just above select the wide sine. Across the three large-angle and transition series, the wide sine falls within the observed interval on 170/171 selected axes at or above 10,000 radians. The remaining case at 10011.0888671875 radians differs by one F32 word. Finite turns whose conversion to F32 radians overflows produce a cook error.
+
+Connect an exposed turn and strength to a directional blur with pixel ratio zero. At index i use turns 0, .125, .24952130019664764, 32.875, 33, 33.03125, −33.125, 41.1875, −118.21875, 817.1796875, 1591.34375, 1594.0625, 8076.78125, −125003.34375, 1080535.625 and −1727287.125. Cycle through strengths 3.25, 4, 4.9375 and 5.8125. Render 16 × 64 and 64 × 16 at all four output formats. Use seed 124151 + 19i + b, where b is the zero-based size index. Red lights the center column and green the center row. Blue is ((67x + 19y + 3xy + 11i + 124151) mod 293)/292. Use F32 inputs at even i. At odd i store nearest-even U16 levels. Compare all output channels at each pixel.
+
+| Exposed rotation output | Renders | Exact before / compared · maximum | Exact after / compared · maximum |
+|---|---:|---:|---:|
+| RGBA8 | 32 | 21,930/32,768 · 163 | 32,768/32,768 · 0 |
+| RGBA16 | 32 | 21,702/32,768 · 41799 | 32,764/32,768 · 1 |
+| RGBA16F | 32 | 19,225/32,768 · 0.637451172 | 31,744/32,768 · 0.00048828125 |
+| RGBA32F | 32 | 12,945/32,768 · 0.637816101 | 31,330/32,768 · 1.78813934e-07 |
+
+Save the four packages and reopen them in both applications. Repeat U8 and F32 at 16 × 64 and U16 and F16 at 64 × 16. Each application reproduced its complete original buffers. Across applications the 64 reopens matched 64,510/65,536 · 1.
+
+For the fixed rotations, use the [column, row and modular blue field](#independent-rectangular-directional-weights-at-96-angles), both rectangular sizes and all five extents. Each batch contains sixteen independently readable F32 outputs. Use seed S + 17b + 5j + k for base S, batch b, size j and extent k, numbered from zero. Save each graph and repeat the first and last extents at both sizes. Both applications reproduced their own original buffers at every named output. The maxima below are in F32 image units.
+
+| Fixed rotation series | Seed S | Original renders | Exact before / compared · maximum | Exact after / compared · maximum | Reopened renders | Reopened exact after / compared · maximum |
+|---|---:|---:|---:|---:|---:|---:|
+| Near axes | 122887 | 1,280 | 1,093,947/1,310,720 · 1.78813934e-07 | 1,094,911/1,310,720 · 1.78813934e-07 | 512 | 406,556/524,288 · 1.78813934e-07 |
+| Discriminating pairs and controls | 1232077 | 800 | 709,368/819,200 · 1.78813934e-07 | 737,708/819,200 · 1.78813934e-07 | 320 | 293,842/327,680 · 1.78813934e-07 |
+| 8 to 2,097,152 turns | 1239913 | 1,120 | 139,626/1,146,880 · 0.666647226 | 1,122,896/1,146,880 · 1.1920929e-07 | 448 | 448,506/458,752 · 1.1920929e-07 |
+| Coarse transition series | 1240507 | 1,280 | 104,359/1,310,720 · 0.666636944 | 1,279,081/1,310,720 · 1.1920929e-07 | 512 | 511,275/524,288 · 1.1920929e-07 |
+| Fine transition series | 1245681 | 1,280 | 97,887/1,310,720 · 0.666650057 | 1,275,230/1,310,720 · 1.78813934e-07 | 512 | 509,634/524,288 · 1.78813934e-07 |
+
+For the near-axis turns, offset the positive F32 words for .25, .5, .75, 1, 1.25 and 2 turns by −521, −121, −37, −13, −5, −2, −1, 1, 2, 5, 13, 37, 121, 521, 1261 and 5279, in order. Append 32 turns with zero-based index m, rounding 2^(−26 + m mod 16) × (1 + .3125 floor(m/16) + (m mod 3)/16) / (2π) to F32.
+
+<details>
+<summary>Fixed F32 turn words for the four comparison series</summary>
+
+H marks the horizontal coefficient and V the vertical coefficient used for the interval comparison. Each branch was rendered in both orientations.
+
+| Series | Batch | Turn words and selected axis |
+|---|---:|---|
+| Discriminating pairs and controls | 0 | bf801b79V, bfffcb7aV, 40fffe4cV, bf7fc816V, 40d004e0V, c0f84350H, 3e73ecc0H, be7ff2b5H, 3fffd172V, bf402cebH, beffd187V, c01ffa86V, c01ffa8fV, 40ffb7ffV, 405feb06V, bf001a38V |
+| Discriminating pairs and controls | 1 | 3f80229dV, bfdfaee0H, c0801f04V, 3f7fd4bdV, 3f9ce8a3H, c0f7b0b3H, 3e7f8283H, 3f7fc3acV, bfe03d97H, 3fcf537aV, c06fbd74H, c0702ab9H, bfe05074H, 4087fc36H, be8029c5H, 3e7f702fH |
+| Discriminating pairs and controls | 2 | 4098069bH, bf8017bcV, 3fbfabd5V, 40d00387V, c05e0de4V, c0cfe5a0V, bfdfd2e9H, 40cffc9cV, 40704614H, 3fdfc859H, c0c80348H, c09002eeV, 3f7fd447V, 4097f8adH, 40a00718V, c01ffa93V |
+| Discriminating pairs and controls | 3 | 400ff98bH, be7fcd76H, c0f80045H, c0ffc589V, 40d8690eH, bf7fc9ffV, 40801891V, c087fc2bH, 3e7f6dccH, c09ff92dV, bf801905V, c00ff9e8H, 40c7fb11H, 407fb03bV, 3effb27cV, 3e8031faH |
+| Discriminating pairs and controls | 4 | 3f3fb891H, c010018cH, 40f7b393H, 3e7fa8d4H, 400ffad9H, c0703341H, bfdfc445H, c0ffce1fV, 3f402c42H, 3effbf59V, be7f88a1H, befbe270V, 3effbeb6V, bf7f92c8V, 401000dfH, 40801876V |
+| 8 to 2,097,152 turns | 0 | c5f564d9H, c3829d11H, c892653fV, 46f0483dV, c3c8ccb2V, c6d7aa62H, c48fd3f4H, c5349a41H, c1f82151V, c57d1db2V, c6f1b553V, c6162ac0H, c3d8807dV, 44f3c253V, c55c5240H, 48630193V |
+| 8 to 2,097,152 turns | 1 | c7b4c824H, 4955fc3eH, 423bdc4aV, c19b457bH, 47f2b357H, 4441fb55V, c6e7fb6eV, 46d994baV, c8812dd4V, c9d2d9b9H, 45620584H, 45102284V, c6cb0ccaV, 49d1139fV, c39c8a91H, 49c1f417V |
+| 8 to 2,097,152 turns | 2 | 443296a5H, 46c93debV, 427f2c7dH, c4f24859H, 44a6ef1aV, 427b1059H, c88718f4V, 483525d5H, 427e9c19V, c9a11d73V, c6958389H, c5232f8bV, c983e6bdH, 4972898bH, c25f6e28V, 490e318dH |
+| 8 to 2,097,152 turns | 3 | c9962d73H, c73640caV, c2283f9fH, 49c74c5fV, 49a9874fV, c1f90534V, 424dfb26V, 49dbf3edH, 49b5c4cfV, 45788578V, c6fe6e70H, c9ac2963H, c8c03f7dV, 487469bdV, c8491c0bV, 469b9707V |
+| 8 to 2,097,152 turns | 4 | c891a5cbV, 47b1664fV, c2a81bb3V, c33ebdddH, 43f80165V, c3bac0c5V, c20a03d8V, 496090aaV, 45e799cdH, c8ef3926H, c5742094V, 421a2849H, 49234e27H, c202fea2H, 4510abdcH, c71a48acH |
+| 8 to 2,097,152 turns | 5 | 499d0ac5V, 49390a35V, c35174d1H, c39df712V, c304c184H, 48d5dd3dH, c6c03fbdH, 49815e1fV, c89e7396H, c810da97V, 419a2191H, c38f477eH, 486c76d9H, c6d8a158H, c21910c2H, 47f28ddaV |
+| 8 to 2,097,152 turns | 6 | c9f8e01fH, 441a57d3H, 43d7754eH, 43da7f51V, 43fe62c8H, c7b65a38H, 4687ba9aV, c91f36e3H, c9809e1fH, 47d08363H, c715fa3aH, 43eafe8bV, 49e4fe55H, c8eb4275V, 4257750aV, 473e2515V |
+| Coarse transition series | 0 | c4ec1bdaV, 44aa8966H, 441e20e0H, c4ede6d8V, c50568fdH, 4485f58bH, 44fa5729V, 441db091V, 45049d1fV, 44922997H, 45822702V, 44c97fd9H, c4a33adcH, 4490af21V, 44a461d5V, c4f53abbH |
+| Coarse transition series | 1 | 449ed8eaV, 44a2f0aaH, 44a4631eV, 44a485d4V, 449ed0eaH, c485fd8bV, c4aff79bV, c4a2a80eV, c4a2e7abH, c49f2c0bH, c4a6eff5H, c4ce18a3H, 44a311fcV, c41e30e0V, 449ee0dbH, c4f571aeH |
+| Coarse transition series | 2 | c496e556V, c4923197V, 44a2fb3bH, c4b8a7dbV, 4491c633V, c41da091H, 44a3c992H, 447f4b3eV, c497e5eeH, 4496dd56H, c4a2d9dfH, c4838ce0V, c4a3d192V, c4a330afV, c4a2f8b8H, c5a00607V |
+| Coarse transition series | 3 | 44b97f65V, 44b9ef5fH, 44a1466aH, 44a3067dH, c4a2e7ccV, 44a33271V, 459dd32fH, 44783df6V, 44a47dd4H, 44a2f0b2H, 44250419H, 450ad7c1H, 4491be33H, 44251419V, 44a3c1adV, c4edcea2V |
+| Coarse transition series | 4 | 44920affH, c497edeeV, c4c8156fH, c5a00407H, c490a721H, c422fd55H, c4c987d9V, 44a30170V, 44a2efabV, 44230d55V, 44e97e25H, 44a14e6aV, c4c81d6fV, c5967d14V, 45822502H, c497c96eH |
+| Coarse transition series | 5 | c4a1d92fV, c498e0fcV, c4bc02d4H, 4498d8fcH, 449f340bV, 44a06f51H, 44bc0ad4V, 44a32a71H, c4a23973V, c4ed5006H, c4e65877V, c4ce20a3V, 44a3b9adH, c4a300b8V, 44e95813H, c4a45b1eH |
+| Coarse transition series | 6 | c4782df6H, 44ab5fb7V, c4a1d12fH, c4ab57b7H, c4a2a00eH, 44a50aafH, c497d16eV, 449ee8dbV, c4a309fcH, 44cadf56H, 44ada7c6V, 44b97765H, c4a23173H, c5056cfdV, c47f3b3eH, 450adbc1V |
+| Coarse transition series | 7 | 44a2f8aaV, 44aee9e2V, 44a2e1dfV, 44a30e7dV, 45af1a15H, 44e6c344H, c4b9f75fV, c4aa461fH, 459dd52fV, c48384e0H, c4a07751V, c4aa89f8H, 449212ffV, c4a6e249V, 44cb0927V, c4b9af3dH |
+| Fine transition series | 0 | 44bdbdf4V, c4c731f7H, c4c2eb04V, c4c71ff6V, c4c777caV, 44c6e2b4V, 44c6c7eaH, 44c70297V, 44c6b96cH, 44c54057V, 44c50fe9V, c4c703e2H, 44c70be2V, 44c72a0eV, c4c717dcV, c4c9b79eV |
+| Fine transition series | 1 | c4c6f2e0V, 44bd700bV, c4c6d6deH, c4c6ed44V, 44c6c06eH, 44c6b067H, 44c6e52bH, 44c6eb64H, c4c6e839V, 44bdb5f4H, c4c6a430V, c4cd0305H, c4c6d0f5H, c4c70fdcH, 44c6ed2bV, c4c8fd59H |
+| Fine transition series | 2 | 44c6e872H, 44c69c30H, c4bd680bH, 44c6da77V, c4c2c1a2H, c4c6c86eV, 44c6e544H, 44cbbbefH, 44c6a20dH, c4c6c91cV, c4d00623H, c4c6f813H, 44c6f364V, 44c6f009H, 44c72a9fH, 44c45c03V |
+| Fine transition series | 3 | c4c6f6adV, c4c7147aV, 44be460aV, c4c6b867V, 44c6f02bH, c4c6e925V, 44c9af9eH, 44c6eeadH, c4c6f4c8V, c4c6e32aH, 44c70a1cV, c4c86744V, c4c6f09aH, c4c68724V, c4ca3d43H, c4c6f254V |
+| Fine transition series | 4 | 44c53857H, c4c2e304H, c4c3a2c5V, c4c6e079H, c4cea9b6H, 44c6bf24H, c4c83b5fH, c4c51ab2V, c4c3ae6aV, c4cc0eb4V, 44c185feH, c4c74a4fH, c4c6aa0dV, c4c6ffa8V, 44c6f0dbV, c4c6eb3aH |
+| Fine transition series | 5 | c4c6efa1V, 44cfe373V, c4c6d277H, 44c6e801H, 44c8eb14V, c4c6e745H, 44cde3b5V, c4ceb1b6V, 44c547a2H, 44c6dedeV, c4c6f4c5H, 44c758f0H, c4c90559V, 44c6f0faV, 44c67f24H, 44c70c7aH |
+| Fine transition series | 6 | 44c6f2e0V, 44c6f89aV, 44bede62H, c4c6c16cV, c4c6c724V, c4c6e8dbH, 44caba23V, c4c7329fV, c4c6881dH, 44c8e314H, c4c6e696V, c4c717f6H, c4c6ef45V, 44c42494H, c4c7524fV, c4d00e23V |
+| Fine transition series | 7 | c4c18dfeV, 44c70013V, c4c6901dV, c4c2fd10H, c4c82285V, c4c6eae0H, c4c72ce3V, 44c6fdafH, 44c6f7a8H, c4cddbb5H, c4c724e3H, 44c507e9H, c4c76fcaH, 44c6de96H, 44c6eae0H, 44c6f673V |
+
+</details>
+
+The whole-root comparison uses the [78 settings per HQ blur](#directional-blur-weights-across-110-angles-and-two-projection-axes), including default and changed properties, seeds and all four formats. The two independent saved rectangular series have 60 renders per root. Both applications reproduced their own originals.
+
+| Whole root | U8 exact / compared · maximum | U16 exact / compared · maximum | F16 exact / compared · maximum | F32 exact / compared · maximum | Reopened exact / compared · maximum across storage formats |
+|---|---:|---:|---:|---:|---:|
+| Color HQ blur | 706,504/706,560 · 1 | 1,169,141/1,169,408 · 257 | 591,816/591,872 · 0.00439453125 | 1,192,949/1,193,216 · 0.0039215982 | 3,489,146/3,489,792 · 257 |
+| Grayscale HQ blur | 706,545/706,560 · 1 | 1,169,358/1,169,408 · 257 | 591,857/591,872 · 0.00390625 | 1,193,166/1,193,216 · 0.0039215982 | 3,489,662/3,489,792 · 257 |
+
+Both whole roots retain differing pixels. The two impulse regressions failed on the previous renderer and passed after the change. The 416 release node and evaluation tests, formatting, strict Clippy, layering and all ten WebAssembly checks passed using the committed resource set.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color

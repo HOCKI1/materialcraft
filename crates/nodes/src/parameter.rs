@@ -57,6 +57,7 @@ pub fn clamp_params(definition: &NodeDefinition, params: &mut BTreeMap<String, V
             ("levels", "in_low" | "in_high" | "out_low" | "out_high")
                 | ("transformation", "matrix" | "offset")
                 | ("directional_warp", "intensity")
+                | ("directional_blur", "angle")
                 // The pattern renderer bounds copy count and pixel work using the resolved region.
                 | ("fx_map", "roughness" | "opacity" | "tiling_region")
         );

@@ -32,6 +32,9 @@ pub(super) fn blur(context: &CookContext, angle: f32) -> CookResult {
 
     let tile = context.tiling_axes();
     let radians = angle * std::f32::consts::TAU;
+    if !radians.is_finite() {
+        return Err("directional blur angle exceeds the finite radian range".into());
+    }
     let sine = projected_sine(radians.abs()) * radians.signum();
     let cosine = projected_sine(radians.abs() + std::f32::consts::FRAC_PI_2);
     let quarters = angle * 4.0;
@@ -132,17 +135,24 @@ pub(super) fn blur(context: &CookContext, angle: f32) -> CookResult {
 
 /// The filter stores both direction components before deriving sample weights and coordinates.
 fn projected_sine(radians: f32) -> f32 {
-    use std::f64::consts::{FRAC_PI_2, PI, TAU};
+    use std::f64::consts::PI;
 
-    let phase = f64::from(radians) % TAU;
-    let folded = if phase <= FRAC_PI_2 {
-        phase
-    } else if phase <= 3.0 * FRAC_PI_2 {
-        PI - phase
-    } else {
-        phase - TAU
-    };
-    let x = folded as f32;
+    const PI_HIGH: f32 = 3.140625;
+    const PI_MIDDLE: f32 = (PI - PI_HIGH as f64) as f32;
+    const PI_LOW: f32 = (PI - PI_HIGH as f64 - PI_MIDDLE as f64) as f32;
+
+    // Large angles use a wide reduction before storing the direction component.
+    if radians >= 10_000.0 {
+        return f64::from(radians).sin() as f32;
+    }
+    let half_turns = (f64::from(radians) / PI).round_ties_even() as u32;
+    // Each subtraction rounds separately. The last correction can distinguish angles
+    // that would have the same single-precision remainder after one subtraction.
+    let factor = -(half_turns as f32);
+    let high = factor.mul_add(PI_HIGH, radians);
+    let middle = factor.mul_add(PI_MIDDLE, high);
+    let reduced = factor.mul_add(PI_LOW, middle);
+    let x = if half_turns.is_multiple_of(2) { reduced } else { -reduced };
     let square = x * x;
     // Evaluate the odd sine series on the central half turn. Each product rounds before the next sum.
     let mut tail = -1.0 / 39_916_800.0;

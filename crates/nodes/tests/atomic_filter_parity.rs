@@ -552,6 +552,54 @@ fn short_oblique_blur_rounds_the_projected_center_and_edge_weights() {
     assert_eq!(output.get_gray(2, 0, false).to_bits(), 0x3eb3_e6a6);
 }
 
+fn rectangular_blur_impulse_weights([width, height]: [u32; 2], angle_bits: u32) -> [u32; 2] {
+    let definition = find("directional_blur").unwrap();
+    let vars = BTreeMap::from([("$pixelratio".into(), Value::Int(0))]);
+    let values = BTreeMap::from([("angle".into(), Value::Float(f32::from_bits(angle_bits))), ("intensity".into(), Value::Float(4.0))]);
+    let params = resolve_params(definition, &values);
+    let inputs = [Some(Image::gray(width, height, |x, y| if (x, y) == (width / 2, height / 2) { 1.0 } else { 0.0 }))];
+    let context = CookContext {
+        w: width,
+        h: height,
+        seed: 0,
+        format: OutputFormat::F32,
+        tile: true,
+        input_formats: &[OutputFormat::F32],
+        inputs: &inputs,
+        params: &params,
+        resource: &|_| None,
+        vars: &vars,
+    };
+    let image = (definition.cook)(&context).unwrap().remove(0);
+    let (x, y) = (i64::from(width / 2), i64::from(height / 2));
+    let neighbor = (x + i64::from(width > height), y + i64::from(height > width));
+    [(x, y), neighbor].map(|(x, y)| image.get_gray(x, y, false).to_bits())
+}
+
+#[test]
+fn rectangular_blur_retains_the_small_remainder_of_a_half_turn() {
+    for (size, angle, expected) in [
+        ([16, 64], 0xbf80_1b79, [0x3f7e_a895, 0x3b2b_b5b5]),
+        ([16, 64], 0x40d0_04e0, [0x3f7f_0bd4, 0x3af4_2d29]),
+        ([64, 16], 0xc0f8_4350, [0x3f73_6fe3, 0x3cc9_01dc]),
+        ([64, 16], 0x3e7f_8283, [0x3f7f_3b7d, 0x3ac4_8328]),
+    ] {
+        assert_eq!(rectangular_blur_impulse_weights(size, angle), expected, "{size:?} at angle {angle:08x}");
+    }
+}
+
+#[test]
+fn rectangular_blur_uses_the_authored_angle_beyond_the_slider_range() {
+    for (size, angle, expected) in [
+        ([64, 16], 0xc5f5_64d9, [0x3f0f_4d94, 0x3e61_64db]),
+        ([16, 64], 0xc892_653f, [0x3f59_9847, 0x3d99_9ee3]),
+        ([16, 64], 0x46f0_483d, [0x3f17_a518, 0x3e50_b5d1]),
+        ([64, 16], 0x44c6_eb64, [0x3f1e_4e66, 0x3e43_6334]),
+    ] {
+        assert_eq!(rectangular_blur_impulse_weights(size, angle), expected, "{size:?} at angle {angle:08x}");
+    }
+}
+
 #[test]
 fn diagonal_blur_on_rectangles_carries_the_shear_across_tile_edges() {
     let intensity = Value::Float(f32::from_bits(0x416b_a592));
