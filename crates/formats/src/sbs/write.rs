@@ -1,5 +1,5 @@
 use super::{
-    constant::{FIRST_UID, SELF_DEPENDENCY, UPDATER_VERSION},
+    constant::{SELF_DEPENDENCY, SELF_DEPENDENCY_UID, UPDATER_VERSION},
     sbs_writer::SbsWriter,
     xml::xml_escape,
 };
@@ -19,11 +19,10 @@ pub fn output_format_version(imported: Option<&str>) -> &str {
 
 pub fn write_sbs(pkg: &Package) -> Result<Vec<u8>> {
     let format_version = output_format_version(pkg.format_version.as_deref());
-    let mut writer = SbsWriter { last_uid: FIRST_UID, external_packages: BTreeMap::new() };
-    let self_uid = writer.next_uid();
+    let mut writer = SbsWriter { last_uid: SELF_DEPENDENCY_UID, external_packages: BTreeMap::new() };
 
     let mut content = String::from("<content>");
-    super::group_layout::write(&mut content, pkg, &mut writer, self_uid)?;
+    super::group_layout::write(&mut content, pkg, &mut writer, SELF_DEPENDENCY_UID)?;
     content.push_str("</content>");
 
     let mut out = String::with_capacity(content.len() + 4096);
@@ -41,7 +40,7 @@ pub fn write_sbs(pkg: &Package) -> Result<Vec<u8>> {
         );
     };
 
-    write_dependency(&mut out, SELF_DEPENDENCY, self_uid);
+    write_dependency(&mut out, SELF_DEPENDENCY, SELF_DEPENDENCY_UID);
     for (file, uid) in &writer.external_packages {
         write_dependency(&mut out, file, *uid);
     }

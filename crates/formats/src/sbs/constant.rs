@@ -16,5 +16,5 @@ pub(super) const MAX_SBS_BYTES: u64 = 256 << 20;
 pub(super) const MAX_WIRES: usize = 1_000_000;
 pub(super) const SNIFF_BYTES: usize = 4096;
 pub(super) const SELF_DEPENDENCY: &str = "?himself";
-pub(super) const FIRST_UID: u64 = 1_000_000_000;
+pub(super) const SELF_DEPENDENCY_UID: u64 = 1_000_000_001;
 pub(super) const NODE_HALF_SIZE: [f32; 2] = [50.0, 40.0];
