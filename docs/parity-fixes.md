@@ -802,6 +802,37 @@ Across the 550 complete renders, 539,308/563,200 RGBA pixels match, maximum 1.19
 
 The two-axis [sample-coordinate measurements](#direction-and-sample-coordinates-of-long-oblique-blurs) also constrain changes in how the slope is calculated. Compare the existing projection components, their ratio after scaling by the extent, and the component inferred from the independent impulse. For the front and reverse passes, count disagreements with the observed one-part-in-256 texel coordinates. The current division of the unit components and two rounded additions leaves 2,284 differing coordinates on the 13 starting geometries and 958 on four held-out radii. Dividing the scaled extents and fusing the first multiply-add leaves 727 and 1,019, respectively. The held-out inputs retain the documented slope differences. Both roots remain in progress.
 
+### Reopened Gaussian, polygon and weave pattern generators
+
+Compare the three whole procedural generators on revision `02d910f`. Include the archived defaults and changed settings from the [radial generator](#radial-stamp-profiles-and-pattern-generators), [polygon](#paper-brick-fiber-mesh-polygon-and-shape-roots) and [weave](#tile-weave-splatter-and-fiber-stage-comparisons) measurements, together with the 64² U8, U16, F16 and F32 controls. In the independent series use 16 × 32, 64 × 16, 32 × 64, 64², 128 × 64, 64 × 128 and 256 × 128. Set the graph seed to 686347 + 31i + 179j, with zero-based inventory index i and size index j. Leave the parameters at their defaults for j = 0 and 5. Render every size in U16 and F32. Also render U8 and F16 at j = 1, 3 and 6. Each root has 20 independent renders covering 189,440 pixels.
+
+At the five other sizes, apply the following controls. Tiling and nonsquare expansion apply to all three graphs, the 45-degree rotation applies to Weave, and the remaining controls apply to Polygon.
+
+| Size | Tiling / nonsquare | Rotate Weave 45° | Sides / scale / rotation in turns | Curve / gradient | Invert gradient / autoscale |
+|---|---|---|---|---|---|
+| 64 × 16 | 2 / on | off | 4 / .75 / .09375 | -.1875 / .859375 | off / on |
+| 32 × 64 | 5 / off | on | 7 / 1.234375 / -.28125 | .296875 / .49609375 | on / off |
+| 64 × 64 | 3 / on | off | 11 / .9375 / .15625 | 0 / .71875 | off / on |
+| 128 × 64 | 1 / off | on | 3 / 1.453125 / -.0625 | .515625 / .33203125 | on / on |
+| 256 × 128 | 2 / off | on | 5 / 1.09375 / -.203125 | .15625 / .6015625 | on / on |
+
+| Root (inventory index) | Distinct settings | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|---:|
+| Pattern Gaussian 1 (363) | 38 | 46,080/46,080 · 0 | 179,712/179,712 · 0 | 46,080/46,080 · 0 | 88,832/88,832 · 0 |
+| Pattern Polygon 2 (367) | 39 | 43,008/43,008 · 0 | 177,152/177,152 · 0 | 45,056/45,056 · 0 | 66,816/66,816 · 0 |
+| Pattern Weave 1 (381) | 39 | 43,008/43,008 · 0 | 177,152/177,152 · 0 | 45,056/45,056 · 0 | 66,816/66,816 · 0 |
+
+Across all three original roots, **1,024,768/1,024,768** pixels match in 116 distinct root settings, maximum zero. Save each package with MaterialCraft and reopen in both applications for all 20 independent renders. Save each a second time, then repeat F32 at every size and U8, U16 and F16 at 64². All **775,680/775,680** reopened pixels match across applications and reproduce each respective original, with maximum zero across 90 renders.
+
+The earlier stage controls exercise each of the three polygon stamps in isolation and the weave branch with its authored shape or a substituted disc. The grayscale-source row measures the downstream polygon graph with original grayscale inputs.
+
+| Stage comparison | Renders | Exact pixels / compared | Maximum stored error |
+|---|---:|---:|---:|
+| Polygon, authored stamps | 27 | 25,344/25,344 | 0 |
+| Polygon, square and disc | 54 | 50,688/50,688 | 0 |
+| Polygon, substituted grayscale source | 10 | 10,496/10,496 | 0 |
+| Weave, authored stamp and disc | 12 | 2,816/2,816 | 0 |
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color
