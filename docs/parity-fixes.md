@@ -1102,6 +1102,49 @@ For the drawing-depth controls, keep traversal, connections and expressions that
 
 The individual depths 4, 5 and 6 each match all 7,680 U16 pixels. F32 distinguishes differences within each of those depths. At the 256² default final output, the five reference renders vary at 240 pixels and agree on 57 additional pixels that differ from MaterialCraft. Both effects remain open.
 
+### Diagonal mip selection on rotated rectangular bitmaps
+
+The first different stage of Radial Blur Grayscale was the automatic bitmap filter in its first pattern graph. A 32 × 64 modular-and-impulse input at default parameters gave 345/2,048 exact U16 pattern pixels, maximum 405 levels. The downstream blend gave 527/2,048, maximum 138 U16 levels. At the F32 output 527/2,048 matched, maximum .00210574269. The input and all three transformed fields already matched.
+
+Retain the graph’s original sample count and per-stamp opacity, limiting only the number of visits. With 64 samples, .125 turns and the center offset (0,0), the first 41 draws matched 2,048/2,048 pixels. Including the 42nd draw, rotated by 41/512 turns, matched 338/2,048 with maximum 404 U16 levels. With the new filter both prefixes and the complete draw match. A separate one-stamp graph reproduces the transition at either orientation of a 2:1 rectangle. At ±41/512 turns the reference automatic filter selects the same level as bilinear sampling. At 42/512 it selects a coarser level.
+
+For a 64 × 32 original byte image use ((17x+59y+9xy+7) mod 251) + 4[(x+3y) mod 7 < 3]. Use one full-size, centered grayscale bitmap stamp, tiling off, opacity one, and read F32 at (32,16). At rotations 40/512, 41/512, 42/512 and −41/512 the stored bits are `3f1aeb9b`, `3f1c699c`, `3f0eca8f` and `3effd300`. For the wider sweep use 32 × 64, 64 × 32, 64² and 32 × 128. At the first size use the matching byte output of the first transform in the modular-and-impulse graph. At the three other sizes replace 7 in the byte field with 7j, with j = 1, 2, 3. At all four sizes render turns (39,40,41,42,43)/512, 41/512 ± 2⁻¹⁵, 41/512 ± 2⁻¹², −41/512, 0, .125 and .25−41/512. Automatic and bilinear each match **159,744/159,744** F32 pixels across 52 settings.
+
+The [two-by-two pixel group](#automatic-bitmap-stamp-levels-at-neighboring-pixels) supplies the two screen derivatives in texels. Truncate each signed component to nine fraction bits. For each texture coordinate, align the two screen derivatives with one extra fraction bit at the larger exponent before taking their sum and difference. Evaluate both diagonals. Weight the larger magnitude by 11/16, add a quarter of its input unit and truncate to nine fraction bits at the resulting exponent. For the smaller magnitude with nine-bit integer significand m (including its implicit leading bit, scaled by 512), use floor((121m+32)/512) times its input unit. The maximum of both axial and both diagonal footprints selects the level at the existing half-level thresholds.
+
+Generate a mip chain with a constant value equal to its level number and read the selected level using explicit gradients. The three fixed regression matrices, written in texels divided by 2048, are ((1864,−2248),(1874,861)), ((1884,649),(1884,649)) and ((1814,−841),(−2192,−1450)). Their measured levels are 1, 0 and 0, respectively. In the independent dense series draw four F32 components uniformly from −1 to 1 with random seed 763451. Use 131,072 matrices in order. For the first 32,768 make the two screen derivatives equal, and for the next 32,768 make them opposites. For the following 16,384 set both second components to zero. For the next 16,384 set the second screen derivative to zero. Scale each matrix by 2ᵉ × 1.4140625 × u divided by its approximate unquantized footprint, with e a uniform integer from 0 through 6 and u uniform from .997 to 1.003. The unquantized footprint uses max + 11/32 min for each axis and 11/16 of that norm for both diagonals.
+
+| Graphics-device level choices | Exact before / compared | Exact now / compared | Maximum level error now |
+|---|---:|---:|---:|
+| Four derivative families from the earlier stress test | 64,127/65,536 | 65,536/65,536 | 0 |
+| Independent near-threshold perturbations | 16,182/16,384 | 16,384/16,384 | 0 |
+| Independent signed and collinear matrices | 124,877/131,072 | 131,072/131,072 | 0 |
+
+The 139 earlier automatic stamp settings retained 2,105,344/2,105,344 exact pixels and the independent 180-setting boundary series retained 2,457,600/2,457,600. All 506,880/506,880 stored pixels at the ten observed stages across 23 radial graph renders matched, maximum zero.
+
+For the whole root, repeat the archived defaults and controls, the four 64² formats, and the [seven-size modular input series](#modifying-a-256-entry-color-palette). At the five nondefault sizes in that series, use (samples, angle, center) in this order. Use (7,−.21875,(−.21875,.13671875)), (15,.15625,(.15625,−.09765625)), (11,.078125,(.078125,−.048828125)), (19,−.34375,(−.34375,.21484375)) and (13,.3046875,(.3046875,−.1904296875)). For the 32 × 64 modular-and-impulse field write 1 at (2,43), .625 at (18,2), and .3125 where x mod 13 = 0 and y mod 3 ≠ 0. Elsewhere write ((11x+29y+7xy) mod 241)/960. Use defaults, then (samples,angle) = (1,.375), (2,−.21875), (3,.25), (7,.28125), (11,−.1875), (16,.5625), (29,−.421875), (47,.15625). Use center (−.21875,.15625) for the first four changes and (.3125,−.09375) for the last four. Use seed 733460 plus the setting index and F32 throughout, with U8, U16 and F16 also measured at 2 and 16 samples.
+
+For the independent ten-size series below, use seed S = 763819 + 61j and a procedural F32 input. For source dimensions W × H write .5[((41x+59y+13xy+S) mod 257)/256] + .3125[(floor(x/5)+floor(y/7)) mod 2] + .1875[(3x+13y+S) mod 17 < 4]. Set the texel at x = (floor(W/3)+2y) mod W to one in every row. Use a 32 × 16 source at j = 4 and 7, and equal source and output dimensions elsewhere. Render U16 and F32 throughout, also U8 and F16 at j = 1, 6 and 9.
+
+| j | Output dimensions | Samples | Angle in turns | Center offset |
+|---:|---|---:|---:|---|
+| 0 | 16 × 32 | 64 | 0.125 | (0, 0) |
+| 1 | 32 × 64 | 64 | -0.125 | (-0.1875, 0.28125) |
+| 2 | 64 × 32 | 64 | 0.125 | (0.34375, -0.125) |
+| 3 | 128 × 64 | 128 | -0.125 | (0, 0) |
+| 4 | 64 × 128 | 48 | 0.15625 | (-0.1875, 0.28125) |
+| 5 | 128 × 128 | 64 | 0.125 | (0, 0) |
+| 6 | 128 × 256 | 128 | 0.125 | (0, 0) |
+| 7 | 256 × 64 | 63 | 0.304688 | (-0.1875, 0.28125) |
+| 8 | 32 × 16 | 65 | 0.125 | (0.34375, -0.125) |
+| 9 | 64 × 256 | 97 | -0.421875 | (0, 0) |
+
+| Root (inventory index) | Distinct settings | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|---:|
+| Radial Blur Grayscale (441) | 80 | 82,944/82,944 · 0 | 259,840/259,840 · 0 | 84,992/84,992 · 0 | 163,840/163,840 · 0 |
+
+All **591,616/591,616** pixels matched across 80 distinct whole-root settings. Save the seven-size graph and repeat all 20 renders. Save it a second time and repeat all seven F32 settings and the other three formats at 64². Reopen the modular-and-impulse graph for all 15 settings. Reopen the independent ten-size graph for all ten F32 outputs plus the other three formats at 128 × 256. All **385,792/385,792** pixels matched across 58 reopened renders, maximum zero. Each application reproduced all its original buffers. Both new regressions failed before the change and passed afterward. All 342 release node tests, formatting, strict workspace Clippy, dependency layers and WebAssembly passed. Across seven alternating single-core release runs, median cook time for the default 32 × 64 field went from 168.7 to 166.5 ms. The 128 × 256 field at 128 samples went from 5038 to 5070 ms.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color

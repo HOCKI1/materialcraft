@@ -71,23 +71,53 @@ impl<'a> Sampler<'a> {
 }
 
 fn mip_level(image: &Image, gradients: [[f32; 2]; 2]) -> usize {
-    let [dx, dy] = gradients.map(|[u, v]| [u * image.width() as f32, v * image.height() as f32].map(|g| f32::from_bits(g.to_bits() & !0x3fff)));
-    // The footprint uses nine fraction bits per derivative. The smaller component
-    // contributes 11/32 at its own exponent before alignment with the larger one.
+    let [dx, dy] = gradients.map(|[u, v]| [u * image.width() as f32, v * image.height() as f32].map(truncate_derivative));
     let footprint = |[x, y]: [f32; 2]| {
-        let minor = x.abs().min(y.abs()).to_bits();
-        let mantissa = 512 + ((minor >> 14) & 511);
-        let weighted = (11 * mantissa + 4) >> 5;
-        let major = f32::from_bits(x.abs().max(y.abs()).to_bits() & !0x3fff);
-        major + f32::from_bits(minor & 0x7f80_0000) * (weighted as f32 / 512.0)
+        let (mantissa, unit) = derivative_parts(x.abs().min(y.abs()));
+        x.abs().max(y.abs()) + ((11 * mantissa + 4) >> 5) as f32 * unit
     };
-    let add = [dx[0] + dy[0], dx[1] + dy[1]];
-    let sub = [dx[0] - dy[0], dx[1] - dy[1]];
-    let diagonal = footprint(add).max(footprint(sub)) * (11.0 / 16.0);
+    let [u_sum, u_diff] = diagonal_components(dx[0], dy[0]);
+    let [v_sum, v_diff] = diagonal_components(dx[1], dy[1]);
+    let diagonal = diagonal_footprint(u_sum, v_sum).max(diagonal_footprint(u_diff, v_diff));
     let bits = footprint(dx).max(footprint(dy)).max(diagonal).max(1.0).to_bits();
     // The first measured half-level boundary is 1 + 53/128 and repeats at each power of two.
     let exponent = (bits >> 23).saturating_sub(127);
     (exponent + u32::from(bits & 0x7f_ffff >= 53 << 16)).min(13) as usize
+}
+
+fn truncate_derivative(value: f32) -> f32 {
+    f32::from_bits(value.to_bits() & !0x3fff)
+}
+
+// The stored derivative has nine fraction bits. The unit belongs to the input exponent.
+fn derivative_parts(magnitude: f32) -> (u32, f32) {
+    let bits = magnitude.to_bits();
+    (512 + ((bits >> 14) & 511), f32::from_bits(bits & 0x7f80_0000) / 512.0)
+}
+
+fn diagonal_components(a: f32, b: f32) -> [f32; 2] {
+    let exponent = |v: f32| (v.to_bits() >> 23) & 255;
+    let common = exponent(a).max(exponent(b));
+    // Keep one guard bit below the larger component's nine fraction bits before
+    // adding or subtracting. Cancellation can expose that bit in the diagonal.
+    let align = |v| match common - exponent(v) {
+        0 | 1 => v,
+        gap @ 2..=10 => f32::from_bits(v.to_bits() & (u32::MAX << (13 + gap))),
+        _ => 0.0,
+    };
+    let (a, b) = (align(a), align(b));
+    [a + b, a - b]
+}
+
+fn diagonal_footprint(u: f32, v: f32) -> f32 {
+    let major = u.abs().max(v.abs());
+    let (_, major_unit) = derivative_parts(major);
+    let (minor_mantissa, minor_unit) = derivative_parts(u.abs().min(v.abs()));
+    // Scale each component before summing. The major rounds down at the weighted
+    // exponent after a quarter input unit of bias. The minor also includes the 11/32 axis weight.
+    let major = truncate_derivative(truncate_derivative(major) * (11.0 / 16.0) + major_unit * 0.25);
+    let minor = ((121 * minor_mantissa + 32) >> 9) as f32 * minor_unit;
+    major + minor
 }
 
 fn sample(image: &Image, local: [f32; 2], format: OutputFormat, nearest: bool) -> [f32; 4] {
@@ -96,5 +126,19 @@ fn sample(image: &Image, local: [f32; 2], format: OutputFormat, nearest: bool) -
         if uv.iter().all(|v| (0.0..1.0).contains(v)) { image.sample_nearest_axes(uv[0], uv[1], [false; 2]) } else { [0.0; 4] }
     } else {
         texture_sampler::sample(image, uv, [false; 2], format, Some([0.0; 4]))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn bitmap_diagonal_gradients_cross_half_levels_in_both_directions() {
+        let image = Image::gray(32, 32, |_, _| 0.0);
+        for (texel_steps, expected) in [([[1864, -2248], [1874, 861]], 1), ([[1884, 649], [1884, 649]], 0), ([[1814, -841], [-2192, -1450]], 0)] {
+            let gradients = texel_steps.map(|pair| pair.map(|v| v as f32 / (2048.0 * 32.0)));
+            assert_eq!(mip_level(&image, gradients), expected, "{texel_steps:?}");
+        }
     }
 }

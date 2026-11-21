@@ -1765,6 +1765,22 @@ fn automatic_bitmap_mips_use_texel_gradients_from_neighboring_pixels() {
 }
 
 #[test]
+fn rectangular_bitmap_rotation_crosses_the_first_mip_boundary() {
+    use materialcraft_core::OutputFormat;
+
+    let input = craft_texture::Image::gray(64, 32, |x, y| {
+        let byte = (17 * x + 59 * y + 9 * x * y + 7) % 251 + 4 * u32::from((x + 3 * y) % 7 < 3);
+        byte as f32 / 255.0
+    })
+    .with_integer_sampling(true);
+    for (numerator, expected) in [(40, 0x3f1a_eb9b), (41, 0x3f1c_699c), (42, 0x3f0e_ca8f), (-41, 0x3eff_d300)] {
+        let stamp = [("patternsize", Value::Float2([1.0; 2])), ("patternrotation", Value::Float(numerator as f32 / 512.0))];
+        let image = render_bitmap(input.clone(), OutputFormat::U8, [64, 32], &stamp, &[("color_mode", Value::Bool(false))]);
+        assert_eq!(image.get_gray(32, 16, false).to_bits(), expected, "rotation {numerator}/512");
+    }
+}
+
+#[test]
 fn bitmap_stamp_filters_include_the_last_interpolated_texel() {
     use materialcraft_core::OutputFormat;
 
