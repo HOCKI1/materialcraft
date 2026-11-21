@@ -339,6 +339,33 @@ For a downstream check connect each original resource through a Bitmap or a boun
 
 MaterialCraft wrote six packages spanning direct and downstream reads. Reopening in both apps reproduced the original 37,888/37,888 pixels across 40 saved settings and matched across applications in all four formats, maximum zero. The regression failed on the previous evaluator and passed with the fix. Eight core and 56 evaluator release tests passed. Formatting, strict workspace Clippy, dependency layers and WebAssembly passed.
 
+### Repeated cloud renders and two generator texels
+
+For Clouds 1 and 2 (78 and 79), repeat the differing cases from the [32-setting series](#pixel-center-rounding-at-the-near-stamp-vertex) and one U8 control. Use the original graph, the MaterialCraft save, and six further original-graph captures with rotated case order. Compare the same deterministic MaterialCraft output against each of the eight reference renders. A pixel counts as exact only if its complete stored value matches.
+
+| Root and format | Targeted cases | First render exact / total | First maximum | Pixels matching on at least one render / total | Largest error across eight renders |
+|---|---:|---:|---:|---:|---:|
+| Clouds 1, U8 | 1 | 512/512 | 0 | 512/512 | 0 |
+| Clouds 1, U16 | 2 | 98,294/98,304 | 4 | 98,303/98,304 | 4 |
+| Clouds 1, F32 | 3 | 163,828/163,840 | 0.000110566616 | 163,840/163,840 | 0.000110566616 |
+| Clouds 2, U8 | 1 | 512/512 | 0 | 512/512 | 0 |
+| Clouds 2, U16 | 5 | 180,728/180,736 | 2 | 180,736/180,736 | 2 |
+| Clouds 2, F16 | 1 | 65,535/65,536 | 0.000244140625 | 65,536/65,536 | 0.000244140625 |
+| Clouds 2, F32 | 3 | 131,581/131,584 | 2.28881836e-05 | 131,584/131,584 | 2.28881836e-05 |
+
+Use matrix case indices 7, 8 and 9 for Clouds 1, and 1, 6, 7, 8 and 9 for Clouds 2, with case 0 as the control. In Clouds 2 every one of the 12 initially differing stored values recurred as an exact match at least once. In Clouds 1 this happened at 21 of 22. The remaining coordinate was (126,211) in the 128 × 256 U16 case with seed 382396 and disorder .921875. It differed by four levels even in a reference render that matched all the other 32,767 pixels.
+
+To isolate that case, observe the three pattern generators in the original graph. The smaller generators match 8,192/8,192 and 2,048/2,048 U16 texels. In the full-size generator feeding the transform and the opacity mask, two texels differ by one level each on the instrumented render. Bind its MaterialCraft U16 output as the original graph's input at that node. Leave the two smaller generators running and change only the two listed texels. The following rows compare with the original reference outputs.
+
+| U16 level at (35,174) | U16 level at (126,211) | U16 exact / total · max | F32 exact / total · max |
+|---:|---:|---:|---:|
+| 1,760 | 1,913 | 32,763/32,768 · 4 | 32,763/32,768 · 5.57303429e-05 |
+| 1,759 | 1,913 | 32,767/32,768 · 4 | 32,767/32,768 · 5.51939011e-05 |
+| 1,760 | 1,912 | 32,764/32,768 · 4 | 32,764/32,768 · 5.57303429e-05 |
+| 1,759 | 1,912 | 32,768/32,768 · 0 | 32,768/32,768 · 0 |
+
+With identical generator inputs in both applications, all **524,288/524,288** pixels match on the sixteen U8, U16, F16 and F32 controlled renders. Changing both generator texels reproduced all 65,536 original U16 and F32 pixels. Both roots remain in progress for their unmodified 32-setting series.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color
