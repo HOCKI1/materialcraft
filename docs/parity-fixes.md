@@ -1208,6 +1208,44 @@ For the paraboloid selector (4), isolate draws covering three differing pixels a
 
 Both shapes agree on all 311,296 unit-region pixels. Nonunit-region stamps retain F32 differences. At 64², the horizontal ramp differs at two pixels with center (.5393365, 1.9508762), size (.05541531, .08797855) and zero rotation, even with tiling disabled. At pixel (32,62), MaterialCraft gives .213091522 and the reference gives .213092923. The root stays in progress.
 
+### Saved splatter and weave graphs across independent fields
+
+Recheck the [earlier root and single-branch measurements](#tile-weave-splatter-and-fiber-stage-comparisons) with the pattern sampler from `7ff64fa`. Include each archived distinct setting and the four 64² output precisions. The two weave entries use different packages.
+
+For the new seven-size series use zero-based size index j, inventory index i and seed S = 792713 + 37i + 241j. The sizes in order are 16 × 32, 64 × 16, 64², 16 × 64, 32 × 128, 128 × 64 and 256 × 128. Render U16 and F32 at every size. Add U8 and F16 at indices 1, 2 and 6. Use defaults at j = 0 and 3. Disconnect every pin at j = 0. At j = 3 supply a 32 × 16 field. Otherwise use the output size. For Splatter Color, order the input identifiers alphabetically and supply only the first at j = 4 and only the second at j = 5.
+
+At texel (x,y), for zero-based pin m and channel a, form v = ((31+11a)x + (47+2m)y + 7xy + S + 89m + 37a) mod 257. Write .625v/256 + .375 when (3x+13y+5a+m) mod 17 < 5, and .625v/256 otherwise. Set the texel at ((⌊width/2⌋+3a) mod width, ⌊height/3⌋) to one in that channel. Use a single channel for the grayscale input. The two weave generators have no image inputs.
+
+For j = 1,2,4,5,6 the respective disorder fractions r are .15625, .625, .3125, .84375 and .46875. Set weave tiling or scale to 3,7,4,11,5 and enable the 45-degree rotation at odd j. On Pattern Weave 2 enable non-square expansion when j mod 3 differs from 2. On the splatter graphs use rotation 19.25, −37.5, 73.125, −11.75 and 31.5 degrees in order. Set width to 65+85r, height to 147−93r, rotation variation to 18+55r, zoom to 62+65r and gain to .5+.5r. Pan by (−.1875+.5r, .3125−.5r). The five grid counts are 3,5,2,4,6 and the pattern selections are 2,4,8,1,7. Set disorder to r, its angle to one quarter of the rotation, its random switch to even j, size variation to .5r and image filtering to j mod 3. Set output minimum/maximum to (.125r, 1−.09375r), luminosity or color variation to .5625r, and background to .1875r for gray or (.25r,.6875r,.375,.8125) for color.
+
+The independent fixed-field series uses 64 × 32 for index 491 and 32 × 64 for the other three indices. Start with default settings at seeds 0 and 42. At seed 42 change just one control per F32 render according to the table. Transpose the output dimensions for defaults at seed 42, then use the combined changes at seed 803347 + 47i. A repeated control takes its last listed value. Render the original seed-42 default and the transposed combination at all four precisions. Keep the input dimensions fixed. In channel a of pin m set t = ((17+2a)x + (43+6a)y + 5xy + 803347 + 47i + 29m + 89a) mod 257. Write .75t/256 plus .25 where (3x+11y+7a) mod 13 < 4. Place the same unit impulse as in the seven-size series.
+
+| Root | Six single-control changes at seed 42 |
+|---|---|
+| Pattern Weave 2 | Scale 3, scale 13, disorder .5625, rotate 45 degrees on, non-square expansion off, disorder .875 |
+| Both splatter roots | Grid count 3, pattern 1, pattern 7, rotation 31.25, disorder .71875, filtering 2 |
+| Weave 2 | Tiling 3, tiling 5, disorder .3125, rotate 45 degrees off, disorder .875, tiling 7 |
+
+| Root (inventory index) | Distinct settings | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|---:|
+| Pattern Weave 2 (382) | 95 | 400,896/400,896 · 0 | 1,173,842/1,174,016 · 81 | 402,942/402,944 · 0.000610351562 | 1,161,809/1,161,984 · 0.00169374049 |
+| Splatter (488) | 55 | 47,104/47,104 · 0 | 175,104/176,128 · 9366 | 49,152/49,152 · 0 | 81,152/82,176 · 0.142916024 |
+| Splatter Color (491) | 55 | 47,104/47,104 · 0 | 176,128/176,128 · 0 | 49,152/49,152 · 0 | 82,176/82,176 · 0 |
+| Weave 2 (538) | 95 | 400,896/400,896 · 0 | 1,174,016/1,174,016 · 0 | 402,944/402,944 · 0 | 1,161,984/1,161,984 · 0 |
+
+Save each graph from MaterialCraft and reopen the result directly in both applications. Repeat all 20 seven-size renders after the first save. Save again and repeat the seven F32 renders plus the three other precisions at 64². Use the saved file for all ten fixed-field F32 renders and the three other precisions at the transposed combined setting. Both applications reproduced every pixel of their own originals across all 43 reopens per root.
+
+| Root | First save, 20 renders | Second save, 10 renders | Fixed-field reopens, 13 renders | Total exact / compared | Maximum U8 / U16 / F16 / F32 |
+|---|---:|---:|---:|---:|---|
+| Pattern Weave 2 | 179,194/179,200 | 63,996/64,000 | 26,622/26,624 | 269,812/269,824 | 0 / 43 / 0.000610351562 / 0.000656142831 |
+| Splatter | 177,152/179,200 | 62,976/64,000 | 26,624/26,624 | 266,752/269,824 | 0 / 9366 / 0 / 0.142916024 |
+| Splatter Color | 179,200/179,200 | 64,000/64,000 | 26,624/26,624 | 269,824/269,824 | 0 / 0 / 0 / 0 |
+| Weave 2 | 179,200/179,200 | 64,000/64,000 | 26,624/26,624 | 269,824/269,824 | 0 / 0 / 0 / 0 |
+
+The six-setting authored-shape and disc controls from the earlier branch comparison now match across applications in every measured branch. Pattern Weave 2 matched 12,160/12,160 across its two branches and both shapes. Splatter and Splatter Color each matched 9,728/9,728. Weave 2 matched 2,816/2,816. All branch maxima are zero.
+
+Splatter Color and Weave 2 have measured parity across the reported settings. Pattern Weave 2 still differs on 351 whole pixels. Grayscale Splatter differs on the 16 × 64 default fed by the 32 × 16 field at seed 811492. Its input bridge matched all 1,024 U16 words. The following pattern draw differed on all 1,024 words, maximum 9,366. Rebinding the measured bridge levels as a 16 × 64 original-field input gave 1,024/1,024 matching F32 output pixels, maximum zero.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color
