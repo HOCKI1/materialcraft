@@ -783,6 +783,25 @@ For the [reduced pattern and downstream controls](#paper-brick-fiber-mesh-polygo
 | Pattern Shape Base, square and disc | 18 | 16,896/16,896 | 0 |
 | Pattern Fibers 2, substituted grayscale source | 10 | 10,496/10,496 | 0 |
 
+### Directional blur weights across 110 angles and two projection axes
+
+Recheck both HQ blur roots in the [78 original settings and rectangular fields](#direction-and-sample-coordinates-of-long-oblique-blurs) on revision `02d910f`. Include U8, U16, F16 and F32 and reopen the two independent rectangular series in each application. A raw pixel counts as exact only when every stored channel agrees.
+
+| Root (inventory index) | Distinct settings | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|---:|
+| HQ blur, color (55) | 78 | 706,504/706,560 · 1 | 1,169,141/1,169,408 · 257 | 591,816/591,872 · 0.00439453125 | 1,192,949/1,193,216 · 0.0039215982 |
+| HQ blur, gray (56) | 78 | 706,545/706,560 · 1 | 1,169,358/1,169,408 · 257 | 591,857/591,872 · 0.00390625 | 1,193,166/1,193,216 · 0.0039215982 |
+
+The color root reproduced all original buffers after saving in both applications. Its 60 reopened renders matched 3,489,146/3,489,792 across applications, maximum 257 stored levels.
+
+The gray root reproduced all original buffers after saving in both applications. Its 60 reopened renders matched 3,489,662/3,489,792 across applications, maximum 257 stored levels.
+
+For a separate axial measurement, use a 16 × 64 F32 color input. Set red to one on column 8, green to one on row 32, and blue to ((43x+83y+5xy+631739) mod 257)/256. Use pixel ratio 0 in a directional blur. In order, use angles j/256 for j = 0..64, then (((101j+23) mod 2048)+.25)/8192 for j = 0..39, then −.15625, −.3896484375, .337890625, .4375 and .75 turns. For each angle use extents .3125, .5, .734375, .953125 and 1, with strength 4(extent+.5) and seed 631739 + 7 × angle index + extent index. Read the green weights on rows 32 and 33 at column 8. For projected reach r, the candidate center weight is .5/(.5+r) and the adjacent weight is r times that stored center weight.
+
+Across the 550 complete renders, 539,308/563,200 RGBA pixels match, maximum 1.1920929e-07. The measured pair of weights admits the current direction component at 102/110 angles for all five extents. For the remaining 8 angles, the nearest component consistent with all five pairs differs by one F32 unit in the last place.
+
+The two-axis [sample-coordinate measurements](#direction-and-sample-coordinates-of-long-oblique-blurs) also constrain changes in how the slope is calculated. Compare the existing projection components, their ratio after scaling by the extent, and the component inferred from the independent impulse. For the front and reverse passes, count disagreements with the observed one-part-in-256 texel coordinates. The current division of the unit components and two rounded additions leaves 2,284 differing coordinates on the 13 starting geometries and 958 on four held-out radii. Dividing the scaled extents and fusing the first multiply-add leaves 727 and 1,019, respectively. The held-out inputs retain the documented slope differences. Both roots remain in progress.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color
