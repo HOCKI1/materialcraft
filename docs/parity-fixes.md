@@ -534,6 +534,29 @@ For each root’s 25 follow-up renders, the 5,120 U8, 553,728 U16, 78,336 F16 an
 
 In a single-worker release run, four interleaved measurements of the 128² default, 256² default and 512² filled cases gave median whole-graph cook times of 46, 259 and 1,138 ms for Alveolus (previously 45, 247 and 1,068 ms). Pattern Alveolus took 45, 253 and 1,083 ms (previously 43, 238 and 1,045 ms).
 
+### Horizontal displacement at zero warp angle
+
+Creased now matches all 145,664 final pixels in the 17-render comparison. Across 40 further settings the count rose from 2,392,277 to 2,399,210/2,399,232. The original and saved graphs agree on all 2,399,232 pixels within each application. Both applications produced the same 22 cross-app differences after reopening. Creased remains in progress.
+
+| Original graph | Renders | U8 exact · max | U16 exact · max | F16 exact · max | F32 exact · max |
+|---|---:|---:|---:|---:|---:|
+| Earlier matrix | 17 | 5,120/5,120 · 0 | 123,904/123,904 · 0 | 5,120/5,120 · 0 | 11,520/11,520 · 0 |
+| New settings, original or reopened | 40 | 529,664/529,664 · 0 | 669,941/669,952 · 3 | 529,664/529,664 · 0 | 669,941/669,952 · 4.57763672e−5 |
+
+At 512², disorder .5, warp intensity 64 and seed 392570, the blurred 256² U16 image and 32×64 U16 displacement map match in both apps. The first warp previously matched 259,007/262,144 U16 pixels, maximum six levels. The final warp matched 259,047/262,144 F32 pixels, maximum .000183105469. Both warps now match all 262,144 pixels, maximum zero.
+
+A 16² F32 horizontal coordinate ramp and constant F32 mask 1025/2048 reproduce the difference on one pixel. Set both axes to repeat and the intensity to 64. At zero turns the measured value at (0,0) is 2+1/256. The previous implementation returned 2 after rounding the direction just below one. An authored full turn gives 2 in both applications. MaterialCraft uses an exact horizontal unit vector at zero turns.
+
+For independent warp controls, use the grayscale field (1011x+1123y+17xy+577) mod 65536 and mask (307x+587y+617xy+37001) mod 65536 as U16 words. Include a linear horizontal ramp and a full-white map. Compare 64² through 512² outputs with equal and unequal source and mask dimensions, including 512² output with a 256² source and a 32×64 mask. These controls and the two isolated Creased warps match 5,033,984/5,033,984 U16 and 5,033,984/5,033,984 F32 pixels over 82 renders. The previous counts were 5,028,248 and 5,031,514, with maximum errors 256 and .00390630960.
+
+A separate 24-angle sweep uses a horizontal or vertical coordinate ramp at 16², 64×32 and 128², intensity 64. For t=(x+3y) mod 16, use mask (((181t+512) mod 2048)+.5)/(64×min(width,height)), negating when t mod 5 is 3. The F32-source suite matches 896,615/897,024 output pixels, maximum 1/256. The remaining 409 occur at −1.5, 1.75, .25−2⁻¹⁵ and .5+2⁻¹⁵ turns. U16 inputs on the same settings match all 897,024 F32 output pixels. Other measured angles include zero, positive and negative quarter, half, three-quarter and full turns, .125, −.125 and .37109375. The zero-turn F32 renders alone gained 198 exact pixels and now match 37,376/37,376.
+
+In the earlier 224-render matrix, the 14 differences previously observed at zero turns are gone. Nine remain at −.3125 turns, giving 1,089,527/1,089,536 pixels. The 64 source/map/output format combinations retain 262,144/262,144 exact pixels. The unequal-input, output-size and resize-path suites retain 412,160/412,160, 340,480/340,480 and 873,600/873,600 respectively. The 72 amplified renders retain 274,432/294,912 exact F32 pixels, maximum 1.96875. [Prior matrices and graph settings](#multi-directional-warp-and-intermediate-storage)
+
+For the 40 intact renders, use dimensions (16²,16×64,64×16,32×128,128×32,64²,128×256,256×128,256²,256×512,512×256,512²). In this order use warp intensity (default,0,64,17.75,63.5,4.125,59.25,.5,default,52.875,31.125,64) and disorder (default,1,.125,.78125,.0625,.8125,.375,.546875,default,.9921875,.1015625,.5). At zero-based indices 0 and 8 use seed 0, at index 1 use 42, otherwise use 392119+41j. Render U16 and F32 at every dimension, with U8 and F16 at indices 0,2,4,6,7,8,10,11.
+
+All 22 remaining final differences occur at 256×512 with seed 392488. At (11,163) of the 128×256 generator stage (UID 1083962295), six forced reference renders each returned 36,919 in U16 and .5633411407470703 in F32. MaterialCraft's U16 result is 36,918. Three U16 samples then differ in the blur, twelve in the first warp and eleven in each of the two final formats. Replaying each warp with the measured input and mask at that setting reproduces all 131,072 pixels at both stages. The independent directional-warp change also preserved 175,360/175,360 pixels on each of the two multi-directional warps and two non-uniform blur sample roots. [Earlier warp measurements](#multi-directional-warp-and-intermediate-storage)
+
 ### Pixel-center rounding at the near stamp vertex
 
 BNW Spots 1 now matches 3,177,940/3,177,984 final pixels across 125 distinct settings. The earlier result was 3,177,789. Its remaining differences include deeper stages whose results change across repeated reference renders. BNW Spots 3 retains 3,159,552/3,159,552 exact final pixels across 118 settings. The same 40-setting save and reopen comparison again matched all 2,399,232 pixels in both applications. [Dimensions, settings and repeated renders](#draw-order-at-six-quadrant-subdivisions)

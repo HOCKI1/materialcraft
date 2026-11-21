@@ -387,6 +387,31 @@ fn directional_warp_samples_stored_texels_along_positive_image_angles() {
 }
 
 #[test]
+fn horizontal_warp_at_zero_turns_keeps_the_full_displacement() {
+    use materialcraft_core::OutputFormat;
+
+    let definition = find("directional_warp").unwrap();
+    let inputs = [Some(Image::gray(16, 16, |x, _| x as f32)), Some(Image::filled(16, 16, Kind::Gray, [1025.0 / 2048.0; 4]))];
+    for (angle, expected) in [(0.0, 2.0 + 1.0 / 256.0), (1.0, 2.0)] {
+        let params = resolve_params(definition, &BTreeMap::from([("intensity".into(), Value::Float(64.0)), ("angle".into(), Value::Float(angle))]));
+        let context = CookContext {
+            w: 16,
+            h: 16,
+            seed: 395191,
+            tile: true,
+            format: OutputFormat::F32,
+            input_formats: &[OutputFormat::F32; 2],
+            inputs: &inputs,
+            params: &params,
+            vars: &BTreeMap::new(),
+            resource: &|_| None,
+        };
+        let image = (definition.cook)(&context).unwrap().remove(0);
+        assert_eq!(image.get_gray(0, 0, false), expected, "angle {angle}");
+    }
+}
+
+#[test]
 fn directional_warp_filters_unequal_image_and_mask_sizes() {
     use materialcraft_core::OutputFormat;
 

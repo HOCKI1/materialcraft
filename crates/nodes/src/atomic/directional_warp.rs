@@ -25,7 +25,8 @@ fn directional_warp(context: &CookContext) -> CookResult {
     let radians = context.f("angle") * std::f32::consts::TAU;
     // The horizontal phase includes a quarter turn rounded in radians before evaluating the sine.
     let component = |phase: f32| crate::function::truncate_float(f64::from(phase).sin());
-    let direction = [component(radians + std::f32::consts::FRAC_PI_2), component(radians)];
+    // At zero turns the full horizontal displacement reaches half-texel filter ties.
+    let direction = if radians == 0.0 { [1.0, 0.0] } else { [component(radians + std::f32::consts::FRAC_PI_2), component(radians)] };
     const BASE_RESOLUTION: f32 = 256.0;
     let [width, height] = target.map(|side| side as f32);
     let strength = context.f("intensity") / BASE_RESOLUTION;

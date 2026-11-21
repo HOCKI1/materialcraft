@@ -89,6 +89,8 @@ Crystal 2 now matches all 5,104,128 pixels across 99 distinct settings through 5
 
 BNW Spots 3 matches all 3,159,552 final pixels across 118 distinct settings. Both apps reopened its saved graph and reproduced all 2,399,232 pixels in the 40-setting file check. One U16 difference remains inside its 256² pattern stage. BNW Spots 1 matches 3,177,940/3,177,984 final pixels across 125 settings. [Pixel-center measurements and remaining differences](parity-fixes.md#pixel-center-rounding-at-the-near-stamp-vertex)
 
+Creased matches all 145,664 pixels in its original matrix and 2,399,210/2,399,232 across 40 further settings. Eleven U16 and eleven F32 pixels differ at one rectangular setting. [Warp measurements and the isolated generator sample](parity-fixes.md#horizontal-displacement-at-zero-warp-angle)
+
 ## Complete inventory
 
 | SBS package / graph path | Input pins | Hidden in library | Parity status |
@@ -207,7 +209,7 @@ BNW Spots 3 matches all 3,159,552 final pixels across 118 distinct settings. Bot
 | [constant_values.sbs/integer/constant_integer4](../assets/sbs/constant_values.sbs) | 0 | No | [Parity · 41 exact typed vectors, authored constants checked on reload](parity-fixes.md#stored-integer-value-outputs) |
 | [contrast_luminosity.sbs/contrast_luminosity](../assets/sbs/contrast_luminosity.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [contrast_luminosity.sbs/contrast_luminosity_grayscale](../assets/sbs/contrast_luminosity.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
-| [creased.sbs/creased](../assets/sbs/creased.sbs) | 0 | Yes | [In progress · 145,541/145,664 pixels across 17 renders](parity-fixes.md#bounds-and-pixel-coordinates-of-rotated-pattern-stamps) · [Stamp-width recheck](parity-fixes.md#pixel-reciprocals-for-stamp-edge-widths) |
+| [creased.sbs/creased](../assets/sbs/creased.sbs) | 0 | Yes | [In progress · 2,399,210/2,399,232 pixels on 40 new renders, 17 earlier renders exact](parity-fixes.md#horizontal-displacement-at-zero-warp-angle) · [Stamp-width recheck](parity-fixes.md#pixel-reciprocals-for-stamp-edge-widths) |
 | [crop.sbs/crop](../assets/sbs/crop.sbs) | 1 | No | [Parity · 48 renders, all 377,344 pixels across both outputs exact](parity-fixes.md#half-precision-crop-area-and-input-sizes) |
 | [crop.sbs/crop_grayscale](../assets/sbs/crop.sbs) | 1 | No | [Parity · 48 renders, all 377,344 pixels across both outputs exact](parity-fixes.md#half-precision-crop-area-and-input-sizes) |
 | [crystal_1.sbs/crystal_1](../assets/sbs/crystal_1.sbs) | 0 | Yes | [Parity · 1,966,336/1,966,336 pixels in 64 distinct renders, 32 reopened settings](parity-fixes.md#stored-stamp-vertices-in-crystal-1) |
