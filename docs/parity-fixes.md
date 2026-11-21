@@ -898,6 +898,25 @@ An independent 312-case primitive series used 12 signed angle/size pairs, radii 
 
 Seven alternating single-worker release cooks had median times of 61.6 → 32.7 ms and 55.2 → 32.1 ms on the two 13.75-texel primitive cases. The complete 256 × 64 color graph measured 162.6 → 224.7 ms, and the 128 × 256 grayscale graph measured 391.7 → 400.2 ms. All 314 node release tests, workspace Clippy, formatting, dependency layers and WebAssembly checks passed.
 
+### Scaled scratch and Gaussian noise and spot generators
+
+The six scaled generators were compared at revision `1e254e4`. Their archived defaults and previously measured settings are included once. Each new series pairs 30 original procedural renders with 30 reopens of the file saved by MaterialCraft. Each application also reproduced its own original pixels across its earlier 30-case save series. The pixel table counts original settings only. Integer maxima are stored levels and floating maxima are absolute channel errors.
+
+Use output sizes (32,64), (64,32), (128,128), (256,64), (64,256), (256,256), (512,128), (128,512), (256,512) and (512,512). At indices 0, 5 and 9 use default parameters, with seeds 0, 0 and 42. For each other index `j` use seed `456089 + 17i + 43j` with inventory index `i`. Use scalar `d` equal to .921875, .453125, .0390625, .69921875, .578125, .98046875 and .19140625 at indices 1, 2, 3, 4, 6, 7 and 8 respectively. Gaussian Noise uses scales 16, 5, 11, 27, 19, 32 and 7 at these indices. The other four roots use 2, 1, 3, 2, 3, 1 and 2. Compare U16 and F32 throughout, plus U8 and F16 at 1, 2, 5, 6 and 9.
+
+Set disorder, disorder speed, disorder anisotropy, angle random and pattern amount to `d` wherever exposed. Angle and disorder anisotropy angle use `d − .25`. Pattern size uses `(.375 + .75d, 4.5 + 13d)`, pattern size random uses `(.125 + .5d, .625 − .375d)`, and tile offset uses `(d − .34375, .40625 − .875d)`. Enable non-square expansion at odd changed indices.
+
+| Root (inventory index) | Distinct settings | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|---:|
+| Directional Scratches (259) | 74 | 430,336/430,336 · 0 | 869,519/869,632 · 1 | 432,367/432,384 · 0.000122070312 | 821,171/823,808 · 1.32219866e-05 |
+| Directional Scratches v2 (260) | 74 | 479,487/479,488 · 1 | 820,377/820,480 · 2 | 432,368/432,384 · 0.000244140625 | 820,959/823,808 · 3.32295895e-05 |
+| Gaussian Noise (281) | 79 | 506,881/507,392 · 229 | 755,521/917,504 · 63380 | 506,878/507,392 · 0.899414062 | 665,442/907,520 · 1.93185183 |
+| Gaussian Noise v2 (282) | 79 | 536,207/540,160 · 228 | 680,103/884,736 · 65535 | 503,306/507,392 · 1.19726562 | 642,173/907,520 · 6.80174084 |
+| Gaussian Spots 1 (283) | 67 | 506,368/506,368 · 0 | 906,165/906,240 · 1 | 506,330/506,368 · 0.000244140625 | 863,774/874,496 · 5.12599945e-06 |
+| Gaussian Spots 1 v2 (284) | 67 | 539,136/539,136 · 0 | 873,399/873,472 · 1 | 506,359/506,368 · 0.000122070312 | 859,821/874,496 · 7.9870224e-06 |
+
+Both Gaussian Noise outputs are exact at the default 256² and 512² settings. The 128 × 512 test at scale 32 with non-square expansion differs at all 65,536 F32 pixels in the first version, with maximum error 1.93185183. The 512 × 128 test at scale 19 with expansion disabled differs at 2,432 pixels, with maximum 1.49011612e-7. The earlier stage comparisons locate differences in the pattern generator. The scratch and spots counts also retain nonzero errors. All six roots remain open.
+
 ### Short directional blur tap order on rectangular inputs
 
 Fluid matches **25,969,920/25,969,920 final pixels across 121 distinct settings** through 2048 pixels per side. Both applications reopened the MaterialCraft package and reproduced every pixel of their originals over 28, 38 and 36 settings (498,688, 8,654,848 and 17,588,224 pixels). The three instrumented renders at 512×1024, 1024×512 and 1024² match 9,961,472/9,961,472 intermediate and final samples. [First differing stage and earlier settings](#fibers-1-and-fluid-through-1024-pixels-per-side)
