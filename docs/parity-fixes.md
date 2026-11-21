@@ -1401,6 +1401,23 @@ Eleven more focused reopens per generator include the original background, a new
 
 Formatting, strict workspace Clippy, dependency layering, all ten WebAssembly crate checks and all 402 evaluator and node release tests passed. The release tests used the committed resource set.
 
+### Version of a detached function package and waveform reopening
+
+The older detached hash package used in the [Waveform v2 handoff](#waveform-v2-with-library-and-file-based-hash-functions) declares format version `0.1.3`. Keep its relative path and all function definitions and values. In an independent disposable copy change the package’s `formatVersion` to `1.1.0.202401`. In MaterialCraft the original and changed headers give identical pixels. In the reference app the changed header restores the waveform.
+
+Use the [seven-size, changed-parameter and fixed-field series](#reopened-starburst-symmetry-tile-and-waveform-graphs). Save the caller in MaterialCraft and point its hash dependency at the local copy. The general math dependency remains the portable library reference. Open the saved file directly in each application. The three F32 controls at 16², 64 × 32 and 128 × 32 matched **4,712/6,400** with the older header, maximum 1. Changing the format version alone gave **6,400/6,400**, maximum zero. A second copy also includes a complete self-dependency entry with type `package`, file UID 0 and version UID 0.
+
+| Relative hash dependency | First save, 20 renders | Second save, 10 renders | Fixed-field reopens, 13 renders | Maximum error |
+|---|---:|---:|---:|---:|
+| Updated format version, original dependency list | 109,056/109,056 | 44,288/44,288 | 26,624/26,624 | 0 |
+| Updated format version, complete self-dependency entry | 109,056/109,056 | 44,288/44,288 | 26,624/26,624 | 0 |
+
+Each application reproduced all **179,968/179,968** original pixels on each route. A deliberately incomplete self-dependency containing only the filename and UID produced **167,194/179,968** exact pixels at the updated format version. Opening the dependency in MaterialCraft and saving it as a separate package writes the supported header and a complete self-dependency through the regular file commands.
+
+In a separate one-output pixel processor, call the hash function with normalized pixel-center coordinates offset by (0,.21875) at 16² F32 and (.3125,.21875) at 64 × 16 U16. Use seeds 775641 and 775642. With the older detached file the reference returned zero at every pixel whether the file was adjacent, in a child directory, two directories up or renamed. Replacing its result with the constant .34375 left the reference at zero. With a separately saved file that same replacement returned .34375 and 22,528 U16 at every pixel in both applications. Reducing the package to just the marked function preserved **1,280/1,280** exact pixels. Changing only its format version back to `0.1.3` gave **0/1,280**, maximum .34375 in F32 and 22,528 U16 levels. Altering only the writer version or file UID preserved all 1,280 pixels.
+
+Waveform v2 remains in progress for directly reopening the unchanged older detached dependency. The original graph, the portable library route and the measured current-format relative routes are exact.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color
