@@ -1145,6 +1145,27 @@ For the independent ten-size series below, use seed S = 763819 + 61j and a proce
 
 All **591,616/591,616** pixels matched across 80 distinct whole-root settings. Save the seven-size graph and repeat all 20 renders. Save it a second time and repeat all seven F32 settings and the other three formats at 64². Reopen the modular-and-impulse graph for all 15 settings. Reopen the independent ten-size graph for all ten F32 outputs plus the other three formats at 128 × 256. All **385,792/385,792** pixels matched across 58 reopened renders, maximum zero. Each application reproduced all its original buffers. Both new regressions failed before the change and passed afterward. All 342 release node tests, formatting, strict workspace Clippy, dependency layers and WebAssembly passed. Across seven alternating single-core release runs, median cook time for the default 32 × 64 field went from 168.7 to 166.5 ms. The 128 × 256 field at 128 samples went from 5038 to 5070 ms.
 
+### Waveform v2 with library and file-based hash functions
+
+Use the same 54 original settings and 43 saved renders as the [Waveform v2 comparison](#reopened-starburst-symmetry-tile-and-waveform-graphs), including seven output sizes, independent parameter edits, seeds and all four precisions. Original outputs matched **313,088/313,088** pixels across applications, maximum zero. The earlier saved-file comparison used relative links to the older local function packages. Repeat the handoff using each of the following dependency routes. In each row, open the saved file directly in both applications.
+
+| Hash function source used by the saved root | First save, 20 renders | Second save, 10 renders | Fixed-size and transposed series, 13 renders | Maximum error |
+|---|---:|---:|---:|---:|
+| Portable library reference | 109,056/109,056 | 44,288/44,288 | 26,624/26,624 | 0 |
+| Relative reference to the separately saved function package | 109,056/109,056 | 44,288/44,288 | 26,624/26,624 | 0 |
+
+For the library route, open `sbs://waveform_01_v2.sbs` in MaterialCraft, use `file.saveAs` and reopen. The saved file links to `sbs://functions.sbs` and `sbs://functions_hash.sbs`. For the relative route, open the older local `functions_hash.sbs` in MaterialCraft and save that package separately. Point only the saved waveform’s hash dependency to this file with a relative path. Both routes reproduced every original pixel in each application and matched **179,968/179,968** pixels across applications on reopening. Retaining the original hash file on disk gave **167,194/179,968** across applications, maximum 65,535 U16 levels and 1 in F32. Switching only the general math dependency retained the 16² discrepancy.
+
+To isolate the hash function, create a one-output pixel processor calling `hash21`. Supply normalized pixel-center XY plus (a, .21875) to its `input`. Use 16² with a = 0, 64 × 16 with a = .3125 and 16 × 64 with a = −.4375. Apply seeds 775641, 775642 and 775643 in order. Render F32 at every size and U8, U16 and F16 at 64 × 16. Save just the caller and repeat all six renders in both applications.
+
+| Caller’s hash function | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|
+| Portable library reference | 1,024/1,024 · 0 | 1,024/1,024 · 0 | 1,024/1,024 · 0 | 2,304/2,304 · 0 |
+| Relative link to the older function file | 2/1,024 · 255 | 0/1,024 · 65495 | 0/1,024 · 0.999023438 | 1/2,304 · 0.999511719 |
+| Relative link to the separately saved function file | 1,024/1,024 · 0 | 1,024/1,024 · 0 | 1,024/1,024 · 0 | 2,304/2,304 · 0 |
+
+The table applies both before and after saving the caller. Each application reproduced its own six buffers after saving. With the older relative dependency, the reference returned zero throughout, and 3/5,376 pixels matched across applications on each run. The same caller matched 5,376/5,376 on each run with either the library function or the separately saved file. Waveform v2 remains in progress for the older relative dependency.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color
