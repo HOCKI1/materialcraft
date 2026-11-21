@@ -40,6 +40,7 @@ pub(crate) fn resolve_parameters(
         }
     }
 
+    let mut gray_pattern_opacity = None;
     for (parameter, function) in &node.functions {
         let current = parameters.get(parameter).ok_or_else(|| format!("unknown function parameter `{parameter}`"))?;
         let expected = ValueType::of(current).ok_or_else(|| format!("parameter `{parameter}` cannot have a function"))?;
@@ -48,11 +49,17 @@ pub(crate) fn resolve_parameters(
                 ChannelMode::Levels { normalized: name != "in_mid" && matches!(format, OutputFormat::U8 | OutputFormat::U16 | OutputFormat::Inherit) }
             }
             ("fx_map", "background", _) if matches!(current, Value::Float4(_)) => ChannelMode::Broadcast,
+            ("fx_map", "opacity", _) if parameters.get("color_mode") == Some(&Value::Bool(false)) => ChannelMode::GrayPatternOpacity,
             _ => ChannelMode::Opaque,
         };
         let (value, literal) =
             crate::parameter_function::evaluate(function, expected, variables.to_mut(), base.seed, base.size, channels, Some(current), literal_inputs)
                 .map_err(|error| format!("function of `{parameter}`: {error}"))?;
+        if matches!(channels, ChannelMode::GrayPatternOpacity) {
+            // Keep the result in floating point until blending. JSON and slider limits lose signed infinities.
+            gray_pattern_opacity = Some(value);
+            continue;
+        }
         if node.def == "graph_instance" {
             if literal {
                 dynamic.remove(parameter);
@@ -73,6 +80,9 @@ pub(crate) fn resolve_parameters(
         && node.def != "graph_instance"
     {
         clamp_params(definition, &mut parameters);
+    }
+    if let Some(opacity) = gray_pattern_opacity {
+        parameters.insert("opacity".into(), opacity);
     }
 
     let fixed = if node.def == "graph_instance" {

@@ -56,12 +56,15 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
     let mut state = EvaluationState::default();
     let mut remaining = MAX_VISITS;
     let mut discard_allowance = MAX_VISITS;
-    let opacities = raster::depth_opacities(context.f("roughness"), opacity_depth, context.f("opacity"));
+    let grayscale = !context.b("color_mode");
+    // A grayscale opacity expression can produce an infinity or NaN which participates in the blend.
+    let opacity = context.value("opacity").and_then(Value::as_f32).unwrap_or(0.0);
+    let nonfinite_gray_opacity = grayscale && !opacity.is_finite();
+    let opacities = raster::depth_opacities(context.f("roughness"), opacity_depth, opacity);
     let grid = opacities.as_deref().ok().and_then(|weights| SampleGrid::new(context, weights));
     let mut parameter_values = Vec::new();
     let mut children = Vec::new();
     let mut empty_switches = BTreeSet::new();
-    let grayscale = !context.b("color_mode");
     while let Some((mut visit, repeats_left)) = pending.pop() {
         // Returning below the previous stack size starts the next child of the root.
         if pending.len() < root_children_pending {
@@ -299,5 +302,5 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
         }
     }
     groups[0] = prefix;
-    Ok(vec![raster::render(context, groups, opacities)?])
+    Ok(vec![raster::render(context, groups, opacities, nonfinite_gray_opacity)?])
 }

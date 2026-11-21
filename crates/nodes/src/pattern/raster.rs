@@ -11,7 +11,12 @@ const MAX_SAMPLES: u64 = 256_000_000;
 const MAX_STAMP_COPIES: u64 = 1_048_576;
 const MIN_STAMP_SIZE: f32 = 1e-8;
 
-pub(super) fn render(context: &CookContext, groups: [&[PatternStamp]; 5], opacities: Result<Vec<f32>, String>) -> Result<Image, String> {
+pub(super) fn render(
+    context: &CookContext,
+    groups: [&[PatternStamp]; 5],
+    opacities: Result<Vec<f32>, String>,
+    nonfinite_gray_opacity: bool,
+) -> Result<Image, String> {
     let (width, height) = craft_texture::clamp_size(context.w, context.h);
     let kind = if context.b("color_mode") { Kind::Color } else { Kind::Gray };
     let background = if context.input(0).is_some_and(|image| image.kind() != kind) {
@@ -65,7 +70,7 @@ pub(super) fn render(context: &CookContext, groups: [&[PatternStamp]; 5], opacit
         }
 
         let opacity = opacities.get(stamp.depth as usize).copied().ok_or("invalid pattern depth")?;
-        if !opacity.is_finite() {
+        if !opacity.is_finite() && !nonfinite_gray_opacity {
             return Err("pattern roughness overflowed its depth opacity".into());
         }
 
@@ -160,7 +165,11 @@ pub(super) fn render(context: &CookContext, groups: [&[PatternStamp]; 5], opacit
                                 (Kind::Gray, _) => background + value,
                             });
                             if !target.is_finite() {
-                                return Err("pattern accumulation overflowed".into());
+                                if !nonfinite_gray_opacity {
+                                    return Err("pattern accumulation overflowed".into());
+                                }
+                                // Each stamp reads the preceding stored result. Only the completed blend saturates.
+                                *target = if target.is_nan() { f32::from_bits(0x7fff_ffff) } else { target.clamp(f32::MIN, f32::MAX) };
                             }
                         }
                     }

@@ -6,6 +6,7 @@ use std::collections::BTreeMap;
 pub(crate) enum ChannelMode {
     Opaque,
     Broadcast,
+    GrayPatternOpacity,
     Levels { normalized: bool },
 }
 
@@ -43,6 +44,7 @@ pub(crate) fn evaluate(
     let mut state = EvaluationState::default();
     let value = match channels {
         ChannelMode::Levels { normalized: true } => program.evaluate_normalized_color(&context, &mut state)?,
+        ChannelMode::GrayPatternOpacity => Value::Float(program.evaluate_pattern_opacity(&context, &mut state)?),
         _ => program.evaluate(&context, &mut state)?,
     };
     // A scalar level is already luminance. Its RGB expansion would introduce a second rounding.

@@ -99,6 +99,8 @@ pub(crate) fn variable_key(node: &Node, parameters: &BTreeMap<String, Value>, va
     let mut pending: Vec<&Value> = parameters.values().collect();
     while let Some(value) = pending.pop() {
         match value {
+            // JSON represents all non-finite numbers as null. Their signs change pattern blending.
+            Value::Float(v) if !v.is_finite() => v.to_bits().hash(&mut hasher),
             Value::Function(graph) => {
                 let mut pending = vec![graph.as_ref()];
                 while let Some(graph) = pending.pop() {

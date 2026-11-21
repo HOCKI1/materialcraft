@@ -90,6 +90,16 @@ impl Program {
         Ok(value)
     }
 
+    /// A grayscale pattern can blend an infinite or undefined scalar into a finite background.
+    pub fn evaluate_pattern_opacity(&self, context: &EvaluationContext<'_>, state: &mut EvaluationState) -> Result<f32, String> {
+        state.variables.clone_from(context.variables);
+        let mut random = self.random_stream(context);
+        match self.run_with_random(context, state, &mut random)? {
+            Value::Float(opacity) => Ok(opacity),
+            _ => Err("pattern opacity requires a scalar".into()),
+        }
+    }
+
     /// Evaluate an integer texture's channel control at its normalized storage boundary.
     pub fn evaluate_normalized_color(&self, context: &EvaluationContext<'_>, state: &mut EvaluationState) -> Result<Value, String> {
         state.variables.clone_from(context.variables);

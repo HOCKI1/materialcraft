@@ -80,6 +80,21 @@ The 30-setting series uses sizes 16², 64 × 16, 16 × 64, 64², 128 × 64, 64 �
 
 Both applications reopened the saved files for both series. MaterialCraft reproduced its own pixels on every completed local comparison. The reference original and reopen agreed on 115,728/125,952 and 592,313/629,760 pixels in the first version's 26- and 30-setting series, and 123,392/125,952 and 622,661/629,760 in v2. The first version also produced different exact counts on three same-setting reference captures, including 480 versus 478 out of 1,024 F32 pixels at seed 113. The comparisons retain those residuals. All 325 core and node release tests, strict workspace Clippy, formatting, dependency layers and WebAssembly checks passed.
 
+### Grayscale pattern output at zero roughness
+
+At scale 1, disorder .40625, roughness zero and seed 456778, both BNW Spots 1 roots returned a scalar infinity from their opacity expression. The generic parameter evaluator rejected it before drawing. The grayscale pattern evaluator now passes the scalar to the blend, including its sign, and preserves the distinction between positive infinity, negative infinity and an undefined result in the cook cache. A stamp stores the observed finite endpoint or NaN bit pattern after blending. Untouched pixels retain the background.
+
+| 64² root and settings | U16 exact / total | F32 exact / total | Maximum error in both formats |
+|---|---:|---:|---:|
+| BNW Spots 1 (236) | 4,096/4,096 | 4,096/4,096 | 0 |
+| BNW Spots 1 v2 (237) | 4,096/4,096 | 4,096/4,096 | 0 |
+
+Use the zero-roughness setting in the preceding 26-setting series, including its v2 speed, anisotropy, angle and offset. Before this fix neither format yielded a local image. Each application also reopened the MaterialCraft saves. The four saved outputs matched all 16,384 pixels across applications, maximum zero. The first root's F32 pixels all contain the largest finite F32 value. The second root also contains background-valued pixels.
+
+The independent one-stamp control divides two scalar graph inputs to drive the global opacity with roughness zero. Use numerators and denominators (1,1), (1,0), (−1,0), (0,0), (.25,1), (−.25,1), (1,4) and (−1,−0). Alternate 32 × 16 and 32². The seven configurations use a half-width square at default, .25 and zero tint, a full-width square at −.25 tint and a full-width linear ramp at .25 tint, in maximum mode, plus a half-width .25 square in modes 0 and 2. Use seed `459223 + 17j + h` for one-based configuration index `j` and zero-based setting `h`. Compare U8, U16, F16 and F32, plus four F32 pilot renders of the default square. All **175,104/175,104** pixels match in 228 renders, maximum zero. An additive positive or negative infinity stores the corresponding signed finite limit. An undefined additive result stores F32 bits `0x7fffffff` and F16 bits `0x7fff`. The maximum blend retains its finite black background against an undefined contribution.
+
+Separate pairs of overlapping stamps revealed a remaining difference. Draw a negative .25 root square in maximum mode above a positive .25 additive child on black. In the 32 × 16 F32 probe at finite gain −1, MaterialCraft matched 224/512 pixels. The other 288 differed by .25. The same geometry also differs with negative infinite gain. Four RGBA controls with undefined gain still report a local cook error. These results and the finite-roughness differences in the preceding root comparison keep both roots in progress. All 373 evaluation and node release tests, formatting, strict workspace Clippy, dependency layers and WebAssembly checks passed.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color
