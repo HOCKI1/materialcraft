@@ -534,6 +534,30 @@ For each root’s 25 follow-up renders, the 5,120 U8, 553,728 U16, 78,336 F16 an
 
 In a single-worker release run, four interleaved measurements of the 128² default, 256² default and 512² filled cases gave median whole-graph cook times of 46, 259 and 1,138 ms for Alveolus (previously 45, 247 and 1,068 ms). Pattern Alveolus took 45, 253 and 1,083 ms (previously 43, 238 and 1,045 ms).
 
+### Fur across two rectangular render series
+
+The totals below count distinct combinations of dimensions, seed, public parameter values and final storage. They include the earlier default, changed, precision and independent captures and the new 28 and 38 settings. For settings observed twice, the table retains the first capture in the precision, independent, targeted and archived comparison order. MaterialCraft reproduced every original pixel after saving and reopening each package in both new series (498,688 and 8,654,848 pixels per root). The final column gives the reference’s original-versus-reopened counts for those same series.
+
+| Root (inventory index) | Distinct settings | U8 exact/total · max | U16 exact/total · max | F16 exact/total · max | F32 exact/total · max | Reference reopen, 28 and 38 settings |
+|---|---:|---:|---:|---:|---:|---:|
+| Fur 1 (155) | 85 | 1,568,000/1,568,000 · 0 | 3,062,016/3,062,016 · 0 | 1,568,000/1,568,000 · 0 | 3,052,032/3,052,032 · 0 | 498,688 and 8,654,848 |
+| Fur 2 (156) | 85 | 1,567,999/1,568,000 · 1 | 3,061,572/3,062,016 · 1 | 1,567,975/1,568,000 · 0.000244140625 | 2,570,924/3,052,032 · 2.38418579e-07 | 485,168 and 8,344,661 |
+| Fur 3 (157) | 85 | 1,568,000/1,568,000 · 0 | 3,062,016/3,062,016 · 0 | 1,568,000/1,568,000 · 0 | 3,052,032/3,052,032 · 0 | 498,688 and 8,654,848 |
+| Fur 4 (158) | 85 | 1,568,000/1,568,000 · 0 | 3,062,016/3,062,016 · 0 | 1,568,000/1,568,000 · 0 | 3,052,032/3,052,032 · 0 | 498,688 and 8,654,848 |
+
+Use the dimensions, storage selections, seeds, d values and defaults in the two Fibers 1 matrices. [Full render settings](#fibers-1-and-fluid-through-1024-pixels-per-side)
+
+Set disorder to d throughout the changed cases. Fur 3 also uses density d. In the smaller series Fur 2 uses wave scale .125+.625d and wave rotation d. In the larger series its wave scale is 1−.75d and rotation d−.5.
+
+Fur 2 had differing exact counts on 2 duplicate settings. At 256² with defaults and seed 0 the two U16 captures gave 65,528 and 65,526 of 65,536. At 128² with seed 42 they gave 16,379 and 16,383 of 16,384.
+
+At 256² with defaults and seed 0, repeat the original Fur 2 six times at each of U16 and F32. Each image contains 65,536 pixels.
+
+| Storage | Distinct reference images | Exact against first · maximum error | Exact against any at that pixel | Outside reference range | Maximum distance outside range |
+|---|---:|---:|---:|---:|---:|
+| U16 | 5 | 65,523 · 1 | 65,532 | 4 | 1 |
+| F32 | 6 | 58,730 · 1.1920929e-07 | 61,980 | 3,494 | 1.1920929e-07 |
+
 ### Fibers 1 and Fluid through 1024 pixels per side
 
 Fibers 1 matched 9,430,272/9,430,272 final pixels across 87 distinct combinations of dimensions, seed, parameter values and storage. Fluid matched 9,428,962/9,430,272 on the same matrix. The 655 differing locations in the 512×1024 Fluid render affect both the U16 and F32 outputs. Each application reproduced its original pixels when reopening the MaterialCraft package in the new 28 and 38 settings (498,688 and 8,654,848 pixels per root).

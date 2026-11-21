@@ -35,7 +35,7 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **392 Parity**, **154 In progress** and **0 Too hard**. The November 17–20 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons) · [November 19 measurements](parity-fixes.md#2026-11-19-root-comparisons) · [November 20 measurements](parity-fixes.md#2026-11-20-root-comparisons)
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **395 Parity**, **151 In progress** and **0 Too hard**. The November 17–20 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons) · [November 19 measurements](parity-fixes.md#2026-11-19-root-comparisons) · [November 20 measurements](parity-fixes.md#2026-11-20-root-comparisons)
 
 [Pattern tiling axes and copy bounds across 215 renders](parity-fixes.md#tiling-axes-and-pattern-copy-bounds) · [Grayscale sampler measurements](parity-fixes.md#grayscale-sampling-of-color-inputs) · [Value sampling across 240 typed comparisons](parity-fixes.md#value-processor-texture-filtering) · [Five saved graphs reopened in the reference](parity-fixes.md#saved-filter-graphs-and-scalar-levels-controls)
 
@@ -254,10 +254,10 @@ Creased matches 10,947,840/10,947,840 pixels across 100 distinct settings throug
 | [floodfill_to_index.sbs/pass](../assets/sbs/floodfill_to_index.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [fluid.sbs/fluid](../assets/sbs/fluid.sbs) | 0 | Yes | [In progress · 9,428,962/9,430,272 across 87 distinct settings](parity-fixes.md#fibers-1-and-fluid-through-1024-pixels-per-side) |
 | [fractal_sum_base.sbs/fractal_sum_base](../assets/sbs/fractal_sum_base.sbs) | 0 | Yes | [Parity · 18 renders, 145,664 exact pixels](parity-fixes.md#stored-grayscale-stops-and-scalar-levels-controls) |
-| [fur_1.sbs/fur_1](../assets/sbs/fur_1.sbs) | 0 | Yes | [In progress · 164,031/178,432 exact pixels in 21 renders](parity-fixes.md#stored-opacity-across-pattern-depths) |
-| [fur_2.sbs/fur_2](../assets/sbs/fur_2.sbs) | 0 | Yes | [In progress · 134,013/178,432 exact pixels, first difference in FX-Map](parity-fixes.md#fur-pattern-sources-and-downstream-filters) |
-| [fur_3.sbs/fur_3](../assets/sbs/fur_3.sbs) | 0 | Yes | [In progress · 145,101/178,432 exact pixels, first difference in FX-Map](parity-fixes.md#fur-pattern-sources-and-downstream-filters) · [Stamp-width recheck](parity-fixes.md#pixel-reciprocals-for-stamp-edge-widths) |
-| [fur_4.sbs/fur_4](../assets/sbs/fur_4.sbs) | 0 | Yes | [In progress · 148,992/178,432 exact pixels, first difference in FX-Map](parity-fixes.md#fur-pattern-sources-and-downstream-filters) · [Stamp-width recheck](parity-fixes.md#pixel-reciprocals-for-stamp-edge-widths) |
+| [fur_1.sbs/fur_1](../assets/sbs/fur_1.sbs) | 0 | Yes | [Parity · 9,250,048/9,250,048 pixels across 85 distinct settings](parity-fixes.md#fur-across-two-rectangular-render-series) |
+| [fur_2.sbs/fur_2](../assets/sbs/fur_2.sbs) | 0 | Yes | [In progress · 8,768,470/9,250,048 pixels across 85 distinct settings](parity-fixes.md#fur-across-two-rectangular-render-series) |
+| [fur_3.sbs/fur_3](../assets/sbs/fur_3.sbs) | 0 | Yes | [Parity · 9,250,048/9,250,048 pixels across 85 distinct settings](parity-fixes.md#fur-across-two-rectangular-render-series) |
+| [fur_4.sbs/fur_4](../assets/sbs/fur_4.sbs) | 0 | Yes | [Parity · 9,250,048/9,250,048 pixels across 85 distinct settings](parity-fixes.md#fur-across-two-rectangular-render-series) |
 | [fxaa.sbs/fxaa_grayscale](../assets/sbs/fxaa.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [gaussian_1.sbs/gaussian_1](../assets/sbs/gaussian_1.sbs) | 0 | Yes | [In progress · 168,522/171,264 pixels across 18 renders](parity-fixes.md#radial-stamp-profiles-and-pattern-generators) |
 | [gaussian_2.sbs/gaussian_2](../assets/sbs/gaussian_2.sbs) | 0 | Yes | [In progress · 169,796/171,264 pixels across 18 renders](parity-fixes.md#radial-stamp-profiles-and-pattern-generators) |
