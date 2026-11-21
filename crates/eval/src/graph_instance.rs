@@ -67,8 +67,8 @@ pub(crate) fn cook_instance(
     let root_resource = options.resource_root.unwrap_or(options.resource);
     let resource = |name: &str| match &node.instance {
         Some(instance) if !instance.package.is_empty() => {
-            let (name, linear) = craft_texture::split_resource_key(name);
-            root_resource(&craft_texture::resource_key(&format!("{}\0{name}", instance.package), linear))
+            let (name, space) = materialcraft_nodes::BitmapColorSpace::split_resource_key(name);
+            root_resource(&space.resource_key(&format!("{}\0{name}", instance.package)))
         }
         _ => (options.resource)(name),
     };

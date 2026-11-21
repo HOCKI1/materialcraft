@@ -1,13 +1,19 @@
 use crate::{Depth, FormatError, Result, guard};
 use craft_texture::{Image, Kind, Limits, MAX_SIDE, linear_to_srgb, srgb_to_linear};
+use materialcraft_nodes::BitmapColorSpace;
 use std::io::Cursor;
 
 const MAX_DECODE_BYTES: u64 = 1 << 30;
 
 /// Decode image file bytes into a linear float image (8-bit color is sRGB-decoded; grayscale files stay grayscale)
 pub fn decode(bytes: &[u8], linear: bool) -> Result<Image> {
+    decode_with_color_space(bytes, if linear { BitmapColorSpace::Linear } else { BitmapColorSpace::Srgb })
+}
+
+/// Decode a bitmap using its file transfer or an explicit interpretation of its stored channels.
+pub fn decode_with_color_space(bytes: &[u8], space: BitmapColorSpace) -> Result<Image> {
     if bytes.starts_with(b"DDS ") {
-        return guard(|| crate::dds_image::decode(bytes, linear), || FormatError::Image("DDS decoder failed".into()));
+        return guard(|| crate::dds_image::decode(bytes, space == BitmapColorSpace::Linear), || FormatError::Image("DDS decoder failed".into()));
     }
 
     const SVG_SNIFF_BYTES: usize = 4096;
@@ -15,7 +21,7 @@ pub fn decode(bytes: &[u8], linear: bool) -> Result<Image> {
         return guard(|| crate::svg::decode(bytes), || FormatError::Image("SVG decoder failed".into()));
     }
 
-    match decode_raster(bytes, linear) {
+    match decode_raster(bytes, space) {
         Err(error) if bytes.starts_with(&[0x76, 0x2f, 0x31, 0x01]) => {
             guard(|| decode_luminance_exr(bytes, error), || FormatError::Image("EXR decoder failed".into()))
         }
@@ -36,17 +42,42 @@ fn decode_luminance_exr(bytes: &[u8], original_error: FormatError) -> Result<Ima
     Image::from_data(decoded.width(), decoded.height(), Kind::Gray, data, &Limits::default()).map_err(|error| FormatError::Image(error.to_string()))
 }
 
-fn decode_raster(bytes: &[u8], linear: bool) -> Result<Image> {
+fn raster_limits() -> image::Limits {
+    let mut limits = image::Limits::default();
+    limits.max_image_width = Some(MAX_SIDE);
+    limits.max_image_height = Some(MAX_SIDE);
+    limits.max_alloc = Some(MAX_DECODE_BYTES);
+    limits
+}
+
+fn png_channel_table(bytes: &[u8], maximum: u32) -> Option<Vec<f32>> {
+    let metadata = craft_image_codecs::png_probe::color_chunks(bytes)?;
+    if metadata.srgb {
+        return None;
+    }
+    // Recover the five-place file gamma before rounding the correction exponent.
+    let gamma = (f64::from(metadata.gamma?) * 100_000.0).round() / 100_000.0;
+    let ratio = gamma * 2.2;
+    let exponent = (100_000.0 / ratio).round() / 100_000.0;
+    if (ratio * 100_000.0).round() >= 95_000.0 && exponent >= 0.95 {
+        return None;
+    }
+    let levels = f64::from(maximum);
+    Some((0..=maximum).map(|v| ((f64::from(v) / levels).powf(exponent) * levels).round() as f32 / maximum as f32).collect())
+}
+
+fn mapped_channel(table: &[f32], value: f32) -> f32 {
+    let last = table.len().saturating_sub(1) as f32;
+    table.get((value * last).round() as usize).copied().unwrap_or(value)
+}
+
+fn decode_raster(bytes: &[u8], space: BitmapColorSpace) -> Result<Image> {
     let open = || -> Result<image::ImageReader<Cursor<&[u8]>>> {
         let mut reader = image::ImageReader::new(Cursor::new(bytes)).with_guessed_format().map_err(|e| FormatError::Image(e.to_string()))?;
         if reader.format().is_none() {
             reader.set_format(image::ImageFormat::Tga);
         }
-        let mut limits = image::Limits::default();
-        limits.max_image_width = Some(MAX_SIDE);
-        limits.max_image_height = Some(MAX_SIDE);
-        limits.max_alloc = Some(MAX_DECODE_BYTES);
-        reader.limits(limits);
+        reader.limits(raster_limits());
         Ok(reader)
     };
     let failed = || FormatError::Image("the decoder failed on this file".into());
@@ -55,24 +86,56 @@ fn decode_raster(bytes: &[u8], linear: bool) -> Result<Image> {
         e => FormatError::Image(e.to_string()),
     };
 
-    let (w, h) = guard(|| open()?.into_dimensions().map_err(image_error), failed)?;
+    let (input_format, (w, h)) = guard(
+        || {
+            let reader = open()?;
+            Ok((reader.format(), reader.into_dimensions().map_err(image_error)?))
+        },
+        failed,
+    )?;
     if w == 0 || h == 0 || w > MAX_SIDE || h > MAX_SIDE {
         return Err(FormatError::Image(format!("{w}x{h} is outside 1..={MAX_SIDE} pixels")));
     }
 
+    let png =
+        if space == BitmapColorSpace::FromFile && input_format == Some(image::ImageFormat::Png) { materialcraft_core::png_raster_info(bytes) } else { None };
+    let stored = match space {
+        BitmapColorSpace::Linear => true,
+        BitmapColorSpace::Srgb => false,
+        BitmapColorSpace::FromFile => {
+            png.is_some()
+                || matches!(input_format, Some(image::ImageFormat::Jpeg | image::ImageFormat::Bmp | image::ImageFormat::Tiff | image::ImageFormat::Tga))
+        }
+    };
     let decoded = guard(|| open()?.decode().map_err(image_error), failed)?;
+    let table = png.and_then(|info| {
+        let maximum = if info.format == materialcraft_core::OutputFormat::U8 { 255 } else { 65535 };
+        png_channel_table(bytes, maximum)
+    });
     let gray = matches!(decoded.color(), image::ColorType::L8 | image::ColorType::L16 | image::ColorType::La8 | image::ColorType::La16);
     let float = matches!(decoded.color(), image::ColorType::Rgb32F | image::ColorType::Rgba32F);
     if gray {
         let luminance = decoded.into_luma16();
-        let data: Vec<f32> = luminance.pixels().map(|p| p.0[0] as f32 / 65535.0).collect();
+        let data: Vec<f32> = luminance
+            .pixels()
+            .map(|p| {
+                let value = f32::from(p.0[0]) / 65535.0;
+                table.as_ref().map_or(value, |levels| mapped_channel(levels, value))
+            })
+            .collect();
         return Image::from_data(w, h, Kind::Gray, data, &Limits::default())
             .map(|image| image.with_integer_sampling(true))
             .map_err(|e| FormatError::Image(e.to_string()));
     }
 
     let mut data = decoded.into_rgba32f().into_raw();
-    if !(float || linear) {
+    if let Some(table) = table {
+        for px in data.as_chunks_mut::<4>().0 {
+            for channel in &mut px[..3] {
+                *channel = mapped_channel(&table, *channel);
+            }
+        }
+    } else if !(float || stored) {
         for px in data.as_chunks_mut::<4>().0 {
             for c in px.iter_mut().take(3) {
                 *c = srgb_to_linear(*c);
@@ -81,7 +144,7 @@ fn decode_raster(bytes: &[u8], linear: bool) -> Result<Image> {
     }
 
     Image::from_data(w, h, Kind::Color, data, &Limits::default())
-        .map(|image| image.with_integer_sampling(linear && !float))
+        .map(|image| image.with_integer_sampling(stored && !float))
         .map_err(|e| FormatError::Image(e.to_string()))
 }
 

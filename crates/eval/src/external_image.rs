@@ -6,8 +6,7 @@ use materialcraft_nodes::CookContext;
 /// Odd-sized normalized PNG resources use the same stored and sampled levels as bound rasters.
 pub(super) fn resize_bitmap(context: &CookContext, package: &Package) -> Option<NodeOutput> {
     let grayscale = !context.b("color_mode");
-    let linear = context.i("colour_space") == 1;
-    if !grayscale && !linear {
+    if !grayscale && context.bitmap_color_space() == materialcraft_nodes::BitmapColorSpace::Srgb {
         return None;
     }
     let name = context.text("resource");
@@ -18,7 +17,7 @@ pub(super) fn resize_bitmap(context: &CookContext, package: &Package) -> Option<
     if info.grayscale != grayscale || (width.is_power_of_two() && height.is_power_of_two()) || (width, height) == (context.w, context.h) {
         return None;
     }
-    let image = (context.resource)(&craft_texture::resource_key(name, linear))?;
+    let image = context.bitmap_resource(name)?;
     let kind = if grayscale { Kind::Gray } else { Kind::Color };
     resize(&image, (context.w, context.h), kind, info.format, context.format)
 }

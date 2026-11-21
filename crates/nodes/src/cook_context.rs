@@ -43,6 +43,17 @@ pub struct CookContext<'a> {
 }
 
 impl CookContext<'_> {
+    pub fn bitmap_color_space(&self) -> crate::BitmapColorSpace {
+        crate::BitmapColorSpace::from_index(self.i("colour_space"))
+    }
+
+    /// A decoder that only accepts the two original request types can still supply the stored channels.
+    pub fn bitmap_resource(&self, name: &str) -> Option<Image> {
+        let space = self.bitmap_color_space();
+        let image = (self.resource)(&space.resource_key(name));
+        if image.is_none() && space == crate::BitmapColorSpace::FromFile { (self.resource)(&craft_texture::resource_key(name, true)) } else { image }
+    }
+
     pub fn tiling_axes(&self) -> [bool; 2] {
         self.vars.get("$tiling").and_then(Value::as_i32).map_or([self.tile; 2], |mask| [mask & 1 != 0, mask & 2 != 0])
     }

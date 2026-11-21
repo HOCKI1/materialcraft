@@ -9,6 +9,7 @@ pub mod output_precision;
 pub mod pattern;
 mod raster;
 
+mod bitmap_color_space;
 mod cook_context;
 pub mod graph_interface;
 mod image_input;
@@ -23,6 +24,7 @@ mod port_kind;
 mod random;
 mod texture_sampler;
 
+pub use bitmap_color_space::BitmapColorSpace;
 pub use catalog::{catalog, categories, find};
 pub use cook_context::{CookContext, GraphVariables};
 pub use image_input::{MAX_IMAGE_INPUTS, image_input_prefix};

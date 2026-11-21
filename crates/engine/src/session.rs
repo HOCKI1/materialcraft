@@ -396,14 +396,14 @@ impl Session {
         let hashes = resources.iter().map(|(_, bytes)| bytes.content_hash()).collect();
         decoded.lock().unwrap_or_else(PoisonError::into_inner).retain_resources(&hashes);
         move |requested: &str| {
-            let (name, linear) = craft_texture::split_resource_key(requested);
+            let (name, space) = materialcraft_nodes::BitmapColorSpace::split_resource_key(requested);
             let (_, bytes) = resources.iter().find(|(name_candidate, _)| name_candidate == name)?;
-            let key = (bytes.content_hash(), linear);
+            let key = (bytes.content_hash(), space);
             if let Some(image) = decoded.lock().unwrap_or_else(PoisonError::into_inner).get(&key) {
                 return Some(image);
             }
 
-            let image = materialcraft_formats::decode(bytes.as_slice(), linear).ok()?;
+            let image = materialcraft_formats::decode_with_color_space(bytes.as_slice(), space).ok()?;
             decoded.lock().unwrap_or_else(PoisonError::into_inner).insert(key, image.clone());
             Some(image)
         }

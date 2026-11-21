@@ -541,6 +541,29 @@ The patch graph calls functions in the shape package. Save the patch graph and t
 
 Keeping the shape dependency pointed at the unconverted inventory source gave **36,657/41,216** matching pixels between the original and reopened reference renders, maximum 65,535 U16 levels. The reference could not open that unconverted local patch package directly. In a separate 16² default, changed 64² and seam 128² comparison, resolving only the shape dependency to its available native package restored all **20,736/20,736** reference pixels. Resolving only the math dependency gave 18,013/20,736, maximum 1 in F32. Both image bridges matched their original source fields in all three observed renders. At 16² the first discrepancy was the pixel processor, with 240/256 exact and maximum .739467438. These measurements distinguish dependency resolution on reopen from the small F32 differences in the working graph.
 
+### Bitmap file transfer and stored channel precision
+
+A Bitmap with an omitted color interpretation reads the stored RGB levels for the measured PNG, BMP, TGA, TIFF and JPEG files. Floating-point EXR retains its linear levels. A PNG gamma tag can change the stored color or gray levels before resizing. The session caches file-default, explicit linear and explicit sRGB reads independently, including resources from linked packages. Saving an original graph with an omitted interpretation preserves that omission.
+
+Generate a 64 × 32 RGB image with 8 × 8 blocks. Set X and Y to the integer block coordinates. Compute channels modulo 256 using 71X + 43Y + 19, 99X + 107Y + 13 and 149X + 23Y + 53. Encode each file from those pixels. Use JPEG quality 96 with full chroma resolution and use channel/255 for floating-point EXR. Render each format with the interpretation omitted and with an explicit linear read, at native size in U8, U16, F16 and F32 and at 16² in F32. Use seed 555013 + file index for native size and 555827 + index for the reduction, in PNG, BMP, TGA, TIFF, JPEG, EXR order. File-default reads improved from 8,448/50,688 exact pixels (maximum 18,815 U16 levels) to 50,688/50,688. The explicit reads matched another 50,688/50,688.
+
+For the PNG profile controls use the [modular RGBA fields](#stored-levels-of-linear-color-bitmap-resources). Take the byte field with no tag, an sRGB tag, gAMA 100000, gAMA 45455, and an embedded standard sRGB profile. Render at 64 × 32, 32² and 16 × 64 in all four formats with seeds 497107, 497108 and 497113. Those 60 renders improved from 0/81,920 (maximum 43,948 U16 levels) to 81,920/81,920. For independent byte and word controls, set gAMA to 30000, 40000, 43000, 44000, 45455, 47000, 48000, 50000, 60000, 80000 and 100000. Render at native size in four formats and at 16² in F32. The eleven matching-depth boundary probes use 43178, 43181, 43182, 43230, 43291, 47725, 47727, 47728, 47784, 47846 and 47848. For the [grayscale fields](#stored-levels-when-resizing-a-grayscale-bitmap-resource) use the 64 × 32 modular byte and word fields described there, at native size in all four formats with no tag and gAMA 30000, 43181, 43182, 45455, 47847, 47848, 60000 and 100000.
+
+For file gamma g and channel maximum M, the observed transfer rounds 1/(2.2g) to five decimal places. Keep source levels when 2.2g rounded to five places and the rounded exponent are both at least .95. Otherwise store round(M × (channel/M)^exponent) at the original channel depth. Alpha keeps its stored level. At gAMA 43181, 43182, 47847 and 47848 the format regression checks the two edges of the identity interval. A separate session regression exposed the earlier read of (64,128,192,97) as (13,55,134,97).
+
+| Stored output | Original renders | Exact pixels / total | Reopened renders | Exact pixels / total | Maximum error |
+|---|---:|---:|---:|---:|---:|
+| LUM16 | 18 | 36,864/36,864 | 6 | 12,288/12,288 | 0 |
+| LUM16F | 18 | 36,864/36,864 | 6 | 12,288/12,288 | 0 |
+| LUM32F | 18 | 36,864/36,864 | 6 | 12,288/12,288 | 0 |
+| LUM8 | 18 | 36,864/36,864 | 6 | 12,288/12,288 | 0 |
+| RGBA16 | 61 | 114,688/114,688 | 18 | 36,864/36,864 | 0 |
+| RGBA16F | 50 | 92,160/92,160 | 18 | 36,864/36,864 | 0 |
+| RGBA32F | 85 | 101,120/101,120 | 33 | 40,704/40,704 | 0 |
+| RGBA8 | 61 | 114,688/114,688 | 21 | 39,936/39,936 | 0 |
+
+Bitmap file-default and explicit data reads matched all 570,112 pixels across 329 renders. Reopening 24 saved packages matched another 203,520/203,520 pixels and reproduced each original buffer in both applications. One of the original packages was saved by the reference editor before the five direct renders. These measurements cover the generated files and the listed metadata. Other ICC profiles, palette transparency and file-default DDS remain unmeasured. All 790 release tests across the engine, evaluator, format and node crates passed, along with formatting, strict workspace Clippy, dependency layers and WebAssembly.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color

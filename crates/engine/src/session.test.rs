@@ -23,6 +23,38 @@ fn the_resource_decoder_reads_data_maps_as_stored() {
     assert!((data.get(0, 0, false)[2] - 1.0).abs() < 0.01);
 }
 
+#[test]
+fn bitmap_nodes_read_default_colors_from_the_file_and_keep_explicit_data_reads() {
+    use materialcraft_core::{Graph, OutputFormat, ResourceBytes, Value};
+
+    let field = Image::filled(16, 16, Kind::Color, [64.0, 128.0, 192.0, 97.0].map(|v| v / 255.0));
+    let png = encode(&field, "png", Depth::U8, false).unwrap();
+    for (gamma_chunk, expected) in [(false, [64, 128, 192, 97]), (true, [136, 186, 224, 97])] {
+        let mut bytes = png.clone();
+        if gamma_chunk {
+            // Insert a unit gAMA chunk, including its CRC, immediately after IHDR.
+            bytes.splice(33..33, *b"\0\0\0\x04gAMA\0\x01\x86\xa0\x31\xe8\x96\x5f");
+        }
+        let mut package = Package::new("Bitmap file colors");
+        package.resources.push(Resource::new("field", "field.png", ResourceBytes::new(bytes)));
+        let mut graph = Graph::new("File and data reads");
+        graph.size = [4, 4];
+        graph.format = OutputFormat::U8;
+        let bitmap = graph.add_node("bitmap", [0.0; 2]);
+        let data = graph.add_node("bitmap", [0.0, 80.0]);
+        for id in [bitmap, data] {
+            graph.node_mut(id).unwrap().params.insert("resource".into(), Value::Text("field".into()));
+        }
+        graph.node_mut(data).unwrap().params.insert("colour_space".into(), Value::Enum(1));
+        package.graphs.push(graph);
+        let mut session = Session::new(package);
+        let cook = session.cook();
+        let pixel = |id| cook.image(id, 0).unwrap().get(0, 0, false).map(|v| (v * 255.0).round() as u8);
+        assert_eq!(pixel(bitmap), expected);
+        assert_eq!(pixel(data), [64, 128, 192, 97]);
+    }
+}
+
 #[cfg(test)]
 mod merge_tests {
     use crate::Session;

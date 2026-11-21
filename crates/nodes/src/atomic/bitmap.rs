@@ -9,7 +9,7 @@ pub(super) fn definition() -> NodeDefinition {
         .atomic()
         .generator()
         .resource("resource", "Bitmap resource")
-        .choice("colour_space", "Color space", &["sRGB", "Linear"], 0)
+        .choice("colour_space", "Color space", &["sRGB", "Linear", "From file"], 2)
         .boolean("color_mode", "Color output", true)
         .any_out()
         .cook(bitmap)
@@ -18,7 +18,7 @@ pub(super) fn definition() -> NodeDefinition {
 fn bitmap(context: &CookContext) -> CookResult {
     let name = context.text("resource");
     let color = context.b("color_mode");
-    let image = match (context.resource)(&craft_texture::resource_key(name, context.i("colour_space") == 1)) {
+    let image = match context.bitmap_resource(name) {
         Some(image)
             if image.integer_sampling()
                 && ((image.width(), image.height()) != (context.w, context.h) || (!color && image.kind() == Kind::Color))

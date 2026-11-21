@@ -1189,7 +1189,10 @@ fn linear_input_images_and_bitmap_nodes_request_data_reads() {
         (c.image(i, 0).unwrap().data()[0], c.image(b, 0).unwrap().data()[0])
     };
 
-    assert_eq!(first(&p), (0.2, 0.2), "default is sRGB, as before");
+    assert_eq!(first(&p), (0.2, 0.5), "the bitmap defaults to file channels");
+
+    p.graphs[0].node_mut(b).unwrap().params.insert("colour_space".into(), Value::Enum(0));
+    assert_eq!(first(&p), (0.2, 0.2), "an explicit sRGB read still decodes the color");
 
     p.graphs[0].input_images_linear.insert("n".into());
     p.graphs[0].node_mut(b).unwrap().params.insert("colour_space".into(), Value::Enum(1));

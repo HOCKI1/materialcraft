@@ -49,6 +49,8 @@ Odd-sized grayscale bitmap resources match 116,736/116,736 pixels directly and 9
 
 Linear RGBA bitmap resources match 108,544/108,544 pixels on two procedural fields. [Exact counts by format and saved-package results](parity-fixes.md#stored-levels-of-linear-color-bitmap-resources)
 
+Bitmap file-default and explicit data reads matched all 570,112 pixels across 329 renders. Reopening 24 saved packages matched another 203,520/203,520 pixels and reproduced each original buffer in both applications. [Measurements and saved packages](parity-fixes.md#bitmap-file-transfer-and-stored-channel-precision)
+
 Grayscale bitmap stamps matched every stored F32 word across the 120 composites, 312 individual-stamp renders and 60 reopened renders. The wider background controls have separate measured differences. [Measurements and saved packages](parity-fixes.md#stored-coverage-before-grayscale-bitmap-stamp-opacity)
 
 Odd-sized linear RGBA bitmaps matched 100,352/100,352 direct pixels and 45,056/45,056 pixels after downstream sampling. [Measurements and saved packages](parity-fixes.md#odd-sized-linear-color-bitmap-resources)
