@@ -534,6 +534,59 @@ For each root’s 25 follow-up renders, the 5,120 U8, 553,728 U16, 78,336 F16 an
 
 In a single-worker release run, four interleaved measurements of the 128² default, 256² default and 512² filled cases gave median whole-graph cook times of 46, 259 and 1,138 ms for Alveolus (previously 45, 247 and 1,068 ms). Pattern Alveolus took 45, 253 and 1,083 ms (previously 43, 238 and 1,045 ms).
 
+### Fibers 1 and Fluid through 1024 pixels per side
+
+Fibers 1 matched 9,430,272/9,430,272 final pixels across 87 distinct combinations of dimensions, seed, parameter values and storage. Fluid matched 9,428,962/9,430,272 on the same matrix. The 655 differing locations in the 512×1024 Fluid render affect both the U16 and F32 outputs. Each application reproduced its original pixels when reopening the MaterialCraft package in the new 28 and 38 settings (498,688 and 8,654,848 pixels per root).
+
+| Root and inventory index | Storage | Settings | Exact pixels | Maximum error |
+|---|---|---:|---:|---:|
+| Fibers 1 (137) | U8 | 13 | 1,568,000/1,568,000 | 0 |
+| Fibers 1 (137) | U16 | 30 | 3,217,664/3,217,664 | 0 |
+| Fibers 1 (137) | F16 | 13 | 1,568,000/1,568,000 | 0 |
+| Fibers 1 (137) | F32 | 31 | 3,076,608/3,076,608 | 0 |
+| Fluid (153) | U8 | 13 | 1,568,000/1,568,000 | 0 |
+| Fluid (153) | U16 | 30 | 3,217,009/3,217,664 | 24 |
+| Fluid (153) | F16 | 13 | 1,568,000/1,568,000 | 0 |
+| Fluid (153) | F32 | 31 | 3,075,953/3,076,608 | 0.000366210938 |
+
+For the 28 new renders, take j from zero in the dimension and parameter lists below. Use seed 0 at j=0,8, 42 at j=1 and 399553+31i+17j otherwise, where i is the inventory index. Render U16 and F32 throughout, adding U8 and F16 at j=0,2,5,7,8. Keep defaults at j=0,8. At other indices, Fibers 1 uses the listed tiling. Fluid uses disorder, pattern length and pattern width equal to d, warp intensity 40d and flow .5d−.1875.
+
+| | Values in dimension order |
+|---|---|
+| Dimensions | 16², 16×64, 64×16, 32×128, 128×32, 64², 128×256, 256×128, 256² |
+| d | default, .96875, .03125, .71875, .21875, .015625, .859375, .46875, default |
+| Tiling | default, 2, 1, 3, 2, 1, 1, 2, default |
+
+For the 38 larger renders, add 31i to the table seed except at j=3,6. Keep the public parameters at defaults where shown. Render U16 and F32 throughout, adding U8 and F16 at j=0,3,5,6,9,12. At changed settings Fluid uses disorder d, warp intensity 61d, flow d−.46875, pattern length .125+.625d and width .875−.75d. The 512×1024 discrepancy occurs at seed 43016 and d=.6875. Its pattern source and next two directional blurs match all 131,072 pixels each. The first differing stage is directional blur 1050407172 (intensity .66, angle −.125 turns). It matches 130,944/131,072 U16 pixels, maximum one level. At (161,17) the reference stores 31,157 and MaterialCraft stores 31,158.
+
+| | Values in dimension order |
+|---|---|
+| Dimensions | 32², 256×64, 64×256, 128², 128×512, 512×128, 256², 256×512, 512×256, 512², 512×1024, 1024×512, 1024² |
+| Seed | 29, 863, 23173, 42, 5227, 17293, 0, 173, 11173, 21101, 38273, 11867, 11939 |
+| d | .25, .625, .0625, default, .84375, .09375, .375, .171875, .984375, default, .6875, .28125, default |
+| Tiling | 1, 3, 2, default, 1, 3, 2, 1, 2, default, 3, 2, default |
+
+In 15 separate stage captures per root, explicitly select U8, U16 and F32 on the pattern generator (Fibers 1 UID 1041346050, Fluid UID 1050407179) and preserve downstream format inheritance. Both roots match all 835,584 final pixels per root. Across all observed stages Fibers 1 matches 2,015,232/2,015,232 and Fluid matches 3,969,024/3,969,024, maximum error zero. [Earlier stage settings](#fibers-and-fluid-pattern-stages)
+
+### Repeated Dirt pattern stages
+
+Render each listed pattern source six times in the same native session, alternating its storage between U16 and F32, with fixed graph parameters, dimensions and seed. Each entry below has 65,536 pixels. “First” compares MaterialCraft with the first reference frame. “Any” counts pixels matching at least one of the six at that location. The last two columns count values outside the six-frame minimum and maximum and give the largest distance to that interval. Integer errors are in stored levels. [Root settings and final-output comparisons](#wave-frequency-and-phase-in-directional-noise)
+
+| Root · pattern UID | Format | Distinct reference frames | First exact · maximum error | Any exact | Outside interval | Maximum distance |
+|---|---|---:|---:|---:|---:|---:|
+| Dirt 1 · 1050406955 | U16 | 1 | 65,535 · 1 | 65,535 | 1 | 1 |
+| Dirt 1 · 1050406955 | F32 | 6 | 64,957 · 1.1920929e-07 | 65,453 | 83 | 5.96046448e-08 |
+| Dirt 3 · 1083962542 | U16 | 3 | 65,535 · 1 | 65,536 | 0 | 0 |
+| Dirt 3 · 1083962542 | F32 | 6 | 65,179 · 5.96046448e-08 | 65,326 | 209 | 5.96046448e-08 |
+| Dirt 5 · 1047055673 | U16 | 6 | 65,517 · 1 | 65,531 | 5 | 1 |
+| Dirt 5 · 1047055673 | F32 | 6 | 58,420 · 1.1920929e-07 | 62,328 | 3,179 | 1.1920929e-07 |
+| Dirt 6 · 1047121771 | U16 | 6 | 65,522 · 1 | 65,534 | 2 | 1 |
+| Dirt 6 · 1047121771 | F32 | 6 | 62,155 · 1.1920929e-07 | 64,867 | 653 | 1.1920929e-07 |
+| Dirt Gradient · 1083691739 | U16 | 6 | 65,507 · 1 | 65,529 | 7 | 1 |
+| Dirt Gradient · 1083691739 | F32 | 6 | 26,681 · 1.1920929e-07 | 52,850 | 10,609 | 5.96046448e-08 |
+
+Use 256² with defaults and seed 0 except for Dirt 3, which uses 128×512, disorder .984375 and seed 398765. At (144,242) every Dirt 1 U16 reference stored 38,981 and MaterialCraft stored 38,980. All five roots retain at least one difference outside the observed reference interval in one or both formats.
+
 ### Interpolated coordinates on clipped squares and quarter turns
 
 Directional Noise matches **40,572,160/40,572,160 final pixels across 136 distinct settings through 2048²**. Both applications reopened the MaterialCraft package and reproduced the original values across 40, 46 and 28 settings (2,006,016, 8,730,624 and 29,753,344 pixels). All fourteen intermediate outputs at 1024², seed 29987, match across 6,225,920 pixels, including the generator sample previously one U16 level high. [Wave-stamp isolation and the first 108 settings](#wave-frequency-and-phase-in-directional-noise)
