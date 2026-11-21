@@ -194,6 +194,26 @@ For the weighted spots comparison, use the first six parameter sets, at 16 × 32
 
 In the first root the original F32 exact count rose from 6,994 to 8,031 of 10,240. The saved graph reached 7,995. The zero-roughness 64² U16 and F32 cases matched completely. The other settings retain differences. The four earlier U16 checks of the separate basic spots root still match 114,671/114,688, maximum two. All 322 node release tests, formatting, strict workspace Clippy, dependency layers and WebAssembly checks passed.
 
+### One differing generator texel in the basic spots root
+
+At 256² with default parameters and seed zero, one U16 texel in the third pattern generator explains the differing output pixels in the basic spots root (57). Its two 64² generators each match 4,096/4,096 texels. The 128² generator matches **16,383/16,384**, maximum one level. At zero-based (99,47), MaterialCraft stores 9,942 and the reference stores 9,941.
+
+Connect the third generator directly to the output of the saved graph, leaving its original half-resolution setting. Default U8 and F16 each match 16,384/16,384. F32 matches 15,999/16,384, maximum 2.98023224e−8. At (99,47) the reference result is .15169809758663177 and the local result is .15169811248779297. Multiplying by 2²⁰ gives 159066.984375 and 159067. The values fall on opposite sides of the fixed-point boundary before U16 conversion. The original transform spreads the difference to (35,111), (163,111), (35,239) and (163,239). The direct branch adds (198,93), (197,94), (198,94), (199,94) and (199,95).
+
+In the [single-generator input graph](#isolating-the-generators-in-spots-bricks-and-cells), bind the local 128² U16 third-generator output. Keep the first two generators live. Change only (99,47) and render at 256² in each format. Each row compares a controlled graph with the unmodified original reference output.
+
+| Input level at (99,47) | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|
+| 9,942 | 65,527/65,536 · 2 | 65,535/65,536 · 0.000244140625 | 65,527/65,536 · 2.15768814e-05 |
+| 9,941 | 65,536/65,536 · 0 | 65,536/65,536 · 0 | 65,536/65,536 · 0 |
+| 9,943 | 65,526/65,536 · 3 | 65,535/65,536 · 0.000244140625 | 65,526/65,536 · 4.31537628e-05 |
+
+When both applications received the same controlled input they agreed on **589,824/589,824 pixels** across all nine renders, maximum zero. Setting the texel to 9,941 also reproduced all **196,608/196,608** unmodified reference pixels across the three formats.
+
+Repeated renders distinguish a stable difference from variation in the original [125-setting comparison](#gaussian-generators-and-spots-through-1024-pixels-per-side). Six captures rotated the order of the tested cases. At 128 × 64, seed 372177, disorder 1, repeated U16 outputs included both 8,184/8,192 and 8,192/8,192. At 256 × 128, seed 379055, disorder .53125, they included 32,759/32,768 and 32,768/32,768. The 128² archive case at seed zero and disorder .35 gave both 16,376/16,384 and 16,384/16,384. Each partial match had a maximum error of two levels. Both 128² default checks, with seeds zero and 42, matched all 16,384 pixels.
+
+Of the 44 original pixel-format differences, 25 matched on at least one subsequent full-root render in the repeat series. The default 256² U16 comparison retained the same nine differences in all 15 captures. F32 retained nine. In three further captures with intermediate outputs observed, one F16 output also matched. The two stable groups account for 18 pixel-format differences across nine coordinates. The published original total stays 3,177,940/3,177,984. The origin of the generator's F32 accumulation difference remains open.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color
