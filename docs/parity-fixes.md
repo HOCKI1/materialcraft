@@ -95,6 +95,34 @@ The independent one-stamp control divides two scalar graph inputs to drive the g
 
 Separate pairs of overlapping stamps revealed a remaining difference. Draw a negative .25 root square in maximum mode above a positive .25 additive child on black. In the 32 × 16 F32 probe at finite gain −1, MaterialCraft matched 224/512 pixels. The other 288 differed by .25. The same geometry also differs with negative infinite gain. Four RGBA controls with undefined gain still report a local cook error. These results and the finite-roughness differences in the preceding root comparison keep both roots in progress. All 373 evaluation and node release tests, formatting, strict workspace Clippy, dependency layers and WebAssembly checks passed.
 
+### Direction and sample coordinates of long oblique blurs
+
+Across the 78 original settings in [the rectangular blur comparison](#oblique-directional-blur-on-rectangular-images), the number of differing color pixels fell from 1,258 to 646 and the number of differing grayscale pixels fell from 438 to 130. Each application reproduced its own original on all 3,489,792 pixels in 60 saved settings per root, maximum error zero. Both roots remain in progress.
+
+| Root (inventory index) | Distinct settings | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|---:|
+| Blur HQ (55) | 78 | 706,504/706,560 · 1 | 1,169,141/1,169,408 · 257 | 591,816/591,872 · 0.00439453125 | 1,192,949/1,193,216 · 0.0039215982 |
+| Blur HQ Grayscale (56) | 78 | 706,545/706,560 · 1 | 1,169,358/1,169,408 · 257 | 591,857/591,872 · 0.00390625 | 1,193,166/1,193,216 · 0.0039215982 |
+
+A single white stripe isolates the projected width. Draw a line through the middle column or row of a black 16-bit input, perpendicular to the filtering axis. Use both 128 × 16 and 16 × 128 orientations for turns .03125, .0625, .1, .125, .1875, .2421875, .265625, .3125, .375, .4375, .5625, −.0625, −.125, −.1875, −.271484375, .0791015625, .1201171875, .2099609375, .337890625, .4033203125, −.3583984375 and .53125. Use radii 2.18064117, 2.623046875, 2.91796875, 3.17349243, 3.734375, 4.18359375, 4.97953796, 5.2578125, 5.84778023, 6.8125, 7.14850616, 7.5703125, 8.96439362, 9.298828125, 10.65226746, 12.376953125, 13.50491333 and 14.31640625 texels. Multiply by 256 divided by the shorter side for the intensity. Seed is `455833 + 17j + h` for zero-based orientation and radius indices. Across 792 RGBA F32 images, **1,577,984/1,622,016** pixels match, maximum 2.38418579e−7. The same test with four additional turns (37, −119, 303 and −431 divided by 1024) matches all **294,912/294,912** pixels, maximum zero.
+
+The center weight distinguishes the stored single-precision direction from an unrounded sine and cosine. The measured approximation folds a positive radian phase into the central half turn, evaluates the odd sine series through degree eleven in single precision and uses a quarter-turn shift for cosine. The ratio of the two stored components gives the shear. An off-center impulse distinguishes adding the two matrix terms before subtracting the center translation. At 512 × 256, intensity 7.8787503, 1/16 turn and white at (11,254), the three red-channel F32 words at (10,253) through (10,255) are `3d0c9a80`, `3ce757e2` and `3bbcf1c9`.
+
+The single-impulse control uses (width, height, turn, radius in texels) of (512,256,.0625,7.8787503), (256,512,.0625,7.8787503), (512,128,.4375,7.0537505), (128,512,.4375,7.0537505) and (256,256,−.0849609375,6.71875). Each has six white-pixel locations at (⌊w/2⌋+5,⌊h/3⌋−1), (⌊w/5⌋+1,⌊h/2⌋+7), (w−3,7), (11,h−2), (⌊w/3⌋+11,⌊h/5⌋+2) and (1,1). Use seed `462021 + 23j + h` for zero-based series and position indices. All **2,752,512/2,752,512** RGBA F32 pixels match across 30 renders, maximum zero.
+
+The sparse fields use the same tuples with (256,128,.1875,4.8675003) inserted before the last tuple. In filtering-axis coordinates, start the white columns at 3, 10, 16, 23, 25 or 30 and repeat every 32 texels. In zero-based column `i` place a point every 16 rows starting at `(3i + 5h) mod 16` for zero-based field `h`. Use seed `460039 + 17j + h`. F32 matches **2,948,850/2,949,120** pixels in 36 settings, maximum .000616334379, up from 2,555,364 exact. U8 matches **983,040/983,040** in the 12 settings using fields 1 and 4, maximum zero.
+
+The independent 312-case primitive series from the preceding comparison has the following raw pixel counts.
+
+| Storage | Exact pixels before | Exact pixels after | Pixels compared | Maximum after |
+|---|---:|---:|---:|---:|
+| U8 | 344,024 | 344,030 | 344,064 | 1 |
+| U16 | 342,166 | 342,561 | 344,064 | 63 |
+| F16 | 319,077 | 343,693 | 344,064 | .0009765625 |
+| F32 | 1,545,530 | 1,864,772 | 1,949,696 | .000969707966 |
+
+Both release regressions failed before the fix and passed afterward. All 320 node release tests, formatting, strict workspace Clippy, dependency layers and WebAssembly checks passed.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color

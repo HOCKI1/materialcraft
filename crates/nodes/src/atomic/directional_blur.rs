@@ -63,19 +63,19 @@ pub(super) fn blur(context: &CookContext, angle: f32) -> CookResult {
     }
     if tile == [true; 2] && context.w == input.width() && context.h == input.height() {
         // Compare the components before rounding the direction to the sample grid.
-        let (sine, cosine) = f64::from(angle * std::f32::consts::TAU).sin_cos();
+        let radians = angle * std::f32::consts::TAU;
+        let (sine, cosine) = f64::from(radians).sin_cos();
         let horizontal = cosine.abs() / f64::from(context.w) > sine.abs() / f64::from(context.h);
-        let slope = if horizontal { sine / cosine } else { cosine / sine };
         // An authored eighth turn has an exact unit slope even after radian conversion.
-        let slope = if (angle * 8.0).fract() == 0.0 { slope.signum() as f32 } else { slope as f32 };
         // On a rectangle the dominant UV direction can have the smaller texel
         // component. The window spans the projection along the chosen texel axis.
-        let along = if slope.abs() == 1.0 {
-            major
-        } else if horizontal {
-            dx.abs()
+        let (slope, along) = if (angle * 8.0).fract() == 0.0 {
+            ((sine * cosine).signum() as f32, major)
         } else {
-            dy.abs()
+            let sine = projected_sine(radians.abs()) * radians.signum();
+            let cosine = projected_sine(radians.abs() + std::f32::consts::FRAC_PI_2);
+            let (across, along) = if horizontal { (sine, cosine) } else { (cosine, sine) };
+            (across / along, along.abs())
         };
         if let Some(image) = box_filter::sheared(&input, (radius - 0.5) * along, horizontal, slope, source_format, context.format) {
             return Ok(vec![image]);
@@ -106,4 +106,26 @@ pub(super) fn blur(context: &CookContext, angle: f32) -> CookResult {
         }
         pixel
     })])
+}
+
+/// The wide filter stores both direction components before deriving the window and shear.
+fn projected_sine(radians: f32) -> f32 {
+    use std::f64::consts::{FRAC_PI_2, PI, TAU};
+
+    let phase = f64::from(radians) % TAU;
+    let folded = if phase <= FRAC_PI_2 {
+        phase
+    } else if phase <= 3.0 * FRAC_PI_2 {
+        PI - phase
+    } else {
+        phase - TAU
+    };
+    let x = folded as f32;
+    let square = x * x;
+    // Evaluate the odd sine series on the central half turn. Each product rounds before the next sum.
+    let mut tail = -1.0 / 39_916_800.0;
+    for coefficient in [1.0 / 362_880.0, -1.0 / 5_040.0, 1.0 / 120.0, -1.0 / 6.0] {
+        tail = tail * square + coefficient;
+    }
+    x + (tail * square) * x
 }

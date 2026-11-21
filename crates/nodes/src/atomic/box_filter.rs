@@ -21,8 +21,10 @@ pub(super) fn sheared(input: &Image, reach: f32, horizontal: bool, slope: f32, s
     // The slope is in texels. A full period along the line spans this many transverse UV periods.
     let uv_slope = slope * (length as f32 / across as f32);
     let shear = |image: &Image, slope: f32, format| {
+        // Add the two transform columns before translating back to the texture center.
+        let shifted = |along: f32, across: f32| (across + slope * along) - slope * 0.5;
         Image::generate_uv(width, height, image.kind(), |u, v| {
-            let uv = if horizontal { [u, v + slope * (u - 0.5)] } else { [u + slope * (v - 0.5), v] };
+            let uv = if horizontal { [u, shifted(u, v)] } else { [shifted(v, u), v] };
             crate::texture_sampler::sample(image, uv, [true; 2], format, None)
         })
     };

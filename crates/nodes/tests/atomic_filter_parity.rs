@@ -521,6 +521,32 @@ fn oblique_rectangular_blur_projects_the_window_onto_its_filtering_axis() {
     }
 }
 
+#[test]
+fn long_oblique_blur_keeps_the_projected_stripe_weight() {
+    for (size, angle, strength, vertical_stripe, expected) in [
+        ([16, 128], 0.1, 41.96875, true, 0x3e66_e1d7),
+        ([128, 16], 0.265625, 46.6875, false, 0x3e30_2ae0),
+        ([128, 16], -139.0 / 512.0, 34.89026, false, 0x3e6c_7382),
+    ] {
+        let [width, height] = size;
+        let stripe = Image::gray(width, height, |x, y| {
+            let on_line = if vertical_stripe { x == width / 2 } else { y == height / 2 };
+            if on_line { 1.0 } else { 0.0 }
+        });
+        let params = [("intensity", Value::Float(strength)), ("angle", Value::Float(angle))];
+        let image = cook("directional_blur", &[Some(stripe)], &params, size, true);
+        assert_eq!(image.get_gray(i64::from(width / 2), i64::from(height / 2), false).to_bits(), expected, "{angle}");
+    }
+}
+
+#[test]
+fn long_oblique_blur_centers_the_shear_at_texel_precision() {
+    let impulse = Image::gray(512, 256, |x, y| if (x, y) == (11, 254) { 1.0 } else { 0.0 }).with_integer_sampling(true);
+    let params = [("intensity", Value::Float(7.8787503)), ("angle", Value::Float(0.0625))];
+    let result = cook("directional_blur", &[Some(impulse)], &params, [512, 256], true);
+    assert_eq!([253, 254, 255].map(|y| result.get_gray(10, y, false).to_bits()), [0x3d0c_9a80, 0x3ce7_57e2, 0x3bbc_f1c9]);
+}
+
 fn signed_modular_field(width: u32, height: u32) -> Image {
     Image::generate(width, height, Kind::Color, |x, y| {
         std::array::from_fn(|c| {
