@@ -320,6 +320,25 @@ One group order per capture reproduces **442,368/442,368** pixels over all 27 re
 
 In the default graph the four MaterialCraft contributions at (99,47), in its traversal order, are .05887965112924576, .031324971467256546, .02835862897336483 and .03313484787940979. Their accumulation order accounts for the U16 boundary at that coordinate. The observed changes between captures prevent a single fixed image from matching every repeat. These reordered images explain the disagreement. The original renderer counts above and the [125-setting root comparison](#gaussian-generators-and-spots-through-1024-pixels-per-side) remain the parity measurements.
 
+### Original channel precision of odd-sized grayscale bitmap resources
+
+The grayscale Bitmap node and a graph input bound to the same 37 × 23 PNG produced identical stored pixels in the reference app. MaterialCraft previously resized the embedded resource with a single bilinear lookup. The bitmap now uses the existing two-pass raster filter. It retains the source byte or word depth during resizing, including when a downstream node samples a wider output.
+
+Generate the U8 and U16 modular fields at 37 × 23 and use the ten output sizes and seed formula in the [stored-level comparison](#stored-levels-when-resizing-a-grayscale-bitmap-resource), with field indices 5 and 4 respectively. All 80 embedded Bitmap outputs and all 80 graph input outputs now match. The following counts are for the embedded Bitmap.
+
+| Output | Renders | Exact before / total · maximum | Exact after / total · maximum |
+|---|---:|---:|---:|
+| LUM8 | 20 | 15,093/29,184 · 85 | 29,184/29,184 · 0 |
+| LUM16 | 20 | 4,548/29,184 · 21878 | 29,184/29,184 · 0 |
+| LUM16F | 20 | 5,057/29,184 · 0.333740234 | 29,184/29,184 · 0 |
+| LUM32F | 20 | 16/29,184 · 0.333839174 | 29,184/29,184 · 0 |
+
+At 32² U16, read (0,0), (3,7), (16,16) and (31,31). The byte field stores 11,308, 30,326, 40,349 and 49,087. The word field stores 419, 4,749, 33,094 and 35,028. The two source precisions are distinguishable even when the output format is identical. The 160 power-of-two controls still reproduce all 233,472 pixels.
+
+For a downstream check connect each original resource through a Bitmap or a bound image input to a Pixel Processor. Set the upstream format in turn to U8, U16, F16 and F32. Request a bilinear color sample at the pixel center plus (.01318359375, −.02734375). Render to F32 at 32², 16 × 32 and 64 × 16, then to U8, U16 and F16 at 32². Use seed 507011 + 43i + j for zero-based upstream format i and output case j. All 96 renders match **90,112/90,112 RGBA pixels**, maximum zero. This includes 40,960 F32 pixels and 16,384 in each other format.
+
+MaterialCraft wrote six packages spanning direct and downstream reads. Reopening in both apps reproduced the original 37,888/37,888 pixels across 40 saved settings and matched across applications in all four formats, maximum zero. The regression failed on the previous evaluator and passed with the fix. Eight core and 56 evaluator release tests passed. Formatting, strict workspace Clippy, dependency layers and WebAssembly passed.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color

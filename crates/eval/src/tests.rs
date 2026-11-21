@@ -690,6 +690,41 @@ fn bound_float_bitmap_diffuses_half_rounding_after_resizing() {
 }
 
 #[test]
+fn bitmap_node_filters_odd_rasters_at_their_original_channel_depth() {
+    use materialcraft_core::{OutputFormat, Resource, ResourceBytes};
+
+    let mut graph = Graph::new("Odd bitmap");
+    graph.size = [5, 5];
+    graph.format = OutputFormat::U16;
+    let bitmap = graph.add_node("bitmap", [0.0; 2]);
+    let node = graph.node_mut(bitmap).unwrap();
+    node.params.insert("resource".into(), Value::Text("field".into()));
+    node.params.insert("color_mode".into(), Value::Bool(false));
+    let mut package = Package::new("Grayscale bitmap");
+    package.graphs.push(graph);
+    for (depth, expected) in [(8_u8, [11308, 30326, 40349, 49087]), (16, [419, 4749, 33094, 35028])] {
+        let mut header = b"\x89PNG\r\n\x1a\n\0\0\0\rIHDR".to_vec();
+        header.extend_from_slice(&37_u32.to_be_bytes());
+        header.extend_from_slice(&23_u32.to_be_bytes());
+        header.extend([depth, 0, 0, 0, 0]);
+        package.resources = vec![Resource::new("field", "field.png", ResourceBytes::new(header))];
+        let field = Image::gray(37, 23, |x, y| {
+            if depth == 8 {
+                ((83 * x + 151 * y + 11 * x * y + 29) % 256) as f32 / 255.0
+            } else {
+                ((573 * x + 149 * y + 97 * x * y + 317) % 65536) as f32 / 65535.0
+            }
+        })
+        .with_integer_sampling(true);
+        let resource = |_: &str| Some(field.clone());
+        let result = cook(&package, 0, &Options::new(&resource), &Mutex::new(Cache::default()));
+        let image = result.image(bitmap, 0).unwrap();
+        let levels = [(0, 0), (3, 7), (16, 16), (31, 31)].map(|(x, y)| (image.get_gray(x, y, false) * 65535.0).round() as u16);
+        assert_eq!(levels, expected);
+    }
+}
+
+#[test]
 fn bound_float_image_filters_an_odd_impulse_on_each_axis() {
     let mut graph = Graph::new("Impulse");
     graph.size = [4, 4];

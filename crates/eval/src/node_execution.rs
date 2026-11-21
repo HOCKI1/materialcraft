@@ -298,16 +298,22 @@ pub(crate) fn cook_node(
             resource: options.resource,
             vars: &bindings,
         };
-        (definition.cook)(&context).map(|images| {
-            images
-                .into_iter()
-                .map(|image| {
-                    // Bridges retain their source pixels; filters store their declared precision
-                    let image = if matches!(node.def.as_str(), "output" | "dot") { image } else { crate::output_precision::apply(image, base.format) };
-                    NodeOutput::Image(image)
-                })
-                .collect()
-        })
+        if node.def == "bitmap"
+            && let Some(output) = crate::external_image::resize_bitmap(&context, package)
+        {
+            Ok(vec![output])
+        } else {
+            (definition.cook)(&context).map(|images| {
+                images
+                    .into_iter()
+                    .map(|image| {
+                        // Bridges retain their source pixels; filters store their declared precision
+                        let image = if matches!(node.def.as_str(), "output" | "dot") { image } else { crate::output_precision::apply(image, base.format) };
+                        NodeOutput::Image(image)
+                    })
+                    .collect()
+            })
+        }
     } else {
         Err(format!("unknown node `{}`", node.def))
     };

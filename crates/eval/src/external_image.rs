@@ -1,6 +1,24 @@
 use crate::NodeOutput;
 use craft_texture::{Image, Kind, Limits, MAX_SIDE};
-use materialcraft_core::OutputFormat;
+use materialcraft_core::{OutputFormat, Package};
+use materialcraft_nodes::CookContext;
+
+/// An embedded odd-sized grayscale PNG uses the same stored and sampled levels as a bound raster.
+pub(super) fn resize_bitmap(context: &CookContext, package: &Package) -> Option<NodeOutput> {
+    if context.b("color_mode") {
+        return None;
+    }
+    let name = context.text("resource");
+    let resource = package.resource(name)?;
+    let info = materialcraft_core::png_raster_info(resource.bytes.as_slice())?;
+    let [width, height] = info.size;
+    // Check the header first so ordinary power-of-two bitmaps still request their decoded image only once.
+    if !info.grayscale || (width.is_power_of_two() && height.is_power_of_two()) || (width, height) == (context.w, context.h) {
+        return None;
+    }
+    let image = (context.resource)(&craft_texture::resource_key(name, context.i("colour_space") == 1))?;
+    resize(&image, (context.w, context.h), Kind::Gray, info.format, context.format)
+}
 
 /// Non-power-of-two external rasters filter each axis directly, storing the result between passes.
 pub(super) fn resize(image: &Image, size: (u32, u32), kind: Kind, source: OutputFormat, output: OutputFormat) -> Option<NodeOutput> {
