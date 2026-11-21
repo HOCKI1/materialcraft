@@ -564,6 +564,25 @@ For file gamma g and channel maximum M, the observed transfer rounds 1/(2.2g) to
 
 Bitmap file-default and explicit data reads matched all 570,112 pixels across 329 renders. Reopening 24 saved packages matched another 203,520/203,520 pixels and reproduced each original buffer in both applications. One of the original packages was saved by the reference editor before the five direct renders. These measurements cover the generated files and the listed metadata. Other ICC profiles, palette transparency and file-default DDS remain unmeasured. All 790 release tests across the engine, evaluator, format and node crates passed, along with formatting, strict workspace Clippy, dependency layers and WebAssembly.
 
+### Finite HDR backgrounds in empty pattern graphs
+
+The literal background of an FX-Map supplies image samples. The previous parameter clamp limited all four channels to −16 through 17, before the renderer could store color or take the grayscale mean. With an empty quadrant and background (−64,192,−32,40), both apps now return those four F32 values in color mode and 32 in grayscale. Non-finite parameter components retain the usual parameter fallback.
+
+Set the quadrant pattern type to zero, omit the background image, and use a 16² output. Test the following backgrounds in both color modes, numbered from zero. For rows with one RGB level, repeat it on all three channels. The rows are (−128,−128,−128,1), (128,128,128,128), (−64,192,−32,40), (32768,−16384,8192,−4096), (−2²⁸,−2²⁸,−2²⁸,1), (2⁸⁰,2⁸⁰,2⁸⁰,1), (2¹²⁶,2¹²⁶,2¹²⁶,1), (2¹²⁷,2¹²⁷,2¹²⁷,1), (−2¹²⁷,2¹²⁷,−2¹²⁷,2¹²⁰) and (17,−16,16.5,−15.5). Use seed 570829 + 13 × row + color switch. Render each at U8, U16 and F32 and include F16 where every channel fits its finite range. For the all-positive 2¹²⁷ row, both applications store F32 word `7f800000` after the grayscale sum overflows, and 255 and 65535 in the two normalized formats.
+
+| Stored output | Original renders | Exact / total | Reopened renders | Exact / total | Maximum error |
+|---|---:|---:|---:|---:|---:|
+| LUM16 | 10 | 2,560/2,560 | 10 | 2,560/2,560 | 0 |
+| LUM16F | 5 | 1,280/1,280 | 5 | 1,280/1,280 | 0 |
+| LUM32F | 10 | 2,560/2,560 | 10 | 2,560/2,560 | 0 |
+| LUM8 | 10 | 2,560/2,560 | 10 | 2,560/2,560 | 0 |
+| RGBA16 | 10 | 2,560/2,560 | 10 | 2,560/2,560 | 0 |
+| RGBA16F | 5 | 1,280/1,280 | 5 | 1,280/1,280 | 0 |
+| RGBA32F | 10 | 2,560/2,560 | 10 | 2,560/2,560 | 0 |
+| RGBA8 | 10 | 2,560/2,560 | 10 | 2,560/2,560 | 0 |
+
+Across the 67 entirely finite earlier renders, 10,240/17,152 pixels had matched with a maximum F32 error of 1.70141183e+38. All 70 renders now match **17,920/17,920** pixels, including the infinity word. All 20 saved packages match **17,920/17,920** on reopening and regenerate the originals in both applications. The [wide grayscale bitmap stamp](#stored-coverage-before-grayscale-bitmap-stamp-opacity) improved from 1,536/1,792 to **1,792/1,792** across its seven settings, also exact on reopening. Its maximum is zero. The empty-background regression failed at the old parameter clamp. All 666 release tests in the node, evaluator and engine crates passed, along with formatting, strict workspace Clippy, dependency layers and WebAssembly. The [signed-zero empty-background comparisons](#stored-coverage-before-grayscale-bitmap-stamp-opacity) remain separate.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color

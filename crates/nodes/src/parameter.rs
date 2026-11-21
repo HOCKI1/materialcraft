@@ -42,8 +42,10 @@ pub fn clamp_params(definition: &NodeDefinition, params: &mut BTreeMap<String, V
         }
 
         if let Value::Color(components) = value {
+            // A pattern background supplies image samples, including signed HDR values.
+            let (lo, hi) = if (definition.id, parameter.id) == ("fx_map", "background") { (f32::MIN, f32::MAX) } else { (-HARD_SPAN, 1.0 + HARD_SPAN) };
             for component in components {
-                *component = clamp_finite(*component, -HARD_SPAN, 1.0 + HARD_SPAN, 0.0);
+                *component = clamp_finite(*component, lo, hi, 0.0);
             }
             continue;
         }

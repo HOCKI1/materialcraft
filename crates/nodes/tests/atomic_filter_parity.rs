@@ -1,5 +1,5 @@
 use craft_texture::{Image, Kind};
-use materialcraft_core::{Gradient, GradientKey, OutputFormat, Value};
+use materialcraft_core::{Gradient, GradientKey, OutputFormat, PatternGraph, PatternNodeKind, Value};
 use materialcraft_nodes::{CookContext, find, resolve_params};
 use std::collections::BTreeMap;
 
@@ -15,6 +15,23 @@ fn cook_format(id: &str, inputs: &[Option<Image>], values: &[(&str, Value)], siz
     let vars = BTreeMap::new();
     let context = CookContext { input_formats: &[], w: size[0], h: size[1], seed: 0, format, tile, inputs, params: &params, resource: &resource, vars: &vars };
     (definition.cook)(&context).unwrap().remove(0)
+}
+
+#[test]
+fn empty_pattern_uses_the_finite_background_before_grayscale_conversion() {
+    let mut pattern = PatternGraph::with_root(PatternNodeKind::Quadrant);
+    pattern.nodes[0].parameters.insert("patterntype".into(), Value::Int(0));
+    let render = |background, color| {
+        let values =
+            [("background", Value::Color(background)), ("color_mode", Value::Bool(color)), ("pattern", Value::PatternGraph(Box::new(pattern.clone())))];
+        cook("fx_map", &[], &values, [8, 8], true)
+    };
+
+    let background = [-64.0, 192.0, -32.0, 40.0];
+    assert_eq!(render(background, true).get(0, 0, false), background);
+    assert_eq!(render(background, false).get_gray(0, 0, false), 32.0);
+    let large = f32::from_bits(0x7f00_0000);
+    assert_eq!(render([large, large, large, 1.0], false).get_gray(0, 0, false), f32::INFINITY);
 }
 
 #[test]
