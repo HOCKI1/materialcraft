@@ -19,13 +19,14 @@ fn bitmap(context: &CookContext) -> CookResult {
     let name = context.text("resource");
     let image = match (context.resource)(&craft_texture::resource_key(name, context.i("colour_space") == 1)) {
         Some(image)
-            if image.kind() == Kind::Gray
-                && image.integer_sampling()
+            if image.integer_sampling()
+                && (image.kind() == Kind::Gray || context.b("color_mode"))
                 && (image.width(), image.height()) != (context.w, context.h)
                 && [image.width(), image.height(), context.w, context.h].into_iter().all(u32::is_power_of_two) =>
         {
             // Bitmap filtering clamps at the resource edge and stores each level at the node precision.
-            crate::resize_bound_image(image, (context.w, context.h), Kind::Gray, OutputFormat::U16, context.format, [false; 2])
+            let kind = image.kind();
+            crate::resize_bound_image(image, (context.w, context.h), kind, OutputFormat::U16, context.format, [false; 2])
         }
         Some(image) => image.resize(context.w, context.h, context.tile),
         None if name.is_empty() => context.gen_color(|u, v| {

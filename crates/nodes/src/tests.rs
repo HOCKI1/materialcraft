@@ -118,6 +118,33 @@ fn grayscale_bitmap_halving_stores_each_level_before_the_next_filter() {
 }
 
 #[test]
+fn linear_color_bitmap_filters_each_channel_at_stored_precision() {
+    use materialcraft_core::OutputFormat;
+
+    let definition = find("bitmap").unwrap();
+    let params = resolve_params(definition, &BTreeMap::from([("colour_space".into(), Value::Enum(1)), ("resource".into(), Value::Text("field".into()))]));
+    let level = |x, y| ((31 * x + 13 * y + 97 * x * y + 19) % 256) as f32 / 255.0;
+    let source = Image::generate(64, 32, Kind::Color, |x, y| [level(x, y), level(x, (y + 27) % 32), level((x + 55) % 64, y), level((x + 47) % 64, y)])
+        .with_integer_sampling(true);
+    let context = CookContext {
+        input_formats: &[],
+        format: OutputFormat::U16,
+        w: 64,
+        h: 16,
+        seed: 497109,
+        tile: true,
+        inputs: &[],
+        params: &params,
+        resource: &|_| Some(source.clone()),
+        vars: &BTreeMap::new(),
+    };
+    let result = (definition.cook)(&context).unwrap();
+    let stored = crate::output_precision::apply(result[0].clone(), context.format);
+    let levels = [(0, 0), (7, 3), (63, 15)].map(|(x, y)| stored.get(x, y, false).map(|v| (v * 65535.0).round() as u16));
+    assert_eq!(levels, [[6554, 30969, 44718, 45746], [32382, 31354, 40221, 28913], [21074, 46774, 47417, 19661]]);
+}
+
+#[test]
 fn nearest_transform_mip_keeps_the_last_column_of_an_odd_width_input() {
     let definition = find("transformation").unwrap();
     let mut params = resolve_params(definition, &BTreeMap::new());

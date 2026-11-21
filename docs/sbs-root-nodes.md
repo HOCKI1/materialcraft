@@ -47,6 +47,8 @@ Filtered F32 pixel reads now match 41,664/41,664 pixels across 150 renders. The 
 
 Odd-sized grayscale bitmap resources match 116,736/116,736 pixels directly and 90,112/90,112 across downstream sampling controls. [Bitmap and saved-package measurements](parity-fixes.md#original-channel-precision-of-odd-sized-grayscale-bitmap-resources)
 
+Linear RGBA bitmap resources match 108,544/108,544 pixels on two procedural fields. [Exact counts by format and saved-package results](parity-fixes.md#stored-levels-of-linear-color-bitmap-resources)
+
 Enlarged RGBA pattern backgrounds now match 71,680/71,680 pixels across 280 independent renders. The earlier source-storage tests still differ at 121 grayscale zero signs. [Background sign measurements](parity-fixes.md#signs-of-zero-in-enlarged-color-backgrounds)
 
 The 32²-to-16² signed threshold controls match 2,048/2,048 pixels. [Floating texture filter measurements](parity-fixes.md#signed-zero-in-floating-point-texture-filtering)

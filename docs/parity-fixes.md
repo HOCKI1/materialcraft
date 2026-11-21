@@ -384,6 +384,23 @@ The shuffled and affine tables each matched 87,040/87,040 pixels across 41 origi
 
 These measurements use the same lookup image in both applications. The separate [bundled lookup observations](#voronoi-distortion-and-shared-noise-inputs) include three distorted 32² cases that differ across all 3,072 F32 pixels with the default resources, maximum .205578864. With distortion disabled those 27 controls matched 146,688/146,688 pixels.
 
+### Stored levels of linear color bitmap resources
+
+Power-of-two linear RGBA bitmaps use the same clamped, stored levels as the [grayscale bitmap controls](#stored-levels-when-resizing-a-grayscale-bitmap-resource). Filtering each normalized channel this way fixes one-level differences on a single reduction and larger errors when resizing through several levels. At 64 × 32 to 64 × 16 the old evaluator differed on every U16 pixel of the byte field. At (0,0) the exact result is (6554, 30969, 44718, 45746).
+
+For the 64 × 32 byte field use A(x,y) = (31x + 13y + 97xy + 19) mod 256. Use A in red and periodic shifts of A by five rows, nine columns and seventeen columns in green, blue and alpha. Render the ten sizes in the [grayscale tests](#stored-levels-when-resizing-a-grayscale-bitmap-resource) at seed 497107 + j, with zero-based size index j. For an independent 32 × 64 word field use (ax + by + cxy + d) mod 65536 for each channel. The RGBA coefficient tuples are (583,191,371,3229), (47,313,59,4511), (31,693,41,8943) and (997,811,97,9043). Render at 32 × 64, 16², 16 × 64, 64 × 16, 64² and 32 × 128 with seed 520884 + j. Select linear color input in MaterialCraft and render all four formats.
+
+| Output | Renders | Exact before / total · maximum | Exact after / total · maximum |
+|---|---:|---:|---:|
+| RGBA8 | 16 | 24,168/27,136 · 84 | 27,136/27,136 · 0 |
+| RGBA16 | 16 | 15,291/27,136 · 21684 | 27,136/27,136 · 0 |
+| RGBA16F | 16 | 22,547/27,136 · 0.330810547 | 27,136/27,136 · 0 |
+| RGBA32F | 16 | 4,250/27,136 · 0.330882341 | 27,136/27,136 · 0 |
+
+The 64 original renders matched **108,544/108,544** pixels. The 24 saved renders matched **37,632/37,632** across applications and reproduced their originals in each application, maximum zero. The normalized-color regression failed on the previous evaluator and passed with the fix. Formatting, the node release suite, strict workspace Clippy, dependency layers and WebAssembly passed.
+
+The default interpretation of an untagged color source, color-to-grayscale conversion and odd-sized RGBA sources have separate comparisons. For example, the 29 × 47 linear byte field still differed in the six-resolution series.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color
