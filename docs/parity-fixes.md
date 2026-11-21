@@ -1950,6 +1950,50 @@ Across these 129 settings, the measured storage formats gave 6,593/6,593 U8 pixe
 
 The regression alternates .1 and .3 for 65,537 steps and checks both the returned sum and the assignment read afterward. The former evaluator exceeded its budget. A second test reads the sum inside both the term and the exit and reaches 12. Existing original loop controls retained 28/28 exact typed values and 10,240/10,240 exact pixels. All 424 node and evaluator release tests, formatting, strict workspace Clippy, dependency layers and WebAssembly passed.
 
+### Accumulating the first aligned pair in a sheared blur
+
+The four [color HQ blur differences](#sampling-both-passes-of-a-long-oblique-blur) trace to a horizontal window in the second blur branch. Its inverse shear at (161,11) combines rows 24 and 25 with weights 32/256 and 224/256. Repeating each displaced row down a separate image isolates the window from both shears. Row 24 gives alpha 117 in both applications. On row 25 the reference stores 116 and the previous window stores 117.
+
+A single directional blur reproduces the issue with thirteen U8 texels. At 256², repeat the levels 122, 108, 102, 106, 107, 117, 120, 123, 126, 125, 122, 121 and 119 in columns 155 through 167 of every row, and use zero elsewhere. Put the same level in each channel. At .4375 turns and intensity 6.579375267028809 the sampling window at column 161 starts with columns 167 and 166. Starting with the full texel before the fractional endpoint makes the endpoint product and addition round together. The normalized result before U8 storage moves from `3eea0000` to `3ee9ffff`. The byte moves from 117 to the measured 116. At strengths 6.578125 and 6.5859375 the target byte is 116 and 117 respectively. Across these three strengths and four formats, all 786,432 standalone pixels match, maximum zero.
+
+For independent direction and alignment checks, number the geometry j, channel c and field h from zero. Let i be the integer coordinate along the selected filter axis and L = (37i + 19i² + 71c + 3ic + 11j + 53h) mod 509. Supply (L−170)/256 at h = 0 and L/508 at h = 1 and 2 in F32. At h = 2 multiply by 1.125 where (x+y) mod 3 is zero and by .9375 elsewhere. Set intensity to 256r/min(W,H), with radius r as tabulated. For each geometry use all four output formats at h = 0 and 1, then F32 at h = 2 and a separate zero-intensity F32 control. Use seed 133651 + 43j + 7h.
+
+| Geometry series | Width × height, angle in turns, radius |
+|---|---|
+| Wider windows | (64 × 64, 0.4375, 6.5793753), (64 × 64, 0.1875, 6.5793753), (128 × 64, -0.078125, 8.1875), (64 × 128, -0.3125, 8.1875), (64 × 32, 0.09375, 4.59375), (32 × 64, 0.34375, 4.59375), (128 × 64, 0.390625, 12.8125), (64 × 128, 0.234375, 12.8125), (32 × 32, 0.125, 5.125), (32 × 32, -0.375, 13.625), (128 × 128, 0.046875, 17.3125), (64 × 128, -0.21875, 3.5625) |
+| Narrow projection on an elongated image | (32 × 256, 0.215, 3.375), (256 × 32, 0.035, 3.375), (32 × 256, 0.215, 6.5625), (256 × 32, 0.035, 6.5625), (32 × 256, -0.215, 9.5), (256 × 32, -0.035, 9.5) |
+
+For the wider windows, an independent reconstruction using the documented mip reduction and a single rounding on the first aligned pair predicts all 1,792/1,792 along-axis samples in the signed and nonnegative F32 stripe fields. Both orientations are included.
+
+| Direct control series | Settings | Earlier exact pixels / compared | Current exact pixels / compared | Current maximum by storage |
+|---|---:|---:|---:|---|
+| Twelve wider geometries | 120 | 712,734/716,800 | 716,800/716,800 | U8 0, U16 0, F16 0, F32 0 |
+| Six elongated geometries | 60 | 471,329/491,520 | 491,520/491,520 | U8 0, U16 0, F16 0, F32 0 |
+| Isolated alpha, repeated rows and thirteen-texel input | 57 | 3,722,565/3,735,552 | 3,735,549/3,735,552 | U8 0, U16 1, F16 0, F32 0 |
+| Six previous dense geometries | 36 | 420,798/442,368 | 426,356/442,368 | U8 0, U16 1, F16 0.00048828125, F32 1.78813934e-07 |
+
+The prior impulse controls retain 16,572,416/16,572,416 raw pixels in 493 renders. In the isolated alpha series the remaining three mismatches are one U16 level. The previous dense series still exposes F32 arithmetic differences on the 128 × 64 field at 81/2048 turns.
+
+For the complete roots, repeat the previous 110 settings. Then use H = ((61x + 37y + 13xy + 31⌊y/4⌋ + 67c + 11xc + 53j) mod 1021)/1020, with channel zero for grayscale. Round integer sources to the nearest level. At geometries 4 and 5 use 1.75H−.375. At each size compare all four output formats using seed 133771 + 61j.
+
+| j | Output size | Source size and storage | Intensity | Quality |
+|---:|---|---|---:|---:|
+| 0 | 64 × 128 | 32 × 64, F16 | default | default |
+| 1 | 256 × 128 | 256 × 128, U16 | 17.0625 | 1 |
+| 2 | 128 × 256 | 128 × 256, U8 | 20.59375 | 1 |
+| 3 | 256 × 256 | 128 × 256, U16 | 9.96875 | 1 |
+| 4 | 128 × 128 | 64 × 128, F32 | 14.28125 | 0 |
+| 5 | 32 × 256 | 32 × 128, F32 | 26.75 | 1 |
+| 6 | 256 × 32 | 128 × 32, U16 | 19.40625 | 1 |
+| 7 | 64 × 64 | 64 × 64, F16 | 0.0 | 1 |
+
+| Root (inventory index) | Distinct settings | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|---:|
+| Color HQ blur (55) | 142 | 1,163,264/1,163,264 · 0 | 1,626,112/1,626,112 · 0 | 1,048,576/1,048,576 · 0 | 1,649,920/1,649,920 · 0 |
+| Grayscale HQ blur (56) | 142 | 1,163,264/1,163,264 · 0 | 1,626,112/1,626,112 · 0 | 1,048,576/1,048,576 · 0 | 1,649,920/1,649,920 · 0 |
+
+Each root matches 5,487,872/5,487,872 original pixels. At the disputed root output the alpha is 157/255 in both applications. Each root also matches 4,241,408/4,241,408 pixels across 82 reopened settings, and both applications reproduced their respective original buffers. Maximum error is zero. The signed horizontal and vertical stripe checks and the thirteen-texel byte regression exercise the same window through normal node evaluation. The regression failed on the earlier build. All 425 node and evaluator release tests passed, along with formatting, strict workspace Clippy, dependency layers and WebAssembly.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color

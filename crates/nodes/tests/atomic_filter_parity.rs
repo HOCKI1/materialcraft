@@ -659,6 +659,33 @@ fn long_oblique_blur_centers_the_shear_at_texel_precision() {
 }
 
 #[test]
+fn oblique_blur_combines_the_first_aligned_endpoint_with_its_neighbor() {
+    for (horizontal, angle, offset, coordinate, expected) in [
+        (true, 0.4375, 0, 23, [0x3e1d_9977, 0x3ec0_5e22, 0x3f28_eb7d, 0xbdbf_8da3]),
+        (false, 0.1875, 11, 32, [0x3e08_bc44, 0x3eb8_9fb2, 0x3f06_7ce4, 0x3dd1_7889]),
+    ] {
+        let field = Image::generate(64, 64, Kind::Color, |x, y| {
+            let i = if horizontal { x } else { y };
+            std::array::from_fn(|channel| {
+                let c = channel as u32;
+                let level = (37 * i + 19 * i * i + 71 * c + 3 * i * c + offset) % 509;
+                (level as f32 - 170.0) / 256.0
+            })
+        });
+        let params = [("intensity", Value::Float(6.5793753 * 4.0)), ("angle", Value::Float(angle))];
+        let output = cook("directional_blur", &[Some(field)], &params, [64; 2], true);
+        assert_eq!(output.get(coordinate, coordinate, false).map(f32::to_bits), expected);
+    }
+
+    let levels = [122_u8, 108, 102, 106, 107, 117, 120, 123, 126, 125, 122, 121, 119];
+    let field = Image::gray(256, 256, |x, _| x.checked_sub(155).and_then(|i| levels.get(i as usize)).copied().map_or(0.0, |v| f32::from(v) / 255.0))
+        .with_integer_sampling(true);
+    let params = [("intensity", Value::Float(6.5793753)), ("angle", Value::Float(0.4375))];
+    let output = cook_format("directional_blur", &[Some(field)], &params, [256; 2], true, OutputFormat::U8);
+    assert_eq!(materialcraft_nodes::output_precision::apply(output, OutputFormat::U8).get_gray(161, 11, false), 116.0 / 255.0);
+}
+
+#[test]
 fn long_oblique_blur_samples_the_projected_shear_in_column_order() {
     for (size, horizontal, angle, strength, point, expected) in [
         ([128, 64], false, 213.0 / 2048.0, 19.5, [19, 30], [0x3b1a_ea75, 0x3d69_d155, 0x3dca_52bf, 0x3f80_0001]),

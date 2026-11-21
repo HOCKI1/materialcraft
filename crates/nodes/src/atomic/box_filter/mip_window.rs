@@ -97,15 +97,23 @@ pub(super) fn filter(input: &Image, reach: f32, horizontal: bool, tile: bool, so
     let windows: Vec<_> = (0..length)
         .map(|position| {
             let mut taps = window(position, length, reach, tile, edges);
-            if let Edges::Sheared(slope) = edges
-                && slope.fract() != 0.0
-            {
-                for tap in &mut taps {
-                    tap.wrap_sheared(length, slope);
-                }
-            }
             if horizontal {
                 taps.reverse();
+            }
+            if let Edges::Sheared(slope) = edges {
+                // In the first aligned pair the full texel starts the sum. Its fractional
+                // neighbor then contributes one fused multiply-add before the larger mip reads.
+                if let [first, second, ..] = taps.as_mut_slice()
+                    && let (Read::Texel { level: 0, position: a }, Read::Texel { level: 0, position: b }) = (&first.read, &second.read)
+                    && a.div_euclid(2) == b.div_euclid(2)
+                {
+                    std::mem::swap(first, second);
+                }
+                if slope.fract() != 0.0 {
+                    for tap in &mut taps {
+                        tap.wrap_sheared(length, slope);
+                    }
+                }
             }
             taps
         })
