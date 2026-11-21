@@ -261,7 +261,7 @@ pub(crate) fn cook_node(
         let format = upstream.unwrap_or(OutputFormat::F32);
         let external = if wired { None } else { crate::external_image::resize(&image, (w, h), kind, bitmap.unwrap_or(format), base.format) };
         let tiling = if wired { base.tiling } else { [false; 2] };
-        let output = external.unwrap_or_else(|| NodeOutput::Image(cook_bound_image(image, (w, h), kind, format, base.format, tiling)));
+        let output = external.unwrap_or_else(|| NodeOutput::Image(materialcraft_nodes::resize_bound_image(image, (w, h), kind, format, base.format, tiling)));
         Ok(vec![output])
     } else if node.def == materialcraft_core::MISSING_NODE {
         let name = if node.label.is_empty() { "this node" } else { node.label.as_str() };
@@ -336,30 +336,4 @@ fn wired_texture<'a>(options: &'a Options<'_>, bridge: &Node) -> Option<(&'a Ima
     let name = identifier(bridge);
     let image = options.inputs.get(&name)?;
     (!bridge.disabled && image.kind() == kind).then_some((image, *options.input_formats.get(&name)?))
-}
-
-fn cook_bound_image(mut image: Image, size: (u32, u32), kind: Kind, mut source_format: OutputFormat, output_format: OutputFormat, tiling: [bool; 2]) -> Image {
-    let next = |current: u32, target: u32| {
-        if current < target { current.saturating_mul(2).min(target) } else { current.div_ceil(2).max(target) }
-    };
-    loop {
-        if (image.width(), image.height()) != size {
-            image = materialcraft_nodes::resize_input_level(&image, next(image.width(), size.0), next(image.height(), size.1), source_format, tiling);
-        }
-        // The first filtered level supplies RGB for conversion. Later levels read the stored gray texels.
-        if image.kind() != kind {
-            image = match kind {
-                Kind::Gray => {
-                    let weight = 1.0 / 3.0;
-                    image.map(Kind::Gray, |p| [p[2].mul_add(weight, p[1].mul_add(weight, p[0] * weight)), 0.0, 0.0, 0.0])
-                }
-                Kind::Color => image.to_color(),
-            };
-        }
-        image = crate::output_precision::apply(image, output_format);
-        if (image.width(), image.height()) == size {
-            return image;
-        }
-        source_format = output_format;
-    }
 }

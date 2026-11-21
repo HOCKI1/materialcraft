@@ -272,6 +272,38 @@ For the eighth-turn controls orient the same 16-bit stripes perpendicular to eac
 
 In the two complete roots, 646 color and 130 grayscale pixels still differ across 78 distinct settings per root. All 3,489,792 original pixels in each application reproduced after reopening 60 saved settings per root, maximum zero. The residuals include longer oblique passes. The new release regression failed before this change and passed afterward. All 323 node release tests, formatting, strict workspace Clippy, dependency layers and WebAssembly checks passed.
 
+### Stored levels when resizing a grayscale bitmap resource
+
+The Bitmap node now filters power-of-two normalized grayscale resources at each factor-of-two step. It clamps at the resource edge and stores each intermediate level at the node's destination format. Bitmap and graph-input paths use the same level sampler. The previous Bitmap cook averaged the entire footprint in one pass for integer-ratio reductions and sampled the original image directly for enlargements.
+
+The 3D fractal Voronoi graph requests its lookup at 1024 × 1. Its original procedural input has 1024 columns and 16 rows. For U16, take successive vertical pairs, compute (a+b+1) div 2, and repeat until one row remains. On the shuffled table, 70/1,024 stored texels previously matched, maximum two levels. On the affine table, 95/1,024 matched, also within two levels. The earlier graph-output tests masked the affine-table differences.
+
+Use the [two procedural tables](#package-ownership-of-saved-function-calls), a second row shuffle using seed 1299709, and tables filled with zero or 32768. From the first shuffled table, also replace zeros with 64, clamp the maximum to 65471, take the 65535 complement, and replace each of the 16 rows in turn with the matching affine row. All 24 directly captured Bitmap outputs now match **24,576/24,576** U16 texels, maximum zero. For an independent check, generate a 1024 × 1 PNG from the repeated pair calculation and bind it in both applications. The preceding evaluator then reproduces every final pixel across the seven shuffled and three affine settings of each fractal Voronoi root, **7,168/7,168 per root**, maximum zero.
+
+For a two-column regression use four rows. Fill the columns with 0 and 1000 respectively and add one at the bottom of each column. Resizing to 2 × 1 U16 stores 1 and 1001. The previous evaluator stored 0 and 1000.
+
+For an independent Bitmap graph, generate U16 levels (573x+149y+97xy+317) mod 65536 at 64 × 32 and 32 × 64, and U8 levels (83x+151y+11xy+29) mod 256 at 64 × 32. A fourth 64 × 32 U16 image uses 514 floor(x/8), plus one where x mod 4 and y mod 4 are both 3. With grayscale output, render each at 64 × 32, 32², 64 × 16, 32 × 16, 16², 16 × 32, 16 × 64, 64², 128 × 16 and 32 × 64. Use all four formats. The seeds are 497107 + 41j + k, with field indices 0 for U16, 1 for U8, 2 for the transposed U16 field and 3 for the tie field, and zero-based resolution index k.
+
+| Output | Renders | Exact before / total · maximum | Exact after / total · maximum |
+|---|---:|---:|---:|
+| LUM8 | 40 | 55,322/58,368 · 85 | 58,368/58,368 · 0 |
+| LUM16 | 40 | 48,598/58,368 · 21884 | 58,368/58,368 · 0 |
+| LUM16F | 40 | 53,644/58,368 · 0.333984375 | 58,368/58,368 · 0 |
+| LUM32F | 40 | 23,985/58,368 · 0.33392936 | 58,368/58,368 · 0 |
+
+All **233,472/233,472** pixels match. The 3D fractal Voronoi root also now matches all **5,632/5,632** pixels on the seven shuffled-table settings, up from 5,475. The affine settings still match 1,536/1,536, and the 28 additional style, color-seed and distance controls match 25,088/25,088. All maxima are zero. Capturing the three displacement calls separately before this fix showed that their nine inputs (position, scale and offset for each call) already matched 46,080/46,080 F32 pixels across six settings.
+
+Repeat the two modular fields at 37 × 23, with field indices 4 and 5. These non-power-of-two Bitmap outputs have the following remaining differences. A graph input bound to the same PNG matched the complete reference Bitmap output in all 80 settings, 116,736/116,736 pixels across both files, maximum zero.
+
+| Output | Renders | Exact pixels / total · maximum |
+|---|---:|---:|
+| LUM8 | 20 | 15,093/29,184 · 85 |
+| LUM16 | 20 | 4,548/29,184 · 21878 |
+| LUM16F | 20 | 5,057/29,184 · 0.333740234 |
+| LUM32F | 20 | 16/29,184 · 0.333839174 |
+
+The new release regression failed before this change and passed afterward. All 324 node and 55 evaluator release tests passed, along with formatting, strict workspace Clippy, dependency layers and WebAssembly checks.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color

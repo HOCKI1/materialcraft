@@ -1,9 +1,37 @@
-use craft_texture::Image;
+use craft_texture::{Image, Kind};
 use materialcraft_core::OutputFormat;
 
 /// Resample one stored input level at destination pixel centers.
 pub fn resize_input_level(image: &Image, width: u32, height: u32, format: OutputFormat, tiling: [bool; 2]) -> Image {
     Image::generate_uv(width, height, image.kind(), |u, v| sample(image, [u, v], tiling, format, None))
+}
+
+/// Resize a raster through stored levels, converting its channels after the first sampling pass.
+pub fn resize_bound_image(mut image: Image, size: (u32, u32), kind: Kind, mut source: OutputFormat, output: OutputFormat, tiling: [bool; 2]) -> Image {
+    let size = craft_texture::clamp_size(size.0, size.1);
+    let next = |current: u32, target: u32| {
+        if current < target { current.saturating_mul(2).min(target) } else { current.div_ceil(2).max(target) }
+    };
+    loop {
+        if (image.width(), image.height()) != size {
+            image = resize_input_level(&image, next(image.width(), size.0), next(image.height(), size.1), source, tiling);
+        }
+        // Later levels read the stored channels, including any RGB-to-gray conversion.
+        if image.kind() != kind {
+            image = match kind {
+                Kind::Gray => {
+                    let weight = 1.0 / 3.0;
+                    image.map(Kind::Gray, |p| [p[2].mul_add(weight, p[1].mul_add(weight, p[0] * weight)), 0.0, 0.0, 0.0])
+                }
+                Kind::Color => image.to_color(),
+            };
+        }
+        image = crate::output_precision::apply(image, output);
+        if (image.width(), image.height()) == size {
+            return image;
+        }
+        source = output;
+    }
 }
 
 /// Value and pattern functions filter stored channel levels using full-precision texel fractions.

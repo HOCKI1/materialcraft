@@ -89,6 +89,35 @@ fn bilinear_transform_selects_and_stores_the_requested_mip_level() {
 }
 
 #[test]
+fn grayscale_bitmap_halving_stores_each_level_before_the_next_filter() {
+    use materialcraft_core::OutputFormat;
+
+    let definition = find("bitmap").unwrap();
+    let params = resolve_params(definition, &BTreeMap::from([("color_mode".into(), Value::Bool(false)), ("resource".into(), Value::Text("field".into()))]));
+    let source = Image::gray(2, 4, |x, y| {
+        let level = 1000 * x + u32::from(y == 3);
+        level as f32 / 65535.0
+    })
+    .with_integer_sampling(true);
+    let vars = BTreeMap::new();
+    let context = CookContext {
+        input_formats: &[],
+        format: OutputFormat::U16,
+        w: 2,
+        h: 1,
+        seed: 0,
+        tile: false,
+        inputs: &[],
+        params: &params,
+        resource: &|_| Some(source.clone()),
+        vars: &vars,
+    };
+    let result = (definition.cook)(&context).unwrap();
+    let stored = crate::output_precision::apply(result[0].clone(), context.format);
+    assert_eq!(stored.gray_data().unwrap(), [1.0 / 65535.0, 1001.0 / 65535.0]);
+}
+
+#[test]
 fn nearest_transform_mip_keeps_the_last_column_of_an_odd_width_input() {
     let definition = find("transformation").unwrap();
     let mut params = resolve_params(definition, &BTreeMap::new());
