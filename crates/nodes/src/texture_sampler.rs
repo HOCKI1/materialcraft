@@ -91,12 +91,27 @@ pub(crate) fn sample(image: &Image, uv: [f32; 2], tiling: [bool; 2], format: Out
     filter_taps(image, taps(image, uv, tiling), tiling, format, matte, std::convert::identity)
 }
 
-/// A filtered pixel read flushes F32 subnormals at the texels and again at the filter result.
-pub(crate) fn sample_pixel(image: &Image, uv: [f32; 2], format: OutputFormat, repeat: bool) -> [f32; 4] {
+/// Pixel functions address each coordinate before selecting or filtering texels.
+pub(crate) fn sample_pixel(image: &Image, uv: [f32; 2], format: OutputFormat, bilinear: bool, repeat: bool) -> [f32; 4] {
+    // A singular projection can invalidate just one axis. Repeats sample the seam,
+    // while a clamped positive infinity reaches the far edge.
+    let uv = uv.map(|v| {
+        if v.is_finite() {
+            v
+        } else if !repeat && v == f32::INFINITY {
+            1.0
+        } else {
+            0.0
+        }
+    });
+    if !bilinear {
+        return image.get((uv[0] * image.width() as f32).floor() as i64, (uv[1] * image.height() as f32).floor() as i64, repeat);
+    }
     let tiling = [repeat; 2];
-    if format != OutputFormat::F32 || !uv.iter().all(|v| v.is_finite()) {
+    if format != OutputFormat::F32 {
         return sample(image, uv, tiling, format, None);
     }
+    // Filtered F32 reads flush subnormals at the texels and again at the result.
     filter_taps(image, taps(image, uv, tiling), tiling, format, None, |pixel| pixel.map(crate::function::flush_subnormal))
 }
 
@@ -213,6 +228,34 @@ mod tests {
     use craft_texture::{Image, Kind};
     use materialcraft_core::{FunctionGraph, Value};
     use std::collections::BTreeMap;
+
+    #[test]
+    fn pixel_texture_reads_address_each_nonfinite_coordinate_independently() {
+        let field = Image::generate(16, 16, Kind::Color, |x, y| [(x + 1) as f32 / 64.0, (y + 1) as f32 / 64.0, 0.5, 1.0]);
+        let images = [Some(field)];
+        let filtered_row = 11.3125 / 64.0;
+        for (mode, edge, row) in [(0, 0.015625, 0.171875), (1, 0.1328125, filtered_row), (2, 0.015625, 0.171875), (3, 0.015625, filtered_row)] {
+            let mut graph = FunctionGraph::default();
+            let uv = graph.add("get_float2", &[], Some(Value::Text("uv".into())));
+            graph.output = Some(graph.add("samplecol", &[uv], Some(Value::Int2([0, mode]))));
+            let program = compile(&graph, 0).unwrap();
+            for value in [f32::NEG_INFINITY, f32::NAN, f32::INFINITY] {
+                let vars = BTreeMap::from([("uv".into(), Value::Float2([value, 0.67578125]))]);
+                let context = EvaluationContext {
+                    scope: FunctionScope::PixelProcessor,
+                    position: [0.5; 2],
+                    size: [16.0; 2],
+                    images: &images,
+                    image_formats: &[materialcraft_core::OutputFormat::F32],
+                    tile: true,
+                    variables: &vars,
+                };
+                let sampled = program.evaluate(&context, &mut EvaluationState::default()).unwrap();
+                let edge = if mode >= 2 && value == f32::INFINITY { 0.25 } else { edge };
+                assert_eq!(sampled, Value::Float4([edge, row, 0.5, 1.0]), "{value} in mode {mode}");
+            }
+        }
+    }
 
     #[test]
     fn floating_texture_filter_preserves_negative_zero_when_every_active_tap_has_its_sign() {

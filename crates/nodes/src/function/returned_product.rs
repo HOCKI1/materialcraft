@@ -39,8 +39,8 @@ pub(super) struct Term {
 
 pub(super) type Sum = [Option<Term>; 4];
 
-pub(super) fn evaluate_sum(terms: &Sum, arguments: &[Value], state: &EvaluationState) -> Result<Value, String> {
-    let [left, right] = arguments else { return Err("missing addition operands".into()) };
+pub(super) fn evaluate_sum(terms: &Sum, arguments: &[Value], subtract: bool, state: &EvaluationState) -> Result<Value, String> {
+    let [left, right] = arguments else { return Err("missing sum operands".into()) };
     let width = value_type::dimensions(left);
     if width != value_type::dimensions(right) {
         return Err("float operands must have the same dimensions".into());
@@ -54,17 +54,26 @@ pub(super) fn evaluate_sum(terms: &Sum, arguments: &[Value], state: &EvaluationS
             let [i, j] = term.source.components;
             let a = flush_subnormal(*value_type::floats(a)?.get(i).ok_or("invalid product component")?);
             let b = flush_subnormal(*value_type::floats(b)?.get(j).ok_or("invalid product component")?);
-            let addend = if term.on_right { left } else { right };
+            let a = if subtract && term.on_right { -a } else { a };
+            let addend = if term.on_right {
+                left
+            } else if subtract {
+                -right
+            } else {
+                right
+            };
             match term.source.operation {
                 Operation::Multiply => a.mul_add(b, addend),
                 Operation::Divide { literal_divisor } => super::reciprocal::divide_add(a, b, addend, literal_divisor),
             }
+        } else if subtract {
+            left - right
         } else {
             left + right
         };
         *output = flush_subnormal(sum);
     }
-    value_type::intermediate_float_value(result.get(..width).ok_or("invalid addition dimensions")?)
+    value_type::intermediate_float_value(result.get(..width).ok_or("invalid sum dimensions")?)
 }
 
 pub(super) type Lanes = [Option<Source>; 4];
@@ -129,7 +138,7 @@ pub(super) fn identify(program: &mut Program, mut returned: BTreeMap<usize, Lane
             }
         }
         let width = float_width(op.type_code);
-        if op.definition.id == "add"
+        if matches!(op.definition.id, "add" | "sub")
             && width > 0
             && op.pixel_product_sum.is_none()
             && let &[left, right] = op.inputs.as_slice()

@@ -41,7 +41,7 @@ impl ProductSum {
 
     pub(super) fn evaluate(&self, arguments: &[Value], subtract: bool, state: &EvaluationState) -> Result<Value, String> {
         if let Some(Retained::Lanes(terms)) = self.retained.as_deref() {
-            return super::returned_product::evaluate_sum(terms, arguments, state);
+            return super::returned_product::evaluate_sum(terms, arguments, subtract, state);
         }
         let passed;
         let (a, b, c, blend, subtract) = if let Some(Retained::Argument { source, addend, subtract }) = self.retained.as_deref() {

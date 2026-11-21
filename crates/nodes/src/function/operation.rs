@@ -152,12 +152,12 @@ pub(super) fn evaluate(
                     let format = context.image_formats.get(index).copied().unwrap_or(materialcraft_core::OutputFormat::F32);
                     crate::texture_sampler::sample_uniform(image, [position[0], position[1]], format, bilinear, repeat)
                 }
-                Some(image) if !bilinear => {
-                    image.get((position[0] * image.width() as f32).floor() as i64, (position[1] * image.height() as f32).floor() as i64, repeat)
-                }
                 Some(image) if context.scope == super::FunctionScope::PixelProcessor => {
                     let format = context.image_formats.get(index).copied().unwrap_or(materialcraft_core::OutputFormat::F32);
-                    crate::texture_sampler::sample_pixel(image, [position[0], position[1]], format, repeat)
+                    crate::texture_sampler::sample_pixel(image, [position[0], position[1]], format, bilinear, repeat)
+                }
+                Some(image) if !bilinear => {
+                    image.get((position[0] * image.width() as f32).floor() as i64, (position[1] * image.height() as f32).floor() as i64, repeat)
                 }
                 Some(image) => image.sample_stored(position[0], position[1], context.tile),
                 None => [0.0; 4],

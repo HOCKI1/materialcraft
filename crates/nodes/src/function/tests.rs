@@ -557,6 +557,31 @@ fn adding_selected_quotient_lanes_contracts_the_left_unshared_lane() {
 }
 
 #[test]
+fn subtracting_selected_products_keeps_the_operand_signs() {
+    let variables = BTreeMap::new();
+    let context = EvaluationContext {
+        scope: super::FunctionScope::PixelProcessor,
+        position: [0.15625, 0.03125],
+        size: [16.0; 2],
+        images: &[],
+        image_formats: &[],
+        tile: true,
+        variables: &variables,
+    };
+    let mut graph = FunctionGraph::default();
+    let position = graph.add("get_float2", &[], Some(Value::Text("$pos".into())));
+    let factors = graph.add_constant(Value::Float2([3.6123412, -0.7187911]));
+    let product = graph.add("mul", &[position, factors], None);
+    let x = graph.add("swizzle1", &[product], Some(Value::Int(0)));
+    let y = graph.add("swizzle1", &[product], Some(Value::Int(1)));
+    for (terms, expected) in [([x, y], 0x3f16_3e75), ([y, x], 0xbf16_3e76), ([x, x], 0)] {
+        graph.output = Some(graph.add("sub", &terms, None));
+        let pixel = compile(&graph, 0).unwrap().evaluate_pixel(&context, &mut EvaluationState::default()).unwrap();
+        assert_eq!(pixel, Value::Float(f32::from_bits(expected)));
+    }
+}
+
+#[test]
 fn pixel_product_sum_through_packed_lanes_and_calls_keeps_other_reads() {
     let [a, b, c] = [0xbfd8_e681, 0xc03e_5cec, 0xc05f_9255].map(f32::from_bits);
     let variables = ["a", "b", "c"].into_iter().map(str::to_owned).zip([a, b, c].map(Value::Float)).collect();
