@@ -1033,6 +1033,36 @@ Waveform v2 remains in progress. Its original 54 settings matched 313,088/313,08
 
 For the previously isolated pattern branches, repeat the [authored shape and disc comparison](#tile-weave-splatter-and-fiber-stage-comparisons) on the same revision. Starburst matched 2,816/2,816 pixels. Both tile generators matched 9,728/9,728 each. Each pair of branches spans 12 renders, maximum zero.
 
+### Independent rectangular directional weights at 96 angles
+
+Extend the [110-angle projection comparison](#directional-blur-weights-across-110-angles-and-two-projection-axes) with an original graph containing 16 parallel directional filters per batch. Use F32 RGB inputs. Red is one on the center column, green is one on the center row, and both are zero elsewhere. Blue is ((43x+83y+5xy+631739) mod 257)/256. Render 16 × 64 and 64 × 16, keeping the input dimensions equal to the output. At each size use projected extents E = .3125, .5, .734375, .953125 and 1, with intensity 4(E+.5). Use seed 723371 + 17b + 5j + k, with batch b, size j and extent k numbered from zero. Each parallel branch has one of the following angles in turns, written as an integer divided by 65536.
+
+| Batch | Rotation numerators |
+|---:|---|
+| 0 | 3072, 5888, 13312, 16346, 5184, -25536, 8192, 2048, -80877, 71395, -2101, 90555, -33773, 30203, -19725, -76869 |
+| 1 | 69387, -76749, 79499, -57381, -24789, 39659, -87589, -27805, -49485, 59227, 44371, 85075, 23059, -42893, 95227, 55107 |
+| 2 | -55373, -8709, 41123, -51389, 45515, -60045, -88645, 7699, -7213, -95869, 5083, -20021, 21763, 69371, 2011, 26227 |
+| 3 | 1107, 6819, 43435, -13781, -13413, 14307, 79835, 67699, -71461, -11597, -86909, 37827, 96955, 83763, -15501, -32773 |
+| 4 | 62099, -48677, -42773, -5733, 21755, -77061, 79883, -3117, 34819, 87955, 67979, -30597, -24501, 78011, 42163, 42563 |
+| 5 | -84757, 53675, -70437, 81203, 15603, -94477, 82307, -39221, 12667, 97387, 51355, 23635, 70707, -76389, -54429, -56853 |
+
+The earlier center-and-neighbor coefficient test gives a nonempty interval for every axis. The current projected coefficient satisfies the observed F32 rounding bounds on 178/192 axes. The full RGB comparison includes the modular blue field and compares all three components together.
+
+| Size | Extent | Branch renders | Exact pixels / compared | Maximum F32 error |
+|---|---:|---:|---:|---:|
+| 16 × 64 | 0.3125 | 96 | 92,617/98,304 | 1.1920929e-07 |
+| 16 × 64 | 0.5 | 96 | 92,990/98,304 | 1.1920929e-07 |
+| 16 × 64 | 0.734375 | 96 | 94,126/98,304 | 1.78813934e-07 |
+| 16 × 64 | 0.953125 | 96 | 94,662/98,304 | 1.1920929e-07 |
+| 16 × 64 | 1 | 96 | 91,300/98,304 | 1.1920929e-07 |
+| 64 × 16 | 0.3125 | 96 | 95,530/98,304 | 1.1920929e-07 |
+| 64 × 16 | 0.5 | 96 | 95,941/98,304 | 1.1920929e-07 |
+| 64 × 16 | 0.734375 | 96 | 96,211/98,304 | 1.1920929e-07 |
+| 64 × 16 | 0.953125 | 96 | 94,853/98,304 | 1.1920929e-07 |
+| 64 × 16 | 1 | 96 | 95,702/98,304 | 1.1920929e-07 |
+
+The 960 original branch renders matched **943,932/983,040** pixels, maximum 1.78813934e-07. Save each graph in MaterialCraft, reopen it in both applications, and repeat the first and last extent at both sizes. Across the 384 reopened branch renders, **375,149/393,216** pixels matched across applications, maximum 1.1920929e-07. Each application reproduced every pixel of its own original outputs. The color and grayscale HQ blur roots remain in progress with their previous 78-setting whole-root counts.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color
