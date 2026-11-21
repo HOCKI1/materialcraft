@@ -960,6 +960,79 @@ For the second series keep both inputs fixed at 64 × 32. Set t = (floor(x/8) + 
 
 Across the 59 distinct whole-root settings all **15,104/15,104** palette entries matched, maximum zero. With the second input pair held fixed, 460 entries across the eight changed F32 settings differed from the default output. Save the package in MaterialCraft and reopen it in both applications for all 20 seven-size renders and all 15 fixed-input renders. Save it a second time and repeat F32 at all seven sizes plus U8, U16 and F16 at 64². All **11,520/11,520** entries matched across the 45 reopened renders, maximum zero. Each application also reproduced its own original buffers.
 
+### Reopened starburst, symmetry, tile and waveform graphs
+
+Repeat the original whole-graph measurements for the six roots on revision `02d910f`, including the archived defaults, stage controls and four 64² output formats. Count a pixel when every stored channel matches. The first independent series uses the [seven dimensions, formats, modular field and seed formula](#modifying-a-256-entry-color-palette) from the palette comparison. Use the modular field for every image input with its declared gray or RGBA channels. Use graph defaults at 16² and 16 × 64, with inputs disconnected at 16² and a 32 × 16 source for every input at 16 × 64. At 64² connect only the second alphabetical image pin when there are multiple pins, or the sole pin otherwise. At the remaining sizes connect every pin. Use the controls below in the same order for both tile generators.
+
+| Root | Control | 64 × 32 | 32 × 128 | 64² | 128 × 32 | 128² |
+|---|---|---:|---:|---:|---:|---:|
+| Starburst | Branches | 7 | 11 | 9 | 13 | 10 |
+| Starburst | BlurAmount | 1.515625 | 2.78125 | 2.03125 | 3.484375 | 3.0625 |
+| Starburst | Randomness | 0.171875 | 0.59375 | 0.34375 | 0.828125 | 0.6875 |
+| Starburst | SizeMin | 0.10546875 | 0.2109375 | 0.1484375 | 0.26953125 | 0.234375 |
+| Starburst | SizeMax | 0.967773438 | 0.888671875 | 0.935546875 | 0.844726562 | 0.87109375 |
+| Starburst | SizeVariation | 0.0859375 | 0.296875 | 0.171875 | 0.4140625 | 0.34375 |
+| Starburst | Tiling | 1 | 2 | 3 | 1 | 3 |
+| Symmetry Slice | Symmetry_Mode | 0 | 1 | 2 | 0 | 2 |
+| Symmetry Slice | Transfer_Mode | 0 | 1 | 0 | 1 | 1 |
+| Symmetry Slice | Blend | 0.171875 | 0.59375 | 0.34375 | 0.828125 | 0.6875 |
+| Symmetry Slice | Flip_Side | on | off | on | off | off |
+| Symmetry Slice | Flip_Side2 | off | on | off | off | off |
+| Both tile generators | Nb_X | 3 | 7 | 5 | 9 | 6 |
+| Both tile generators | Nb_Y | 2 | 3 | 4 | 5 | 3 |
+| Both tile generators | Scale | 0.794921875 | 1.05859375 | 0.90234375 | 1.20507812 | 1.1171875 |
+| Both tile generators | ScaleVariation | 0.064453125 | 0.22265625 | 0.12890625 | 0.310546875 | 0.2578125 |
+| Both tile generators | Offset | -0.21875 | 0.15625 | 0.078125 | -0.34375 | 0.3046875 |
+| Both tile generators | Pattern_Type | 1 | 3 | 6 | 1 | 9 |
+| Both tile generators | image_input_filtering | 0 | 1 | 2 | 0 | 2 |
+| Both tile generators | Free_Rotation | -0.21875 | 0.15625 | 0.078125 | -0.34375 | 0.3046875 |
+| Both tile generators | Position_Random | (0.0537109375, 0.0268554688) | (0.185546875, 0.0927734375) | (0.107421875, 0.0537109375) | (0.258789062, 0.129394531) | (0.21484375, 0.107421875) |
+| Both tile generators | GlobalOpacity | 0.626953125 | 0.78515625 | 0.69140625 | 0.873046875 | 0.8203125 |
+| Waveform v2 | samples | 24 | 56 | 40 | 72 | 48 |
+| Waveform v2 | function | 0 | 1 | 2 | 0 | 2 |
+| Waveform v2 | roughness | 0.171875 | 0.59375 | 0.34375 | 0.828125 | 0.6875 |
+| Waveform v2 | scale | 3 | 7 | 5 | 9 | 6 |
+| Waveform v2 | amplitude_min | 0.125976562 | 0.205078125 | 0.158203125 | 0.249023438 | 0.22265625 |
+| Waveform v2 | amplitude_max | 0.978515625 | 0.92578125 | 0.95703125 | 0.896484375 | 0.9140625 |
+| Waveform v2 | noise | 0.0859375 | 0.296875 | 0.171875 | 0.4140625 | 0.34375 |
+| Waveform v2 | pattern | 1 | 3 | 6 | 5 | 4 |
+| Waveform v2 | pattern_variation | 0.12890625 | 0.4453125 | 0.2578125 | 0.62109375 | 0.515625 |
+| Waveform v2 | disorder | 0.171875 | 0.59375 | 0.34375 | 0.828125 | 0.6875 |
+| Waveform v2 | disorder_speed | 0.53515625 | 0.8515625 | 0.6640625 | 1.02734375 | 0.921875 |
+| Waveform 1 | Samples | 24 | 56 | 40 | 72 | 48 |
+| Waveform 1 | SizeMin | 0.07421875 | 0.1796875 | 0.1171875 | 0.23828125 | 0.203125 |
+| Waveform 1 | SizeMax | 0.947265625 | 0.89453125 | 0.92578125 | 0.865234375 | 0.8828125 |
+| Waveform 1 | WaveNumber | 3 | 7 | 5 | 9 | 6 |
+| Waveform 1 | Noise | 0.171875 | 0.59375 | 0.34375 | 0.828125 | 0.6875 |
+| Waveform 1 | Pattern | 1 | 3 | 6 | 5 | 4 |
+
+For the second series keep the source fields fixed. Use W × H = 64 × 32 for odd inventory indices and 32 × 64 for even indices. Number image pins m alphabetically from zero and channels a from zero. Define S = 744019 + 47i for inventory index i. Set A to ((17+2a)x + (43+6a)y + 5xy + S + 29m + 89a) mod 257. Set B to one where (3x+11y+7a) mod 13 < 4 and zero elsewhere. Write .75A/256 + .25B in F32, setting the pixel at x = (floor(W/2)+3a) mod W and y = floor(H/3) to one in each channel. Connect every declared image input throughout.
+
+Render defaults at seeds 0 and 42. At seed 42 change one control at a time in the order below. Then swap the output width and height while keeping the original source dimensions. Render defaults at seed 42 and a final combined setting at seed S. For the combined setting use the last tested value of each control. Compare F32 at all ten settings. Add U8, U16 and F16 for the original seed-42 default and the final combined setting.
+
+| Root | Individual settings in order |
+|---|---|
+| Starburst | `Branches` = 5, `Branches` = 17, `BlurAmount` = 0.5, `Randomness` = 0.875, `SizeMin` = 0.1875, `Tiling` = 3 |
+| Symmetry Slice | `Symmetry_Mode` = 1, `Symmetry_Mode` = 2, `Transfer_Mode` = 1, `Blend` = 0.625, `Flip_Side` = on, `Flip_Side2` = on |
+| Both tile generators | `Nb_X` = 5, `Nb_Y` = 3, `Pattern_Type` = 1, `Pattern_Type` = 7, `Free_Rotation` = 0.1875, `image_input_filtering` = 2 |
+| Waveform v2 | `samples` = 48, `function` = 2, `roughness` = 0.3125, `pattern` = 7, `disorder` = 0.8125, `disorder_speed` = 0.4375 |
+| Waveform 1 | `Samples` = 48, `SizeMin` = 0.21875, `SizeMax` = 0.6875, `WaveNumber` = 5, `Noise` = 0.5625, `Pattern` = 7 |
+
+| Root (inventory index) | Distinct settings | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|---:|
+| Starburst (509) | 55 | 31,744/31,744 · 0 | 156,416/156,416 · 0 | 33,792/33,792 · 0 | 62,464/62,464 · 0 |
+| Symmetry Slice (516) | 54 | 149,504/149,504 · 0 | 44,288/44,288 · 0 | 34,816/34,816 · 0 | 84,480/84,480 · 0 |
+| Tile Generator (520) | 55 | 31,744/31,744 · 0 | 156,416/156,416 · 0 | 33,792/33,792 · 0 | 62,464/62,464 · 0 |
+| Tile Generator Color (521) | 55 | 31,744/31,744 · 0 | 156,416/156,416 · 0 | 33,792/33,792 · 0 | 62,464/62,464 · 0 |
+| Waveform v2 (535) | 54 | 149,504/149,504 · 0 | 44,288/44,288 · 0 | 34,816/34,816 · 0 | 84,480/84,480 · 0 |
+| Waveform 1 (536) | 54 | 34,816/34,816 · 0 | 158,976/158,976 · 0 | 34,816/34,816 · 0 | 84,480/84,480 · 0 |
+
+Across 327 distinct settings the six roots matched **1,792,512/1,792,512** pixels, maximum zero. Save each graph in MaterialCraft and reopen it in both applications. Repeat the complete seven-size series, then save a second time and repeat F32 at all seven sizes plus U8, U16 and F16 at 64². For the fixed-field series repeat all ten F32 settings plus U8, U16 and F16 at the final combined setting after a save. Starburst, Symmetry Slice, both tile generators and Waveform 1 each matched 179,968/179,968 reopened pixels. Across their 215 reopened renders, **899,840/899,840** pixels matched across applications and reproduced the respective original buffers, maximum zero.
+
+Waveform v2 remains in progress. Its original 54 settings matched 313,088/313,088 pixels. Its 43 saved renders matched **167,194/179,968** across applications. In the disconnected 16² default, 158/256 pixels matched after a save in both U16 and F32, with maxima 65,535 and 1 respectively. MaterialCraft reproduced every one of its original buffers. In the reference app the first save changed six of the 20 seven-size renders and seven of the 13 fixed-field renders. Both applications reproduced their own first-save outputs after a second save in the ten repeated settings.
+
+For the previously isolated pattern branches, repeat the [authored shape and disc comparison](#tile-weave-splatter-and-fiber-stage-comparisons) on the same revision. Starburst matched 2,816/2,816 pixels. Both tile generators matched 9,728/9,728 each. Each pair of branches spans 12 renders, maximum zero.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color
