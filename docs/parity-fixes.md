@@ -558,6 +558,30 @@ At 256² with defaults and seed 0, repeat the original Fur 2 six times at each o
 | U16 | 5 | 65,523 · 1 | 65,532 | 4 | 1 |
 | F32 | 6 | 58,730 · 1.1920929e-07 | 61,980 | 3,494 | 1.1920929e-07 |
 
+### Gaussian generators and spots through 1024 pixels per side
+
+The totals below count distinct combinations of dimensions, seed, public parameter values and final storage. They include the earlier default, changed, precision and independent captures and the new 28 and 38 settings. For settings observed twice, the table retains the first capture in the precision, independent, targeted and archived comparison order. MaterialCraft reproduced every original pixel after saving and reopening each package in both new series (498,688 and 8,654,848 pixels per root). The final column gives the reference’s original-versus-reopened counts for those same series.
+
+| Root (inventory index) | Distinct settings | U8 exact/total · max | U16 exact/total · max | F16 exact/total · max | F32 exact/total · max | Reference reopen, 28 and 38 settings |
+|---|---:|---:|---:|---:|---:|---:|
+| Gaussian 1 (160) | 82 | 1,571,072/1,571,072 · 0 | 3,054,848/3,054,848 · 0 | 1,571,072/1,571,072 · 0 | 3,045,888/3,045,888 · 0 | 498,688 and 8,654,848 |
+| Gaussian 2 (161) | 82 | 1,571,072/1,571,072 · 0 | 3,054,848/3,054,848 · 0 | 1,571,072/1,571,072 · 0 | 3,045,888/3,045,888 · 0 | 498,688 and 8,654,848 |
+| Gaussian Spots 1 (162) | 73 | 1,566,976/1,566,976 · 0 | 3,050,752/3,050,752 · 0 | 1,566,976/1,566,976 · 0 | 3,019,008/3,019,008 · 0 | 498,688 and 8,654,848 |
+| Gaussian Spots 2 (163) | 85 | 1,568,000/1,568,000 · 0 | 3,061,612/3,062,016 · 1 | 1,567,963/1,568,000 · 0.00048828125 | 2,488,240/3,052,032 · 1.78813934e-07 | 483,541 and 8,258,387 |
+
+Use the dimensions, storage selections, seeds, d values and defaults in the two Fibers 1 matrices. [Full render settings](#fibers-1-and-fluid-through-1024-pixels-per-side)
+
+Gaussian 1 and 2 use the listed tiling values. Both spots roots use disorder d for the changed cases.
+
+Gaussian Spots 2 had differing exact counts on 2 duplicate settings. At 256² with defaults and seed 0 the two U16 captures gave 65,528 and 65,533 of 65,536. At 128² with seed 42 they gave 16,379 and 16,381 of 16,384.
+
+At 256² with defaults and seed 0, repeat the original Gaussian Spots 2 six times at each of U16 and F32. Each image contains 65,536 pixels.
+
+| Storage | Distinct reference images | Exact against first · maximum error | Exact against any at that pixel | Outside reference range | Maximum distance outside range |
+|---|---:|---:|---:|---:|---:|
+| U16 | 6 | 65,532 · 1 | 65,535 | 1 | 1 |
+| F32 | 5 | 53,871 · 1.1920929e-07 | 61,912 | 3,565 | 1.1920929e-07 |
+
 ### Fibers 1 and Fluid through 1024 pixels per side
 
 Fibers 1 matched 9,430,272/9,430,272 final pixels across 87 distinct combinations of dimensions, seed, parameter values and storage. Fluid matched 9,428,962/9,430,272 on the same matrix. The 655 differing locations in the 512×1024 Fluid render affect both the U16 and F32 outputs. Each application reproduced its original pixels when reopening the MaterialCraft package in the new 28 and 38 settings (498,688 and 8,654,848 pixels per root).

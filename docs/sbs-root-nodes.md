@@ -35,7 +35,7 @@ A graph may accept input pins and still be a root under the dependency criterion
 
 Statuses: **Not checked**, **In progress**, **Parity** (exact pixels or typed values for the linked measured cases), or **Too hard** (reason recorded). Function calls do not count as regular graph dependencies.
 
-The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **395 Parity**, **151 In progress** and **0 Too hard**. The November 17–20 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons) · [November 19 measurements](parity-fixes.md#2026-11-19-root-comparisons) · [November 20 measurements](parity-fixes.md#2026-11-20-root-comparisons)
+The first pass covered all **546 roots**, with **166 Parity** and **380 Too hard**. The current inventory has **398 Parity**, **148 In progress** and **0 Too hard**. The November 17–20 comparisons include raw counts, output formats and remaining differences. [November 17 measurements](parity-fixes.md#2026-11-17-root-comparisons) · [November 18 measurements](parity-fixes.md#2026-11-18-root-comparisons) · [November 19 measurements](parity-fixes.md#2026-11-19-root-comparisons) · [November 20 measurements](parity-fixes.md#2026-11-20-root-comparisons)
 
 [Pattern tiling axes and copy bounds across 215 renders](parity-fixes.md#tiling-axes-and-pattern-copy-bounds) · [Grayscale sampler measurements](parity-fixes.md#grayscale-sampling-of-color-inputs) · [Value sampling across 240 typed comparisons](parity-fixes.md#value-processor-texture-filtering) · [Five saved graphs reopened in the reference](parity-fixes.md#saved-filter-graphs-and-scalar-levels-controls)
 
@@ -259,10 +259,10 @@ Creased matches 10,947,840/10,947,840 pixels across 100 distinct settings throug
 | [fur_3.sbs/fur_3](../assets/sbs/fur_3.sbs) | 0 | Yes | [Parity · 9,250,048/9,250,048 pixels across 85 distinct settings](parity-fixes.md#fur-across-two-rectangular-render-series) |
 | [fur_4.sbs/fur_4](../assets/sbs/fur_4.sbs) | 0 | Yes | [Parity · 9,250,048/9,250,048 pixels across 85 distinct settings](parity-fixes.md#fur-across-two-rectangular-render-series) |
 | [fxaa.sbs/fxaa_grayscale](../assets/sbs/fxaa.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
-| [gaussian_1.sbs/gaussian_1](../assets/sbs/gaussian_1.sbs) | 0 | Yes | [In progress · 168,522/171,264 pixels across 18 renders](parity-fixes.md#radial-stamp-profiles-and-pattern-generators) |
-| [gaussian_2.sbs/gaussian_2](../assets/sbs/gaussian_2.sbs) | 0 | Yes | [In progress · 169,796/171,264 pixels across 18 renders](parity-fixes.md#radial-stamp-profiles-and-pattern-generators) |
-| [gaussian_spots_1.sbs/gaussian_spots_1](../assets/sbs/gaussian_spots_1.sbs) | 0 | Yes | [In progress · 1,573/132,096 pixels across 9 renders](parity-fixes.md#radial-stamp-profiles-and-pattern-generators) |
-| [gaussian_spots_2.sbs/gaussian_spots_2](../assets/sbs/gaussian_spots_2.sbs) | 0 | Yes | [In progress · 137,856/178,432 exact pixels · first difference in FX-Map](parity-fixes.md#gaussian-pattern-sources-and-repeat-limits) |
+| [gaussian_1.sbs/gaussian_1](../assets/sbs/gaussian_1.sbs) | 0 | Yes | [Parity · 9,242,880/9,242,880 pixels across 82 distinct settings](parity-fixes.md#gaussian-generators-and-spots-through-1024-pixels-per-side) |
+| [gaussian_2.sbs/gaussian_2](../assets/sbs/gaussian_2.sbs) | 0 | Yes | [Parity · 9,242,880/9,242,880 pixels across 82 distinct settings](parity-fixes.md#gaussian-generators-and-spots-through-1024-pixels-per-side) |
+| [gaussian_spots_1.sbs/gaussian_spots_1](../assets/sbs/gaussian_spots_1.sbs) | 0 | Yes | [Parity · 9,203,712/9,203,712 pixels across 73 distinct settings](parity-fixes.md#gaussian-generators-and-spots-through-1024-pixels-per-side) |
+| [gaussian_spots_2.sbs/gaussian_spots_2](../assets/sbs/gaussian_spots_2.sbs) | 0 | Yes | [In progress · 8,685,815/9,250,048 pixels across 85 distinct settings](parity-fixes.md#gaussian-generators-and-spots-through-1024-pixels-per-side) |
 | [glow.sbs/clamp](../assets/sbs/glow.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [gradient_axial.sbs/gradient_axial](../assets/sbs/gradient_axial.sbs) | 0 | No | [Parity · 15 cases, 165,120 exact pixels](parity-fixes.md#luminosity-axial-gradients-color-lookup-and-luminance-merge) |
 | [gradient_axial.sbs/gradient_axial_reflected](../assets/sbs/gradient_axial.sbs) | 0 | No | [Parity · 15 cases, 165,120 exact pixels](parity-fixes.md#luminosity-axial-gradients-color-lookup-and-luminance-merge) |
