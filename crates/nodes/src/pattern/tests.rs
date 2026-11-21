@@ -296,6 +296,10 @@ fn cook_at_size(graph: PatternGraph, variables: &BTreeMap<String, Value>, seed: 
     cook_at_dimensions(graph, variables, seed, side, side)
 }
 
+fn stamp_turn_input() -> Value {
+    Value::Function(Box::new(FunctionGraph::input("turn", materialcraft_core::ValueType::Float)))
+}
+
 fn cook_at_dimensions(graph: PatternGraph, variables: &BTreeMap<String, Value>, seed: u32, width: u32, height: u32) -> crate::CookResult {
     cook_in_regions(graph, variables, seed, [width, height], [[0.0, 1.0, 0.0, 1.0]; 2], 0.0)
 }
@@ -406,20 +410,20 @@ fn stamp_gradients_keep_the_phase_of_extended_turns() {
 
 #[test]
 fn rotated_stamps_use_the_pixel_center_when_snapping_the_near_vertex() {
-    let variables = BTreeMap::from([("$tiling".into(), Value::Int(0))]);
     for (dimensions, center, size, turns, shape, pixel, expected) in [
         ([64, 32], [0.5009855, 0.012967646], [0.024458896, 0.015625], 136.94586, 10, [31, 0], 0x3dff_4c1c),
         ([32, 32], [0.06045103, 0.2529377], [0.055972442, 0.03125], 152.8708, 4, [1, 8], 0x3f0e_3e7c),
         ([64, 64], [-0.0138504505, 0.07075971], [0.0723335, 0.0625], 189.57106, 4, [0, 5], 0x3eeb_a3c2),
         ([256, 256], [-0.010898113, 0.7042948], [0.02902194, 0.03125], 325.4251, 10, [0, 179], 0x3d67_8fd8),
     ] {
+        let variables = BTreeMap::from([("$tiling".into(), Value::Int(0)), ("turn".into(), Value::Float(turns))]);
         let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
         graph.nodes[0].parameters = BTreeMap::from([
             ("patterntype".into(), Value::Int(shape)),
             ("branchoffset".into(), Value::Float2([-0.5; 2])),
             ("frameoffset".into(), Value::Float2(center)),
             ("patternsize".into(), Value::Float2(size)),
-            ("patternrotation".into(), Value::Float(turns)),
+            ("patternrotation".into(), stamp_turn_input()),
         ]);
         let image = cook_at_dimensions(graph, &variables, 389119, dimensions[0], dimensions[1]).unwrap().remove(0);
         assert_eq!(image.get_gray(pixel[0], pixel[1], false).to_bits(), expected, "{center:?} at {dimensions:?}");
@@ -432,15 +436,16 @@ fn clipped_square_stamp_triangles_use_the_far_vertex_for_both_slope_terms() {
         ([256, 256], [-0.08850241, 2.9797058], [0.06013941, 0.0625], 161.3187, 4, [236, 1], 0x3dec_9e10),
         ([128, 256], [-0.01251943, 0.8291415], [0.0390625, 0.0078125], 0.94446576, 8, [0, 211], 0x3e21_7c84),
     ] {
+        let variables = BTreeMap::from([("turn".into(), Value::Float(turns))]);
         let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
         graph.nodes[0].parameters = BTreeMap::from([
             ("patterntype".into(), Value::Int(shape)),
             ("branchoffset".into(), Value::Float2([-0.5; 2])),
             ("frameoffset".into(), Value::Float2(center)),
             ("patternsize".into(), Value::Float2(size)),
-            ("patternrotation".into(), Value::Float(turns)),
+            ("patternrotation".into(), stamp_turn_input()),
         ]);
-        let image = cook_at_dimensions(graph, &BTreeMap::new(), 395323, dimensions[0], dimensions[1]).unwrap().remove(0);
+        let image = cook_at_dimensions(graph, &variables, 395323, dimensions[0], dimensions[1]).unwrap().remove(0);
         assert_eq!(image.get_gray(pixel[0], pixel[1], false).to_bits(), expected, "{dimensions:?} at {pixel:?}");
     }
 }
@@ -547,19 +552,19 @@ fn oblique_stamp_interpolates_both_coordinates_of_a_paraboloid() {
 
 #[test]
 fn rotated_stamp_uses_its_stored_bounds_in_a_displaced_render_window() {
-    let variables = BTreeMap::from([("$tiling".into(), Value::Int(0))]);
     let unit = [0.0, 1.0, 0.0, 1.0];
     for (region, center, turn, shape, [x, y], bits) in [
         ([128.0, 129.0, 0.0, 1.0], [128.4375, 0.4375], 0.125, 10, [17, 27], 0x3c62_f8c0),
         ([1024.0, 1025.0, 1024.0, 1025.0], [1024.4375; 2], 0.0625, 4, [23, 21], 0x3cc0_e9a0),
     ] {
+        let variables = BTreeMap::from([("$tiling".into(), Value::Int(0)), ("turn".into(), Value::Float(turn))]);
         let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
         graph.nodes[0].parameters = BTreeMap::from([
             ("patterntype".into(), Value::Int(shape)),
             ("branchoffset".into(), Value::Float2([-0.5; 2])),
             ("frameoffset".into(), Value::Float2(center)),
             ("patternsize".into(), Value::Float2([0.25; 2])),
-            ("patternrotation".into(), Value::Float(turn)),
+            ("patternrotation".into(), stamp_turn_input()),
         ]);
         let rendered = cook_in_regions(graph, &variables, 337435, [64, 64], [region, unit], 0.0).unwrap().remove(0);
         assert_eq!(rendered.get_gray(x, y, false).to_bits(), bits);
@@ -568,7 +573,7 @@ fn rotated_stamp_uses_its_stored_bounds_in_a_displaced_render_window() {
 
 #[test]
 fn subpixel_rotated_stamp_interpolates_its_ramp_and_paraboloid() {
-    let variables = BTreeMap::from([("$tiling".into(), Value::Int(0))]);
+    let variables = BTreeMap::from([("$tiling".into(), Value::Int(0)), ("turn".into(), Value::Float(0.125))]);
     let unit = [0.0, 1.0, 0.0, 1.0];
     for (shape, bits) in [(10, 0x3f6b_7e10), (4, 0x3e44_b5b0)] {
         let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
@@ -577,7 +582,7 @@ fn subpixel_rotated_stamp_interpolates_its_ramp_and_paraboloid() {
             ("branchoffset".into(), Value::Float2([-0.5; 2])),
             ("frameoffset".into(), Value::Float2([0.586_013_8, 0.577_758_8])),
             ("patternsize".into(), Value::Float2([1.0 / 2048.0, 1.0 / 512.0])),
-            ("patternrotation".into(), Value::Float(0.125)),
+            ("patternrotation".into(), stamp_turn_input()),
         ]);
         let rendered = cook_in_regions(graph, &variables, 332332, [64, 32], [unit; 2], 0.0).unwrap().remove(0);
         assert_eq!(rendered.get_gray(37, 18, false).to_bits(), bits);
@@ -622,9 +627,9 @@ fn rotated_paraboloid_interpolates_across_neighboring_pixel_pairs() {
         ("branchoffset".into(), Value::Float2([-0.5; 2])),
         ("frameoffset".into(), Value::Float2([0.046_721_816, 0.413_024_96])),
         ("patternsize".into(), Value::Float2([0.106_382_97; 2])),
-        ("patternrotation".into(), Value::Float(0.430_651_3)),
+        ("patternrotation".into(), stamp_turn_input()),
     ]);
-    let variables = BTreeMap::from([("$tiling".into(), Value::Int(3))]);
+    let variables = BTreeMap::from([("$tiling".into(), Value::Int(3)), ("turn".into(), Value::Float(0.430_651_3))]);
     let image = cook_at_dimensions(graph, &variables, 350314, 64, 128).unwrap().remove(0);
     for (x, y, bits) in [(1, 48, 0x3ecb_3c42), (1, 52, 0x3f4e_334f), (5, 52, 0x3ee8_375a)] {
         assert_eq!(image.get_gray(x, y, false).to_bits(), bits);
@@ -715,6 +720,30 @@ fn snapped_stamp_vertices_preserve_fractional_positions() {
     let image = cook_at_size(graph, &BTreeMap::new(), 265259, 64).unwrap().remove(0);
     for (x, bits) in [(16, 0x3e01_3ace), (33, 0x3f38_57a4)] {
         assert_eq!(image.get_gray(x, 18, false).to_bits(), bits, "column {x}");
+    }
+}
+
+#[test]
+fn oblique_stamp_bounds_depend_on_whether_size_and_rotation_are_literal() {
+    let size = Value::Float2([0.75, 1.5]);
+    let turn = Value::Float(0.125);
+    let variables = BTreeMap::from([("$tiling".into(), Value::Int(0)), ("size".into(), size.clone()), ("turn".into(), turn.clone())]);
+    let link = |name, ty| Value::Function(Box::new(FunctionGraph::input(name, ty)));
+    for (size, rotation, expected) in [
+        (size.clone(), turn.clone(), 0x3f59_911e),
+        (size.clone(), Value::Function(Box::new(FunctionGraph::constant(turn.clone()))), 0x3f59_911e),
+        (link("size", materialcraft_core::ValueType::Float2), turn, 0x3f59_9122),
+        (size, link("turn", materialcraft_core::ValueType::Float), 0x3f59_9122),
+    ] {
+        let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
+        graph.nodes[0].parameters = BTreeMap::from([
+            ("patterntype".into(), Value::Int(17)),
+            ("patternsize".into(), size),
+            ("patternrotation".into(), rotation),
+            ("frameoffset".into(), Value::Float2([0.0, -1.0])),
+        ]);
+        let image = cook_at_dimensions(graph, &variables, 422233, 128, 64).unwrap().remove(0);
+        assert_eq!(image.get_gray(46, 0, false).to_bits(), expected);
     }
 }
 

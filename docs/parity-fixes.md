@@ -744,6 +744,57 @@ For Spots 3, the 16² F32 default at seed 102951 matched 254/256 with maximum .0
 
 For Dirt 5, the 16² F32 default at seed 105543 matched 256/256. At 32², scale 1, zero disorder and expansion enabled, seed 105544 matched 1,022/1,024 F32 pixels with maximum .0000508204103. Changing disorder to .3125 and disabling expansion matched all 4,096 pixels over the four formats at seed 105545. At 64×32 the same controls matched 2,047/2,048 F32 pixels at seed 105551, maximum .0000508278608. The 32×64 zero-disorder F16 case matched 2,048/2,048 at seed 105552. The 32×16 F32 and 16×32 U16 cases at scale 2 and disorder .8125 still reached the traversal limit. [Original series](#dirt-noise-sources-and-downstream-stages)
 
+### Fixed and input-driven rotation bounds for oblique stamps
+
+Mesh 1 (211) now matches all **8,912,896 pixels over 73 distinct settings**, including the 454 pixels that differed after the affine transform correction. The separately packaged Mesh 1 (365), Mesh 2 (366) and Pavement 1 (383) each matched **2,927,872/2,927,872** across 59 settings. All comparisons use the named package's own procedural graph. The two Weave 2 roots still differ.
+
+| Root (inventory index) | Distinct settings | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|---:|
+| Mesh 1 (211) | 73 | 1,568,000/1,568,000 · 0 | 2,904,320/2,904,320 · 0 | 1,568,000/1,568,000 · 0 | 2,872,576/2,872,576 · 0 |
+| Pattern Mesh 1 (365) | 59 | 358,912/358,912 · 0 | 1,118,208/1,118,208 · 0 | 360,960/360,960 · 0 | 1,089,792/1,089,792 · 0 |
+| Pattern Mesh 2 (366) | 59 | 358,912/358,912 · 0 | 1,118,208/1,118,208 · 0 | 360,960/360,960 · 0 | 1,089,792/1,089,792 · 0 |
+| Pattern Weave 2 (382) | 59 | 358,912/358,912 · 0 | 1,087,649/1,118,208 · 63506 | 360,960/360,960 · 0 | 1,059,232/1,089,792 · 0.96903944 |
+| Pavement 1 (383) | 59 | 358,912/358,912 · 0 | 1,118,208/1,118,208 · 0 | 360,960/360,960 · 0 | 1,089,792/1,089,792 · 0 |
+| Weave 2 (538) | 59 | 358,908/358,912 · 1 | 1,115,751/1,118,208 · 3 | 360,898/360,960 · 0.00048828125 | 1,087,631/1,089,792 · 4.58359718e-05 |
+
+Both applications reopened each MaterialCraft package. For Mesh 1 and Mesh 2 (211 and 212), every pixel of the 588,800 smaller-series and 8,536,064 larger-series pixels reproduced the original within each application. The 42 new settings for each of roots 365, 366, 382, 383 and 538 likewise reproduced all 2,867,200 pixels on reopening within each application. Mesh 2 (212) retained all 8,912,896 cross-application matches. The two image-input roots with the same kind of oblique stamp, Noise Upscale 1 and 2 (301 and 302), retained 697,344/697,344 pixels apiece across their 21 original-input settings. [Mesh series](#affine-mip-selection-on-rectangular-and-skewed-footprints) · [Upscaler input fields](#sampling-integer-bitmap-inputs-through-wider-bridges)
+
+An oblique pattern stamp with fixed size and rotation computes its bounds from the sine and cosine of its F32 angle in radians. Reading either size or rotation from a graph input uses the uniform rotation in turns for bounds. The profile inside the rectangle uses the pixel rotation in both cases. Literal arithmetic expressions follow the fixed case. Adding zero to an input read preserves the input-driven result. Exact quarter turns retain their measured bounds, including −.5 and 2 turns.
+
+To reproduce the regression, draw a single grayscale stamp of type 17 at center (.5,−.5), size (.75,1.5), rotation .125 turns. Disable tiling and read 128×64 F32. At (46,0) the fixed stamp gives 0x3f59911e. Expose either size or rotation with the same value and the result is 0x3f599122. Six repeated original frames of the two-stamp source were identical in the earlier investigation. [Source isolation](#affine-mip-selection-on-rectangular-and-skewed-footprints)
+
+| Original stamp controls | Renders | Exact before | Exact after / total | Maximum after |
+|---|---:|---:|---:|---:|
+| Initial fixed and input-driven geometry | 144 | 2,518,248 | 2,555,904/2,555,904 | 0 |
+| Independent angles, sizes and quarter turns | 264 | 4,670,082 | 4,685,824/4,685,824 | 0 |
+| Literal and input-driven expressions | 40 | 847,312 | 901,120/901,120 | 0 |
+| Single-stamp wrap, frame and region controls | 39 | 929,017 | 971,776/971,776 | 0 |
+| Individual size, rotation, center, gain and tint settings | 44 | 987,985 | 1,002,496/1,002,496 | 0 |
+| Two stamps together and each alone | 54 | 2,548,342 | 2,568,192/2,568,192 | 0 |
+
+The twelve placements use 128×64 at centers (.5,.5), (−.5,.5), (.5,−.5), (1.5,.5) and (.5,1.5), then 256² at (−.5,.5) and (.5,−.5), 64×128 at (.3125,.625) and (−.21875,.78125), 32×128 at (.53125,1.25), 128×32 at (1.25,.34375) and 128² at (0,0). For geometry j and placement k use seed 422231+31j+k. The initial shapes include ±.125, .09375, .3125, −.21875, .373046875, .25 and .5126953125 turns. The independent series includes exact quarter turns, the F32 neighbors of .25, the predecessor of .5, extended turns and narrow rectangular footprints. All 33 additional graphs reproducing the five earlier test fixtures also matched **574,464/574,464 pixels**. Those fixtures' recorded bit patterns came from input-driven rotation. Their fixed-rotation counterparts have independently measured values.
+
+For roots 365, 366, 382, 383 and 538, the new series uses the following dimensions and controls. A dash leaves all controls at defaults. For each changed row j, roots 365 and 366 use the listed tiling, rotation switch and non-square expansion. Root 382 uses the listed scale with disorder d, rotation and expansion. Root 383 uses d as roundness. Root 538 uses the listed tiling, d and rotation. Use U16 and F32 on every row and add U8 and F16 at j=0,1,3,5,6,9,12. Seeds are zero at j=0,6,9, 42 at j=1,12 and 435337+13i+71j elsewhere for inventory index i.
+
+| j | Dimensions | Tiling | Scale | d | Rotation | Expansion |
+|---:|---|---:|---:|---:|---|---|
+| 0 | 16×32 | — | — | — | — | — |
+| 1 | 64×16 | 1 | 5 | 0.125 | off | off |
+| 2 | 16×64 | 3 | 9 | 0.8125 | on | on |
+| 3 | 64×64 | 2 | 3 | 0.46875 | on | on |
+| 4 | 128×32 | 3 | 12 | 0.0625 | off | off |
+| 5 | 32×128 | 1 | 4 | 0.6875 | on | off |
+| 6 | 128×128 | — | — | — | — | — |
+| 7 | 256×128 | 2 | 11 | 0.96875 | off | on |
+| 8 | 128×256 | 1 | 7 | 0.21875 | on | off |
+| 9 | 256×256 | — | — | — | — | — |
+| 10 | 512×128 | 3 | 13 | 0.5625 | off | on |
+| 11 | 128×512 | 1 | 2 | 0.34375 | on | on |
+| 12 | 512×512 | 2 | 6 | 0.90625 | on | off |
+| 13 | 1024×512 | 3 | 19 | 0.15625 | off | off |
+
+In Pattern Weave 2, the largest difference occurs at 512×128, scale 13, disorder .5625, rotation off and expansion on. F32 matched 35,158/65,536 pixels there with maximum .96903944. In Weave 2 the 128² default F32 render matched 16,128/16,384 with maximum .0000152587891. Both original/reopened pairs reproduced their own outputs at these settings. [Earlier stage measurements](#tile-weave-splatter-and-fiber-stage-comparisons)
+
 ### Short directional blur tap order on rectangular inputs
 
 Fluid matches **25,969,920/25,969,920 final pixels across 121 distinct settings** through 2048 pixels per side. Both applications reopened the MaterialCraft package and reproduced every pixel of their originals over 28, 38 and 36 settings (498,688, 8,654,848 and 17,588,224 pixels). The three instrumented renders at 512×1024, 1024×512 and 1024² match 9,961,472/9,961,472 intermediate and final samples. [First differing stage and earlier settings](#fibers-1-and-fluid-through-1024-pixels-per-side)

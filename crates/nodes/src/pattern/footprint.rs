@@ -16,9 +16,14 @@ impl Footprint {
         if !angle.is_finite() {
             return Err("pattern rotation exceeds the finite angle range".into());
         }
-        // Sample in the pixel phase. Draw bounds use the uniform phase of the original turns.
+        // Sampling uses the pixel phase even when the draw bounds are folded from literals.
         let (sine, cosine) = crate::function::pixel_sin_cos(angle);
-        let (bounds_sine, bounds_cosine) = crate::function::uniform_sin_cos_turns(stamp.rotation);
+        let (bounds_sine, bounds_cosine) = if stamp.literal_geometry && (stamp.rotation * 4.0).fract() != 0.0 {
+            let (s, c) = f64::from(angle).sin_cos();
+            (s as f32, c as f32)
+        } else {
+            crate::function::uniform_sin_cos_turns(stamp.rotation)
+        };
         let radius = [
             (stamp.size[0] * bounds_cosine).abs() * 0.5 + (stamp.size[1] * bounds_sine).abs() * 0.5,
             (stamp.size[0] * bounds_sine).abs() * 0.5 + (stamp.size[1] * bounds_cosine).abs() * 0.5,

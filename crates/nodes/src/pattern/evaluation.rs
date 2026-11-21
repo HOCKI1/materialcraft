@@ -16,14 +16,18 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
     };
 
     graph.validate()?;
-    let nodes: BTreeMap<_, _> = graph.nodes.iter().map(|node| (node.id, node)).collect();
+    let mut nodes = BTreeMap::new();
     let mut functions = BTreeMap::new();
     let mut fixed_switches = BTreeSet::new();
     for node in &graph.nodes {
         let mut fixed = node.kind == PatternNodeKind::Switch && node.children.contains(&None);
+        let mut literal_geometry = true;
         for (name, value) in &node.parameters {
             if let Value::Function(function) = value {
                 let program = compile_with_literal_inputs(function, context.seed, context.vars.literal_inputs())?;
+                if matches!(name.as_str(), "patternsize" | "patternrotation") {
+                    literal_geometry &= program.output_is_literal();
+                }
                 fixed = fixed && name == "switch" && program.depends_only_on_image_size();
                 let mut names = BTreeMap::new();
                 super::variables::declarations(&program, &mut names);
@@ -33,6 +37,7 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
         if fixed {
             fixed_switches.insert(node.id);
         }
+        nodes.insert(node.id, (node, literal_geometry));
     }
 
     let image_slots: Vec<_> =
@@ -68,7 +73,7 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
             continue;
         }
         remaining = remaining.checked_sub(1).ok_or("pattern graph exceeded its execution budget")?;
-        let node = nodes.get(&visit.node).ok_or("missing pattern node")?;
+        let &(node, literal_geometry) = nodes.get(&visit.node).ok_or("missing pattern node")?;
         if node.kind == PatternNodeKind::Dot {
             if let Some(Some(child)) = node.children.first() {
                 visit.node = *child;
@@ -183,6 +188,7 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
                         center: [visit.center[0] + offset[0], visit.center[1] + offset[1]],
                         size: vector("patternsize").map(|size| size * visit.extent),
                         rotation: scalar("patternrotation"),
+                        literal_geometry,
                         color,
                         depth: visit.depth,
                         pattern,

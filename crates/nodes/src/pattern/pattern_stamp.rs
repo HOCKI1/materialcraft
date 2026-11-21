@@ -2,6 +2,7 @@ pub(super) struct PatternStamp {
     pub center: [f32; 2],
     pub size: [f32; 2],
     pub rotation: f32,
+    pub literal_geometry: bool,
     pub color: [f32; 4],
     pub depth: u32,
     pub pattern: i32,
