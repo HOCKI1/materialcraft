@@ -110,6 +110,27 @@ fn wave_frequency_and_radial_falloff_follow_stamp_coordinates() {
 }
 
 #[test]
+fn wave_profile_rounds_the_folded_phase_before_shaping_it() {
+    for (x, y, variation, expected) in [
+        (0xbecc_0001, 0x3bff_ff7f, 0.0, 0x3d9c_60ac),
+        (0x3e17_fffb, 0x3bff_ff7f, 0.1875, 0x3de6_497a),
+        (0xbebc_0001, 0x3bff_ff7f, 0.5, 0x3e3b_a2a0),
+        (0x3ee3_fffd, 0xbc00_003f, 1.0, 0x3e3e_af6e),
+    ] {
+        assert_eq!(coverage(11, f32::from_bits(x), f32::from_bits(y), variation).to_bits(), expected);
+    }
+}
+
+#[test]
+fn wave_frequency_rounds_once_before_multiplying_the_coordinate() {
+    let y = f32::from_bits(0x3bff_ff7f);
+    for (x, variation, expected) in [(0x3d8f_fff7, 0.45037964, 0x3eb7_1c16), (0x3d1f_ffef, 0.44281647, 0x3f42_b347)] {
+        assert_eq!(coverage(11, f32::from_bits(x), y, variation).to_bits(), expected);
+    }
+    assert_eq!(coverage(11, 0.0, 0.5, f32::MAX), 0.75);
+}
+
+#[test]
 fn stamp_profiles_follow_the_radial_and_horizontal_falloffs() {
     // Two samples on the low-coverage skirt distinguish the signed quartic from a clamped falloff.
     for (shape, x, y, variation, bits) in [

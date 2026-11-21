@@ -534,6 +534,37 @@ For each root’s 25 follow-up renders, the 5,120 U8, 553,728 U16, 78,336 F16 an
 
 In a single-worker release run, four interleaved measurements of the 128² default, 256² default and 512² filled cases gave median whole-graph cook times of 46, 259 and 1,138 ms for Alveolus (previously 45, 247 and 1,068 ms). Pattern Alveolus took 45, 253 and 1,083 ms (previously 43, 238 and 1,045 ms).
 
+### Wave frequency and phase in Directional Noise
+
+Directional Noise (`directionnal_noise.sbs`) matched 10,818,793/10,818,816 final pixels across 108 distinct settings. All 23 earlier renders (147,712 pixels) and all 40 new renders through 512² (2,006,016 pixels) match. Before the wave fix the same two comparisons had 59 and 732 differing pixels. All 14 captured intermediate outputs now match in eight earlier and five new renders. The independent 46-render matrix found 23 differences at 1024², seed 29987.
+
+| Storage | Distinct settings | Exact pixels | Maximum error |
+|---|---:|---:|---:|
+| U8 | 19 | 2,030,336/2,030,336 | 0 |
+| U16 | 34 | 3,393,269/3,393,280 | 2 |
+| F16 | 19 | 2,030,335/2,030,336 | 0.000244140625 |
+| F32 | 36 | 3,364,853/3,364,864 | 1.68979168e-05 |
+
+At 128², use one centered grayscale wave stamp of unit size, tint and gain, zero rotation and roughness, and a black background. At pixel (38,64) with zero variation the output bits are `0x3d9c60ac`. The previous value was `0x3d9c60a8`. Accumulate six times the nonnegative variation plus 1.5 with one F32 rounding. Multiply this frequency by the signed horizontal coordinate, subtract the nearest integer phase and round the absolute distance to F32 before forming the triangle. The existing quadratic shaping and radial falloff then give 131,072/131,072 F32 pixels at variations 0, .0625, .1875, .25, .375, .5, .75 and 1. At variation .45037964, pixel (68,64) measures `0x3eb71c16`. Rounding the frequency multiplication and addition separately gives `0x3eb71c10`.
+
+Twelve variations (−.25, 0, .03125, .1234567, .1875, .3125, .375, .53125, .71875, .95, 1 and 1.25) over twelve geometries from 16² to 512×128 gave 5,286,912/5,286,912 pixels in 288 renders. These include rotations .07317, −.21457, .23137 and 1.07123 turns, nonuniform size, clipped edges and all four output formats. Two additional frequency sweeps compared a full centered 128² stamp and a 128×256 stamp with size (.234375,.421875), at −.21457 turns. All 2,408,448 F32 pixels in 98 renders match. Fourteen variations in one sweep specifically distinguish a single rounding from two. The separate-rounding model loses 156,048/311,296 pixels in the 19 centered controls from that sweep.
+
+For the directional root, independent draws from its three pattern stages matched 988,160/988,160 F32 pixels across 60 cases in the initial isolation set.
+
+The 1024² holdout isolates the remaining differences to (18,341) in the 256×512 pattern stage 1067074843. The reference stores 16386 there in U16 and .2500428855419159 in F32, identically in six renders at the same seed. Thirteen of its fourteen contributing stamps agree across their entire F32 outputs. The remaining stamp has frame offset (−.8652914,−.36846057), size (.09375,.27446696), rotation .25 turns, gain .0783345 and tint 1.8601174. At the disputed pixel it returns bits `0x3cdb7e2f` in the reference and `0x3cdb7e32` in MaterialCraft. Adding the independently measured draws in graph order reproduces the reference sum. The one U16 difference spreads to eleven F32 output pixels after resampling and levels. Both applications reopened the saved package and reproduced their own originals in all 40 and all 46 cases, respectively 2,006,016 and 8,730,624 pixels per comparison.
+
+For the 40-setting matrix, use dimensions (16²,16×64,64×16,32×128,128×32,64²,128×256,256×128,256²,128×512,512×128,512²). With zero-based dimension index j and inventory index i, use seed 0 at j=0 and 8, 42 at j=1 and 396203+17i+41j elsewhere. Render U16 and F32 throughout, adding U8 and F16 at j=0,2,4,6,7,8,10,11. Directional Noise (i=127) has no exposed input parameters. For the independent matrix use the dimensions, seeds and formats in the Creased holdout table. [Independent render settings](#aligning-the-origin-of-a-clipped-stamp-in-creased)
+
+The five following Dirt roots used the same 40-setting matrix. For Dirt 1 and 3, disorder was (default,1,0,.6875,.03125,.859375,.1875,.65625,default,.984375,.140625,.5). The other three have no exposed parameters. Each format cell gives the exact pixels and maximum error. Every U8 and F16 denominator is 464,128 and every U16 and F32 denominator is 538,880. The final column compares the reference’s original and reopened package over 2,006,016 pixels. MaterialCraft reproduced its own originals on all 2,006,016 for each root.
+
+| Root (inventory index) | U8 exact · max | U16 exact · max | F16 exact · max | F32 exact · max | Exact on reference reopen |
+|---|---:|---:|---:|---:|---:|
+| Dirt 1 (128) | 464,128 · 0 | 538,870 · 1 | 464,128 · 0 | 538,861 · 1.53183937e-05 | 2,005,998 |
+| Dirt 3 (129) | 464,128 · 0 | 538,869 · 1 | 464,128 · 0 | 538,865 · 1.52587891e-05 | 2,006,000 |
+| Dirt 5 (130) | 464,126 · 1 | 538,700 · 4 | 464,048 · 0.00048828125 | 538,702 · 5.10215759e-05 | 2,005,678 |
+| Dirt 6 (131) | 464,127 · 1 | 538,646 · 5 | 464,038 · 0.000244140625 | 538,185 · 9.27709043e-05 | 2,005,339 |
+| Dirt Gradient (132) | 464,128 · 0 | 538,710 · 2 | 464,116 · 0.00048828125 | 538,686 · 2.00867653e-05 | 2,005,635 |
+
 ### Aligning the origin of a clipped stamp in Creased
 
 Creased matches **10,947,840/10,947,840 final pixels across 100 distinct settings**, through 1024². Maximum error is zero in every format. Both applications reopened the MaterialCraft file in two independently authored matrices. All 2,399,232 pixels in the 40-setting matrix and all 8,730,624 in the 46-setting matrix matched the original and each other. Repeated settings count once in the following totals.

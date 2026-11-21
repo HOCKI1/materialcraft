@@ -89,6 +89,8 @@ Crystal 2 now matches all 5,104,128 pixels across 99 distinct settings through 5
 
 BNW Spots 3 matches all 3,159,552 final pixels across 118 distinct settings. Both apps reopened its saved graph and reproduced all 2,399,232 pixels in the 40-setting file check. One U16 difference remains inside its 256² pattern stage. BNW Spots 1 matches 3,177,940/3,177,984 final pixels across 125 settings. [Pixel-center measurements and remaining differences](parity-fixes.md#pixel-center-rounding-at-the-near-stamp-vertex)
 
+Directional Noise matched all 2,006,016 pixels in the 40-setting matrix. The independent 1024² holdout traced 23 final differences to one stored pattern pixel. [Wave and Dirt root measurements](parity-fixes.md#wave-frequency-and-phase-in-directional-noise)
+
 Creased matches 10,947,840/10,947,840 pixels across 100 distinct settings through 1024². Both applications reproduced the original pixels after reopening the saved file. [Exact counts, intermediate stages and settings](parity-fixes.md#aligning-the-origin-of-a-clipped-stamp-in-creased)
 
 ## Complete inventory
@@ -222,12 +224,12 @@ Creased matches 10,947,840/10,947,840 pixels across 100 distinct settings throug
 | [diffusion.sbs/impl/pass_gray](../assets/sbs/diffusion.sbs) | 3 | Yes | [Parity · 19 renders, 143,872 exact pixels](parity-fixes.md#per-pixel-random-initialization) |
 | [diffusion.sbs/impl/pass_normal](../assets/sbs/diffusion.sbs) | 2 | Yes | [Parity · 19 renders, 143,872 exact pixels](parity-fixes.md#per-pixel-random-initialization) |
 | [directional_distance.sbs/directional_distance](../assets/sbs/directional_distance.sbs) | 3 | No | [Parity · 32 renders, both outputs exact across 342,528 pixels](parity-fixes.md#distance-output-channels-axis-wrapping-and-cutoffs) |
-| [directionnal_noise.sbs/directionnal_noise](../assets/sbs/directionnal_noise.sbs) | 0 | Yes | [In progress · 147,653/147,712 pixels across 23 renders](parity-fixes.md#draw-order-at-six-quadrant-subdivisions) |
-| [dirt_1.sbs/dirt_1](../assets/sbs/dirt_1.sbs) | 0 | Yes | [In progress · 145,661/145,664 exact pixels, overlapping disc additions isolated](parity-fixes.md#overlapping-disc-additions-in-dirt-1) |
-| [dirt_3.sbs/dirt_3](../assets/sbs/dirt_3.sbs) | 0 | Yes | [In progress · two differences across 32 additional renders](parity-fixes.md#bounds-and-pixel-coordinates-of-rotated-pattern-stamps) |
-| [dirt_5.sbs/dirt_5](../assets/sbs/dirt_5.sbs) | 0 | Yes | [In progress · 129,226/129,280 exact pixels in 16 renders](parity-fixes.md#stored-opacity-across-pattern-depths) |
-| [dirt_6.sbs/dirt_6](../assets/sbs/dirt_6.sbs) | 0 | Yes | [In progress · 129,249/129,280 pixels across 16 renders](parity-fixes.md#drawing-axis-aligned-stamps-smaller-than-one-pixel) |
-| [dirt_gradient.sbs/dirt_gradient](../assets/sbs/dirt_gradient.sbs) | 0 | Yes | [In progress · 129,236/129,280 pixels across 16 renders](parity-fixes.md#draw-order-at-six-quadrant-subdivisions) |
+| [directionnal_noise.sbs/directionnal_noise](../assets/sbs/directionnal_noise.sbs) | 0 | Yes | [In progress · 10,818,793/10,818,816 pixels across 108 distinct settings](parity-fixes.md#wave-frequency-and-phase-in-directional-noise) · [Earlier measurements](parity-fixes.md#draw-order-at-six-quadrant-subdivisions) |
+| [dirt_1.sbs/dirt_1](../assets/sbs/dirt_1.sbs) | 0 | Yes | [In progress · 2,005,987/2,006,016 pixels across 40 new renders](parity-fixes.md#wave-frequency-and-phase-in-directional-noise) · [Earlier measurements](parity-fixes.md#overlapping-disc-additions-in-dirt-1) |
+| [dirt_3.sbs/dirt_3](../assets/sbs/dirt_3.sbs) | 0 | Yes | [In progress · 2,005,990/2,006,016 pixels across 40 new renders](parity-fixes.md#wave-frequency-and-phase-in-directional-noise) · [Earlier measurements](parity-fixes.md#bounds-and-pixel-coordinates-of-rotated-pattern-stamps) |
+| [dirt_5.sbs/dirt_5](../assets/sbs/dirt_5.sbs) | 0 | Yes | [In progress · 2,005,576/2,006,016 pixels across 40 new renders](parity-fixes.md#wave-frequency-and-phase-in-directional-noise) · [Earlier measurements](parity-fixes.md#stored-opacity-across-pattern-depths) |
+| [dirt_6.sbs/dirt_6](../assets/sbs/dirt_6.sbs) | 0 | Yes | [In progress · 2,004,996/2,006,016 pixels across 40 new renders](parity-fixes.md#wave-frequency-and-phase-in-directional-noise) · [Earlier measurements](parity-fixes.md#drawing-axis-aligned-stamps-smaller-than-one-pixel) |
+| [dirt_gradient.sbs/dirt_gradient](../assets/sbs/dirt_gradient.sbs) | 0 | Yes | [In progress · 2,005,640/2,006,016 pixels across 40 new renders](parity-fixes.md#wave-frequency-and-phase-in-directional-noise) · [Earlier measurements](parity-fixes.md#draw-order-at-six-quadrant-subdivisions) |
 | [exposure.sbs/exposure](../assets/sbs/exposure.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [extend_shape.sbs/extend_shape_color](../assets/sbs/extend_shape.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [extend_shape.sbs/extend_shape_grayscale](../assets/sbs/extend_shape.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |

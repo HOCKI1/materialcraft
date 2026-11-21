@@ -41,9 +41,11 @@ fn profile(pattern: i32, x: f32, y: f32, radius_squared: f32, variation: f32, in
         }
         10 => (x + 1.0) * 0.5 * (1.0 - variation.max(0.0)),
         11 => {
-            let cycles = 1.5 + 6.0 * f64::from(variation.max(0.0));
-            let phase = f64::from(x) * cycles;
-            let triangle = (1.0 - 4.0 * (phase - phase.round()).abs()) as f32;
+            // A finite frequency keeps the phase at x = 0 defined even for very large variations.
+            let cycles = 6.0_f32.mul_add(variation.max(0.0), 1.5).min(f32::MAX);
+            let phase = f64::from(x) * f64::from(cycles);
+            let fraction = (phase - phase.round()).abs() as f32;
+            let triangle = 1.0 - 4.0 * fraction;
             let parabola = (-triangle.abs()).mul_add(triangle, 2.0 * triangle);
             // The measured wave uses a quadratic correction before the radial fade.
             const CORRECTION: f32 = 0.223_936_68;
