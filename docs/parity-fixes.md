@@ -534,6 +534,33 @@ For each root’s 25 follow-up renders, the 5,120 U8, 553,728 U16, 78,336 F16 an
 
 In a single-worker release run, four interleaved measurements of the 128² default, 256² default and 512² filled cases gave median whole-graph cook times of 46, 259 and 1,138 ms for Alveolus (previously 45, 247 and 1,068 ms). Pattern Alveolus took 45, 253 and 1,083 ms (previously 43, 238 and 1,045 ms).
 
+### Interpolated coordinates on clipped squares and quarter turns
+
+Directional Noise matches **40,572,160/40,572,160 final pixels across 136 distinct settings through 2048²**. Both applications reopened the MaterialCraft package and reproduced the original values across 40, 46 and 28 settings (2,006,016, 8,730,624 and 29,753,344 pixels). All fourteen intermediate outputs at 1024², seed 29987, match across 6,225,920 pixels, including the generator sample previously one U16 level high. [Wave-stamp isolation and the first 108 settings](#wave-frequency-and-phase-in-directional-noise)
+
+| Storage | Distinct settings | Exact pixels | Maximum error |
+|---|---:|---:|---:|
+| U8 | 23 | 7,600,896/7,600,896 | 0 |
+| U16 | 44 | 12,699,392/12,699,392 | 0 |
+| F16 | 23 | 7,600,896/7,600,896 | 0 |
+| F32 | 46 | 12,670,976/12,670,976 | 0 |
+
+The last 28 settings use (width×height, seed) pairs (64×1024,0), (1024×64,42), (256×1024,32011), (1024×256,91151), (512²,71123), (1024²,0), (1024²,42), (512×2048,67061), (2048×512,13877), (2048²,25771). Render U16 and F32 throughout, adding U8 and F16 at indices 1,4,6,9 starting from zero.
+
+Two original quadrant controls isolate the setup of the interpolated coordinates. Use a black grayscale F32 output, zero roughness, unit gain and tint, tiling on both axes, branch offset (−.5,−.5) and the following frame offsets. The additional pyramid row exercises a perpendicular slope on the other side of the image.
+
+| Profile and dimensions | Frame offset | Pattern size | Rotation in turns | Pixel | Previous bits | Measured bits |
+|---|---|---|---:|---|---|---|
+| Paraboloid, 256×512 | (−.8652914,−.36846057) | (.09375,.27446696) | .25 | (18,341) | 0x3e623d24 | 0x3e623d20 |
+| Paraboloid, 256² | (−.08850241,2.9797058) | (.06013941,.0625) | 161.3187 | (236,1) | 0x3dec9e20 | 0x3dec9e10 |
+| Pyramid, 128×256 | (−.01251943,.8291415) | (.0390625,.0078125) | .94446576 | (0,211) | 0x3e217c80 | 0x3e217c84 |
+
+For the quarter turn the padded triangle starts at (−1,299), with spans 142 and 97. Adding the horizontal offset product to the signed vertex value 1.0100661516189575 gives independent results at single-precision storage boundaries. Align both terms at their shared exponent with five guard bits before adding them. The measured origin is .981601893901825, previously .9816018342971802. In 2,560 independently generated axis-aligned triangles, the exact count increased from 1,173,382 to 1,181,994/1,181,994 signed coordinates. Four or six guard bits gave 16,192 and 6,468 differences. Four stamp profiles at 134 original axis-aligned or quarter-turn geometries each matched all 39,733,248 F32 pixels, maximum error zero.
+
+The two oblique examples have equal horizontal and vertical screen spans (43 and 11 respectively). When clipping selects a far vertex, the perpendicular gradient uses two half-spans measured from that vertex. Keep both signed slope products at extended precision, align them with two guard bits, then subtract and store the resulting gradient. Rectangular triangles retain their measured gradients. On 1,440 translated square triangles the exact coordinate count rose from 440,248 to 476,000/476,000. A separate 2,560-triangle comparison of squares and rectangles differing by one pixel measured 972,042/972,042 coordinates, including 30,130 previously different square samples. Three independent triangle sets retained or reached exact agreement across 1,047,772, 1,731,210 and 2,368,502 coordinates. Four original profiles (ramp, paraboloid, pyramid and creased bell), each tested on 108 translated and rescaled geometries, matched 29,884,416/29,884,416 F32 pixels.
+
+All 653,456 values across the eight intermediate-stage captures in BNW Spots 3 now match, including all 524,288 samples of the previously differing branch. The 118 distinct final settings remain 3,159,552/3,159,552. BNW Spots 1 still matches 3,177,940/3,177,984 final samples over 125 settings. Across the additional stage probes Clouds 1 has 1,510,019/1,510,080 exact pixels and Clouds 2 has 911,010/911,040. [Cloud and BNW Spots comparisons, including repeat behaviour](#pixel-center-rounding-at-the-near-stamp-vertex)
+
 ### Wave frequency and phase in Directional Noise
 
 Directional Noise (`directionnal_noise.sbs`) matched 10,818,793/10,818,816 final pixels across 108 distinct settings. All 23 earlier renders (147,712 pixels) and all 40 new renders through 512² (2,006,016 pixels) match. Before the wave fix the same two comparisons had 59 and 732 differing pixels. All 14 captured intermediate outputs now match in eight earlier and five new renders. The independent 46-render matrix found 23 differences at 1024², seed 29987.

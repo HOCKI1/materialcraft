@@ -1,4 +1,4 @@
-use super::{Footprint, Triangle, gradient_product, offset_product};
+use super::{Footprint, Triangle, aligned_sum, gradient_product, gradient_significand_product, leading_power, plane_origin};
 use crate::function::{pixel_divide, truncate_float};
 
 pub(super) struct Plane {
@@ -29,13 +29,21 @@ pub(super) fn planes(triangle: &Triangle, frame: &Footprint, size: [f32; 2], [[l
         return None;
     }
     let anchor = triangle.far_axis.map_or(0, |axis| axis + 1);
+    let square = triangle.far[0] - triangle.near[0] == triangle.far[1] - triangle.near[1];
     let planes: [Plane; 2] = std::array::from_fn(|component| {
         let gradient: [f32; 2] = std::array::from_fn(|axis| {
-            let start = f64::from(vertices[0][component]);
-            let end = f64::from(vertices[axis + 1][component]);
-            let difference = aligned_sum([end, -start], leading_power(start.abs().max(end.abs())), 1);
-            let span = truncate_float(difference * 0.5);
+            let start = vertices[0][component];
+            let end = vertices[axis + 1][component];
             let basis = triangle.basis[axis];
+            if square && anchor != 0 && anchor != axis + 1 {
+                // Across the far edge of a square, the two slope terms share the
+                // opposite vertex. Align their wide products before subtracting.
+                let vertex = vertices[anchor][component];
+                let (first, first_scale) = wide_slope(basis, half_span(end, vertex));
+                let (second, second_scale) = wide_slope(basis, half_span(start, vertex));
+                return truncate_float(aligned_sum([first, -second], first_scale.max(second_scale), 2));
+            }
+            let span = half_span(end, start);
             let exponents = (span.abs().to_bits() >> 23) + (basis.to_bits() >> 23);
             // The partial-product path assumes a normal, finite result at the stored exponent.
             if !span.is_normal() || !(128..=380).contains(&exponents) {
@@ -44,19 +52,7 @@ pub(super) fn planes(triangle: &Triangle, frame: &Footprint, size: [f32; 2], [[l
             gradient_product(basis, span.abs()).copysign(span)
         });
         let units = gradient.map(|v| f64::from(v.abs().next_up()) - f64::from(v.abs()));
-        let terms: [f64; 2] = std::array::from_fn(|i| {
-            let magnitude = offset_product(triangle.offset[i], gradient[i].abs(), units[i]);
-            if gradient[i].is_sign_negative() { -magnitude } else { magnitude }
-        });
-        let anchor_value = f64::from(vertices[anchor][component]);
-        // Align each offset product using the exponents of its factors, before a
-        // carry in the product can shift away another bit during cancellation.
-        let base_scale = triangle
-            .offset
-            .into_iter()
-            .zip(gradient)
-            .fold(leading_power(anchor_value), |scale, (offset, slope)| scale.max(leading_power(f64::from(offset)) * leading_power(f64::from(slope))));
-        let base = truncate_float(aligned_sum([terms[0], terms[1], anchor_value], base_scale, 5));
+        let base = plane_origin(vertices[anchor][component], triangle.offset, gradient, units);
         let step = gradient.map(f64::from);
         let unit = units[0].max(units[1]);
         // The two samples of a pair share the value at their midpoint. Its signed
@@ -72,15 +68,17 @@ pub(super) fn planes(triangle: &Triangle, frame: &Footprint, size: [f32; 2], [[l
     planes.iter().all(|p| p.quantum.is_finite()).then_some(planes)
 }
 
-fn leading_power(value: f64) -> f64 {
-    f64::from_bits(value.to_bits() & (0x7ff_u64 << 52))
+fn half_span(end: f32, start: f32) -> f32 {
+    let (end, start) = (f64::from(end), f64::from(start));
+    truncate_float(aligned_sum([end, -start], leading_power(start.abs().max(end.abs())), 1) * 0.5)
 }
 
-/// Align signed operands at a shared exponent before cancellation in the interpolation setup.
-fn aligned_sum<const N: usize>(terms: [f64; N], scale: f64, guard_bits: u32) -> f64 {
-    if scale == 0.0 {
-        return 0.0;
+fn wide_slope(basis: f32, span: f32) -> (f64, f64) {
+    let scale = leading_power(f64::from(basis)) * leading_power(f64::from(span));
+    if !span.is_normal() || !basis.is_normal() {
+        return (f64::from(span) * f64::from(basis), scale);
     }
-    let quantum = scale / f64::from(1_u32 << (23 + guard_bits));
-    terms.into_iter().map(|v| (v / quantum).trunc() * quantum).sum()
+    let product = gradient_significand_product(basis, span.abs()) as f64;
+    let slope = product * (scale / (1_u64 << 46) as f64);
+    (slope.copysign(f64::from(span)), scale)
 }

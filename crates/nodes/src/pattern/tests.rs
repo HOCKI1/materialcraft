@@ -427,6 +427,39 @@ fn rotated_stamps_use_the_pixel_center_when_snapping_the_near_vertex() {
 }
 
 #[test]
+fn clipped_square_stamp_triangles_use_the_far_vertex_for_both_slope_terms() {
+    for (dimensions, center, size, turns, shape, pixel, expected) in [
+        ([256, 256], [-0.08850241, 2.9797058], [0.06013941, 0.0625], 161.3187, 4, [236, 1], 0x3dec_9e10),
+        ([128, 256], [-0.01251943, 0.8291415], [0.0390625, 0.0078125], 0.94446576, 8, [0, 211], 0x3e21_7c84),
+    ] {
+        let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
+        graph.nodes[0].parameters = BTreeMap::from([
+            ("patterntype".into(), Value::Int(shape)),
+            ("branchoffset".into(), Value::Float2([-0.5; 2])),
+            ("frameoffset".into(), Value::Float2(center)),
+            ("patternsize".into(), Value::Float2(size)),
+            ("patternrotation".into(), Value::Float(turns)),
+        ]);
+        let image = cook_at_dimensions(graph, &BTreeMap::new(), 395323, dimensions[0], dimensions[1]).unwrap().remove(0);
+        assert_eq!(image.get_gray(pixel[0], pixel[1], false).to_bits(), expected, "{dimensions:?} at {pixel:?}");
+    }
+}
+
+#[test]
+fn clipped_quarter_turn_aligns_the_axis_offset_before_adding_the_vertex() {
+    let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
+    graph.nodes[0].parameters = BTreeMap::from([
+        ("patterntype".into(), Value::Int(4)),
+        ("branchoffset".into(), Value::Float2([-0.5; 2])),
+        ("frameoffset".into(), Value::Float2([-0.8652914, -0.36846057])),
+        ("patternsize".into(), Value::Float2([0.09375, 0.27446696])),
+        ("patternrotation".into(), Value::Float(0.25)),
+    ]);
+    let image = cook_at_dimensions(graph, &BTreeMap::new(), 399341, 256, 512).unwrap().remove(0);
+    assert_eq!(image.get_gray(18, 341, false).to_bits(), 0x3e62_3d20);
+}
+
+#[test]
 fn clipped_rotated_ramp_aligns_the_plane_origin_before_product_normalization() {
     let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
     graph.nodes[0].parameters = BTreeMap::from([

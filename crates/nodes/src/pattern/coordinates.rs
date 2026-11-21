@@ -74,7 +74,7 @@ impl PixelPlanes {
             let gradient = gradient_product(basis, span);
             let unit = f64::from(gradient.next_up() - gradient);
             let vertex = if triangle.far_axis == Some(axis) { high } else { low };
-            let base = truncate_float(f64::from(vertex) + offset_product(triangle.offset[axis], gradient, unit));
+            let base = plane_origin(vertex, [triangle.offset[axis]], [gradient], [unit]);
             let sign = f64::from(signs[axis]);
             let step = f64::from(gradient);
             Some(Axis { base: ((0.5 - triangle.origin[axis]) * step + f64::from(base)) * sign, step: step * sign, negative_bias: unit / 64.0 })
@@ -159,6 +159,34 @@ impl Axis {
     }
 }
 
+fn plane_origin<const N: usize>(vertex: f32, offsets: [i32; N], slopes: [f32; N], units: [f64; N]) -> f32 {
+    // Align the offset products by their factor exponents. A carry in a product
+    // must not shift away another bit when it cancels against the vertex.
+    let vertex = f64::from(vertex);
+    let scale = offsets
+        .into_iter()
+        .zip(slopes)
+        .fold(leading_power(vertex), |scale, (offset, slope)| scale.max(leading_power(f64::from(offset)) * leading_power(f64::from(slope))));
+    let products = offsets.into_iter().zip(slopes).zip(units).map(|((offset, slope), unit)| {
+        let value = offset_product(offset, slope.abs(), unit);
+        if slope.is_sign_negative() { -value } else { value }
+    });
+    truncate_float(aligned_sum(products.chain([vertex]), scale, 5))
+}
+
+fn leading_power(value: f64) -> f64 {
+    f64::from_bits(value.to_bits() & (0x7ff_u64 << 52))
+}
+
+/// Align signed operands at a shared exponent before cancellation in the interpolation setup.
+fn aligned_sum(terms: impl IntoIterator<Item = f64>, scale: f64, guard_bits: u32) -> f64 {
+    if scale == 0.0 {
+        return 0.0;
+    }
+    let quantum = scale / f64::from(1_u32 << (23 + guard_bits));
+    terms.into_iter().map(|v| (v / quantum).trunc() * quantum).sum()
+}
+
 fn offset_product(offset: i32, gradient: f32, unit: f64) -> f64 {
     if !gradient.is_normal() {
         return f64::from(offset) * f64::from(gradient);
@@ -192,15 +220,23 @@ fn area_reciprocal(area: f32) -> f32 {
     f32::from_bits(((252 - (bits >> 23)) << 23) + significand)
 }
 
+const FRACTION_MASK: u32 = (1 << 23) - 1;
+
 fn gradient_product(basis: f32, span: f32) -> f32 {
-    // Both inputs are positive normal values. Round the magnitude of each signed radix-four
-    // partial product before accumulating it. The low bit of the span is a separate row.
-    const FRACTION: u32 = (1 << 23) - 1;
     // A power of two only shifts the significand. Every discarded column is zero.
-    if basis.to_bits() & FRACTION == 0 || span.to_bits() & FRACTION == 0 {
+    if basis.to_bits() & FRACTION_MASK == 0 || span.to_bits() & FRACTION_MASK == 0 {
         return basis * span;
     }
-    let significand = |value: f32| i64::from((value.to_bits() & FRACTION) | (1 << 23));
+    let product = gradient_significand_product(basis, span);
+    let overflow = u32::from(product >= 1 << 47);
+    let exponent = (span.to_bits() >> 23) + (basis.to_bits() >> 23) - 127 + overflow;
+    f32::from_bits((exponent << 23) | ((product >> (23 + overflow)) as u32 & FRACTION_MASK))
+}
+
+fn gradient_significand_product(basis: f32, span: f32) -> u64 {
+    // Both inputs are positive normal values. Round the magnitude of each signed radix-four
+    // partial product before accumulating it. The low bit of the span is a separate row.
+    let significand = |value: f32| i64::from((value.to_bits() & FRACTION_MASK) | (1 << 23));
     let a = significand(span);
     let b = significand(basis);
     let rounding_error = |row: i64| {
@@ -218,8 +254,5 @@ fn gradient_product(basis: f32, span: f32) -> f32 {
         product += rounding_error((digit * b) << bit);
         carry = high;
     }
-    let product = (product + (1 << 20)) as u64;
-    let overflow = u32::from(product >= 1 << 47);
-    let exponent = (span.to_bits() >> 23) + (basis.to_bits() >> 23) - 127 + overflow;
-    f32::from_bits((exponent << 23) | ((product >> (23 + overflow)) as u32 & FRACTION))
+    (product + (1 << 20)) as u64
 }
