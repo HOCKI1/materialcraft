@@ -366,6 +366,24 @@ To isolate that case, observe the three pattern generators in the original graph
 
 With identical generator inputs in both applications, all **524,288/524,288** pixels match on the sixteen U8, U16, F16 and F32 controlled renders. Changing both generator texels reproduced all 65,536 original U16 and F32 pixels. Both roots remain in progress for their unmodified 32-setting series.
 
+### 3D fractal Voronoi after correcting bitmap lookup reduction
+
+The 3D fractal Voronoi root (305) now matches every stored pixel on the two independently generated lookup tables. The [lookup strip measurements](#stored-levels-when-resizing-a-grayscale-bitmap-resource) isolate the cause. The 1024 × 16 resource reduces one row pair at a time. Rounding each pair to a stored U16 level changes the distortion at positions that previously selected a different cell.
+
+Use the [same parameter matrix and the two original table recipes](#fractal-voronoi-roots-with-shared-lookup-tables). Exact counts below include defaults and changed octave, distance, color, seed and distortion settings at square and rectangular resolutions. MaterialCraft wrote the packages for the separate 24-setting reopen comparison.
+
+| Root (inventory index) | Distinct settings | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|---:|
+| Original, shared tables (305) | 82 | 24,064/24,064 · 0 | 57,856/57,856 · 0 | 24,064/24,064 · 0 | 68,096/68,096 · 0 |
+
+| Root (inventory index) | Distinct settings | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|---:|
+| Reopened, shared tables (305) | 24 | 12,800/12,800 · 0 | 32,256/32,256 · 0 | 4,096/4,096 · 0 | 8,192/8,192 · 0 |
+
+The shuffled and affine tables each matched 87,040/87,040 pixels across 41 original renders and 28,672/28,672 across 12 saved renders. Switching between the two tables changes outputs. An additional 38 control renders matched 32,256/32,256, and all 7,168 pixels matched in the ten supplemental saves. All maxima are zero.
+
+These measurements use the same lookup image in both applications. The separate [bundled lookup observations](#voronoi-distortion-and-shared-noise-inputs) include three distorted 32² cases that differ across all 3,072 F32 pixels with the default resources, maximum .205578864. With distortion disabled those 27 controls matched 146,688/146,688 pixels.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color
