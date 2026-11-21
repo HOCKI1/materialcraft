@@ -1268,6 +1268,53 @@ All **179,968/179,968** pixels on each route matched across applications and rep
 
 The normal open/save/reopen regression failed before the change and passed after it. Separate controls retain file identity for a same-length edit and a byte-identical copy outside the library. The release engine and format suites passed, along with the hostile-command check, formatting, strict workspace Clippy, dependency layering and WebAssembly.
 
+### Automatic filtering after resizing a bound bitmap
+
+Grayscale Splatter’s automatic stamp filter can receive an input with only its base texture level. A targeted impulse distinguishes this state from an image with identical stored pixels and a full set of reduced levels.
+
+Place a single white texel at (10,8) on a black 32 × 16 F32 grayscale image. Bind it to a U16 input bridge at 16 × 64. In one quadrant draw a centered bitmap stamp at one quarter of the output width and height, with automatic filtering, zero roughness and tiling off. Read U16 at x = 7 on rows 30 through 34. Both applications now give **0, 2048, 12288, 2048, 0**. Export the unmodified bridge pixels as U16 PNG or normalized F32 EXR at 16 × 64 and bind them again. Both applications then give **0, 1280, 5632, 1280, 0**. The release regression failed on the original binding before the fix. The two bindings also exercise the evaluator cache.
+
+For the measured power-of-two inputs, count the greatest difference in width or height exponents between the external file and the bridge. With matching input and output precision, any resize left the base level alone. With a depth conversion, one step still supplied reduced levels and two or more steps left only the base. Half and full EXR supplied F32 samples at the start of this comparison. The odd-size controls retained reduced levels. A compatible graph-instance input and a same-size reroute preserve the effective filter. Identity Levels supplies reduced levels again. The stamp’s authored filter continues to determine its drawing order.
+
+Check storage and resizing independently with a single centered quarter-size stamp. For source size index j write the grayscale field ((71x+31y+17xy+3j) mod 257)/256 to byte or word PNG, or half or full EXR. For integers multiply by the largest stored value and round to nearest, ties to even. Vary the bridge across U8, U16, F16 and F32 and compare the stamp’s U16 and F32 output. Use seed 816701 + 73j. The ordered input-to-output sizes are 16×64→16×64, 32²→16×64, 32×16→16×64, 64×16→16×64, 256×4→16×64, 4×128→64×16, 128²→32², 8²→64×32, 7×23→32², 64×16→32², 128×64→32×16, 8×4→32×16, 16×32→16×128, 16×256→16×64 and 64²→16². For all four input depths with a word bridge and for full EXR across every bridge, capture every size in F32 and add U16 at indices 0, 1, 2 and 4. For the other nine depth combinations use indices 0, 1, 2, 4, 6, 8, 9 and 13, adding the same four U16 renders.
+
+| Isolated comparison | Renders | Exact pixels before / compared | Exact pixels after / compared | Maximum after |
+|---|---:|---:|---:|---:|
+| Centered gray and color stamps, three filter modes and sizes 1, ½, ¼ and ⅛ | 132 | 133,943/135,168 | 135,168/135,168 | 0 |
+| Offset stamps and rotations 0, .109375 and −.078125 turns, automatic and bilinear | 54 | 53,696/55,296 | 55,296/55,296 | 0 |
+| Instance, reroute and identity Levels | 18 | 18,174/18,432 | 18,432/18,432 | 0 |
+| Impulse and its two same-size rebindings | 3 | 3,069/3,072 | 3,072/3,072 | 0 |
+| All 16 source and bridge depth pairs | 241 | 238,992/248,576 | 248,576/248,576 | 0 |
+
+Repeat the [55 earlier grayscale Splatter settings](#saved-splatter-and-weave-graphs-across-independent-fields) and add thirteen original fields. For index j, start with .625 × ((29x+101y+11xy+37j+19) mod 251)/250 and add .375 where (x+7y+3j) mod 19 < 6. Set the pixel at ((⌊width/3⌋+2j) mod width, (⌊height/2⌋+j) mod height) to one. Store the named source depth. Use seed 822307 + 269j. Render U16 and F32 throughout and add U8 and F16 at j = 0, 2, 4, 6, 10 and 12.
+
+| j | Source → output | Source storage | Changes from defaults |
+|---:|---|---|---|
+| 0 | 32×16 → 16×64 | F32 | Defaults |
+| 1 | 16×32 → 64×16 | U16 | Defaults |
+| 2 | 32² → 16×64 | U16 | Defaults |
+| 3 | 32² → 16×64 | U8 | Defaults |
+| 4 | 64×16 → 16×64 | F16 | Defaults |
+| 5 | 8×128 → 64×32 | F32 | Grid 3, rotation 17.8125°, disorder .53125, pattern 9 |
+| 6 | 128×32 → 32×64 | U16 | Grid 5, rotation −32.625°, disorder .21875, pattern 9 |
+| 7 | 32×64 → 32×64 | F16 | Defaults |
+| 8 | 4×32 → 32² | U8 | Filter 1, pattern 9 |
+| 9 | 16×128 → 64×32 | F32 | Filter 2, pattern 9 |
+| 10 | 7×23 → 32² | U8 | Defaults |
+| 11 | 13×33 → 32×64 | F32 | Grid 3, rotation 17.8125°, disorder .53125, pattern 9 |
+| 12 | 64² → 16×32 | F32 | Pattern 1, rotation 63.125° |
+
+| Output | Renders | Exact before / total · maximum | Exact after / total · maximum |
+|---|---:|---:|---:|
+| LUM16 | 29 | 184,448/194,048 · 16353 | 194,048/194,048 · 0 |
+| LUM16F | 14 | 50,176/55,808 · 0.211425781 | 55,808/55,808 · 0 |
+| LUM32F | 37 | 90,496/100,096 · 0.249530882 | 100,096/100,096 · 0 |
+| LUM8 | 13 | 48,128/53,760 · 54 | 53,760/53,760 · 0 |
+
+Grayscale Splatter matched **403,712/403,712** pixels across 93 distinct settings, up from **373,248/403,712** on the same inputs. The 55 earlier settings now match 354,560/354,560. Save the graph from MaterialCraft and reopen it in both applications. Repeat the earlier 43 saved-file settings, the thirteen new F32 cases and the three other precisions at indices 0, 4 and 10. All **296,960/296,960** pixels matched across the 65 reopens, maximum zero, and each application reproduced every original buffer.
+
+The color Splatter and Weave 2 control roots retained their earlier perfect counts. Pattern Weave 2 retained its 351 differing pixels across 95 settings. Formatting, 401 release tests across the evaluator and node crates, strict workspace Clippy, dependency layers and WebAssembly passed.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color

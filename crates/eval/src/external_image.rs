@@ -3,6 +3,17 @@ use craft_texture::{Image, Kind, Limits, MAX_SIDE};
 use materialcraft_core::{OutputFormat, Package};
 use materialcraft_nodes::CookContext;
 
+/// A power-of-two resize after a bitmap's initial conversion leaves only its base texture level.
+pub(super) fn base_level_only(image: &Image, size: (u32, u32), kind: Kind, source: OutputFormat, output: OutputFormat) -> bool {
+    let axes = [(image.width(), size.0), (image.height(), size.1)];
+    if image.kind() != kind || !axes.iter().all(|(a, b)| a.is_power_of_two() && b.is_power_of_two()) {
+        return false;
+    }
+    let [horizontal, vertical] = axes.map(|(a, b)| a.trailing_zeros().abs_diff(b.trailing_zeros()));
+    let depth = |format| if format == OutputFormat::Inherit { OutputFormat::U16 } else { format };
+    horizontal.max(vertical) > u32::from(depth(source) != depth(output))
+}
+
 /// Odd-sized normalized PNG resources use the same stored and sampled levels as bound rasters.
 pub(super) fn resize_bitmap(context: &CookContext, package: &Package) -> Option<NodeOutput> {
     let grayscale = !context.b("color_mode");

@@ -183,16 +183,16 @@ pub(crate) fn cook_node(
     let input_image = node.def.starts_with("input_").then(|| identifier(node)).and_then(|name| {
         if let Some(image) = options.inputs.get(&name) {
             let format = options.input_formats.get(&name).copied();
-            return Some((image.clone(), format, options.bitmap_formats.get(&name).copied()));
+            return Some((image.clone(), format, options.bitmap_formats.get(&name).copied(), options.base_level_inputs.contains(&name)));
         }
         let graph = package.graphs.get(graph_index)?;
         let binding = graph.input_images.get(&name)?;
         let image = (options.resource)(&craft_texture::resource_key(binding, graph.input_images_linear.contains(&name)))?;
         let bitmap =
             if image.integer_sampling() { package.resource(binding).and_then(|r| materialcraft_core::png_sample_format(r.bytes.as_slice())) } else { None };
-        Some((image, None, bitmap))
+        Some((image, None, bitmap, false))
     });
-    let wired = options.depth != 0 && input_image.as_ref().is_some_and(|(_, upstream, _)| upstream.is_some());
+    let wired = options.depth != 0 && input_image.as_ref().is_some_and(|(_, upstream, _, _)| upstream.is_some());
     let resource_hash = match parameters.get("resource") {
         Some(Value::Text(name)) => package.resource(name).map_or(0, |r| r.bytes.content_hash()),
         _ => 0,
@@ -227,7 +227,7 @@ pub(crate) fn cook_node(
         subgraph_hash,
         // A cached graph instance includes results evaluated with its host environment
         (node.def == "graph_instance").then(|| serde_json::to_string(&options.environment).unwrap_or_default()),
-        input_image.as_ref().map(|(image, upstream, bitmap)| (image_key(image, cache), upstream, bitmap, wired)),
+        input_image.as_ref().map(|(image, upstream, bitmap, base_level)| (image_key(image, cache), upstream, bitmap, wired, base_level)),
         (variable_key(node, &parameters, &bindings), &instance_literals),
     ));
     if let Some(outputs) = lock(cache).get(key) {
@@ -253,15 +253,25 @@ pub(crate) fn cook_node(
         evaluate_value(&parameters, &bindings, seed, [w, h], &inputs, &input_formats, tile).map(|value| vec![NodeOutput::Value(value)])
     } else if matches!(node.def.as_str(), "output" | "dot")
         && let Some(Some((output, _))) = incoming.first()
-        && (output.as_value().is_some() || matches!(output, NodeOutput::BoundBitmap { stored, .. } if (stored.width(), stored.height()) == (w, h)))
+        && (output.as_value().is_some()
+            || matches!(output, NodeOutput::BaseLevel(stored) | NodeOutput::BoundBitmap { stored, .. } if (stored.width(), stored.height()) == (w, h)))
     {
         Ok(vec![(*output).clone()])
-    } else if let Some((image, upstream, bitmap)) = input_image {
+    } else if let Some((image, upstream, bitmap, inherited_base_level)) = input_image {
         let kind = if node.def == "input_grayscale" { Kind::Gray } else { Kind::Color };
         let format = upstream.unwrap_or(OutputFormat::F32);
-        let external = if wired { None } else { crate::external_image::resize(&image, (w, h), kind, bitmap.unwrap_or(format), base.format) };
+        let source = bitmap.unwrap_or(format);
+        let external = if wired { None } else { crate::external_image::resize(&image, (w, h), kind, source, base.format) };
         let tiling = if wired { base.tiling } else { [false; 2] };
-        let output = external.unwrap_or_else(|| NodeOutput::Image(materialcraft_nodes::resize_bound_image(image, (w, h), kind, format, base.format, tiling)));
+        let output = external.unwrap_or_else(|| {
+            let base_level = if wired {
+                inherited_base_level && image.kind() == kind && (image.width(), image.height()) == (w, h) && format == base.format
+            } else {
+                crate::external_image::base_level_only(&image, (w, h), kind, source, base.format)
+            };
+            let image = materialcraft_nodes::resize_bound_image(image, (w, h), kind, format, base.format, tiling);
+            if base_level { NodeOutput::BaseLevel(image) } else { NodeOutput::Image(image) }
+        });
         Ok(vec![output])
     } else if node.def == materialcraft_core::MISSING_NODE {
         let name = if node.label.is_empty() { "this node" } else { node.label.as_str() };
@@ -303,7 +313,16 @@ pub(crate) fn cook_node(
         {
             Ok(vec![output])
         } else {
-            (definition.cook)(&context).map(|images| {
+            let result = if node.def == "fx_map" {
+                let mut base_level_only = [false; materialcraft_nodes::MAX_IMAGE_INPUTS + 1];
+                for (slot, output) in base_level_only.iter_mut().zip(&incoming) {
+                    *slot = matches!(output, Some((NodeOutput::BaseLevel(_), _)));
+                }
+                materialcraft_nodes::pattern::cook_with_base_level_inputs(&context, &base_level_only)
+            } else {
+                (definition.cook)(&context)
+            };
+            result.map(|images| {
                 images
                     .into_iter()
                     .map(|image| {

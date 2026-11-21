@@ -16,6 +16,7 @@ pub(super) fn render(
     groups: [&[PatternStamp]; 5],
     opacities: Result<Vec<f32>, String>,
     nonfinite_gray_opacity: bool,
+    base_level_only: &[bool],
 ) -> Result<Image, String> {
     let (width, height) = craft_texture::clamp_size(context.w, context.h);
     let kind = if context.b("color_mode") { Kind::Color } else { Kind::Gray };
@@ -126,7 +127,10 @@ pub(super) fn render(
                 [frame.cosine * pixel_size[0] / stamp.size[0], -frame.sine * pixel_size[0] / stamp.size[1]],
                 [frame.sine * pixel_size[1] / stamp.size[0], frame.cosine * pixel_size[1] / stamp.size[1]],
             ];
-            Some(bitmap::Sampler::new(input, index, format, stamp.filtering, gradients))
+            // An automatic read on a texture with only its base level uses bilinear filtering.
+            // The original filter selection still determines the order in which the stamps draw.
+            let filtering = if stamp.filtering == 0 && base_level_only.get(index) == Some(&true) { 1 } else { stamp.filtering };
+            Some(bitmap::Sampler::new(input, index, format, filtering, gradients))
         } else {
             None
         };

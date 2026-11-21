@@ -1,6 +1,6 @@
 use craft_texture::Image;
 use materialcraft_core::{NodeId, OutputFormat, Value};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::AtomicBool;
 
 /// What to cook and how
@@ -17,6 +17,8 @@ pub struct Options<'a> {
     pub inputs: BTreeMap<String, Image>,
     /// Upstream storage precision for caller-supplied images. Unspecified floating inputs use full precision.
     pub input_formats: BTreeMap<String, OutputFormat>,
+    /// Caller textures which have only their base level when passed through an instance.
+    pub base_level_inputs: BTreeSet<String>,
     /// Original storage of decoded external files. Wired graph inputs use their upstream format.
     pub bitmap_formats: BTreeMap<String, OutputFormat>,
     /// Values for the graph's exposed parameters (graph instances), over the graph's own
@@ -46,6 +48,7 @@ impl<'a> Options<'a> {
             only: None,
             inputs: BTreeMap::new(),
             input_formats: BTreeMap::new(),
+            base_level_inputs: BTreeSet::new(),
             bitmap_formats: BTreeMap::new(),
             overrides: BTreeMap::new(),
             literal_inputs: Vec::new(),

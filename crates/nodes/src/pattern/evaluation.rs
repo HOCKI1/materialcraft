@@ -11,6 +11,11 @@ use crate::{CookContext, CookResult};
 const MAX_VISITS: usize = 1_048_576;
 
 pub(crate) fn cook(context: &CookContext) -> CookResult {
+    cook_with_base_level_inputs(context, &[])
+}
+
+/// Cook a pattern with the supplied base-level-only flags in image port order.
+pub fn cook_with_base_level_inputs(context: &CookContext, base_level_only: &[bool]) -> CookResult {
     let Some(Value::PatternGraph(graph)) = context.params.get("pattern") else {
         return Err("missing pattern graph".into());
     };
@@ -302,5 +307,5 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
         }
     }
     groups[0] = prefix;
-    Ok(vec![raster::render(context, groups, opacities, nonfinite_gray_opacity)?])
+    Ok(vec![raster::render(context, groups, opacities, nonfinite_gray_opacity, base_level_only)?])
 }

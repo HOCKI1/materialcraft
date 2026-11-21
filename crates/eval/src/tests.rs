@@ -656,6 +656,42 @@ fn bitmap_half_storage_uses_the_original_integer_channel_depth() {
 }
 
 #[test]
+fn pattern_mips_of_a_resized_bitmap_preserve_the_measured_impulse() {
+    use materialcraft_core::{OutputFormat, ParameterInheritance, PatternGraph, PatternNodeKind};
+
+    let mut graph = Graph::new("Bitmap mip levels");
+    graph.size = [4, 6];
+    graph.format = OutputFormat::U16;
+    let input = graph.add_node("input_grayscale", [0.0; 2]);
+    let stamp = graph.add_node("fx_map", [0.0; 2]);
+    let mut pattern = PatternGraph::with_root(PatternNodeKind::Quadrant);
+    pattern.nodes[0].parameters.insert("patterntype".into(), Value::Int(1));
+    pattern.nodes[0].parameters.insert("patternsize".into(), Value::Float2([0.25; 2]));
+    let node = graph.node_mut(stamp).unwrap();
+    node.base.format_mode = ParameterInheritance::Absolute;
+    node.base.format = OutputFormat::U16;
+    node.params.insert("color_mode".into(), Value::Bool(false));
+    node.params.insert("roughness".into(), Value::Float(0.0));
+    node.params.insert("pattern".into(), Value::PatternGraph(Box::new(pattern)));
+    graph.connect(input, "output", stamp, "pattern0").unwrap();
+
+    let mut package = Package::new("Impulse");
+    package.graphs.push(graph);
+    let mut options = Options::new(&no_res);
+    options.inputs.insert("input".into(), Image::gray(32, 16, |x, y| f32::from(x == 10 && y == 8)));
+    let cache = Mutex::new(Cache::default());
+    for expected in [[0, 2048, 12288, 2048, 0], [0, 1280, 5632, 1280, 0]] {
+        let result = cook(&package, 0, &options, &cache);
+        assert!(result.nodes.values().all(|node| node.error.is_none()));
+        let image = result.image(stamp, 0).unwrap();
+        let levels = [30, 31, 32, 33, 34].map(|y| (image.get_gray(7, y, false) * 65535.0).round() as u16);
+        assert_eq!(levels, expected);
+        // Binding the identical bridge pixels at their final size supplies an ordinary mip chain.
+        options.inputs.insert("input".into(), result.image(input, 0).unwrap().clone());
+    }
+}
+
+#[test]
 fn bound_float_bitmap_reduces_close_texels_at_the_measured_filter_precision() {
     let mut graph = Graph::new("Row reduction");
     graph.size = [4, 0];

@@ -13,6 +13,7 @@ mod variables;
 
 pub use catalog::{definition, definitions};
 pub(crate) use evaluation::cook;
+pub use evaluation::cook_with_base_level_inputs;
 
 #[cfg(test)]
 mod tests;

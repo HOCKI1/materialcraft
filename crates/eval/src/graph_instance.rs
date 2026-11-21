@@ -97,6 +97,9 @@ pub(crate) fn cook_instance(
         if let Some((image, texture_format)) = output.texture(*format) {
             source_options.inputs.insert(port.id.clone(), image.clone());
             source_options.input_formats.insert(port.id.clone(), texture_format);
+            if matches!(output, NodeOutput::BaseLevel(_)) {
+                source_options.base_level_inputs.insert(port.id.clone());
+            }
         } else if let Some(value) = output.as_value() {
             source_options.overrides.insert(port.id.clone(), value.clone());
             source_options.literal_inputs.retain(|name| name != &port.id);
