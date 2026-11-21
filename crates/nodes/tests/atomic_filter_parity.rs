@@ -658,6 +658,28 @@ fn long_oblique_blur_centers_the_shear_at_texel_precision() {
     assert_eq!([253, 254, 255].map(|y| result.get_gray(10, y, false).to_bits()), [0x3d0c_9a80, 0x3ce7_57e2, 0x3bbc_f1c9]);
 }
 
+#[test]
+fn long_oblique_blur_samples_the_projected_shear_in_column_order() {
+    for (size, horizontal, angle, strength, point, expected) in [
+        ([128, 64], false, 213.0 / 2048.0, 19.5, [19, 30], [0x3b1a_ea75, 0x3d69_d155, 0x3dca_52bf, 0x3f80_0001]),
+        ([64, 128], true, -273.0 / 2048.0, 19.5, [29, 44], [0x3d6f_1384, 0x3d82_34f0, 0x3c5b_e7a1, 0x3f80_0000]),
+        ([64, 128], true, -273.0 / 2048.0, 26.875, [49, 40], [0x3c9f_9ffc, 0x3d67_9d73, 0x3cff_b80f, 0x3f7f_fffe]),
+        ([128, 128], true, 199.0 / 2048.0, 13.4375, [98, 102], [0x3cee_97a4, 0x3d69_7441, 0, 0x3f80_0000]),
+    ] {
+        let field = Image::generate(size[0], size[1], Kind::Color, |x, y| {
+            let (along, across) = if horizontal { (x, y) } else { (y, x) };
+            let mut rgba = [0.0, 0.0, 0.0, 1.0];
+            if along % 16 == 0 && across % 4 < 3 {
+                rgba[(across % 4) as usize] = 1.0;
+            }
+            rgba
+        });
+        let params = [("intensity", Value::Float(strength)), ("angle", Value::Float(angle))];
+        let image = cook("directional_blur", &[Some(field)], &params, size, true);
+        assert_eq!(image.get(point[0], point[1], false).map(f32::to_bits), expected, "{size:?} at {strength}");
+    }
+}
+
 fn signed_modular_field(width: u32, height: u32) -> Image {
     Image::generate(width, height, Kind::Color, |x, y| {
         std::array::from_fn(|c| {

@@ -1879,6 +1879,60 @@ Across the 93 settings, 45 formerly rejected renders now match. All 18,352 compa
 
 The full saved package retains its nested graph and input connections. Both applications reproduced their respective originals in ten reopened settings (2,161/2,161 cross-application pixels, maximum 0). Three saved parents add 12 reopened settings (1,664/1,664 pixels, maximum 0). The previously captured finite and skipped loop controls retain 28/28 exact typed values and 10,240/10,240 exact pixel values. Three regressions cover a settled counter, a constant body result with advancing random draws and alternating signed zero. All 421 node and evaluator release tests passed, along with formatting, strict workspace Clippy, dependency layers and WebAssembly.
 
+### Sampling both passes of a long oblique blur
+
+The [periodic RGB impulse](#isolated-sample-coordinates-in-the-two-hq-blur-roots) isolates the transverse sample positions on each pass. Keep the angle and dimensions fixed and change only the radius. For a 128 × 256 image at .337890625 turns, moving from radius 6.71875 to 7.375 changes the forward interpolation weight by one unit of 1/256 texel at 344 of 12,800 common sampled positions. The inverse changes at 264 of 11,776. The slope uses the ratio of the two already rounded projected extents. For the two horizontal passes, let u and v be texel-center coordinates and s the signed UV slope on that pass. The forward pass forms the fused product (−s)(1−u) + v, then adds s/2. The inverse pass first rounds s × u, then adds v and subtracts s/2. Both vertical passes form the fused s × v + u before subtracting s/2. These orderings agree with all 820,992 recovered interpolation weights in 29 angle, size and radius combinations.
+
+For the independently chosen radius series use (width, height, turns) of (128,64,213/2048), (64,128,−273/2048), (128,128,199/2048) and (128,128,−253/2048). Test radii 4.875, 6.71875 and 7.375. In each combination light columns with residue h modulo 16 across the filtering axis, using pure red, green, blue and black in repeating transverse rows. Transpose the field when the filter runs vertically. Include residues 0 through 15 and repeat residue 7 at zero intensity. Use seed 128681 + 73j + 19r + h at orientation j and radius index r. Set intensity to 256 times radius divided by the shorter side.
+
+| Isolated F32 inputs | Renders | Earlier exact / compared · maximum | Current exact / compared · maximum |
+|---|---:|---:|---:|
+| Original impulses | 51 | 2,360,903/2,367,488 · 0.00061633531 | 2,367,488/2,367,488 · 0 |
+| Independent impulses | 170 | 8,339,478/8,355,840 · 0.000513050705 | 8,355,840/8,355,840 · 0 |
+| Two previous radius sweeps | 68 | 3,333,242/3,342,336 · 0.00069058314 | 3,342,336/3,342,336 · 0 |
+| Four new orientations and three radii | 204 | 2,480,832/2,506,752 · 0.00115896761 | 2,506,752/2,506,752 · 0 |
+
+All 16,572,416 impulse pixels match. Saving the four new graphs and reopening ten settings in each gives 491,520/491,520 cross-application pixels, maximum zero. Each application reproduced all its original buffers.
+
+For a separate dense input, number test geometries j and stored channels c from zero. Use F32 channels ((31x+53y+7xy+43c+5cx+17⌊y/3⌋+29j) mod 509)/508. Use (width,height,angle numerator,radius) of (128,64,81,4.34375), (64,128,−433,7.15625), (256,64,637,5.53125), (64,256,207,6.40625), (128,128,−843,4.90625) and (128,64,−561,7.21875). Divide each numerator by 2048. Render zero radius at F32, the tabulated radius at all four formats, then radius + .9375 at F32. Use seed 131101 + 53j + 7h with h = 0, 1 or 2 in that order.
+
+| Dense procedural field | Renders | Exact / compared | Maximum error |
+|---|---:|---:|---:|
+| RGBA8 | 6 | 73,728/73,728 | 0 |
+| RGBA16 | 6 | 73,656/73,728 | 1 |
+| RGBA16F | 6 | 73,727/73,728 | 0.00048828125 |
+| RGBA32F | 18 | 199,687/221,184 | 1.78813934e-07 |
+
+These dense inputs expose remaining intermediate arithmetic differences in the individual filter. The three independently reopened dense-input graphs reproduced their original results in both applications. They had 226,589/245,760 cross-application matches in 18 settings.
+
+For the two whole HQ roots, repeat the [previous 78 settings](#directional-blur-weights-across-110-angles-and-two-projection-axes). The earlier color and grayscale captures differed at 646 and 130 pixels respectively. Both now match 3,661,056/3,661,056 at maximum zero. Then use the same dense field formula above with all four channels for the color root and channel zero for grayscale. Quantize integer sources to the nearest unsigned level. Test these eight geometries at each output format with seed 131337 + 97j.
+
+| j | Output size | Source size and format | Intensity | Quality |
+|---:|---|---|---:|---:|
+| 0 | 32 × 64 | 32 × 64, U8 | default | default |
+| 1 | 128 × 64 | 128 × 64, F32 | 17.9375 | 1 |
+| 2 | 64 × 128 | 64 × 128, U16 | 22.6875 | 1 |
+| 3 | 256 × 128 | 128 × 64, F16 | 12.65625 | 0 |
+| 4 | 128 × 256 | 128 × 256, F32 | 18.15625 | 1 |
+| 5 | 256 × 256 | 128 × 256, U16 | 9.96875 | 1 |
+| 6 | 512 × 128 | 512 × 128, U8 | 15.3125 | 1 |
+| 7 | 128 × 512 | 128 × 512, F32 | 14.53125 | 1 |
+
+| Root (inventory index) | Distinct settings | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|---:|
+| Color HQ blur (55) | 110 | 987,135/987,136 · 1 | 1,449,983/1,449,984 · 257 | 872,447/872,448 · 0.00390625 | 1,473,791/1,473,792 · 0.00392156839 |
+| Grayscale HQ blur (56) | 110 | 987,136/987,136 · 0 | 1,449,984/1,449,984 · 0 | 872,448/872,448 · 0 | 1,473,792/1,473,792 · 0 |
+
+For root 55, the new 32 settings improved from 1,120,884 to 1,122,300 exact pixels out of 1,122,304. Reopening the two earlier packages and the new package gives 3,868,671/3,868,672 across 71 saved settings, with maximum 0.00392156839. Both applications reproduced every pixel of their own originals.
+
+For root 56, the new 32 settings improved from 1,122,084 to 1,122,304 exact pixels out of 1,122,304. Reopening the two earlier packages and the new package gives 3,868,672/3,868,672 across 71 saved settings, with maximum 0. Both applications reproduced every pixel of their own originals.
+
+In the color root at j = 5, the source bridge and the first filter in the second branch agree on 65,536/65,536 pixels. The next directional filter uses .4375 turns and intensity 6.579375267028809. In U8 storage, alpha at (161,11) is 116 in the reference and 117 in MaterialCraft. Subsequent filters carry the difference to (161,19), where the final alpha is 157/255 and 158/255 respectively. This one output pixel accounts for all four format differences. All thirteen observed grayscale stages at j = 5 match. The grayscale root reaches parity for the listed settings. The color root remains in progress.
+
+A separate one-node graph reproduces the original reference filter at all 65,536 pixels when supplied the matching upstream U8 render. Use the same 256² size, angle and intensity. Repeating its alpha in all four channels reproduces the same single-level difference in all four. Keeping only x = 148…174 and y = 0…23 and clearing everything outside this rectangle also preserves the difference. Across the nine reopened settings, 586,420/589,824 cross-application pixels matched. Both applications reproduced their original buffers.
+
+Thirteen other roots that use the directional filter retain 72,352,768/72,352,768 exact pixels across 662 measured settings. The other fluid root (272) still matches 1,041,220/1,041,664 across 53 settings, maximum six U16 levels. The release regression failed on the previous implementation. All 422 node and evaluator release tests, formatting, strict workspace Clippy, dependency layers and WebAssembly passed.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color

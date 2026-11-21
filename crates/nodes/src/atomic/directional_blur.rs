@@ -95,9 +95,10 @@ pub(super) fn blur(context: &CookContext, angle: f32) -> CookResult {
         // An authored eighth turn has an exact unit slope even after radian conversion.
         // On a rectangle the dominant UV direction can have the smaller texel
         // component. The window spans the projection along the chosen texel axis.
-        let (across, along, reach) = if horizontal { (sample_y, sample_x, reach_x) } else { (sample_x, sample_y, reach_y) };
+        // Each projected extent rounds before the divide that sets the shear slope.
+        let (across, along) = if horizontal { (reach_y, reach_x) } else { (reach_x, reach_y) };
         let slope = if !stretched && (angle * 8.0).fract() == 0.0 { (line_y * line_x).signum() as f32 } else { across / along };
-        if let Some(image) = box_filter::sheared(&input, reach.abs(), horizontal, slope, source_format, context.format) {
+        if let Some(image) = box_filter::sheared(&input, along.abs(), horizontal, slope, source_format, context.format) {
             return Ok(vec![image]);
         }
     }

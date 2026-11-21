@@ -20,18 +20,24 @@ pub(super) fn sheared(input: &Image, reach: f32, horizontal: bool, slope: f32, s
     let intermediate = if destination == OutputFormat::Inherit { OutputFormat::U16 } else { destination };
     // The slope is in texels. A full period along the line spans this many transverse UV periods.
     let uv_slope = slope * (length as f32 / across as f32);
-    let shear = |image: &Image, slope: f32, format| {
-        // Add the two transform columns before translating back to the texture center.
-        let shifted = |along: f32, across: f32| (across + slope * along) - slope * 0.5;
+    let shear = |image: &Image, forward: bool, format| {
+        let slope = if forward { uv_slope } else { -uv_slope };
+        let translation = slope * 0.5;
         Image::generate_uv(width, height, image.kind(), |u, v| {
-            let uv = if horizontal { [u, shifted(u, v)] } else { [shifted(v, u), v] };
+            // The horizontal forward pass measures along the row from its far edge.
+            // Keep the transform columns in sample order before adding the translation.
+            let uv = match (horizontal, forward) {
+                (true, true) => [u, (-slope).mul_add(1.0 - u, v) + translation],
+                (true, false) => [u, (slope * u + v) - translation],
+                (false, _) => [slope.mul_add(v, u) - translation, v],
+            };
             crate::texture_sampler::sample(image, uv, [true; 2], format, None)
         })
     };
-    let displaced = crate::output_precision::apply(shear(input, uv_slope, source), intermediate);
+    let displaced = crate::output_precision::apply(shear(input, true, source), intermediate);
     let filtered = mip_window::filter(&displaced, reach, horizontal, true, intermediate, intermediate, mip_window::Edges::Sheared(uv_slope));
     let filtered = crate::output_precision::apply(filtered, intermediate);
-    Some(shear(&filtered, -uv_slope, intermediate))
+    Some(shear(&filtered, false, intermediate))
 }
 
 pub(super) fn short_line(input: &Image, reach: f32, step: [f32; 2], tile: [bool; 2], source_format: OutputFormat) -> Image {
