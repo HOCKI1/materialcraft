@@ -617,6 +617,30 @@ At larger j=6 the color patch first differs in the bitmap pattern map. Its input
 
 Repeated original-only Scratches 2 renders at smaller j=1,3,4,6 were bit-identical in six runs of each setting. MaterialCraft matched 2,047/2,048, 4,095/4,096, 8,190/8,192 and 16,383/16,384 RGBA32F pixels respectively. The respective maximum errors were 5.96046448e−8, 2.98023224e−8, 5.96046448e−8 and 2.98023224e−8. The first setting differs only in green at (18,52). [Earlier stage and parameter controls](#scratches-messy-fibers-microscope-and-moisture)
 
+### Messy Fibers and Microscope View through 1024 pixels per side
+
+All five generator outputs match in the primary series, including every stored gray level and floating-point bit through 1024 pixels per side. Both applications reopened the MaterialCraft package and reproduced each original exactly on the 521,216 pixels in the 30 smaller settings and the 3,313,664 pixels in the 32 larger settings per root. The table counts distinct original settings once.
+
+| Root (inventory index) | Distinct settings | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|---:|
+| Messy Fibers 1 (220) | 82 | 717,056/717,056 · 0 | 1,319,168/1,319,168 · 0 | 717,056/717,056 · 0 | 1,243,648/1,243,648 · 0 |
+| Messy Fibers 2 (221) | 82 | 717,056/717,056 · 0 | 1,319,168/1,319,168 · 0 | 717,056/717,056 · 0 | 1,243,648/1,243,648 · 0 |
+| Messy Fibers 3 (222) | 70 | 814,336/814,336 · 0 | 1,209,600/1,209,600 · 0 | 716,032/716,032 · 0 | 1,210,624/1,210,624 · 0 |
+| Messy Fibers 4 (223) | 77 | 700,672/700,672 · 0 | 1,286,400/1,286,400 · 0 | 700,672/700,672 · 0 | 1,227,264/1,227,264 · 0 |
+| Microscope View (224) | 82 | 717,056/717,056 · 0 | 1,319,168/1,319,168 · 0 | 717,056/717,056 · 0 | 1,243,648/1,243,648 · 0 |
+
+Use the dimensions, formats, seeds and d for index i in the two tile-patch series. Leave defaults in rows marked x. These five roots generate their own input. [Render matrices](#tile-patch-inputs-and-scratch-color-precision)
+
+| Root | Changed public controls |
+|---|---|
+| Messy Fibers 1 | Disorder d, rotation variation 57+237d, links 7+19d, emboss intensity 1.6d and emboss angle −50+218d |
+| Messy Fibers 2 | Disorder d and lines 12+37d |
+| Messy Fibers 3 | Disorder d, rotation variation 57+237d and rotation d−.25 |
+| Messy Fibers 4 | No public parameters |
+| Microscope View | Disorder d and warp intensity 4+11d |
+
+Separate downstream checks replaced each live generator with a different original U16 field in Messy Fibers 1, Messy Fibers 4 and Microscope View. All 46,336/46,336 output pixels per graph matched across the twelve settings, maximum zero. [Field formulas and stage measurements](#scratches-messy-fibers-microscope-and-moisture)
+
 ### Short directional blur tap order on rectangular inputs
 
 Fluid matches **25,969,920/25,969,920 final pixels across 121 distinct settings** through 2048 pixels per side. Both applications reopened the MaterialCraft package and reproduced every pixel of their originals over 28, 38 and 36 settings (498,688, 8,654,848 and 17,588,224 pixels). The three instrumented renders at 512×1024, 1024×512 and 1024² match 9,961,472/9,961,472 intermediate and final samples. [First differing stage and earlier settings](#fibers-1-and-fluid-through-1024-pixels-per-side)
