@@ -1787,6 +1787,42 @@ Keep the first setting at defaults. At j = 1, 2 and 3 set shape to 1, 2 and 0 re
 
 Each application reproduced every component of its own saved-file controls. Both roots remain in progress on the full-size F16 settings.
 
+### Caller texture precision in typed reads and the UV debug marker
+
+A typed value function, a pattern property function, a bitmap stamp and a pattern background connected directly to a child graph’s image input read the compatible caller texture with its dimensions, storage depth and available mip levels. A square marker connected this way inside a graph instance exposed the difference. In the [earlier 90 settings](#fixed-integer-arguments-and-the-uv-debug-marker), the preceding build matched 284,157/284,160 pixels. At 32² with index 0, count 1, offset 0 and debug position (.375,.6875), red at (9,19), (10,20) and (11,21) was 15,898 instead of 15,899 in U16. Rounding the F32 source to U16 before feeding it to the parent makes both applications produce 15,898. The corrected evaluator reads the supplied texture when the source is an enabled child input of matching image kind.
+
+For the independent UV fields, render 32² and 64 × 32. At pixel (x,y) set component c of the F32 input to ((37x + 41y + 7xy + 53r + 61c + 5xc) mod 509)/508 for c = 0,1,2,3. Use (index, count, offset, debug position, r) of (0,1,0,(.375,.6875),19), (1,8,0,(.421875,.765625),19), (0,1,0,(.28125,.71875),41) and (0,1,0,(.626953125,.3974609375),73). For each row j and size b from zero use seed 125141 + 17j + 3b. Compare the original float field, the nearest U16 and U8 levels stored in F32, half precision stored in F32, U16 and U8 PNG inputs, and two F32 variants with RGB shifted by ±.375/65535 and clamped to [0,1]. Compare every stored component at all four output depths.
+
+| Root 454 storage | Earlier 90, exact / pixels · max | Current 90, exact / pixels · max | Additional renders | Additional before, exact / pixels · max | Additional after, exact / pixels · max |
+|---|---:|---:|---:|---:|---:|
+| RGBA8 | 120,832/120,832 · 0 | 120,832/120,832 · 0 | 64 | 98,297/98,304 · 191 | 98,304/98,304 · 0 |
+| RGBA16 | 18,429/18,432 · 1 | 18,432/18,432 · 0 | 64 | 98,294/98,304 · 49188 | 98,304/98,304 · 0 |
+| RGBA16F | 18,432/18,432 · 0 | 18,432/18,432 · 0 | 64 | 98,107/98,304 · 0.7504882812 | 98,304/98,304 · 0 |
+| RGBA32F | 126,464/126,464 · 0 | 126,464/126,464 · 0 | 64 | 98,304/98,304 · 0 | 98,304/98,304 · 0 |
+
+To isolate the input read, wire the original field into a child graph. In one graph return a typed four-channel sample. In another assign that sample to a full-coverage square’s tint on black. Keep the parent input F32 and choose U8, U16, F16 or F32 on the child input. Use coordinates (.375,.6875), (.28125,.734375), (.375,.6875), (.421875,.765625), (.626953125,.3974609375), (.2138671875,.8798828125), (.28125,.71875) and (−.03125,1.09375), and seeds 126071 + 17j. The first four outputs are 32², followed by 64 × 32, 16 × 32, 32 × 16 and 16 × 32. Inputs are 32² except cases 4, 6 and 7 which use 64 × 32. Use the U16-rounded F32 source for case 2, the half-rounded source for case 3 and the U16 PNG for case 6. At the first coordinate the typed F32 value is (.447342515, .430118084, .412893713, .646161437). For bitmap stamps, use unit size and nearest filtering, half size and linear filtering, or quarter size and automatic mip selection. Use cases 0, 2, 3, 4, 5 and 6 in each depth. For a background-only control disable the stamp and wire the same input to its background.
+
+| Isolated operation | Renders or typed reads | Before, exact / compared · max | After, exact / compared · max |
+|---|---:|---:|---:|
+| Typed F32 vector | 32 | 9/32 · 0.00143660605 | 32/32 · 0 |
+| F32 pattern tint | 32 | 8,704/30,720 · 0.001405417919 | 30,720/30,720 · 0 |
+| Unit nearest bitmap | 24 | 8,740/24,576 · 0.003619194031 | 24,576/24,576 · 0 |
+| Half-size linear bitmap | 24 | 19,975/24,576 · 0.001777678728 | 24,576/24,576 · 0 |
+| Quarter-size automatic bitmap | 24 | 23,424/24,576 · 0.1906615794 | 24,576/24,576 · 0 |
+| Connected background | 24 | 8,704/24,576 · 0.002080440521 | 24,576/24,576 · 0 |
+
+Switching the reference child from F32 to the three lower depths preserved 24/24 typed vectors and 23,040/23,040 tint pixels. The three nested mip controls retain 18,432/18,432 exact pixels. Compute Irradiance and Compute Ray Direction each retain 217,088/217,088 exact pixels in their 32 recorded settings.
+
+| Reopened graph | Packages | Renders or typed reads | Cross-application exact / compared · max |
+|---|---:|---:|---:|
+| Original UV parents | 6 | 42 | 56,832/56,832 · 0 |
+| Independent UV parents | 4 | 64 | 98,304/98,304 · 0 |
+| Bitmap stamps | 2 | 12 | 12,288/12,288 · 0 |
+| Sampled pattern tint | 2 | 8 | 9,216/9,216 · 0 |
+| Typed sample | 2 | 8 | 8/8 · 0 |
+
+Both applications reproduce their original stored results on reopening every package in the table. Root 454 matches **677,376/677,376 pixels across 346 measured renders**. The typed and pattern regression reproduced the earlier conversion. All 418 release tests across the evaluator and node crates passed, along with formatting, strict workspace Clippy, dependency layers and WebAssembly.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color

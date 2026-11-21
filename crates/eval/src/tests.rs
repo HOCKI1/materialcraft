@@ -1087,6 +1087,55 @@ fn wired_input_sampling_keeps_the_source_texture_and_stores_the_direct_output() 
 }
 
 #[test]
+fn wired_value_and_pattern_functions_read_the_callers_texture() {
+    use materialcraft_core::{FunctionGraph, OutputFormat, PatternGraph, PatternNodeKind};
+    let (mut parent, instance) = instancing("Parent", "Sample");
+    parent.size = [5; 2];
+    let source = parent.add_node("input_color", [0.0; 2]);
+    parent.node_mut(source).unwrap().base.format = OutputFormat::F32;
+    parent.connect(source, "output", instance, "input").unwrap();
+
+    let mut child = Graph::new("Sample");
+    let bridge = child.add_node("input_color", [0.0; 2]);
+    child.node_mut(bridge).unwrap().base.format = OutputFormat::U16;
+    let mut function = FunctionGraph::default();
+    let coord = function.add_constant(Value::Float2([0.375, 0.6875]));
+    function.output = Some(function.add("samplecol", &[coord], Some(Value::Int2([0, 1]))));
+    let reader = child.add_node("value_processor", [0.0; 2]);
+    child.node_mut(reader).unwrap().params.insert("function".into(), Value::Function(Box::new(function.clone())));
+    child.connect(bridge, "output", reader, "input0").unwrap();
+
+    let mut pattern = PatternGraph::with_root(PatternNodeKind::Quadrant);
+    pattern.nodes[0].parameters.insert("patterntype".into(), Value::Int(2));
+    pattern.nodes[0].parameters.insert("opacity".into(), Value::Function(Box::new(function)));
+    let draw = child.add_node("fx_map", [0.0; 2]);
+    let node = child.node_mut(draw).unwrap();
+    node.base.format = OutputFormat::F32;
+    node.params.insert("color_mode".into(), Value::Bool(true));
+    node.params.insert("background".into(), Value::Color([0.0; 4]));
+    node.params.insert("pattern".into(), Value::PatternGraph(Box::new(pattern)));
+    child.connect(bridge, "output", draw, "pattern0").unwrap();
+    for (name, source) in [("output", draw), ("sample", reader)] {
+        let output = child.add_node("output", [0.0; 2]);
+        child.node_mut(output).unwrap().params.insert("identifier".into(), Value::Text(name.into()));
+        child.connect(source, "output", output, "input").unwrap();
+    }
+    let mut package = Package::new("Wired color sampling");
+    package.graphs.extend([parent, child]);
+    let mut options = Options::new(&no_res);
+    let field = Image::generate(32, 32, Kind::Color, |x, y| {
+        std::array::from_fn(|i| ((37 * x + 41 * y + 7 * x * y + 53 * 19 + 61 * i as u32 + 5 * x * i as u32) % 509) as f32 / 508.0)
+    });
+    options.inputs.insert("input".into(), field);
+    let result = cook(&package, 0, &options, &Mutex::new(Cache::default()));
+    assert_eq!(result.nodes[&instance].error, None);
+    let color = [0.44734252, 0.43011808, 0.4128937, 0.64616144];
+    assert_eq!(result.value(instance, 1), Some(&Value::Float4(color)));
+    let drawn = [0.2890555, 0.27792573, 0.266796, 0.64616144];
+    assert_eq!(result.image(instance, 0).unwrap().get(0, 0, false), drawn);
+}
+
+#[test]
 fn value_processor_reads_the_upstream_channel_format_after_a_cache_hit() {
     use materialcraft_core::{FunctionGraph, OutputFormat};
 

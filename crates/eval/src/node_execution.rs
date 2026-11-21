@@ -57,6 +57,7 @@ pub(crate) fn cook_node(
     let mut input_formats = Vec::new();
     let mut incoming = Vec::new();
     let mut input_keys = Vec::new();
+    let mut base_level_only = [false; materialcraft_nodes::MAX_IMAGE_INPUTS + 1];
     let mut variables = std::borrow::Cow::Borrowed(graph_variables);
     let mut fixed = std::borrow::Cow::Borrowed(options.literal_inputs.as_slice());
     let mut input_error = None;
@@ -97,13 +98,18 @@ pub(crate) fn cook_node(
                 input_error = Some(format!("input `{}` requires an image", port.id));
             }
 
-            let wired = if options.depth != 0 && node.def == "pixel_processor" {
+            let wired = if options.depth != 0 && matches!(node.def.as_str(), "pixel_processor" | "value_processor" | "fx_map") {
                 connection.and_then(|edge| prepared.index.node(edge.from)).and_then(|bridge| wired_texture(options, bridge))
             } else {
                 None
             };
+            if node.def == "fx_map"
+                && let Some(level) = base_level_only.get_mut(incoming.len())
+            {
+                *level = wired.map_or(matches!(output, Some(NodeOutput::BaseLevel(_))), |(_, _, base_level)| base_level);
+            }
             let stored = source.and_then(|(output, _, format)| output.texture(format));
-            let image = wired.or(stored);
+            let image = wired.map(|(image, format, _)| (image, format)).or(stored);
             inputs.push(image.map(|(image, _)| image.clone()));
             input_formats.push(image.map_or(OutputFormat::F32, |(_, format)| format));
         }
@@ -318,10 +324,6 @@ pub(crate) fn cook_node(
             Ok(vec![output])
         } else {
             let result = if node.def == "fx_map" {
-                let mut base_level_only = [false; materialcraft_nodes::MAX_IMAGE_INPUTS + 1];
-                for (slot, output) in base_level_only.iter_mut().zip(&incoming) {
-                    *slot = matches!(output, Some((NodeOutput::BaseLevel(_), _)));
-                }
                 materialcraft_nodes::pattern::cook_with_base_level_inputs(&context, &base_level_only)
             } else {
                 (definition.cook)(&context)
@@ -368,8 +370,8 @@ pub(crate) fn cook_node(
     }
 }
 
-// A pixel function inside an instance samples a compatible caller texture at its original size and depth.
-fn wired_texture<'a>(options: &'a Options<'_>, bridge: &Node) -> Option<(&'a Image, OutputFormat)> {
+// Image reads inside an instance retain the caller texture's dimensions, depth and available mip levels.
+fn wired_texture<'a>(options: &'a Options<'_>, bridge: &Node) -> Option<(&'a Image, OutputFormat, bool)> {
     let kind = match bridge.def.as_str() {
         "input_color" => Kind::Color,
         "input_grayscale" => Kind::Gray,
@@ -377,5 +379,5 @@ fn wired_texture<'a>(options: &'a Options<'_>, bridge: &Node) -> Option<(&'a Ima
     };
     let name = identifier(bridge);
     let image = options.inputs.get(&name)?;
-    (!bridge.disabled && image.kind() == kind).then_some((image, *options.input_formats.get(&name)?))
+    (!bridge.disabled && image.kind() == kind).then_some((image, *options.input_formats.get(&name)?, options.base_level_inputs.contains(&name)))
 }
