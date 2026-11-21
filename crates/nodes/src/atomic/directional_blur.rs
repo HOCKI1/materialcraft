@@ -68,7 +68,16 @@ pub(super) fn blur(context: &CookContext, angle: f32) -> CookResult {
         let slope = if horizontal { sine / cosine } else { cosine / sine };
         // An authored eighth turn has an exact unit slope even after radian conversion.
         let slope = if (angle * 8.0).fract() == 0.0 { slope.signum() as f32 } else { slope as f32 };
-        if let Some(image) = box_filter::sheared(&input, reach, horizontal, slope, source_format, context.format) {
+        // On a rectangle the dominant UV direction can have the smaller texel
+        // component. The window spans the projection along the chosen texel axis.
+        let along = if slope.abs() == 1.0 {
+            major
+        } else if horizontal {
+            dx.abs()
+        } else {
+            dy.abs()
+        };
+        if let Some(image) = box_filter::sheared(&input, (radius - 0.5) * along, horizontal, slope, source_format, context.format) {
             return Ok(vec![image]);
         }
     }

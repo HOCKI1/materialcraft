@@ -872,6 +872,32 @@ An independent right-triangle graphics probe used 1,800 original triangles, inte
 
 The new regression failed on the preceding evaluator. All 313 release node tests, formatting, strict workspace Clippy, dependency layers and WebAssembly passed. Across seven alternating single-worker release runs, the 128² default-seed median changed from 869.1 to 747.0 ms and the 512² default from 7140.4 to 5854.7 ms.
 
+### Oblique directional blur on rectangular images
+
+A rectangular image can put the dominant texture-coordinate direction along the shorter texel projection. A line of unit impulses running across that axis isolates the filter window. Long oblique passes now use the sheared grid and project the radius minus half a texel onto the selected filtering axis. The corner regression uses a modular 16-bit field, both aspect orientations and a negative angle. It failed on the previous implementation.
+
+The two high-quality blur roots were recooked for the earlier 48 settings and 30 new settings each. The earlier set has 70 differing color pixels and 16 differing gray pixels, down from 118,686 and 65,820. The new set uses six original 16-bit sources sized 128 × 64, 64 × 128, 256 × 128, 128 × 256, 256 × 256 and 512 × 128. With zero-based coordinates let `a = (95 + 143x + 233y + 67xy + 1577((floor(x/7) + floor(y/3)) mod 11)) mod 65536`. Grayscale uses `a`. The color channels are `a`, `13a + 249x + 19`, `491y + 811x + 7931(x mod 5)` and `233xy + 397y + 1597(floor(x/3) mod 5)`, each modulo 65536.
+
+Cycle those sources in order for (width, height, intensity, quality) tuples (64,128,9.875,1), (128,64,15.875,1), (512,128,21.375,1), (128,512,18.125,1), (256,256,default,default), (256,128,7.875,0), (256,512,12.375,1), (512,256,11.9375,1), (512,512,9.3125,1) and (1024,128,19.375,1). Use seed zero for defaults and `455673 + 41j` for zero-based tuple index `j` otherwise. Compare U16 and F32 in every tuple and U8 and F16 in tuples 0, 1, 4, 7 and 8. Both applications reproduced all 3,489,792 original pixels per root when reopening 60 saved cases. The table counts each original setting once. Integer maxima are storage levels, and floating maxima are absolute channel errors.
+
+| Root (inventory index) | Distinct settings | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|---:|
+| Blur HQ (55) | 78 | 706,351/706,560 · 1 | 1,168,988/1,169,408 · 257 | 591,663/591,872 · 0.00439453125 | 1,192,796/1,193,216 · 0.0039215982 |
+| Blur HQ Grayscale (56) | 78 | 706,483/706,560 · 1 | 1,169,266/1,169,408 · 257 | 591,795/591,872 · 0.00415039062 | 1,193,074/1,193,216 · 0.0039215982 |
+
+Comparing the original U8 intermediates locates further differences. At 256 × 64 the 1/16-turn pass is exact, and the subsequent 7/16-turn pass first differs in 13 color or six gray pixels, all on row zero. At 128 × 256 the first differences occur in the 3/16-turn pass (36 color, five gray). On the new 512 × 256 and 512 × 512 inputs the first 1/16-turn pass differs by one stored level in 35 and 88 color pixels, or 11 and 15 gray pixels. The two roots remain open.
+
+An independent 312-case primitive series used 12 signed angle/size pairs, radii 0.90625, 1.578125, 2.09375, 2.921875, 3.65625, 6.8125 and 13.75 texels, a modular 16-bit field, two isolated white pixels and a periodic stripe.
+
+| Storage | Exact pixels before | Exact pixels after | Pixels compared | Maximum before | Maximum after |
+|---|---:|---:|---:|---:|---:|
+| U8 | 100,206 | 344,024 | 344,064 | 96 | 1 |
+| U16 | 26,036 | 342,166 | 344,064 | 24636 | 63 |
+| F16 | 32,373 | 319,077 | 344,064 | 0.375976562 | 0.0009765625 |
+| F32 | 757,353 | 1,545,530 | 1,949,696 | 0.375929713 | 0.00128859282 |
+
+Seven alternating single-worker release cooks had median times of 61.6 → 32.7 ms and 55.2 → 32.1 ms on the two 13.75-texel primitive cases. The complete 256 × 64 color graph measured 162.6 → 224.7 ms, and the 128 × 256 grayscale graph measured 391.7 → 400.2 ms. All 314 node release tests, workspace Clippy, formatting, dependency layers and WebAssembly checks passed.
+
 ### Short directional blur tap order on rectangular inputs
 
 Fluid matches **25,969,920/25,969,920 final pixels across 121 distinct settings** through 2048 pixels per side. Both applications reopened the MaterialCraft package and reproduced every pixel of their originals over 28, 38 and 36 settings (498,688, 8,654,848 and 17,588,224 pixels). The three instrumented renders at 512×1024, 1024×512 and 1024² match 9,961,472/9,961,472 intermediate and final samples. [First differing stage and earlier settings](#fibers-1-and-fluid-through-1024-pixels-per-side)

@@ -506,6 +506,21 @@ fn diagonal_blur_on_rectangles_carries_the_shear_across_tile_edges() {
     }
 }
 
+#[test]
+fn oblique_rectangular_blur_projects_the_window_onto_its_filtering_axis() {
+    for (size, angle, intensity, corners) in [
+        ([256, 64], 0.0625, 8.375, [0x3ec6_b8fa, 0x3eda_222a]),
+        ([64, 128], 0.3125, 14.625, [0x3eec_5a9c, 0x3f09_991f]),
+        ([64, 128], -139.0 / 512.0, 27.25, [0x3f02_9411, 0x3f11_9cf3]),
+    ] {
+        let params = [("intensity", Value::Float(intensity)), ("angle", Value::Float(angle))];
+        let image = cook("directional_blur", &[Some(modular_blur_field(size))], &params, size, true);
+        let [width, height] = size.map(i64::from);
+        let values = [(0, 0), (width - 1, height - 1)].map(|(x, y)| image.get_gray(x, y, false).to_bits());
+        assert_eq!(values, corners, "{size:?}, {angle}");
+    }
+}
+
 fn signed_modular_field(width: u32, height: u32) -> Image {
     Image::generate(width, height, Kind::Color, |x, y| {
         std::array::from_fn(|c| {

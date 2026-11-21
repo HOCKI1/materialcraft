@@ -12,10 +12,6 @@ pub(super) fn sheared(input: &Image, reach: f32, horizontal: bool, slope: f32, s
     if !length.is_power_of_two() || !across.is_power_of_two() || !radius.is_finite() || radius > length as f32 {
         return None;
     }
-    // Between exact diagonals, the edge samples on rectangular shear grids still differ.
-    if length != across && slope.abs() != 1.0 {
-        return None;
-    }
     // Shearing and reduction accumulate before normalization. Use the bounded fallback for HDR overflow.
     let limit = f32::MAX / (2.0 * radius + 2.0);
     if !input.data().iter().all(|v| v.abs() <= limit) {
