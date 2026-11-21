@@ -406,6 +406,21 @@ fn rotated_stamps_use_the_pixel_center_when_snapping_the_near_vertex() {
 }
 
 #[test]
+fn clipped_rotated_ramp_aligns_the_plane_origin_before_product_normalization() {
+    let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
+    graph.nodes[0].parameters = BTreeMap::from([
+        ("patterntype".into(), Value::Int(10)),
+        ("branchoffset".into(), Value::Float2([-0.5; 2])),
+        ("frameoffset".into(), Value::Float2([0.113407135, 0.3964901])),
+        ("patternsize".into(), Value::Float2([0.23880348, 0.90636885])),
+        ("patternrotation".into(), Value::Float(0.94554406)),
+    ]);
+    let variables = BTreeMap::from([("$tiling".into(), Value::Int(0))]);
+    let image = cook_at_dimensions(graph, &variables, 396907, 128, 256).unwrap().remove(0);
+    assert_eq!(image.get_gray(11, 163, false).to_bits(), 0x3d88_c460);
+}
+
+#[test]
 fn quarter_turn_square_snaps_its_bounds_before_the_residual_phase_affects_sampling() {
     let variables = BTreeMap::from([("$tiling".into(), Value::Int(0))]);
     for (turn, size, x) in [(1.5, [0.5175781, 0.27148438], 37), (-17.75, [0.27148438, 0.5175781], 27), (4096.25, [0.27148438, 0.5175781], 42)] {

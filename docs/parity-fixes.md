@@ -534,6 +534,45 @@ For each root’s 25 follow-up renders, the 5,120 U8, 553,728 U16, 78,336 F16 an
 
 In a single-worker release run, four interleaved measurements of the 128² default, 256² default and 512² filled cases gave median whole-graph cook times of 46, 259 and 1,138 ms for Alveolus (previously 45, 247 and 1,068 ms). Pattern Alveolus took 45, 253 and 1,083 ms (previously 43, 238 and 1,045 ms).
 
+### Aligning the origin of a clipped stamp in Creased
+
+Creased matches **10,947,840/10,947,840 final pixels across 100 distinct settings**, through 1024². Maximum error is zero in every format. Both applications reopened the MaterialCraft file in two independently authored matrices. All 2,399,232 pixels in the 40-setting matrix and all 8,730,624 in the 46-setting matrix matched the original and each other. Repeated settings count once in the following totals.
+
+| Storage | Distinct settings | Exact pixels | Maximum error |
+|---|---:|---:|---:|
+| U8 | 18 | 2,093,824/2,093,824 | 0 |
+| U16 | 32 | 3,403,520/3,403,520 | 0 |
+| F16 | 18 | 2,093,824/2,093,824 | 0 |
+| F32 | 32 | 3,356,672/3,356,672 | 0 |
+
+At 256×512, seed 392488, disorder .9921875 and warp intensity 52.875, the 128×256 pattern generator now stores 36,919 at (11,163). Every captured pixel in its generator, blur, two directional warps and final output matches across twelve stage comparisons. All 22 previously differing final pixels in the 40-setting matrix now agree. [Warp settings and intermediate counts before this fix](#horizontal-displacement-at-zero-warp-angle)
+
+A single horizontal ramp reproduces the discrepancy without blur or warp. At 128×256 use a black F32 grayscale quadrant, no tiling, unit tint and gain, zero roughness, branch offset (−.5,−.5), frame offset (.113407135,.3964901), size (.23880348,.90636885), rotation .94554406 turns and seed 396907. At (11,163) the reference returns bits 0x3d88c460. The previous implementation returned 0x3d88c464. The corresponding stamp triangle starts at screen coordinates (−19,−18) with horizontal span 136 and vertical span 479. Its origin uses integer pixel offsets 19 and 18. The horizontal signed-coordinate gradients are .06163756921887398 and −.010976589284837246. When summing the vertex value and the two offset products, align the terms at the largest of the vertex exponent and the two sums of factor exponents. A carry in a product still uses the exponent sum from before normalization. This gives the measured origin .21940191090106964. Using the exponents of the completed products gave .21940192580223083.
+
+An independent graphics-device comparison varied the triangle origin and attributes in 2,304 original triangles. Across all visible signed coordinates, exact counts rose from 1,044,686 to 1,047,772/1,047,772. Changing the alignment precision by one bit for every triangle produced 21,038 differences. For the fifteen stamps contributing to the disputed Creased pixel, all 3,932,160 F32 pixels matched across ramp, paraboloid, pyramid and creased-bell profiles at the measured and unit gains. A further 108 translated and rescaled geometries per profile reached 7,471,101/7,471,104, 7,471,071/7,471,104, 7,471,076/7,471,104 and 7,471,071/7,471,104 respectively. Their maximum F32 errors were 1.19209290e−7, 2.98023224e−7, 1.78813934e−7 and 1.30850822e−7. The outstanding isolated differences include slopes on clipped, rotated stamps in BNW Spots 3 and Clouds 1.
+
+In eight alternating single-worker release runs, median intact cook times were 206 ms and 179 ms for BNW Spots 1 and 3, previously 211 ms and 183 ms. The depth-seven and depth-nine controls measured 34.4 ms and 542 ms, previously 34.9 ms and 559 ms.
+
+For the 46 independent intact renders use the following dimensions, seeds, warp intensities and disorders. Render U16 and F32 in every row. Add U8 and F16 at the rows marked four. The earlier 17- and 40-render settings are linked above.
+
+| Dimensions | Seed | Warp intensity | Disorder | Formats |
+|---|---:|---:|---:|---|
+| 32×16 | 17 | 1 | .5 | Four |
+| 16×128 | 6323 | .25 | 1 | Two |
+| 128×16 | 3251 | Default | Default | Four |
+| 32×512 | 21973 | 2.125 | .875 | Two |
+| 512×32 | 29599 | 61.75 | .21875 | Four |
+| 128² | 11 | Default | Default | Two |
+| 128×256 | 971 | 23 | .3125 | Four |
+| 256×128 | 17 | 47.125 | .6875 | Two |
+| 256² | 0 | 32 | .33333334 | Four |
+| 256×512 | 392488 | 52.875 | .9921875 | Two |
+| 512×256 | 0 | Default | Default | Four |
+| 512² | 112309 | 64 | .625 | Four |
+| 512×1024 | 45719 | 12.75 | .46875 | Two |
+| 1024×512 | 10973 | 57.8125 | .90625 | Two |
+| 1024² | 29987 | Default | Default | Four |
+
 ### Horizontal displacement at zero warp angle
 
 Creased now matches all 145,664 final pixels in the 17-render comparison. Across 40 further settings the count rose from 2,392,277 to 2,399,210/2,399,232. The original and saved graphs agree on all 2,399,232 pixels within each application. Both applications produced the same 22 cross-app differences after reopening. Creased remains in progress.
