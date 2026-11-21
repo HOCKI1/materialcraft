@@ -725,6 +725,42 @@ fn bitmap_node_filters_odd_rasters_at_their_original_channel_depth() {
 }
 
 #[test]
+fn odd_color_bitmap_resources_keep_their_channel_depth_during_filtering() {
+    use materialcraft_core::{OutputFormat, Resource, ResourceBytes};
+
+    let mut graph = Graph::new("Odd color bitmap");
+    graph.size = [4, 4];
+    graph.format = OutputFormat::U16;
+    let bitmap = graph.add_node("bitmap", [0.0; 2]);
+    let node = graph.node_mut(bitmap).unwrap();
+    node.params.insert("resource".into(), Value::Text("field".into()));
+    node.params.insert("colour_space".into(), Value::Enum(1));
+    let mut package = Package::new("Color bitmap");
+    package.graphs.push(graph);
+
+    for (width, height, depth, expected) in [
+        (29_u32, 47_u32, 8, [[26985, 34181, 37522, 33924], [29555, 33667, 31354, 39321]]),
+        (41, 27, 16, [[4100, 4730, 9310, 10498], [39835, 29231, 35098, 11450]]),
+    ] {
+        let mut header = b"\x89PNG\r\n\x1a\n\0\0\0\rIHDR".to_vec();
+        header.extend_from_slice(&width.to_be_bytes());
+        header.extend_from_slice(&height.to_be_bytes());
+        header.extend([depth, 6, 0, 0, 0]);
+        package.resources = vec![Resource::new("field", "field.png", ResourceBytes::new(header))];
+        let levels = 1_u32 << depth;
+        let field = Image::generate(width, height, Kind::Color, |x, y| {
+            [(583, 191, 371, 3229), (47, 313, 59, 4511), (31, 693, 41, 8943), (997, 811, 97, 9043)]
+                .map(|(a, b, c, d)| ((a * x + b * y + c * x * y + d) % levels) as f32 / (levels - 1) as f32)
+        })
+        .with_integer_sampling(true);
+        let resource = |key: &str| (craft_texture::split_resource_key(key) == ("field", true)).then(|| field.clone());
+        let result = cook(&package, 0, &Options::new(&resource), &Mutex::new(Cache::default()));
+        let image = result.image(bitmap, 0).unwrap();
+        assert_eq!([(0, 0), (6, 11)].map(|(x, y)| image.get(x, y, false).map(|v| (v * 65535.0).round() as u16)), expected);
+    }
+}
+
+#[test]
 fn bound_float_image_filters_an_odd_impulse_on_each_axis() {
     let mut graph = Graph::new("Impulse");
     graph.size = [4, 4];

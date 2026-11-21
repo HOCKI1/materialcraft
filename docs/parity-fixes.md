@@ -445,6 +445,23 @@ The 120 composite renders matched **69,631/69,632** pixels. Rendering the indivi
 
 The four 64² U8, U16, F16 and F32 root controls stayed exact on Arc Pavement, Tile Generator, Tile Random and Weave 2 in the first group of rechecks. Paths Trace and Splatter Circular still differ. The larger root matrices retain their existing status. The ordering regression reproduced the earlier error. The release node suite, formatting, strict workspace Clippy, dependency layers and WebAssembly passed.
 
+### Odd-sized linear color bitmap resources
+
+The same odd-sized linear RGBA PNG produces identical pixels as a Bitmap resource and as a bound color input. This holds both at the node output and at a downstream filtered read. The evaluator now reuses the bound-raster resize for embedded color images at their original normalized channel depth.
+
+Generate the byte field at **29 × 47** and the word field at **41 × 27**, using the four RGBA coefficient tuples modulo 256 and 65536 respectively. Select linear input and color output. Render at 32 × 64, 16², 16 × 64, 64 × 16, 64² and 32 × 128, seed 520884 + size index, in all four formats. On the 16² U16 output, pixel (6,11) stores (29555,33667,31354,39321) for the byte source and (39835,29231,35098,11450) for the word source. [Field coefficients](#stored-levels-of-linear-color-bitmap-resources)
+
+| Output | Renders | Exact before / total · maximum | Exact after / total · maximum |
+|---|---:|---:|---:|
+| RGBA16 | 12 | 1,563/25,088 · 27611 | 25,088/25,088 · 0 |
+| RGBA16F | 12 | 770/25,088 · 0.421264648 | 25,088/25,088 · 0 |
+| RGBA32F | 12 | 0/25,088 · 0.421319731 | 25,088/25,088 · 0 |
+| RGBA8 | 12 | 5,652/25,088 · 107 | 25,088/25,088 · 0 |
+
+Each source matched 50,176/50,176 pixels in 24 renders. All 45,056/45,056 pixels also matched in 48 downstream samples of the bitmap and independently in 48 samples of the bound input. For those reads, add (.01318359375, −.02734375) to the pixel-center UV and sample bilinearly. Render each of the four bitmap formats at 32², 16 × 32 and 64 × 16 with F32 output, then at 32² in U8, U16 and F16. The seed is 551317 + 43f + j for format index f and setting index j.
+
+MaterialCraft saved ten procedural graphs. Both applications reopened them and reproduced their respective originals in all 52 settings. Across applications **70,144/70,144** pixels matched after reopening. All maxima are zero. The evaluation regression failed before this change and passed after it. The 57 release evaluation tests, formatting, strict workspace Clippy, dependency layers and WebAssembly passed. The measurements cover linear color reads from these two PNG sources.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color
