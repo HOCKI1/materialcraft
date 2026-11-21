@@ -677,6 +677,43 @@ For new root inputs use S = 638141 + 173 × index at 32 × 64, 64 × 16, 16 × 6
 
 The 23 new settings matched **43,636/44,032** pixels. The 396 differences occur at the changed 64² setting. The two companion saves each reproduced every original buffer within each app at the 23 settings and matched 43,636/44,032 across apps. Plane Light retained 781 differing pixels across 22 settings. The arithmetic regression failed on the earlier build. All 332 node release tests, formatting, strict workspace Clippy, dependency layers and WebAssembly passed.
 
+### Original and reopened dirt, moisture and cellular noise fields
+
+These measurements use MaterialCraft revision `76fd1f7`. Recheck the archived roots and the four 64² precisions. Repeat their independently configured 32² field. For Dirt 3 and Dirt 6 include the [40 size, seed and disorder changes](#wave-frequency-and-phase-in-directional-noise) alongside the earlier field controls. For Moisture Noise repeat its [82 settings](#moisture-noise-across-repeated-original-renders).
+
+For the other six packages use the [30-setting rectangular series](#connected-quadrant-depth-and-amplified-spot-patterns), including its sizes, output formats, seeds and eight values of disorder d. Use defaults at indices 0 and 7. For a default scale above 8, change scale to 16, 5, 11, 27, 4, 19, 7 and 12 at the other eight indices. For smaller default scales those values are 2, 1, 3, 2, 1, 3, 2 and 1. Change each exposed float to d, with angle and disorder anisotropy angle d − .25 and pattern scale .375 + 1.25d. When exposed, set pattern to 3,4,9,5,7,1,3,10, color source to j mod 3 and pseudo-random seed to 37 + 131j, using the zero-based size index j. Set boolean controls on odd changed indices. Use tile offset (d − .34375, .40625 − .875d). For pattern size use (.4375 + .75d, .8125 + .6875(1 − d)) if its default height is at most 2, otherwise (.375 + .75d, 4.5 + 13d). Other float pairs use (.125 + .5d,.625 − .375d). The independent byte input is 127((floor(x/3) + floor(y/7)) mod 2) + ((5x + 9y + xy) mod 129) at sizes 64², 64 × 32, 32 × 64, 128², 128 × 64 and 64 × 128, indexed by j mod 6. Leave the input empty at the two defaults. Include the [banded cell inputs and previous source controls](#paths-caustics-and-cell-fields-after-pattern-sampling) where applicable.
+
+| Root (inventory index) | Distinct settings | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|---:|
+| Dirt 3 (129) | 56 | 469,248/469,248 · 0 | 597,236/597,248 · 1 | 469,248/469,248 · 0 | 550,385/550,400 · 1.52587891e-05 |
+| Dirt 6 (131) | 55 | 469,247/469,248 · 1 | 580,619/580,864 · 5 | 469,158/469,248 · 0.000244140625 | 549,705/550,400 · 9.27709043e-05 |
+| Moisture Noise (226) | 82 | 717,053/717,056 · 1 | 1,318,957/1,319,168 · 6 | 717,032/717,056 · 0.00048828125 | 1,243,462/1,243,648 · 7.83205032e-05 |
+| Cells 1 v2 (241) | 49 | 136,448/136,448 · 0 | 243,960/243,968 · 1 | 87,296/87,296 · 0 | 266,646/269,824 · 8.34465027e-07 |
+| Cells 4 (242) | 59 | 91,352/91,392 · 208 | 331,887/362,752 · 64479 | 91,348/91,392 · 0.816040039 | 268,953/299,776 · 0.983886491 |
+| Cells 4 v2 (243) | 59 | 206,042/206,080 · 223 | 215,769/248,064 · 63423 | 91,370/91,392 · 0.872467041 | 267,469/299,776 · 0.967772953 |
+| Creased (248) | 38 | 83,199/83,200 · 1 | 289,012/289,024 · 1 | 83,200/83,200 · 0 | 240,884/240,896 · 1.52587891e-05 |
+| Crystal 1 (249) | 48 | 84,224/84,224 · 0 | 291,956/292,096 · 2 | 92,416/92,416 · 0 | 249,203/249,344 · 1.94627792e-05 |
+| Crystal 2 (250) | 48 | 84,224/84,224 · 0 | 292,087/292,096 · 1 | 92,416/92,416 · 0 | 249,328/249,344 · 1.52587891e-05 |
+
+All listed cases finished. Counts use the first observation of a repeated setting. Dirt 6 had 1 repeated setting with different exact counts. The two LUM16 reads matched 65,503 and 65,516 of 65,536. Moisture Noise had 1 repeated setting with different exact counts. The two LUM16 reads matched 16,382 and 16,384 of 16,384. Cells 1 v2 improved from 640,414 to 734,350 of the same 737,536 pixels. Its largest remaining normalized error is one stored level.
+
+| Saved graph or series | Renders | Cross-app exact / total | Max U8 / U16 / F16 / F32 | Original vs reopened in reference · differing pixels |
+|---|---:|---:|---|---:|
+| Dirt 3 | 40 | 2,005,998/2,006,016 | 0 / 1 / 0 / 1.52587891e-05 | 16 |
+| Dirt 6 | 40 | 2,005,169/2,006,016 | 1 / 5 / 0.000244140625 / 9.27709043e-05 | 677 |
+| Moisture, first series | 30 | 521,148/521,216 | 1 / 6 / 0.000244140625 / 7.83205032e-05 | 76 |
+| Moisture, second series | 32 | 3,313,340/3,313,664 | 1 / 6 / 0.00048828125 / 7.80820847e-05 | 353 |
+| Cells 1 v2 | 30 | 629,153/629,760 | 0 / 1 / 0 / 8.34465027e-07 | 0 |
+| Cells 4 | 30 | 568,040/629,760 | 208 / 64479 / 0.816040039 / 0.983886491 | 0 |
+| Cells 4 v2 | 30 | 548,103/629,760 | 255 / 65467 / 0.998535156 / 0.998962402 | 20,475 |
+| Creased | 30 | 629,735/629,760 | 1 / 1 / 0 / 1.52587891e-05 | 0 |
+| Crystal 1 | 30 | 629,480/629,760 | 0 / 2 / 0 / 1.94627792e-05 | 0 |
+| Crystal 2 | 30 | 629,746/629,760 | 0 / 1 / 0 / 1.52587891e-05 | 0 |
+
+MaterialCraft reproduced its original output buffers for every saved case in that table. The reference also reproduced all saved cases of Cells 1 v2, Cells 4, Creased and Crystal 1 and 2. The repeated [dirt](#repeated-dirt-pattern-stages) and [moisture](#moisture-noise-across-repeated-original-renders) comparisons measure variation in the original renders.
+
+For Cells 4 v2, repeat the 16² F32 default, the 64 × 16 U8, U16 and F32 settings, the 128 × 64 U16 and F32 settings, the 256² F32 default and the 128 × 512 F32 setting three times each. Every setting repeated bit-for-bit within each original or saved package. The two independent saves gave the same results. At 128 × 64, seed 411674, scale 27 and color source 1, each saved F32 buffer matched 0/8,192 of the reference library root, maximum .996459901. The U16 comparison matched 0/8,192, maximum 65,303 levels. The reference loader rejected the local source in its original 0.1.3 encoding. On the MaterialCraft-saved root, vary only the paths to the two linked helpers. Independently save the hash function package, the general function package, or both in the current SBS format. With pseudo-random seeds 0, 17, 561 and 823 at 128 × 64, color sources 0 and 2 each reproduced all 32,768 reference pixels with every pairing. Color source 1 reproduced 0/32,768 with the original helper paths or with just the general function package saved. With the saved hash package it reproduced **32,768/32,768** with either version of the general function package. With the hash dependency retained as a relative path, the 30 original reference renders matched every pixel after the first root save and again after the second. MaterialCraft reproduced every original buffer for both saves. The two reopened roots matched 1,130,268/1,259,520 across applications. These roots remain in progress.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color
