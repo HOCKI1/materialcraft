@@ -164,6 +164,36 @@ An independent 3D control used six 1024 × 16 U16 tables filled with 0, 65535, h
 
 The 2D and 3D nonfractal roots reach measured parity with the same procedural tables in both applications. The [stock-table measurements](#voronoi-distortion-and-shared-noise-inputs) still apply to the separate bundled resources. Three distorted 32² stock renders per root used different table contents. The two fractal roots remain in progress pending the wider comparisons. The shared-assignment release regression failed before the change and passed afterward. All 321 node release tests, formatting, strict workspace Clippy, dependency layers and WebAssembly checks passed.
 
+### Draw order for overlapping procedural grayscale stamps
+
+Grayscale pattern maps now draw procedural shapes in ascending shape order. Within a shape, additive contributions precede maximum contributions. Stamps with the same shape and blend group retain their traversal order. This affects overlapping stamps, including additive-only graphs where changing the order changes a low floating-point bit.
+
+Build three overlapping quadrants with respective sizes 1, 2 and 4, background .1875, persistence zero and no wrapping. Use three squares with maximum, add and add modes and tints .75, .25 and .5. At 32 × 16 the first and last pixels were 1.5 and 1.25. Both applications now produce .9375 and .75. For a chain use square, disc, square with the same blend modes and .875, −.375 and .5 tints. The two pixels are .5 and .875. With additive tints .75, 2⁻²⁷ and −.75 against zero, they are 2⁻²⁷ and .75. The release regression covers all three arrangements.
+
+| Original procedural measurements | Renders | Exact before | Exact after | Previous maximum error |
+|---|---:|---:|---:|---:|
+| Three stamps, siblings and chains | 36 | 16,028/24,576 | 24,576/24,576 | 16384 |
+| Trees ending at depth 5, 6 and 7 | 18 | 5,730/9,216 | 9,216/9,216 | 0.60937497 |
+| Horizontal, vertical and two-axis wrapping | 18 | 3,274/9,216 | 9,216/9,216 | 1.3125 |
+| Cancellation between additive profiles | 16 | 6,894/8,192 | 8,192/8,192 | 7.4505806e-09 |
+| Pairs spanning all 17 procedural shapes | 112 | 26,609/28,672 | 28,672/28,672 | 0.31250006 |
+| Three squares, including equal keys | 253 | 111,184/129,536 | 129,536/129,536 | 1.125 |
+| Two signed stamps and seven gain settings | 168 | 80,256/86,016 | 86,016/86,016 | 6.80564693e+38 |
+
+In total, 249,975/295,424 previously matched. All **295,424/295,424** now match across 621 renders, maximum zero. The six full-tree variants include 3,072 U8, 3,072 U16, 6,144 F16 and 12,288 F32 pixels. The other groups use F32. Undefined results were compared by their stored bits.
+
+For the full trees use a background of .1875 and gains 1 at 32 × 16, −1 at 16 × 32 and .625 at 32². Repeat the same sizes and gains in U8, U16 and F16. Use seeds 462427 + 41 × tree index + case index. Add empty quadrant levels to the first, fourth and sixth trees to test the depth boundary. For the pair sweep, use adjacent shapes 2 through 18 and both blend assignments at 16², background .125, additive tint .3125, maximum tint .75, and gains ±1. Equal-shape triplets use background .1875 and gains 1, −1, .375, 1.75 and −1.5. Signed two-stamp cases use tints ±.25 of opposite sign and backgrounds 0 and .5. In addition to finite positive and negative gains, divide 1, −1 and 0 by zero, and ±10³⁰ by 10⁻⁸.
+
+For the weighted spots comparison, use the first six parameter sets, at 16 × 32, 32 × 16, 32², 64 × 32, 32 × 64 and 64² with seeds 0, 456654, 113, 456716, 456747 and 456778. Render U16 and F32 in every case, plus U8 and F16 in the first, third and fifth. The following totals compare complete root outputs to the corresponding original or reopened reference graph.
+
+| Root and package | U8 exact · max | U16 exact · max | F16 exact · max | F32 exact · max |
+|---|---:|---:|---:|---:|
+| bnw_spots_1, original | 3,584/3,584 · 0 | 10,237/10,240 · 1 | 3,584/3,584 · 0 | 8,031/10,240 · 2.38418579e-07 |
+| bnw_spots_1, saved | 3,584/3,584 · 0 | 10,235/10,240 · 1 | 3,584/3,584 · 0 | 7,995/10,240 · 2.38418579e-07 |
+| bnw_spots_1, original | 3,584/3,584 · 0 | 10,240/10,240 · 0 | 3,584/3,584 · 0 | 9,960/10,240 · 1.1920929e-07 |
+
+In the first root the original F32 exact count rose from 6,994 to 8,031 of 10,240. The saved graph reached 7,995. The zero-roughness 64² U16 and F32 cases matched completely. The other settings retain differences. The four earlier U16 checks of the separate basic spots root still match 114,671/114,688, maximum two. All 322 node release tests, formatting, strict workspace Clippy, dependency layers and WebAssembly checks passed.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color

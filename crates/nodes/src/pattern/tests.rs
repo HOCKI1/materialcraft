@@ -305,6 +305,35 @@ fn cook_at_dimensions(graph: PatternGraph, variables: &BTreeMap<String, Value>, 
 }
 
 #[test]
+fn grayscale_stamps_draw_in_shape_then_blend_order() {
+    let tiny = 2.0_f32.powi(-27);
+    let variables = BTreeMap::from([("$tiling".into(), Value::Int(0))]);
+    for (shapes, modes, tints, siblings, background, expected) in [
+        ([2, 2, 2], [1, 0, 0], [0.75, 0.25, 0.5], true, 0.1875, [0.9375, 0.75]),
+        ([2, 3, 2], [1, 0, 0], [0.875, -0.375, 0.5], false, 0.1875, [0.5, 0.875]),
+        ([2, 3, 2], [0, 0, 0], [0.75, tiny, -0.75], false, 0.0, [tiny, 0.75]),
+    ] {
+        let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
+        let first = graph.add(PatternNodeKind::Quadrant).unwrap();
+        let second = graph.add(PatternNodeKind::Quadrant).unwrap();
+        graph.nodes[0].children[0] = Some(first);
+        let parent = if siblings { 0 } else { 1 };
+        graph.nodes[parent].children[1] = Some(second);
+        for (i, (node, size)) in graph.nodes.iter_mut().zip([1.0, 2.0, 4.0]).enumerate() {
+            let tint = tints[i];
+            node.parameters = BTreeMap::from([
+                ("patterntype".into(), Value::Int(shapes[i])),
+                ("blendingmode".into(), Value::Int(modes[i])),
+                ("opacity".into(), Value::Float4([tint, tint, tint, 1.0])),
+                ("patternsize".into(), Value::Float2([size; 2])),
+            ]);
+        }
+        let image = cook_in_regions(graph, &variables, 0, [32, 16], [[0.0, 1.0, 0.0, 1.0]; 2], background).unwrap().remove(0);
+        assert_eq!([image.get_gray(0, 0, false), image.get_gray(31, 15, false)], expected, "shapes {shapes:?}, modes {modes:?}");
+    }
+}
+
+#[test]
 fn six_quadrant_levels_composite_overlapping_subtrees_in_reverse_slot_order() {
     let small = f32::EPSILON * 0.5;
     for (depth, expected) in [(5, 0.0_f32), (6, small)] {
