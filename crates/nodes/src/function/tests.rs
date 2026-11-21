@@ -527,6 +527,36 @@ fn pixel_product_sums_round_once_unless_the_product_is_also_read() {
 }
 
 #[test]
+fn adding_selected_quotient_lanes_contracts_the_left_unshared_lane() {
+    let variables = BTreeMap::new();
+    let context = EvaluationContext {
+        scope: super::FunctionScope::PixelProcessor,
+        position: [0.15625, 0.03125],
+        size: [16.0; 2],
+        images: &[],
+        image_formats: &[],
+        tile: true,
+        variables: &variables,
+    };
+    let mut graph = FunctionGraph::default();
+    let position = graph.add("get_float2", &[], Some(Value::Text("$pos".into())));
+    let divisor = graph.add_constant(Value::Float2([3.625, -0.71875]));
+    let quotient = graph.add("div", &[position, divisor], None);
+    let x = graph.add("swizzle1", &[quotient], Some(Value::Int(0)));
+    let y = graph.add("swizzle1", &[quotient], Some(Value::Int(1)));
+    let pixel = |graph: &FunctionGraph| compile(graph, 0).unwrap().evaluate_pixel(&context, &mut EvaluationState::default()).unwrap();
+    for (terms, expected) in [([x, y], 0xb9c4_82a0), ([y, x], 0xb9c4_8280)] {
+        graph.output = Some(graph.add("add", &terms, None));
+        assert_eq!(pixel(&graph), Value::Float(f32::from_bits(expected)));
+    }
+    let sum = graph.add("add", &[x, y], None);
+    for (shared, expected, rounded) in [(x, 0xb9c4_8280, 0.15625f32 / 3.625), (y, 0xb9c4_82a0, 0.03125f32 / -0.71875)] {
+        graph.output = Some(graph.add("vector2", &[sum, shared], None));
+        assert_eq!(pixel(&graph), Value::Float2([f32::from_bits(expected), rounded]));
+    }
+}
+
+#[test]
 fn pixel_product_sum_through_packed_lanes_and_calls_keeps_other_reads() {
     let [a, b, c] = [0xbfd8_e681, 0xc03e_5cec, 0xc05f_9255].map(f32::from_bits);
     let variables = ["a", "b", "c"].into_iter().map(str::to_owned).zip([a, b, c].map(Value::Float)).collect();

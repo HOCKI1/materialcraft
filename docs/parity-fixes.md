@@ -638,6 +638,45 @@ To isolate the remaining projection error, replace red with a one-column impulse
 
 Pattern Stripes retained **762,880/762,880** exact pixels across 83 distinct settings. All 331 node release tests, formatting, strict workspace Clippy, dependency layers and WebAssembly passed.
 
+### Adding selected components of a vector quotient
+
+A pixel function can select two components of a vector quotient, then add them. If both components feed only that sum, the numerator and reciprocal of the left component participate in one fused multiply-add with the rounded right component. An independent reader of the left component makes that lane round first and allows the right component to contract. Independent readers of both require both rounded values. Returning the quotient from a local function preserves these rules in the tested calls.
+
+Divide normalized pixel-center coordinates by (3.625, −.71875). Select x and y, add in both orders, expose x, y or both beside the sum, and repeat x as both operands. At (0.15625,0.03125), x + y stores F32 word `b9c482a0` and y + x stores `b9c48280`. Repeat at 16² and 64 × 32, seeds 632137 + variant index and 633107 + variant index. The 12 renders match **13,824/13,824** pixels, maximum zero.
+
+For an independent RGBA input use seeds S = 635791, 636119 and 636889 at 16², 32 × 64 and 64 × 32. Red is (((31x + 13y + 7xy + S) mod 353) − 151)/29. Green is (((13x + 59y + 17xy + S) mod 379) − 209)/37. Blue is (((73x + 31y + 5xy + S) mod 251) + 11)/61. Alpha is −(((37x + 23y + 13xy + S) mod 311) + 5)/73. Divide (red, green) by (blue, alpha) and repeat with the literal divisor. Exercise both addition orders, both single-lane readers, both lanes shared, x used twice, a call returning the quotient, and the call with x shared. Render all three shapes in F32 and add U8, U16 and F16 at 32 × 64.
+
+| Output | Renders | Exact before / total · maximum | Exact after / total · maximum |
+|---|---:|---:|---:|
+| LUM16 | 8 | 16,381/16,384 · 1 | 16,384/16,384 · 0 |
+| LUM16F | 8 | 16,384/16,384 · 0 | 16,384/16,384 · 0 |
+| LUM32F | 24 | 28,997/34,816 · 7.62939453e-06 | 34,816/34,816 · 0 |
+| LUM8 | 8 | 16,384/16,384 · 0 | 16,384/16,384 · 0 |
+| RGBA16 | 8 | 16,381/16,384 · 1 | 16,384/16,384 · 0 |
+| RGBA16F | 8 | 16,384/16,384 · 0 | 16,384/16,384 · 0 |
+| RGBA32F | 24 | 28,476/34,816 · 7.62939453e-06 | 34,816/34,816 · 0 |
+| RGBA8 | 8 | 16,384/16,384 · 0 | 16,384/16,384 · 0 |
+
+All 96 renders match **167,936/167,936** pixels. After a MaterialCraft save, 92 renders from the 22 original arithmetic graphs matched **177,664/177,664** across apps and reproduced every original buffer in each. All maxima are zero.
+
+In Nadir Patch, render the two quotient components of the Gaussian separately, then their sum. Across the [16², 64² and 128² band inputs](#sobel-normals-and-nadir-projection), each component already matched 20,736/20,736. Adding the rounded values matched 16,959/20,736 with maximum .0625. Contracting the left numerator with its reciprocal matched **20,736/20,736**, maximum zero. The twelve probes from numerator to Gaussian output matched **248,832/248,832** pixels in 36 renders. The intact root now matches **173,312/173,312** in its earlier 17 settings. The [two saved companion packages](#nadir-patch-after-reopening-its-linked-shape-package) each reproduce the eight original buffers and match **41,216/41,216** across apps.
+
+For new root inputs use S = 638141 + 173 × index at 32 × 64, 64 × 16, 16 × 64, 64² and 32². Red is ((17x + 59y + 7xy + S) mod 283)/282. Green is ((89x + 47y + 19xy + S) mod 311)/310. Blue is one when (3x + 5y + S) mod 17 is below 8, otherwise zero. Alpha is ((53x + 73y + S) mod 257)/256. The independent grayscale mask is ((23x + 31y + 7xy + S) mod 157)/156. Use all four output formats for the settings below and repeat defaults in F32 at the first, fourth and fifth sizes. Turns are fractions of one revolution.
+
+| Size | Enabled / frames / frame thickness | Scale / patch size | Patch turn / source offset | Alpha mode / hardness | Source position / patch position |
+|---|---|---|---|---|---|
+| 32 × 64 | yes / no / .015625 | .75 / (1.25,.6875) | .15625 / .046875 | 1 / .21875 | (.953125,.75) / (.03125,.90625) |
+| 64 × 16 | yes / yes / .125 | .53125 / (.9375,1.125) | −.09375 / −.0625 | 0 / .625 | (.0625,.875) / (.96875,.96875) |
+| 16 × 64 | no / no / .0625 | .84375 / (.625,.875) | .25 / .125 | 1 / .5 | (.3125,.625) / (.71875,.953125) |
+| 64² | yes / no / .09375 | .375 / (1.0625,.75) | .03515625 / −.03515625 | 1 / .1875 | (.984375,.5) / (.015625,.84375) |
+| 32² | yes / yes / .0078125 | .625 / (.8125,1.3125) | −.1875 / .09375 | 0 / .34375 | (.625,.6875) / (.59375,.96875) |
+
+| Root (inventory index) | Distinct settings | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|---:|
+| Nadir Patch (329) | 40 | 17,318/17,408 · 119 | 17,306/17,408 · 30519 | 17,306/17,408 · 0.465576172 | 165,018/165,120 · 0.465690076 |
+
+The 23 new settings matched **43,636/44,032** pixels. The 396 differences occur at the changed 64² setting. The two companion saves each reproduced every original buffer within each app at the 23 settings and matched 43,636/44,032 across apps. Plane Light retained 781 differing pixels across 22 settings. The arithmetic regression failed on the earlier build. All 332 node release tests, formatting, strict workspace Clippy, dependency layers and WebAssembly passed.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color

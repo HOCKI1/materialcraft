@@ -8,11 +8,18 @@ pub(super) struct Source {
     calls: Vec<usize>,
     factors: [usize; 2],
     components: [usize; 2],
+    operation: Operation,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+enum Operation {
+    Multiply,
+    Divide { literal_divisor: bool },
 }
 
 impl Source {
     pub(super) fn local(factors: [usize; 2]) -> Self {
-        Self { calls: Vec::new(), factors, components: [0, 0] }
+        Self { calls: Vec::new(), factors, components: [0, 0], operation: Operation::Multiply }
     }
 
     pub(super) fn factors<'a>(&self, mut state: &'a EvaluationState) -> Result<(&'a Value, &'a Value), String> {
@@ -45,9 +52,13 @@ pub(super) fn evaluate_sum(terms: &Sum, arguments: &[Value], state: &EvaluationS
         let sum = if let Some(term) = term {
             let (a, b) = term.source.factors(state)?;
             let [i, j] = term.source.components;
-            let a = *value_type::floats(a)?.get(i).ok_or("invalid product component")?;
-            let b = *value_type::floats(b)?.get(j).ok_or("invalid product component")?;
-            flush_subnormal(a).mul_add(flush_subnormal(b), if term.on_right { left } else { right })
+            let a = flush_subnormal(*value_type::floats(a)?.get(i).ok_or("invalid product component")?);
+            let b = flush_subnormal(*value_type::floats(b)?.get(j).ok_or("invalid product component")?);
+            let addend = if term.on_right { left } else { right };
+            match term.source.operation {
+                Operation::Multiply => a.mul_add(b, addend),
+                Operation::Divide { literal_divisor } => super::reciprocal::divide_add(a, b, addend, literal_divisor),
+            }
         } else {
             left + right
         };
@@ -98,11 +109,7 @@ pub(super) fn identify(program: &mut Program, mut returned: BTreeMap<usize, Lane
     let empty = || std::array::from_fn(|_| None);
     // Loop iterations invalidate individual registers. Only retain factors for straight-line lifetimes.
     if program.instructions.iter().any(|op| op.definition.id == "while")
-        || (returned.is_empty()
-            && !program
-                .instructions
-                .iter()
-                .any(|op| matches!(op.product_operation(), Some("mul" | "mulscalar")) && float_width(op.type_code) > 0 && !op.literal))
+        || (returned.is_empty() && !program.instructions.iter().any(|op| op.product_operation().is_some() && float_width(op.type_code) > 0 && !op.literal))
     {
         return empty();
     }
@@ -134,14 +141,15 @@ pub(super) fn identify(program: &mut Program, mut returned: BTreeMap<usize, Lane
         }
 
         let mut lanes = [None; 4];
-        if matches!(op.product_operation(), Some("mul" | "mulscalar"))
+        if let Some(operation) = op.product_operation()
             && !op.literal
             && let &[a, b] = op.inputs.as_slice()
         {
+            let operation = if operation == "div" { Operation::Divide { literal_divisor: op.literal_divisor } } else { Operation::Multiply };
             for (i, lane) in lanes.iter_mut().take(width).enumerate() {
                 *lane = Some(products.len());
                 let j = if op.definition.id == "mulscalar" { 0 } else { i };
-                products.push((Source { components: [i, j], ..Source::local([a, b]) }, 0));
+                products.push((Source { components: [i, j], operation, ..Source::local([a, b]) }, 0));
             }
         } else if let Some(exports) = returned.remove(&index) {
             // Two returned lanes can reference the same product. Count their downstream reads together.
