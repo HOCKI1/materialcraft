@@ -1330,6 +1330,23 @@ The three measured weights reproduce all 1,474,560 pixels with maximum error zer
 
 Save the three new graphs in MaterialCraft and reopen them in both applications. Repeat both sizes at projected extents .3125 and 1. Each application reproduced all **196,608/196,608** pixels of its original renders. Across applications the 192 reopened branch renders matched **184,755/196,608**, maximum 1.1920929e-07. Both HQ blur roots remain in progress on their [78 whole-root settings](#directional-blur-weights-across-110-angles-and-two-projection-axes).
 
+### Recheck of 471 bitmap sampling and placement groups
+
+Repeat the [1,213 bitmap and coordinate controls](#rotated-stamp-coordinates-in-gradient-linear-1-and-bnw-spots) after the [bound-image filtering fix](#automatic-filtering-after-resizing-a-bound-bitmap). These groups cover stamp scale and mip selection (48), its rectangular (24), independently rotated and scaled (128) and boundary (81) variants, rectangular placement (45), rotated mip sampling (48), per-axis UV coordinates (57), tiny stamps (16), channel handling (12), the global filter parameters (5) and seven baseline bitmap graphs. Compare every stored channel of each output pixel.
+
+| Storage | Render outputs | Exact before / compared | Exact after / compared | Maximum error before | Maximum error after |
+|---|---:|---:|---:|---:|---:|
+| LUM8 | 20 | 9,728/9,728 | 9,728/9,728 | 0 | 0 |
+| LUM16 | 68 | 206,336/206,336 | 206,336/206,336 | 0 | 0 |
+| LUM16F | 20 | 9,728/9,728 | 9,728/9,728 | 0 | 0 |
+| LUM32F | 744 | 4,250,112/4,250,112 | 4,250,112/4,250,112 | 0 | 0 |
+| RGBA8 | 6 | 6,144/6,144 | 6,144/6,144 | 0 | 0 |
+| RGBA16 | 51 | 27,614/29,184 | 29,184/29,184 | 34583 | 0 |
+| RGBA16F | 6 | 6,144/6,144 | 6,144/6,144 | 0 | 0 |
+| RGBA32F | 298 | 285,592/304,384 | 304,384/304,384 | 0.527698517 | 0 |
+
+All **4,821,760/4,821,760** pixels matched. Before the fix, 20,362 color pixels differed across word and full-float outputs. No group lost exact pixels or increased its maximum error. These are isolated sampling and placement measurements. The whole-root comparisons for grayscale and color Splatter retain their respective settings and reopen counts.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color
