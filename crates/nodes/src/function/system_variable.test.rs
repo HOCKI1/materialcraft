@@ -50,6 +50,26 @@ fn system_variables_use_caller_scope_even_when_a_local_name_exists() {
 }
 
 #[test]
+fn a_property_integer_getter_reads_zero_for_an_unbound_reserved_name() {
+    let variables = BTreeMap::new();
+    let context = EvaluationContext {
+        scope: FunctionScope::Node,
+        position: [0.5; 2],
+        size: [8.0, 4.0],
+        images: &[],
+        image_formats: &[],
+        tile: true,
+        variables: &variables,
+    };
+    for name in ["$randomseed", "$missing_count"] {
+        assert_eq!(evaluate("get_integer1", name, &context).unwrap(), Value::Int(0));
+        assert_eq!(evaluate("isdefined", name, &context).unwrap(), Value::Bool(false));
+    }
+    assert_eq!(evaluate("get_integer1", "$tiling", &context).unwrap(), Value::Int(3));
+    assert!(evaluate("get_integer1", "$depth", &context).is_err());
+}
+
+#[test]
 fn system_values_are_typed_finite_and_read_only() {
     for (name, operation, value) in [
         ("$time", "get_float1", Value::Float(f32::NAN)),

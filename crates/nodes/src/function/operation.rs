@@ -39,6 +39,9 @@ pub(super) fn evaluate(
             Some(value) => value,
             // A pattern's traversal seed selects its stream. The integer getter has no binding for it.
             None if context.scope == super::FunctionScope::FxMap && name == "$randomseed" && op == "get_integer1" => Value::Int(0),
+            // Unbound integer names in node properties read as zero, including reserved spellings.
+            // Known system variables still enforce their own scope and type.
+            None if context.scope == super::FunctionScope::Node && op == "get_integer1" && super::SystemVariable::named(name).is_none() => Value::Int(0),
             // Unset numeric variables start at typed zero in a value processor.
             None if !name.starts_with('$') || context.scope == super::FunctionScope::ValueProcessor => {
                 materialcraft_core::ValueType::from_code(instruction.type_code)

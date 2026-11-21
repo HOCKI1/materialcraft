@@ -49,6 +49,8 @@ Odd-sized grayscale bitmap resources match 116,736/116,736 pixels directly and 9
 
 Linear RGBA bitmap resources match 108,544/108,544 pixels on two procedural fields. [Exact counts by format and saved-package results](parity-fixes.md#stored-levels-of-linear-color-bitmap-resources)
 
+Node-property integer reads and Blend property controls matched 330,080/330,080 pixels across 203 renders, including 40 previously failed cooks. [Measurements and saved packages](parity-fixes.md#unbound-integer-variables-in-node-properties)
+
 Automatic samples of an embedded bitmap changed on repeated reference renders in three of five dimension pairs. The U16 Bitmap buffers and explicit bilinear samples were stable. [Raw readbacks in both render orders](parity-fixes.md#first-and-repeated-automatic-samples-of-an-embedded-bitmap)
 
 Choosing axial taps for a one-axis directional footprint recovered 53,078 pixels across 390 renders. Pattern Stripes retained 762,880/762,880. [Measurements and saved packages](parity-fixes.md#oblique-directional-filters-with-one-zero-pixel-extent)

@@ -1563,6 +1563,23 @@ Both applications reproduced their own originals on all 323 reopened renders. Fo
 
 All three new release regressions failed before their respective fixes and passed afterward. The 406 release evaluation and node tests passed using the committed resource set. Formatting, strict workspace Clippy, dependency layering and all ten WebAssembly checks passed.
 
+### Unbound integer variables in node properties
+
+An integer getter in a node property reads zero for an unbound reserved name. A definedness test on that name returns false. In the same property, the tiling flags and pixel ratio return 3 and 1 with default tiling. The distinction affects a Blend even when the property reads the seed and then returns a fixed opacity or mode.
+
+Use a Uniform node at 8 × 4 with F32 RGBA output and seeds 0, 31 and 12071. Drive the output property from an integer getter for `$randomseed`, `$tiling`, `$pixelratio`, an invented reserved name (`$missing114`) and an unset user integer. For each name, wire five graphs. Return the integer through the `value` input of a float cast, read the integer before returning .625, add .625 to the cast result, select .625 when the integer equals zero and .25 otherwise, or select .75 when the variable is defined and .25 otherwise. Read each raw RGBA pixel, including alpha. The seed and both missing names returned (0,0,0,1) on the direct read and (.25,.25,.25,1) on the definedness test, for all three seeds.
+
+| Independent F32 comparison | Renders | Before · exact pixels / compared | Earlier cook errors | After · exact pixels / compared | Maximum after |
+|---|---:|---:|---:|---:|---:|
+| Integer getter, arithmetic, sequence and definedness | 75 | 1,632/1,632 | 24 | 2,400/2,400 | 0 |
+| Grayscale and RGBA Blend property controls | 128 | 286,720/286,720 | 16 | 327,680/327,680 | 0 |
+
+The Blend controls use the two sizes, fields, filters and independent property drivers from the [selected-input comparison](#selected-blend-inputs-and-odd-sized-float-backgrounds-in-tile-generators). The additional 16 completed renders compare 40,960 pixels. The regression exercises both the seed spelling and an invented name, checks definedness, and retains the scope check for a known system variable.
+
+Save twelve of the graphs in MaterialCraft. Repeat the direct seed, sequence, addition, conditional and definedness cases, the two defined integers, the two missing-name controls, and one seed-driven Blend per channel kind. Both applications reproduced their original buffers. All **11,200/11,200** pixels across the 34 reopened renders matched, maximum zero.
+
+The regression failed before the change and passed afterward. The 410 release node and evaluation tests passed with the committed resources. Formatting, strict workspace Clippy, layering and all ten WebAssembly checks passed.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color
