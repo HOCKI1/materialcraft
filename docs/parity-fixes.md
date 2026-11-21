@@ -582,6 +582,41 @@ At 256² with defaults and seed 0, repeat the original Gaussian Spots 2 six time
 | U16 | 6 | 65,532 · 1 | 65,535 | 1 | 1 |
 | F32 | 5 | 53,871 · 1.1920929e-07 | 61,912 | 3,565 | 1.1920929e-07 |
 
+### Tile patch inputs and scratch color precision
+
+The grayscale tile patch matches all 3,966,976 primary pixels. Its color counterpart differs at 326 pixels in each of two storage formats. Scratches 2 differs at eight F32 pixels. Each pixel counts once and requires every channel to match. Integer errors are in stored levels. Both applications reopened the saved files and reproduced their own originals exactly on 521,216 pixels across the 30 smaller settings and 3,313,664 across the 32 larger settings for each root.
+
+| Root (inventory index) | Distinct settings | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|---:|
+| Tile patch, color (202) | 71 | 830,720/830,720 · 0 | 1,209,274/1,209,600 · 13832 | 716,032/716,032 · 0 | 1,210,298/1,210,624 · 0.211062819 |
+| Tile patch, grayscale (203) | 71 | 830,720/830,720 · 0 | 1,209,600/1,209,600 · 0 | 716,032/716,032 · 0 | 1,210,624/1,210,624 · 0 |
+| Scratches 2 (206) | 82 | 815,360/815,360 · 0 | 1,220,864/1,220,864 · 0 | 717,056/717,056 · 0 | 1,243,640/1,243,648 · 5.96046448e-08 |
+
+The primary totals include the earlier default, seed, precision and targeted measurements, with duplicate settings counted once. A separate eight-setting series using an original procedural image at the two patch inputs matched 131,072/131,072 pixels for each root, maximum zero. It includes 128² and 256² defaults, seed 42 and changed settings at 64² in all four formats.
+
+For the two new series, use the root's zero-based inventory index i and the row index j. In the table x means keep the public defaults. Use U16 and F32 for every row. Also render U8 and F16 at smaller indices 0,2,3,6,9 and larger indices 0,2,3,4,7,8.
+
+| j | Smaller dimensions | Smaller d | Smaller seed | Larger dimensions | Larger d | Larger seed |
+|---:|---|---:|---|---|---:|---|
+| 0 | 16×16 | x | 0 | 32² | x | 42 |
+| 1 | 32×64 | .21875 | 42 | 64×256 | .34375 | 31877+43i |
+| 2 | 64×32 | .8125 | 401477+19i+31j | 256×64 | .90625 | 69491+43i |
+| 3 | 64² | .375 | 401477+19i+31j | 128² | .09375 | 0 |
+| 4 | 128×64 | .03125 | 401477+19i+31j | 256² | x | 42 |
+| 5 | 64×128 | .96875 | 401477+19i+31j | 128×512 | .6875 | 13681+43i |
+| 6 | 128² | x | 0 | 512×128 | .28125 | 9199+43i |
+| 7 | 128×256 | .5625 | 401477+19i+31j | 512² | x | 0 |
+| 8 | 256×128 | .15625 | 401477+19i+31j | 256×1024 | .53125 | 47951+43i |
+| 9 | 256² | x | 401477+19i+31j | 1024×256 | .796875 | 31607+43i |
+
+For changed settings use pattern width 31+141d, height 61+129(1−d) and disorder d on all three roots. In the patches, use d for mask size, mask precision, mask warping, size variation, rotation variation and color or luminosity variation. Set rotation to d−.25 and select octave from (1,3,2,1,2,3,2,3,1,2) by j. Use (d/2,1−d,d,.375+.5d) for the color background and .83d for grayscale.
+
+Leave Source disconnected at j=0. For other smaller rows take h=(j−1) mod 6. For larger rows take h=(j+2) mod 6. Generate a U8 field at the h-th size from (64²,64×32,32×64,128²,128×64,64×128) with integer coordinates starting at zero. The grayscale level is 127((⌊x/3⌋+⌊y/7⌋) mod 2)+(5x+9y+xy) mod 129. For color use R=(13x+17y+31h) mod 256, G=211((⌊x/4⌋ XOR ⌊y/8⌋) mod 2)+(x+y) mod 43, B=(7xy+19x+53h) mod 256 and A=(23x+11y+97h) mod 256.
+
+At larger j=6 the color patch first differs in the bitmap pattern map. Its input, background and all upstream filters match. The map gives 65,210/65,536 U16 pixels with maximum error 13,832. The downstream transform preserves that count. The final F32 maximum is .211062819 at (157,113), and all 326 unequal pixels lie between x=144–167 and y=109–123. At larger j=5 every observed stage matches. At j=7 the last mask blur differs at 35/262,144 U16 pixels by one level and its downstream warp and final image match.
+
+Repeated original-only Scratches 2 renders at smaller j=1,3,4,6 were bit-identical in six runs of each setting. MaterialCraft matched 2,047/2,048, 4,095/4,096, 8,190/8,192 and 16,383/16,384 RGBA32F pixels respectively. The respective maximum errors were 5.96046448e−8, 2.98023224e−8, 5.96046448e−8 and 2.98023224e−8. The first setting differs only in green at (18,52). [Earlier stage and parameter controls](#scratches-messy-fibers-microscope-and-moisture)
+
 ### Short directional blur tap order on rectangular inputs
 
 Fluid matches **25,969,920/25,969,920 final pixels across 121 distinct settings** through 2048 pixels per side. Both applications reopened the MaterialCraft package and reproduced every pixel of their originals over 28, 38 and 36 settings (498,688, 8,654,848 and 17,588,224 pixels). The three instrumented renders at 512×1024, 1024×512 and 1024² match 9,961,472/9,961,472 intermediate and final samples. [First differing stage and earlier settings](#fibers-1-and-fluid-through-1024-pixels-per-side)
