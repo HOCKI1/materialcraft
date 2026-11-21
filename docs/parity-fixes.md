@@ -925,6 +925,41 @@ For the dense-mask series use the size, metric and tiling combinations (32², Eu
 
 Both internal Distance outputs also matched 1,135,616/1,135,616 pixels in 60 intermediate renders across the original, independent and earlier differing root settings. The sparse open-axis comparisons retain the differences listed above. Each regression reproduced its original failure. The release node suite ran with the committed resource fixtures. Formatting, strict all-target workspace Clippy, the dependency-layer check and WebAssembly passed.
 
+### Modifying a 256-entry color palette
+
+The Modify Color Palette subgraph (439) writes 256 × 1 RGBA entries at every requested parent size. Revision `02d910f` reproduces all 256 entries, including the two formerly differing F32 values, in the [128² modular palette and ID test](#height-distance-texture-mapping-skew-and-weave). Repeat the archived defaults, seed 42, changed controls, signed, thin, repeated and four-format inputs and the two independent series below. Compare complete stored RGBA entries.
+
+For the seven-size series use 16², 64 × 32, 32 × 128, 64², 128 × 32, 16 × 64 and 128² in that order. For zero-based inventory index i and size index j use seed S = 703113 + 41i + 211j. Render U16 and F32 at every size, plus U8 and F16 at j = 1, 3 and 6. At j = 0 leave inputs disconnected. At j = 5 use 32 × 16 source images and the default graph parameters. At the other sizes match the input dimensions to the parent and apply the settings in the table. At j = 3 wire only the palette.
+
+For the palette use the following original F32 modular field. Number the image inputs alphabetically from m = 0 and channels from k = 0. Set A = ((29+11k+3m)x + (73+7k+5m)y + (5+2k)xy + S + 37m + 43k) mod 257. Set B to one where (5x + 3y + 7k + S + 17m) mod 19 < 7 and zero elsewhere. Write .6875A/256 + .3125B. Here the palette is input m = 1. The grayscale ID field is ((11x+17y+S) mod 16)/15.
+
+| Parent size | color_selection_mode | color_position | color_index | color_selection_spread | color_selection_contrast | distance_color_space | mode | opacity | override_color | hsl |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 64 × 32 | 0 | (0.2578125, 0.736328125) | 2 | 0.107421875 | 0.0859375 | 0 | 0 | 0.4609375 | (0.1875, 0.171875, 0.828125) | (-0.08203125, -0.04296875, 0.04296875) |
+| 32 × 128 | 1 | (0.46875, 0.47265625) | 6 | 0.37109375 | 0.296875 | 1 | 1 | 0.671875 | (0.1875, 0.59375, 0.40625) | (0.05859375, -0.1484375, 0.1484375) |
+| 64 × 64 | 0 | (0.34375, 0.62890625) | 4 | 0.21484375 | 0.171875 | 0 | 2 | 0.546875 | (0.1875, 0.34375, 0.65625) | (0.029296875, -0.0859375, 0.0859375) |
+| 128 × 32 | 1 | (0.5859375, 0.326171875) | 8 | 0.517578125 | 0.4140625 | 1 | 0 | 0.7890625 | (0.1875, 0.828125, 0.171875) | (-0.12890625, -0.20703125, 0.20703125) |
+| 128 × 128 | 1 | (0.515625, 0.4140625) | 5 | 0.4296875 | 0.34375 | 1 | 2 | 0.71875 | (0.1875, 0.6875, 0.3125) | (0.114257812, -0.171875, 0.171875) |
+
+For the second series keep both inputs fixed at 64 × 32. Set t = (floor(x/8) + 3floor(y/8) + floor((x+2y)/11)) mod 8. The RGB channels are ((83t+19) mod 251)/250, ((47t+91) mod 241)/240 and ((109t+11) mod 239)/238. Alpha is ((5x+13y+57) mod 127)/126 and ID is ((3x+7y+5) mod 16)/15. Use default parameters for setting 0 and the eight rows below in order. Use seed 733458 + setting index. Render all nine in F32 and add U8, U16 and F16 at settings 2 and 6.
+
+| Setting | color_selection_mode | color_position | color_index | color_selection_spread | color_selection_contrast | distance_color_space | mode | opacity | override_color | hsl |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 1 | 0 | (0.203125, 0.765625) | 5 | 0.28125 | 0.78125 | 0 | 0 | 1 | (0.09375, 0.734375, 0.90625) | (-0.1875, 0.3125, -0.15625) |
+| 2 | 1 | (0.828125, 0.765625) | 9 | 0.625 | 0 | 0 | 0 | 0.765625 | (0.09375, 0.734375, 0.90625) | (-0.1875, 0.3125, -0.15625) |
+| 3 | 0 | (0.203125, 0.765625) | 0 | 0 | 0.3125 | 1 | 0 | 0.421875 | (0.09375, 0.734375, 0.90625) | (-0.1875, 0.3125, -0.15625) |
+| 4 | 1 | (0.828125, 0.765625) | 3 | 0.28125 | 0.78125 | 1 | 1 | 1 | (0.09375, 0.734375, 0.90625) | (-0.1875, 0.3125, -0.15625) |
+| 5 | 0 | (0.203125, 0.765625) | 5 | 0.625 | 0 | 1 | 1 | 0.765625 | (0.09375, 0.734375, 0.90625) | (-0.1875, 0.3125, -0.15625) |
+| 6 | 1 | (0.828125, 0.765625) | 9 | 0 | 0.3125 | 0 | 1 | 0.421875 | (0.09375, 0.734375, 0.90625) | (-0.1875, 0.3125, -0.15625) |
+| 7 | 0 | (0.203125, 0.765625) | 0 | 0.28125 | 0.78125 | 0 | 2 | 1 | (0.09375, 0.734375, 0.90625) | (-0.1875, 0.3125, -0.15625) |
+| 8 | 1 | (0.828125, 0.765625) | 3 | 0.625 | 0 | 0 | 2 | 0.765625 | (0.09375, 0.734375, 0.90625) | (-0.1875, 0.3125, -0.15625) |
+
+| Root (inventory index) | Distinct settings | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|---:|
+| Modify Color Palette (439) | 59 | 2,048/2,048 · 0 | 3,072/3,072 · 0 | 2,048/2,048 · 0 | 7,936/7,936 · 0 |
+
+Across the 59 distinct whole-root settings all **15,104/15,104** palette entries matched, maximum zero. With the second input pair held fixed, 460 entries across the eight changed F32 settings differed from the default output. Save the package in MaterialCraft and reopen it in both applications for all 20 seven-size renders and all 15 fixed-input renders. Save it a second time and repeat F32 at all seven sizes plus U8, U16 and F16 at 64². All **11,520/11,520** entries matched across the 45 reopened renders, maximum zero. Each application also reproduced its own original buffers.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color
