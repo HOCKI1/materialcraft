@@ -43,13 +43,7 @@ pub(super) fn render(context: &CookContext, groups: [&[PatternStamp]; 5], max_de
     let pixel_size = [span[0] / width as f32, span[1] / height as f32];
     let axes = context.tiling_axes();
     let cull_outside = context.b("cull_outside");
-    let mut tiling = context.v4("tiling_region");
-    for (interval, enabled) in tiling.as_chunks_mut::<2>().0.iter_mut().zip(axes) {
-        if !enabled && !cull_outside {
-            *interval = [0.0, 1.0];
-        }
-    }
-    let tile_region = Region::new(tiling)?;
+    let tile_region = Region::tiling(context.v4("tiling_region"), axes, cull_outside)?;
     let mut mipmaps = bitmap::Mipmaps::new();
 
     for stamp in groups.into_iter().flatten() {

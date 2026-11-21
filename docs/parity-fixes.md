@@ -161,6 +161,25 @@ Four roots also have downstream stages. Replace the source patterns with the ori
 | mesh_2 | 8,984/10,496 | 0 / 1 / 0.25 / 1.52587891e-05 |
 | polygon_2 | 10,496/10,496 | 0 / 0 / 0 / 0 |
 
+### Deep pattern samples in custom render and tiling regions
+
+The FX-Map traversal checks tiny procedural stamps against the actual render and tiling rectangles. A discarded stamp must miss every candidate output sample of every visible copy, or have its center culled by the tiling region. The raster and traversal use the same region rules, including reversed intervals and disabled tiling axes. A stamp with more than four candidate copies goes through ordinary raster accounting. The visit, discard, copy and pixel limits stay in effect.
+
+Generate ten levels of empty quadrants. At each level connect all four slots to the next quadrant. Draw an additive axis-aligned gray square of local size (1,1) at each leaf, opacity 2⁻²⁰, zero roughness, global opacity one, over zero. Repeat with nine levels. For each table row j, render 4² F32, 8×4 U16, 4×8 F32 and 16² F32 with seed 417341+43j+k at format index k=0…3.
+
+| j | Depth | Render region (left, right, top, bottom) | Tiling region | Tiled axes | Cull outside | Previous result | Exact / total after | Maximum error |
+|---:|---:|---|---|---|---|---|---:|---:|
+| 0 | 10 | (-0.5, 1.5, -0.5, 1.5) | (-0.5, 1.5, -0.5, 1.5) | both | off | 4 visit errors | 336/336 | 0 |
+| 1 | 10 | (0.125, 0.625, -0.25, 0.75) | (0, 1, 0, 1) | both | off | 4 visit errors | 336/336 | 0 |
+| 2 | 10 | (-0.25, 0.75, 0.25, 1.25) | (-0.25, 0.75, 0.25, 1.25) | x | off | 4 visit errors | 336/336 | 0 |
+| 3 | 9 | (0.125, 0.625, -0.25, 0.75) | (-0.25, 0.75, 0, 0.5) | both | on | 336/336 | 336/336 | 0 |
+| 4 | 9 | (0.625, 0.125, 0.875, 0.25) | (0, 1, 0, 1) | y | off | 336/336 | 336/336 | 0 |
+| 5 | 9 | (0, 1, 0, 1) | (0.25, 0.75, 0.125, 0.625) | none | on | 336/336 | 336/336 | 0 |
+
+In the expanded window the four central samples of the 4×4 F32 image equal 2⁻²⁰ and the twelve outer samples are zero. Before the change this regression returned the traversal-budget error. The two unit-window controls matched 32/32. Another 696 original rectangle, tiling, ramp, square and falloff controls match **1,966,080/1,966,080 F32 pixels**, maximum zero, before and after the change. [Original traversal and budget controls](#bounded-traversal-of-deep-patterns)
+
+At 32² F32, seed 113, scale 2 and disorder .37, the first BnW Spots 3 and first Dirt 5 noise packages (inventory indices 238 and 268) now finish with 1,024/1,024 exact pixels each, maximum zero. Both previously returned the visit error. At 64², seed 42, BnW Spots 3 also finishes in all four output formats with the same scale and disorder. U8 matches 4,096/4,096, U16 4,094/4,096 (maximum 1), F16 4,096/4,096 and F32 4,093/4,096 (maximum 1.06692314e−5). The companion packages at 239 and 269 still reach the visit guard for their independent 32² cases with disorder speed .6, anisotropy .3, anisotropy angle .125 and tile offset (.17,.29). Both Directional Noise 3, Dirt 1 and Dirt 4 variants also reach the guard in their independent 32² cases.
+
 ### Bounded traversal of deep patterns
 
 Four roots reached the traversal guard even at 4×4. An instrumented release cook raised the visit ceiling from 1,048,576 to 2,097,152 and the raster copy ceiling from 1,048,576 to 8,388,608 for this experiment. The 256,000,000-pixel-work guard remained active. Use defaults, F32, and seeds 106622, 106635, 106765 and 106778 in table order. Each process cooked one graph on one worker. Peak resident memory includes graph loading. The visit and stamp counts are for the most expensive pattern stage. Times are single observations.

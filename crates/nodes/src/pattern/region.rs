@@ -23,6 +23,15 @@ impl Copies {
 }
 
 impl Region {
+    pub fn tiling(mut value: [f32; 4], axes: [bool; 2], cull_outside: bool) -> Result<Self, String> {
+        for (interval, enabled) in value.as_chunks_mut::<2>().0.iter_mut().zip(axes) {
+            if !enabled && !cull_outside {
+                *interval = [0.0, 1.0];
+            }
+        }
+        Self::new(value)
+    }
+
     pub fn new(value: [f32; 4]) -> Result<Self, String> {
         let mut start = [value[0], value[2]];
         let mut end = [value[1], value[3]];

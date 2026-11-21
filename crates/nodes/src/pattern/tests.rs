@@ -1383,8 +1383,11 @@ fn deep_quadrants_draw_only_the_leaves_covering_output_samples() {
     }
     let increment = 1.0 / 1_048_576.0;
     graph.nodes[10].parameters = BTreeMap::from([("patterntype".into(), Value::Int(2)), ("opacity".into(), Value::Float(increment))]);
-    let image = cook_at_size(graph, &BTreeMap::new(), 107185, 4).unwrap().remove(0);
+    let image = cook_at_size(graph.clone(), &BTreeMap::new(), 107185, 4).unwrap().remove(0);
     assert_eq!(image.data(), &[increment; 16]);
+    let expanded = [-0.5, 1.5, -0.5, 1.5];
+    let image = cook_in_regions(graph, &BTreeMap::new(), 417341, [4; 2], [expanded; 2], 0.0).unwrap().remove(0);
+    assert_eq!(image.data(), &[0.0, 0.0, 0.0, 0.0, 0.0, increment, increment, 0.0, 0.0, increment, increment, 0.0, 0.0, 0.0, 0.0, 0.0]);
 }
 
 #[test]

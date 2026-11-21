@@ -49,46 +49,60 @@ impl Footprint {
 }
 
 pub(super) struct SampleGrid {
-    region: Region,
+    render: Region,
+    tiling: Region,
     dimensions: [u32; 2],
     axes: [bool; 2],
+    cull_outside: bool,
 }
 
 impl SampleGrid {
     pub fn new(context: &CookContext, graph_nodes: usize) -> Option<Self> {
-        let unit = [0.0, 1.0, 0.0, 1.0];
         let roughness = context.f("roughness");
-        // Retain ordinary raster validation for nonunit regions and depth weights that might overflow.
-        if context.v4("render_region") != unit
-            || context.v4("tiling_region") != unit
-            || !(roughness >= 0.0 && roughness.is_finite() && context.f("opacity").abs() <= 1.0)
+        // Retain ordinary raster validation for depth weights that might overflow.
+        if !(roughness >= 0.0 && roughness.is_finite() && context.f("opacity").abs() <= 1.0)
             || (roughness > 1.0 && !roughness.powf(graph_nodes as f32).is_finite())
         {
             return None;
         }
         let (width, height) = craft_texture::clamp_size(context.w, context.h);
-        Some(Self { region: Region::new(unit).ok()?, dimensions: [width, height], axes: context.tiling_axes() })
+        let axes = context.tiling_axes();
+        let cull_outside = context.b("cull_outside");
+        let render = Region::new(context.v4("render_region")).ok()?;
+        let tiling = Region::tiling(context.v4("tiling_region"), axes, cull_outside).ok()?;
+        Some(Self { render, tiling, dimensions: [width, height], axes, cull_outside })
     }
 
     pub fn misses(&self, stamp: &PatternStamp) -> bool {
         if !(2..=18).contains(&stamp.pattern)
             || !(0..=2).contains(&stamp.blend)
-            || !stamp.center.iter().chain(&stamp.size).chain(&stamp.color).chain([&stamp.variation]).all(|v| v.is_finite())
+            || !stamp.center.iter().chain(&stamp.size).chain(&stamp.color).chain([&stamp.rotation, &stamp.variation]).all(|v| v.is_finite())
         {
             return false;
         }
+        if self.cull_outside && !self.tiling.contains(stamp.center) {
+            return true;
+        }
         let Ok(frame) = Footprint::new(stamp) else { return false };
         // Limit this check to footprints spanning at most two sample columns and rows per copy.
-        if frame.radius.iter().zip(self.dimensions).any(|(&r, n)| r * n as f32 > 0.5) {
+        if (0..2).any(|i| frame.radius[i] * self.dimensions[i] as f32 > 0.5 * self.render.period()[i]) {
             return false;
         }
-        let center = self.region.copy_origin(stamp.center, self.axes);
-        let Ok(repeats) = self.region.repeats(&self.region, center, frame.radius, self.axes) else { return false };
+        let center = self.tiling.copy_origin(stamp.center, self.axes);
+        let Ok(repeats) = self.tiling.repeats(&self.render, center, frame.radius, self.axes) else { return false };
+        let copies = repeats[0].count.saturating_mul(repeats[1].count);
+        if copies == 0 {
+            return true;
+        }
+        // A small tiling period can place many copies in a single pixel. Leave those to the raster budget.
+        if copies > 4 {
+            return false;
+        }
         let columns = repeats[0].centers();
         for y_center in repeats[1].centers() {
             for x_center in columns.clone() {
                 let center = [x_center, y_center];
-                let bounds = self.region.bounds(center, frame.radius, self.dimensions);
+                let bounds = self.render.bounds(center, frame.radius, self.dimensions);
                 let [[left, right], [top, bottom]] = bounds;
                 if left == right || top == bottom {
                     continue;
@@ -100,12 +114,13 @@ impl SampleGrid {
                         let low = center[axis] - frame.radius[axis];
                         let end = bounds[axis][1];
                         let pixels = self.dimensions[axis];
-                        f64::from(low * pixels as f32) + 0.5 >= f64::from(end) && self.region.pixel_center(axis, end - 1, pixels) <= low
+                        let near = self.render.stamp_vertices(axis, center[axis], frame.radius[axis], pixels)[0];
+                        f64::from(near) + 0.5 >= f64::from(end) && self.render.pixel_center(axis, end - 1, pixels) <= low
                     })
                 {
                     continue;
                 }
-                if let Some(planes) = PixelPlanes::new(&frame, &self.region, center, stamp.size, self.dimensions) {
+                if let Some(planes) = PixelPlanes::new(&frame, &self.render, center, stamp.size, self.dimensions) {
                     if planes.covers_any(bounds) {
                         return false;
                     }
@@ -113,7 +128,7 @@ impl SampleGrid {
                 }
                 for y in top..bottom {
                     for x in left..right {
-                        if frame.local(self.region.point([x, y], self.dimensions), center, stamp.size).is_some() {
+                        if frame.local(self.render.point([x, y], self.dimensions), center, stamp.size).is_some() {
                             return false;
                         }
                     }
