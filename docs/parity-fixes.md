@@ -1597,6 +1597,31 @@ All **480/480** paired coefficient words agree, maximum zero. Each of the 48 pai
 
 Save all six authored graphs in MaterialCraft. Reopen each in both applications at the two sizes and at the first and last extent. Match the sixteen outputs by identifier. Each application reproduced every pixel of its own original. Across applications, **377,468/393,216** pixels matched in 384 reopened branch renders, maximum 1.78813934e-07. The color and grayscale HQ blur roots remain open on their [78 whole-root settings](#directional-blur-weights-across-110-angles-and-two-projection-axes).
 
+### Rectangular inputs and reopened outputs on seven roots
+
+Compare Hard Light, Clamp Grayscale, Curvature, HDR Range Viewer Grayscale, Material Switch, PBR Dielectric F0 and Spot Emboss with newly generated inputs. Each root has twelve size, parameter and output-format settings. Material Switch has twelve independently read outputs at each setting. Count a pixel as exact only when all its stored channels agree.
+
+At zero-based row j, use seed 117731 + 13i + 31j with the inventory index i shown below. For each connected image pin in identifier order, with zero-based pin m and channel c, use ((71x + 37y + 11xy + 17m + 29c + 7j + seed) mod 383)/382. At row 3, multiply by 1.5 and subtract .25. For a normal input or the Curvature input, set X = .35 cos(2π(x+.5)/width) and Y = .35 sin(2π(y+.5)/height). Store ((1+X)/2,(1+Y)/2,(1+√(1−X²−Y²))/2,1). Round integer inputs to the nearest stored level, ties to even.
+
+| j | Output size | Inputs | Properties | Requested outputs |
+|---:|---|---|---|---|
+| 0 | 16 × 32 | U8 procedural fields | Defaults | U16, F32 |
+| 1 | 64 × 32 | U16 procedural fields | First setting below | U8, U16, F16, F32 |
+| 2 | 32 × 16 | All image pins disconnected | Defaults | U16, F32 |
+| 3 | 32 × 64 | F32 procedural fields | Second setting below | U8, U16, F16, F32 |
+
+| Root (index) | First setting | Second setting | Original output renders · exact / compared | Reopened output renders · exact / compared |
+|---|---|---|---:|---:|
+| Hard Light (41) | Opacity .375, alpha blending off | Opacity .8125, alpha blending on | 12 · 18,432/18,432 | 5 · 7,168/7,168 |
+| Clamp Grayscale (73) | Limits (.3125,.6875) | Limits (.125,.84375) | 12 · 18,432/18,432 | 5 · 7,168/7,168 |
+| Curvature (119) | Intensity .5625, green inversion off, normal format 1 | Intensity 1.75, green inversion on, normal format 0 | 12 · 18,432/18,432 | 5 · 7,168/7,168 |
+| HDR Range Viewer Grayscale (180) | Range (.125,1.5) | Range (−.25,.875) | 12 · 18,432/18,432 | 5 · 7,168/7,168 |
+| Material Switch (204) | Switch, ambient occlusion and specular level on. Emissive and opacity off | Same with emissive and opacity on | 144 · 221,184/221,184 | 60 · 86,016/86,016 |
+| PBR Dielectric F0 (385) | Preset 1, specular range .625, glass range .375, IOR 1.375 | Same with preset 5 | 12 · 18,432/18,432 | 5 · 7,168/7,168 |
+| Spot Emboss (508) | Intensity 1.875, light (.3125,.6875), highlight (.75,.25,.5,.875), shadow (.125,.375,.25,.5) | Same with intensity 2.75 | 12 · 18,432/18,432 | 5 · 7,168/7,168 |
+
+Material Switch outputs were diffuse, normal, specular, height, roughness, metallic, glossiness, ambient occlusion, base color, emissive, specular level and opacity. The 216 original output renders matched **331,776/331,776** pixels, maximum zero. Save each package in MaterialCraft and reopen it in both applications. Read every selected output by identifier at row 0 U16, row 1 U8, row 2 F32 and row 3 F16 and F32. The 90 reopened output renders matched **129,024/129,024** pixels, maximum zero. Each application also reproduced all its own original buffers. These cases extend the seven roots' existing measured parity.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color

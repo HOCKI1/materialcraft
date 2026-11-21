@@ -162,7 +162,7 @@ Creased matches 10,947,840/10,947,840 pixels across 100 distinct settings throug
 | [blend.sbs/difference](../assets/sbs/blend.sbs) | 3 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [blend.sbs/dissolve_2](../assets/sbs/blend.sbs) | 3 | No | [Parity · 28 renders, 183,040 exact pixels](parity-fixes.md#per-pixel-random-initialization) |
 | [blend.sbs/exclusion](../assets/sbs/blend.sbs) | 3 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
-| [blend.sbs/hard_light](../assets/sbs/blend.sbs) | 3 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
+| [blend.sbs/hard_light](../assets/sbs/blend.sbs) | 3 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) · [Twelve settings and all selected outputs reopened](parity-fixes.md#rectangular-inputs-and-reopened-outputs-on-seven-roots) |
 | [blend.sbs/linear_burn](../assets/sbs/blend.sbs) | 3 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [blend.sbs/luminosity](../assets/sbs/blend.sbs) | 3 | No | [Parity · 15 cases, 165,120 exact pixels](parity-fixes.md#luminosity-axial-gradients-color-lookup-and-luminance-merge) |
 | [blend.sbs/max](../assets/sbs/blend.sbs) | 3 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
@@ -194,7 +194,7 @@ Creased matches 10,947,840/10,947,840 pixels across 100 distinct settings throug
 | [checker_2.sbs/checker_2](../assets/sbs/checker_2.sbs) | 0 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [chrominance_extract.sbs/chrominance_extract](../assets/sbs/chrominance_extract.sbs) | 1 | No | [Parity · 18 cases, 171,264 exact pixels](parity-fixes.md#gradient-interpolation-color-blend-and-chrominance) |
 | [clamp.sbs/clamp](../assets/sbs/clamp.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
-| [clamp.sbs/clamp_grayscale](../assets/sbs/clamp.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
+| [clamp.sbs/clamp_grayscale](../assets/sbs/clamp.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) · [Twelve settings and all selected outputs reopened](parity-fixes.md#rectangular-inputs-and-reopened-outputs-on-seven-roots) |
 | [clone.sbs/clone](../assets/sbs/clone.sbs) | 2 | No | [Parity · eight cases, four formats](parity-fixes.md#clone-mask-and-alpha-rounding) |
 | [clone_patch.sbs/transform_from_center](../assets/sbs/clone_patch.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [clone_patch.sbs/transform_to_center](../assets/sbs/clone_patch.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
@@ -240,7 +240,7 @@ Creased matches 10,947,840/10,947,840 pixels across 100 distinct settings throug
 | [crop.sbs/crop_grayscale](../assets/sbs/crop.sbs) | 1 | No | [Parity · 48 renders, all 377,344 pixels across both outputs exact](parity-fixes.md#half-precision-crop-area-and-input-sizes) |
 | [crystal_1.sbs/crystal_1](../assets/sbs/crystal_1.sbs) | 0 | Yes | [Parity · 1,966,336/1,966,336 pixels in 64 distinct renders, 32 reopened settings](parity-fixes.md#stored-stamp-vertices-in-crystal-1) |
 | [crystal_2.sbs/crystal_2](../assets/sbs/crystal_2.sbs) | 0 | Yes | [Parity · 99 settings, 5,104,128/5,104,128 pixels](parity-fixes.md#sibling-positions-in-subdivided-pattern-quadrants) · [Stamp-width recheck](parity-fixes.md#pixel-reciprocals-for-stamp-edge-widths) |
-| [curvature.sbs/curvature](../assets/sbs/curvature.sbs) | 1 | No | [Parity · 20 renders, 176,384 exact pixels](parity-fixes.md#sampling-integer-bitmap-inputs-through-wider-bridges) |
+| [curvature.sbs/curvature](../assets/sbs/curvature.sbs) | 1 | No | [Parity · 20 renders, 176,384 exact pixels](parity-fixes.md#sampling-integer-bitmap-inputs-through-wider-bridges) · [Twelve settings and all selected outputs reopened](parity-fixes.md#rectangular-inputs-and-reopened-outputs-on-seven-roots) |
 | [curvature_smooth.sbs/curvature_smooth](../assets/sbs/curvature_smooth.sbs) | 1 | Yes | [Parity · 20 renders, 176,384 exact pixels](parity-fixes.md#sampling-integer-bitmap-inputs-through-wider-bridges) |
 | [curvature_smooth_v2.sbs/compute_curvature_v2](../assets/sbs/curvature_smooth_v2.sbs) | 2 | Yes | [Parity: 6 cases](parity-fixes.md#verified-cases) |
 | [diffusion.sbs/impl/pass_RGBA](../assets/sbs/diffusion.sbs) | 4 | Yes | [Parity · 19 renders, 143,872 exact pixels](parity-fixes.md#per-pixel-random-initialization) |
@@ -301,7 +301,7 @@ Creased matches 10,947,840/10,947,840 pixels across 100 distinct settings throug
 | [hbao_2.sbs/hbao_subsample](../assets/sbs/hbao_2.sbs) | 2 | Yes | [Parity · 19 cases, 171,520 exact pixels](parity-fixes.md#large-transform-offsets-and-additive-blends) |
 | [hdr_exposure_preview.sbs/hdr_exposure_preview](../assets/sbs/hdr_exposure_preview.sbs) | 1 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [hdr_merge.sbs/average_luminance_merge](../assets/sbs/hdr_merge.sbs) | 1 | Yes | [Parity · 15 cases, 165,120 exact pixels](parity-fixes.md#luminosity-axial-gradients-color-lookup-and-luminance-merge) |
-| [hdr_range_viewer.sbs/hdr_range_viewer_grayscale](../assets/sbs/hdr_range_viewer.sbs) | 1 | No | [Parity · 18 cases, 167,424 exact pixels](parity-fixes.md#signed-levels-driven-grayscale-weights-and-grayscale-gradients) |
+| [hdr_range_viewer.sbs/hdr_range_viewer_grayscale](../assets/sbs/hdr_range_viewer.sbs) | 1 | No | [Parity · 18 cases, 167,424 exact pixels](parity-fixes.md#signed-levels-driven-grayscale-weights-and-grayscale-gradients) · [Twelve settings and all selected outputs reopened](parity-fixes.md#rectangular-inputs-and-reopened-outputs-on-seven-roots) |
 | [height_blend.sbs/height_blend](../assets/sbs/height_blend.sbs) | 3 | No | [Parity · 342,528 exact pixels across 32 renders](parity-fixes.md#color-conversion-gradient-height-and-histogram-controls) |
 | [height_extrude.sbs/impl/acceleration_struct_impl](../assets/sbs/height_extrude.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [height_to_normal_world_units.sbs/height_to_normal_world_units](../assets/sbs/height_to_normal_world_units.sbs) | 1 | Yes | [Parity · eight cases in four formats](parity-fixes.md#height-to-normal-in-world-units) |
@@ -325,7 +325,7 @@ Creased matches 10,947,840/10,947,840 pixels across 100 distinct settings throug
 | [linear_srgb_conversion.sbs/convert_to_srgb_grayscale](../assets/sbs/linear_srgb_conversion.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [make_it_tile_patch.sbs/make_it_tile_patch](../assets/sbs/make_it_tile_patch.sbs) | 1 | No | [Parity · 21,366,784/21,366,784 pixels across 127 distinct settings](parity-fixes.md#diagonal-blur-across-rectangular-tile-edges) |
 | [make_it_tile_patch_grayscale.sbs/make_it_tile_patch_grayscale](../assets/sbs/make_it_tile_patch_grayscale.sbs) | 1 | No | [Parity · 21,366,784/21,366,784 pixels across 127 distinct settings](parity-fixes.md#diagonal-blur-across-rectangular-tile-edges) |
-| [material_switch.sbs/material_switch](../assets/sbs/material_switch.sbs) | 24 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
+| [material_switch.sbs/material_switch](../assets/sbs/material_switch.sbs) | 24 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) · [Twelve settings and all selected outputs reopened](parity-fixes.md#rectangular-inputs-and-reopened-outputs-on-seven-roots) |
 | [material_transforms.sbs/material_transforms](../assets/sbs/material_transforms.sbs) | 5 | Yes | [Parity · 856,320 exact pixels across every output](parity-fixes.md#material-bundles-and-the-eighth-irradiance-pass) |
 | [me_water_level.sbs/scratches_2](../assets/sbs/me_water_level.sbs) | 0 | Yes | [Parity · 5,414,144/5,414,144 pixels across 113 distinct settings](parity-fixes.md#starting-coordinates-of-narrow-rotated-stamps) |
 | [mean_of_least_variance.sbs/mlv_color_iteration](../assets/sbs/mean_of_least_variance.sbs) | 1 | Yes | [Parity · 195,840/195,840 pixels across 34 distinct settings](parity-fixes.md#pixel-ratio-in-rectangular-directional-filters) |
@@ -506,7 +506,7 @@ Creased matches 10,947,840/10,947,840 pixels across 100 distinct settings throug
 | [pattern_weave_2.sbs/weave_2](../assets/sbs/pattern_weave_2.sbs) | 0 | No | [In progress · 3,139,489/3,139,840 pixels across 95 distinct settings](parity-fixes.md#saved-splatter-and-weave-graphs-across-independent-fields) · [Earlier measurements](parity-fixes.md#fixed-and-input-driven-rotation-bounds-for-oblique-stamps) |
 | [pavement_1.sbs/pavement_1](../assets/sbs/pavement_1.sbs) | 0 | Yes | [Parity · 2,927,872/2,927,872 pixels across 59 distinct settings](parity-fixes.md#fixed-and-input-driven-rotation-bounds-for-oblique-stamps) |
 | [pbr_albedo_safe_color.sbs/pbr_albedo_safe_color](../assets/sbs/pbr_albedo_safe_color.sbs) | 2 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
-| [pbr_dielectric_F0.sbs/pbr_dielectric_F0](../assets/sbs/pbr_dielectric_F0.sbs) | 0 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
+| [pbr_dielectric_F0.sbs/pbr_dielectric_F0](../assets/sbs/pbr_dielectric_F0.sbs) | 0 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) · [Twelve settings and all selected outputs reopened](parity-fixes.md#rectangular-inputs-and-reopened-outputs-on-seven-roots) |
 | [pbr_metal_reflectance.sbs/pbr_metal_reflectance](../assets/sbs/pbr_metal_reflectance.sbs) | 0 | No | [Parity: 4 cases](parity-fixes.md#verified-cases) |
 | [pbr_render.sbs/PBR_render_mapping_color](../assets/sbs/pbr_render.sbs) | 2 | Yes | [Parity · 13 cases, 163,840 exact pixels](parity-fixes.md#height-distance-texture-mapping-skew-and-weave) |
 | [pbr_render.sbs/PBR_render_mapping_grayscale](../assets/sbs/pbr_render.sbs) | 2 | Yes | [Parity · 13 cases, 163,840 exact pixels](parity-fixes.md#height-distance-texture-mapping-skew-and-weave) |
@@ -629,7 +629,7 @@ Creased matches 10,947,840/10,947,840 pixels across 100 distinct settings throug
 | [spline_tools.sbs/internal_tools/scatter_splines_on_splines_preprocess](../assets/sbs/spline_tools.sbs) | 5 | Yes | [In progress · nonzero counts and images exact, zero count timed out](parity-fixes.md#spline-preprocessing-with-wired-counts) |
 | [spline_tools.sbs/internal_tools/select_spline_sub](../assets/sbs/spline_tools.sbs) | 3 | Yes | [Parity · 622,592 exact pixels in 19 renders](parity-fixes.md#clamped-texture-reads-in-spline-graphs) |
 | [spline_tools.sbs/internal_tools/spline_warp_sub](../assets/sbs/spline_tools.sbs) | 6 | Yes | [Parity · 28,928 exact pixels in 19 renders](parity-fixes.md#clamped-texture-reads-in-spline-graphs) |
-| [spot_emboss.sbs/spot_emboss](../assets/sbs/spot_emboss.sbs) | 2 | No | [Parity · 218,368 exact cook pixels and six exact saved-file renders](parity-fixes.md#image-selection-in-saved-pattern-graphs) |
+| [spot_emboss.sbs/spot_emboss](../assets/sbs/spot_emboss.sbs) | 2 | No | [Parity · 218,368 exact cook pixels and six exact saved-file renders](parity-fixes.md#image-selection-in-saved-pattern-graphs) · [Twelve settings and all selected outputs reopened](parity-fixes.md#rectangular-inputs-and-reopened-outputs-on-seven-roots) |
 | [starburst.sbs/starburst](../assets/sbs/starburst.sbs) | 0 | No | [Parity · 284,416/284,416 pixels across 55 distinct settings](parity-fixes.md#reopened-starburst-symmetry-tile-and-waveform-graphs) · [Earlier measurements](parity-fixes.md#tile-weave-splatter-and-fiber-stage-comparisons) · [Stamp-width recheck](parity-fixes.md#pixel-reciprocals-for-stamp-edge-widths) |
 | [stripes.sbs/stripes](../assets/sbs/stripes.sbs) | 0 | Yes | [Parity · 635,904/635,904 pixels across 53 distinct settings](parity-fixes.md#pixel-ratio-in-rectangular-directional-filters) |
 | [summed_area_table.sbs/summed_area_table_iteration](../assets/sbs/summed_area_table.sbs) | 1 | Yes | [Parity: 4 cases](parity-fixes.md#verified-cases) |
