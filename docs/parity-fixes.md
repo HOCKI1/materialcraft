@@ -1933,6 +1933,23 @@ A separate one-node graph reproduces the original reference filter at all 65,536
 
 Thirteen other roots that use the directional filter retain 72,352,768/72,352,768 exact pixels across 662 measured settings. The other fluid root (272) still matches 1,041,220/1,041,664 across 53 settings, maximum six U16 levels. The release regression failed on the previous implementation. All 422 node and evaluator release tests, formatting, strict workspace Clippy, dependency layers and WebAssembly passed.
 
+### Repeating increments in finite path-length loops
+
+Five [resized path-length settings](#finite-loops-that-reach-a-fixed-point-in-path-length-graphs) previously exhausted the execution budget. In these cases the path cursor revisits the same vertices while its length continues to grow. In the original 16² to 32² F32 case, expose the square-root term of the final scalar addition without changing the cursor or condition. At output (1,0), seven initial increments lead into a period of four. The four measured F32 increments are .23174433410167694, 2.1718389987945557, .9635875225067139 and 1.26210618019104. Replaying the ordered additions to iteration 65,536 gives exactly 75,845.5859375. At (13,1), the period begins after two steps and produces 75,860.09375. The trace predicted all seven reference pixels with observed periods. A separate zero-valued control had no observed period in its first twelve steps.
+
+The evaluator recognizes a final scalar addition assigning its result back to the same variable. It checks that the rest of the body, the exit condition and called functions do not read or write that sum. When the remaining variables, exported assignments and random stream repeat, it replays the observed increments in their original order and precision. Replayed additions consume the execution budget. Returning to the same accumulated bits after a full period also preserves the result for any remaining complete periods.
+
+Repeat all 93 prior settings and resize the six [independent vertex fields](#finite-loops-that-reach-a-fixed-point-in-path-length-graphs), in their published order, to 8², 8², 16 × 32, 32 × 16, 32² and 16 × 32. Keep their vertex headers, graph parameters and six output-mode combinations. Set the seed to 132337 + 67j + 7m with geometry j and mode m numbered from zero. The comparison uses the actual output dimensions, including one-texel results.
+
+| Whole path-length graph | Settings | Exact pixels / compared | Maximum error |
+|---|---:|---:|---:|
+| Previous whole-graph settings, including the five resized fields | 93 | 26,544/26,544 | 0 |
+| Additional resized path fields | 36 | 13,446/13,446 | 0 |
+
+Across these 129 settings, the measured storage formats gave 6,593/6,593 U8 pixels, 6,593/6,593 U16 pixels, 6,593/6,593 F16 pixels, 20,211/20,211 F32 pixels, all at maximum zero. Ten reopened full-source settings reproduced 2,161/2,161 pixels, twelve reopened parent settings reproduced 1,664/1,664, and eleven reopened resize settings reproduced 4,737/4,737. Cross-application maximum error was zero in each group. Each application also reproduced its original buffers after reopening.
+
+The regression alternates .1 and .3 for 65,537 steps and checks both the returned sum and the assignment read afterward. The former evaluator exceeded its budget. A second test reads the sum inside both the term and the exit and reaches 12. Existing original loop controls retained 28/28 exact typed values and 10,240/10,240 exact pixels. All 424 node and evaluator release tests, formatting, strict workspace Clippy, dependency layers and WebAssembly passed.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color

@@ -1746,6 +1746,56 @@ fn finite_loop_distinguishes_the_sign_of_zero_in_its_state() {
 }
 
 #[test]
+fn finite_loop_accumulates_a_repeating_sequence_at_float_precision() {
+    let mut graph = FunctionGraph::default();
+    let phase = Some(Value::Text("phase".into()));
+    let sum = Some(Value::Text("sum".into()));
+    let never = graph.add_constant(Value::Bool(false));
+    let zero = graph.add_constant(Value::Float(0.0));
+    let first = graph.add_constant(Value::Float(0.1));
+    let second = graph.add_constant(Value::Float(0.3));
+    let start_phase = graph.add("set", &[never], phase.clone());
+    let start_sum = graph.add("set", &[zero], sum.clone());
+    let init = graph.add("sequence", &[start_phase, start_sum], None);
+    let previous_phase = graph.add("get_bool", &[], phase.clone());
+    let flip = graph.add("not", &[previous_phase], None);
+    let change_phase = graph.add("set", &[flip], phase.clone());
+    let current_phase = graph.add("get_bool", &[], phase);
+    let increment = graph.add("ifelse", &[current_phase, first, second], None);
+    let current_sum = graph.add("get_float1", &[], sum.clone());
+    let add = graph.add("add", &[increment, current_sum], None);
+    let update = graph.add("set", &[add], sum.clone());
+    let body = graph.add("sequence", &[change_phase, update], None);
+    let result = graph.add("while", &[init, never, body], Some(Value::Int(65_537)));
+    let expected = (0..65_537).fold(0.0_f32, |total, i| total + if i % 2 == 0 { 0.1 } else { 0.3 });
+    graph.output = Some(result);
+    assert_eq!(evaluate(&graph, &BTreeMap::new()).unwrap(), Value::Float(expected));
+    let after = graph.add("get_float1", &[], sum);
+    graph.output = Some(graph.add("sequence", &[result, after], None));
+    assert_eq!(evaluate(&graph, &BTreeMap::new()).unwrap(), Value::Float(expected));
+}
+
+#[test]
+fn finite_sum_checks_exit_and_increments_that_read_the_accumulator() {
+    let mut graph = FunctionGraph::default();
+    let sum = Some(Value::Text("sum".into()));
+    let zero = graph.add_constant(Value::Float(0.0));
+    let one = graph.add_constant(Value::Float(1.0));
+    let four = graph.add_constant(Value::Float(4.0));
+    let ten = graph.add_constant(Value::Float(10.0));
+    let init = graph.add("set", &[zero], sum.clone());
+    let total = graph.add("get_float1", &[], sum.clone());
+    let small = graph.add("lr", &[total, four], None);
+    let increment = graph.add("ifelse", &[small, one, four], None);
+    let add = graph.add("add", &[total, increment], None);
+    let body = graph.add("set", &[add], sum.clone());
+    let read = graph.add("get_float1", &[], sum);
+    let done = graph.add("gt", &[read, ten], None);
+    graph.output = Some(graph.add("while", &[init, done, body], Some(Value::Int(65_537))));
+    assert_eq!(evaluate(&graph, &BTreeMap::new()).unwrap(), Value::Float(12.0));
+}
+
+#[test]
 fn finite_loop_preserves_each_random_draw_with_a_constant_body_result() {
     let mut graph = FunctionGraph::default();
     let one = graph.add_constant(Value::Float(1.0));

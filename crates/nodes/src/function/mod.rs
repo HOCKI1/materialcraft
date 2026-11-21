@@ -23,6 +23,7 @@ mod function_definition;
 mod function_scope;
 mod inferred_type;
 mod instruction;
+mod loop_sum;
 mod node_interface;
 mod node_types;
 mod operation;

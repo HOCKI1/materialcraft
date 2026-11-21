@@ -37,12 +37,17 @@ impl EvaluationState {
 pub(crate) struct LoopCheckpoint {
     random: crate::random::FunctionRandom,
     writes: Vec<(String, Value, Option<Value>)>,
+    sum: Option<super::loop_sum::SumCycle>,
 }
 
 impl LoopCheckpoint {
-    pub(super) fn capture(state: &EvaluationState) -> Option<Box<Self>> {
+    pub(super) fn capture(state: &EvaluationState, accumulator: Option<&super::loop_sum::LoopSum>) -> Option<Box<Self>> {
+        let sum = accumulator.and_then(|plan| plan.start(state));
         let mut writes = Vec::with_capacity(state.assignments.len());
         for (name, value) in &state.assignments {
+            if sum.as_ref().is_some_and(|cycle| cycle.name == *name) {
+                continue;
+            }
             let visible = state.variables.get(name);
             materialcraft_core::ValueType::of(value)?;
             if let Some(visible) = visible {
@@ -50,15 +55,28 @@ impl LoopCheckpoint {
             }
             writes.push((name.clone(), value.clone(), visible.cloned()));
         }
-        Some(Box::new(Self { random: state.random, writes }))
+        Some(Box::new(Self { random: state.random, writes, sum }))
     }
 
-    pub(super) fn unchanged(&self, state: &EvaluationState) -> bool {
-        self.random == state.random
-            && self.writes.len() == state.assignments.len()
-            && self.writes.iter().zip(&state.assignments).all(|((name, written, visible), (current, value))| {
-                name == current && same_loop_value(Some(written), Some(value)) && same_loop_value(visible.as_ref(), state.variables.get(name))
-            })
+    pub(super) fn tracks_sum(&self) -> bool {
+        self.sum.is_some()
+    }
+
+    pub(super) fn record_body(&mut self, state: &EvaluationState, last: &Value) -> bool {
+        self.sum.as_mut().is_none_or(|cycle| cycle.record(state, last))
+    }
+
+    pub(super) fn advance(&self, state: &mut EvaluationState, last: &mut Value, remaining: u32, budget: &mut usize) -> u32 {
+        if self.random != state.random || self.writes.len() + usize::from(self.sum.is_some()) != state.assignments.len() {
+            return 0;
+        }
+        let writes = state.assignments.iter().filter(|(name, _)| self.sum.as_ref().is_none_or(|cycle| &cycle.name != *name));
+        if !self.writes.iter().zip(writes).all(|((name, written, visible), (current, value))| {
+            name == current && same_loop_value(Some(written), Some(value)) && same_loop_value(visible.as_ref(), state.variables.get(name))
+        }) {
+            return 0;
+        }
+        self.sum.as_ref().map_or(remaining, |cycle| cycle.replay(state, last, remaining, budget))
     }
 }
 

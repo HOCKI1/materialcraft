@@ -11,6 +11,7 @@ pub struct Program {
     pub(crate) seed: u32,
     pub(super) pattern_draws: std::collections::BTreeMap<usize, super::branch_random::PatternDraws>,
     pub(super) pattern_components: std::collections::BTreeMap<usize, super::vector::PatternComponent>,
+    pub(super) loop_sums: std::collections::BTreeMap<usize, super::loop_sum::LoopSum>,
 }
 
 const MAX_EVALUATION_STEPS: usize = 100_000;
@@ -356,26 +357,37 @@ impl Program {
                     state.steps.push(LoopCondition { instruction: index, iteration: 0, last, checkpoint: None });
                     state.steps.push(Enter(self.input(index, 1)?));
                 }
-                LoopCondition { instruction: index, iteration, last, checkpoint } => {
+                LoopCondition { instruction: index, mut iteration, mut last, mut checkpoint } => {
                     let exit = value_type::boolean(&state.values.pop().ok_or("missing loop condition")?)?;
                     let maximum = self.instruction(index)?.value.as_ref().and_then(Value::as_i32).unwrap_or(super::DEFAULT_LOOP_LIMIT);
-                    if exit || (maximum >= 0 && iteration >= maximum as u32) || checkpoint.is_some_and(|previous| previous.unchanged(state)) {
+                    if !exit
+                        && maximum > 0
+                        && let Some(previous) = checkpoint.as_ref()
+                    {
+                        let advance = previous.advance(state, &mut last, (maximum as u32).saturating_sub(iteration), remaining_steps);
+                        iteration += advance;
+                        if advance > 0 || !previous.tracks_sum() {
+                            checkpoint = None;
+                        }
+                    }
+                    if exit || (maximum >= 0 && iteration >= maximum as u32) {
                         state.values.push(last);
                     } else {
-                        // Compare consecutive visits at exponentially spaced intervals. A finite loop
-                        // in identical state repeats the same body and condition up to its declared end.
-                        let checkpoint = if maximum > 0 && (maximum as u32).saturating_sub(iteration) > 1 && iteration.is_power_of_two() {
-                            super::evaluation_state::LoopCheckpoint::capture(state)
-                        } else {
-                            None
-                        };
+                        // Check consecutive visits for fixed points. A sum can retain a short sequence
+                        // of increments until the rest of the loop state repeats.
+                        if maximum > 0 && (maximum as u32).saturating_sub(iteration) > 1 && iteration.is_power_of_two() {
+                            checkpoint = super::evaluation_state::LoopCheckpoint::capture(state, self.loop_sums.get(&index));
+                        }
                         self.clear_loop_results(index, state)?;
                         state.steps.push(LoopBody { instruction: index, iteration: iteration.saturating_add(1), checkpoint });
                         state.steps.push(Enter(self.input(index, 2)?));
                     }
                 }
-                LoopBody { instruction: index, iteration, checkpoint } => {
+                LoopBody { instruction: index, iteration, mut checkpoint } => {
                     let last = state.values.pop().ok_or("missing loop body result")?;
+                    if checkpoint.as_mut().is_some_and(|previous| !previous.record_body(state, &last)) {
+                        checkpoint = None;
+                    }
                     self.clear_loop_results(index, state)?;
                     state.steps.push(LoopCondition { instruction: index, iteration, last, checkpoint });
                     state.steps.push(Enter(self.input(index, 1)?));

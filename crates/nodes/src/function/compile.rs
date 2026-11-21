@@ -227,7 +227,7 @@ fn compile_nested(graph: &FunctionGraph, seed: u32, depth: usize, remaining: &mu
 
     let output = indices.get(&output).copied().ok_or("missing result instruction")?;
 
-    Ok(Program { instructions, output, seed, pattern_draws: BTreeMap::new(), pattern_components: BTreeMap::new() })
+    Ok(Program { instructions, output, seed, pattern_draws: BTreeMap::new(), pattern_components: BTreeMap::new(), loop_sums: BTreeMap::new() })
 }
 
 fn mark_literals(program: &mut Program, mut arguments: BTreeSet<&str>, pixel: Option<&super::EvaluationContext<'_>>) -> super::returned_product::Lanes {
@@ -275,7 +275,10 @@ fn mark_literals(program: &mut Program, mut arguments: BTreeSet<&str>, pixel: Op
     super::branch_assignments::identify(program);
     super::vector::identify_pattern_components(program);
     super::branch_random::identify(program);
-    super::returned_product::identify(program, returned)
+    let exported = super::returned_product::identify(program, returned);
+    program.loop_sums =
+        program.instructions.iter().enumerate().filter_map(|(index, op)| super::loop_sum::LoopSum::identify(program, op).map(|sum| (index, sum))).collect();
+    exported
 }
 
 fn pixel_interval(op: &Instruction, previous: &[Instruction]) -> Option<super::instruction::PixelInterval> {
