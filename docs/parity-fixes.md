@@ -833,6 +833,50 @@ The earlier stage controls exercise each of the three polygon stamps in isolatio
 | Polygon, substituted grayscale source | 10 | 10,496/10,496 | 0 |
 | Weave, authored stamp and disc | 12 | 2,816/2,816 | 0 |
 
+### Reopened Perlin, scratches, shape and weave generators
+
+Compare the six whole generators on revision `02d910f`. Include the [earlier ten-case procedural stage matrix](#tile-weave-splatter-and-fiber-stage-comparisons), the [Weave 4 sweep](#plane-light-splatter-symmetry-and-waveform-comparisons), the archived roots and the four 64² output formats. The independent series uses the [seven image sizes, four output formats and seed formula](#reopened-gaussian-polygon-and-weave-pattern-generators) from the pattern-generator comparison. Each graph supplies its own procedural input. Use defaults at 16 × 32 and 64 × 128. At the other five sizes use the controls below. Scratches 4 exposes no graph controls and uses each size and seed with its published defaults.
+
+| Root | Parameter | 64 × 16 | 32 × 64 | 64² | 128 × 64 | 256 × 128 |
+|---|---|---:|---:|---:|---:|---:|
+| Perlin Noise Zoom | Distance | 3 | 13 | 7 | 17 | 9 |
+| Perlin Noise Zoom | Disorder | 15.9375 | 57.109375 | 31.875 | 75.703125 | 45.15625 |
+| Scratches 1 | Pattern_size_width | 89.5 | 120.5 | 101.5 | 134.5 | 111.5 |
+| Scratches 1 | Pattern_size_height | 131.3125 | 86.265625 | 113.875 | 65.921875 | 99.34375 |
+| Scratches 1 | Rotation_Var | 17.4375 | 39.234375 | 25.875 | 49.078125 | 32.90625 |
+| Scratches 1 | Disorder | 0.1875 | 0.671875 | 0.375 | 0.890625 | 0.53125 |
+| Scratches 1 | Rotation | 27.0625 | 63.390625 | 41.125 | 79.796875 | 52.84375 |
+| Shape Base | pattern | 3 | 11 | 7 | 1 | 8 |
+| Shape Base | pattern_specific | 0.1875 | 0.671875 | 0.375 | 0.890625 | 0.53125 |
+| Shape Base | scale | 0.7109375 | 1.01367188 | 0.828125 | 1.15039062 | 0.92578125 |
+| Shape Base | size_xy | (0.828125, 1.1328125) | (1.19140625, 0.830078125) | (0.96875, 1.015625) | (1.35546875, 0.693359375) | (1.0859375, 0.91796875) |
+| Shape Base | angle | 0.09375 | -0.28125 | 0.15625 | -0.0625 | -0.203125 |
+| Weave 1 | Tiling | 2 | 5 | 3 | 1 | 2 |
+| Weave 1 | Rotate_45_Degrees | off | on | off | on | on |
+| Weave 4 | Tiling | 2 | 5 | 3 | 1 | 2 |
+| Weave 4 | Rotation | off | on | off | on | on |
+
+| Root (inventory index) | Distinct settings | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|---:|
+| Perlin Noise Zoom (418) | 39 | 43,008/43,008 · 0 | 177,152/177,152 · 0 | 45,056/45,056 · 0 | 66,816/66,816 · 0 |
+| Scratches 1 (463) | 39 | 43,008/43,008 · 0 | 177,152/177,152 · 0 | 45,056/45,056 · 0 | 66,816/66,816 · 0 |
+| Scratches 4 (465) | 38 | 43,008/43,008 · 0 | 160,768/160,768 · 0 | 45,056/45,056 · 0 | 66,816/66,816 · 0 |
+| Shape Base (466) | 39 | 43,008/43,008 · 0 | 177,152/177,152 · 0 | 45,056/45,056 · 0 | 66,816/66,816 · 0 |
+| Weave 1 (537) | 39 | 43,008/43,008 · 0 | 177,152/177,152 · 0 | 45,056/45,056 · 0 | 66,816/66,816 · 0 |
+| Weave 4 (540) | 38 | 46,080/46,080 · 0 | 179,712/179,712 · 0 | 46,080/46,080 · 0 | 88,832/88,832 · 0 |
+
+The six whole roots matched **2,004,480/2,004,480** pixels across 232 distinct settings, maximum zero. Save each graph in MaterialCraft, then reopen it in both applications for the 20 independent renders. Save each a second time and compare F32 at all seven sizes plus U8, U16 and F16 at 64². Each root matched 258,560/258,560 reopened pixels. All **1,551,360/1,551,360** pixels across the 180 reopened renders matched across applications and reproduced their respective originals, maximum zero.
+
+The reduced controls revisit the branch that first differed in the original comparison. Retain the original shape or substitute a disc, using the earlier six settings and graph wiring. For Shape Base, serialize the isolated single-quadrant graph before comparison. Both Shape Base branches also matched 9,728/9,728 pixels across 12 renders after a second save and reopen.
+
+| Reduced branch | Renders | Exact pixels / compared | Maximum stored error |
+|---|---:|---:|---:|
+| Perlin Noise Zoom, authored shape and disc | 12 | 9,728/9,728 | 0 |
+| Scratches 1, authored shape and disc | 12 | 9,728/9,728 | 0 |
+| Scratches 4, authored shape and disc | 12 | 9,728/9,728 | 0 |
+| Shape Base, authored shape and disc | 12 | 9,728/9,728 | 0 |
+| Weave 1, authored shape and disc | 12 | 2,816/2,816 | 0 |
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color
