@@ -353,24 +353,31 @@ impl Program {
                     let last = materialcraft_core::ValueType::from_code(self.instruction(index)?.type_code)
                         .map_or(initializer, materialcraft_core::ValueType::default_value);
                     self.clear_loop_results(index, state)?;
-                    state.steps.push(LoopCondition { instruction: index, iteration: 0, last });
+                    state.steps.push(LoopCondition { instruction: index, iteration: 0, last, checkpoint: None });
                     state.steps.push(Enter(self.input(index, 1)?));
                 }
-                LoopCondition { instruction: index, iteration, last } => {
+                LoopCondition { instruction: index, iteration, last, checkpoint } => {
                     let exit = value_type::boolean(&state.values.pop().ok_or("missing loop condition")?)?;
                     let maximum = self.instruction(index)?.value.as_ref().and_then(Value::as_i32).unwrap_or(super::DEFAULT_LOOP_LIMIT);
-                    if exit || (maximum >= 0 && iteration >= maximum as u32) {
+                    if exit || (maximum >= 0 && iteration >= maximum as u32) || checkpoint.is_some_and(|previous| previous.unchanged(state)) {
                         state.values.push(last);
                     } else {
+                        // Compare consecutive visits at exponentially spaced intervals. A finite loop
+                        // in identical state repeats the same body and condition up to its declared end.
+                        let checkpoint = if maximum > 0 && (maximum as u32).saturating_sub(iteration) > 1 && iteration.is_power_of_two() {
+                            super::evaluation_state::LoopCheckpoint::capture(state)
+                        } else {
+                            None
+                        };
                         self.clear_loop_results(index, state)?;
-                        state.steps.push(LoopBody { instruction: index, iteration: iteration.saturating_add(1) });
+                        state.steps.push(LoopBody { instruction: index, iteration: iteration.saturating_add(1), checkpoint });
                         state.steps.push(Enter(self.input(index, 2)?));
                     }
                 }
-                LoopBody { instruction: index, iteration } => {
+                LoopBody { instruction: index, iteration, checkpoint } => {
                     let last = state.values.pop().ok_or("missing loop body result")?;
                     self.clear_loop_results(index, state)?;
-                    state.steps.push(LoopCondition { instruction: index, iteration, last });
+                    state.steps.push(LoopCondition { instruction: index, iteration, last, checkpoint });
                     state.steps.push(Enter(self.input(index, 1)?));
                 }
             }

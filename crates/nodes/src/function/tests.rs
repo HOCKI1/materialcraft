@@ -1709,6 +1709,60 @@ fn loops_recompute_state_and_have_a_budget() {
 }
 
 #[test]
+fn finite_loop_returns_the_settled_value_and_preserves_its_assignments() {
+    let mut graph = FunctionGraph::default();
+    let zero = graph.add_constant(Value::Int(0));
+    let one = graph.add_constant(Value::Int(1));
+    let limit = graph.add_constant(Value::Int(5));
+    let never = graph.add_constant(Value::Bool(false));
+    let counter = Some(Value::Text("counter".into()));
+    let init = graph.add("set", &[zero], counter.clone());
+    let read = graph.add("get_integer1", &[], counter.clone());
+    let increment = graph.add("add", &[read, one], None);
+    let bounded = graph.add("min", &[increment, limit], None);
+    let write = graph.add("set", &[bounded], counter.clone());
+    let result = graph.add("while", &[init, never, write], Some(Value::Int(65_536)));
+    graph.output = Some(result);
+    assert_eq!(evaluate(&graph, &BTreeMap::new()).unwrap(), Value::Int(5));
+
+    let after = graph.add("get_integer1", &[], counter);
+    graph.output = Some(graph.add("sequence", &[result, after], None));
+    assert_eq!(evaluate(&graph, &BTreeMap::new()).unwrap(), Value::Int(5));
+}
+
+#[test]
+fn finite_loop_distinguishes_the_sign_of_zero_in_its_state() {
+    let mut graph = FunctionGraph::default();
+    let zero = graph.add_constant(Value::Float(0.0));
+    let never = graph.add_constant(Value::Bool(false));
+    let sign = Some(Value::Text("sign".into()));
+    let init = graph.add("set", &[zero], sign.clone());
+    let value = graph.add("get_float1", &[], sign.clone());
+    let negate = graph.add("neg", &[value], None);
+    let write = graph.add("set", &[negate], sign);
+    graph.output = Some(graph.add("while", &[init, never, write], Some(Value::Int(65))));
+    let result = evaluate(&graph, &BTreeMap::new()).unwrap().as_f32().unwrap();
+    assert_eq!(result.to_bits(), (-0.0_f32).to_bits());
+}
+
+#[test]
+fn finite_loop_preserves_each_random_draw_with_a_constant_body_result() {
+    let mut graph = FunctionGraph::default();
+    let one = graph.add_constant(Value::Float(1.0));
+    let never = graph.add_constant(Value::Bool(false));
+    let draw = graph.add("rand", &[one], None);
+    let body = graph.add("sequence", &[draw, one], None);
+    let result = graph.add("while", &[one, never, body], Some(Value::Int(65)));
+    let next_draw = graph.add("rand", &[one], None);
+    graph.output = Some(graph.add("sequence", &[result, next_draw], None));
+    let mut expected = crate::random::FunctionRandom::uniform(7);
+    for _ in 0..65 {
+        expected.draw();
+    }
+    assert_eq!(evaluate(&graph, &BTreeMap::new()).unwrap(), Value::Float(expected.draw()));
+}
+
+#[test]
 fn deep_graphs_shared_inputs_and_cycles_do_not_recurse() {
     let mut graph = FunctionGraph::constant(Value::Float(1.0));
     let mut previous = graph.output.unwrap();

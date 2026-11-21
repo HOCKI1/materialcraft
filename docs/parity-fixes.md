@@ -1856,6 +1856,29 @@ Independently author a function with a two-, three- or four-channel slider argum
 
 Each application reproduced its own original buffers after reopening all 14 packages. Four earlier families covering scalar calls, channel arithmetic, swizzles and conditionals retain their original per-render counts and maxima. Across the 958 recorded settings for roots 373–376, 441, 488 and 491, all per-render counts and maxima are unchanged. Color Tile Generator still matches 621,344/765,184 pixels across 331 settings. Its per-channel tint order remains open. The packed-argument regression reproduced the wrong sequence with a color-widget default. All 418 node and evaluator release tests and the formatting, workspace Clippy, layer and WebAssembly checks passed.
 
+### Finite loops that reach a fixed point in path-length graphs
+
+A finite function loop can reach a state that repeats on every remaining iteration. At a pair of consecutive condition checks the evaluator compares the random stream, the written variable names, the values visible inside the function and the assignments visible to its caller. Identical state gives the same subsequent body and condition. The evaluator returns the last body result. It samples these pairs at powers of two to avoid copying state on every iteration of a changing loop. Float comparisons preserve the component bits, including the sign of zero.
+
+For a small reproduction of [the path-length cases](#skipped-loops-and-path-buffers), start with a zero RGBA F32 image. At (0,0) store (1,1/W,1/H,1/W) and at (1,0) store (N+1,1,1,1/W), where W and H are the input dimensions. On row 1 use the first N positions of (.21875,.34375), (.75,.390625), (.640625,.796875), (.390625,.84375), (.125,.546875), then duplicate the first position. Set blue to 1 and alpha to −.25 for the first point, −.125 for the duplicate and −1 for interior points. Use (W,H,N) of (4,4,1), (4,4,2), (8,8,3) and (16,16,5). Set scale to (1.25,.8125). Test no passthrough with intermediate lengths off and on at F32, passthrough with intermediate lengths on at F32, then intermediate lengths on with passthrough off at U16, F16 and U8. The seed is 128101 + 11N + the zero-based setting index.
+
+In the 8² three-vertex test, the reference header at (1,0) stores 3.816796064376831. Starting at iteration 1, the observed cursor and sampled position are both (0,0). The length, sampled texel and exported assignments are identical on consecutive visits. MaterialCraft gives the same F32 word at this pixel with an experimental cap of 1, 2, 3, 4, 8, 16, 32 or 64. The authored loop allows 65,536 iterations. A selected-pixel trace also found continuing sums in the resized-input cases below.
+
+For an independent field use (W,H,N) of (4,8,2), (8,4,3), (8,16,4), (16,8,5), (16,16,7) and (32,16,8). In geometry j from zero, set vertex h to (((11h²+9h+5j+13) mod 101)/112, ((7h²+19h+13j+7) mod 109)/128). Retain the same header, alpha flags and duplicated closing vertex. Test defaults at F32, intermediate lengths on with passthrough off and scale (.6875+.03125j,1.4375−.0625j) at all four formats, and passthrough on with intermediate lengths on at F32. Use seed 129011 + 61j + 7m, with modes m = 0, 1, 2. Independently wire geometries 0, 2 and 4 through parent graphs at all four output formats.
+
+| Whole path-length graph | Attempted | Earlier comparable | Earlier exact pixels / compared · max | Current comparable | Current exact pixels / compared · max |
+|---|---:|---:|---:|---:|---:|
+| Previously published direct inputs | 9 | 9 | 774/774 · 0 | 9 | 774/774 · 0 |
+| Transformed vertices with a 16² source | 6 | 1 | 256/256 · 0 | 1 | 256/256 · 0 |
+| Path headers at the requested size | 6 | 0 | 0/0 · 0 | 6 | 8,448/8,448 · 0 |
+| One, two, three and five distinct vertices | 24 | 15 | 228/228 · 0 | 24 | 1,764/1,764 · 0 |
+| Independent square and rectangular path buffers | 36 | 14 | 838/838 · 0 | 36 | 5,446/5,446 · 0 |
+| Three independently authored graph parents | 12 | 4 | 128/128 · 0 | 12 | 1,664/1,664 · 0 |
+
+Across the 93 settings, 45 formerly rejected renders now match. All 18,352 compared pixels match, with maximum zero. Five renders still exceed the execution budget when a 16² seven-vertex input is resized for 32² or 64² output. At (1,0) in the 32² F32 case the reference stores 75,845.5859375. The running sum changes across iterations here. An error image supplies no comparable samples.
+
+The full saved package retains its nested graph and input connections. Both applications reproduced their respective originals in ten reopened settings (2,161/2,161 cross-application pixels, maximum 0). Three saved parents add 12 reopened settings (1,664/1,664 pixels, maximum 0). The previously captured finite and skipped loop controls retain 28/28 exact typed values and 10,240/10,240 exact pixel values. Three regressions cover a settled counter, a constant body result with advancing random draws and alternating signed zero. All 421 node and evaluator release tests passed, along with formatting, strict workspace Clippy, dependency layers and WebAssembly.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color
