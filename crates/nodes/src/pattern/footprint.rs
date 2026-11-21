@@ -62,12 +62,9 @@ pub(super) struct SampleGrid {
 }
 
 impl SampleGrid {
-    pub fn new(context: &CookContext, graph_nodes: usize) -> Option<Self> {
-        let roughness = context.f("roughness");
-        // Retain ordinary raster validation for depth weights that might overflow.
-        if !(roughness >= 0.0 && roughness.is_finite() && context.f("opacity").abs() <= 1.0)
-            || (roughness > 1.0 && !roughness.powf(graph_nodes as f32).is_finite())
-        {
+    pub fn new(context: &CookContext, opacities: &[f32]) -> Option<Self> {
+        // Keep stamps for raster validation if a depth weight overflowed.
+        if opacities.iter().any(|weight| !weight.is_finite()) {
             return None;
         }
         let (width, height) = craft_texture::clamp_size(context.w, context.h);

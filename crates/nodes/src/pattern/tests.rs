@@ -1121,20 +1121,13 @@ fn repeated_empty_size_switches_leave_the_visit_budget_for_drawing() {
     assert_eq!(cook(graph).unwrap()[0].get_gray(4, 4, false), 0.5);
 }
 
-#[test]
-fn empty_switches_at_later_depths_still_affect_roughness() {
-    let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
-    let empty = graph.add(PatternNodeKind::Switch).unwrap();
-    let deeper = graph.add(PatternNodeKind::Quadrant).unwrap();
-    graph.nodes[0].parameters.insert("patterntype".into(), Value::Int(2));
-    graph.nodes[0].children = vec![Some(empty), None, None, Some(deeper)];
-    graph.nodes[2].children[3] = Some(empty);
+fn center_at_roughness(graph: PatternGraph, roughness: f32) -> f32 {
     let definition = find("fx_map").unwrap();
     let parameters = resolve_params(
         definition,
         &BTreeMap::from([
             ("pattern".into(), Value::PatternGraph(Box::new(graph))),
-            ("roughness".into(), Value::Float(1.0)),
+            ("roughness".into(), Value::Float(roughness)),
             ("color_mode".into(), Value::Bool(false)),
         ]),
     );
@@ -1150,7 +1143,43 @@ fn empty_switches_at_later_depths_still_affect_roughness() {
         resource: &|_| None,
         vars: &BTreeMap::new(),
     };
-    assert_eq!((definition.cook)(&context).unwrap()[0].get_gray(8, 8, false), 1.0 / 3.0);
+    (definition.cook)(&context).unwrap()[0].get_gray(8, 8, false)
+}
+
+#[test]
+fn empty_switches_at_later_depths_still_affect_roughness() {
+    let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
+    let empty = graph.add(PatternNodeKind::Switch).unwrap();
+    let deeper = graph.add(PatternNodeKind::Quadrant).unwrap();
+    graph.nodes[0].parameters.insert("patterntype".into(), Value::Int(2));
+    graph.nodes[0].children = vec![Some(empty), None, None, Some(deeper)];
+    graph.nodes[2].children[3] = Some(empty);
+    assert_eq!(center_at_roughness(graph, 1.0), 1.0 / 3.0);
+}
+
+#[test]
+fn connected_quadrants_set_roughness_even_when_their_branch_is_idle() {
+    for kind in [PatternNodeKind::Switch, PatternNodeKind::Iterate] {
+        let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
+        let gate = graph.add(kind).unwrap();
+        let middle = graph.add(PatternNodeKind::Quadrant).unwrap();
+        let leaf = graph.add(PatternNodeKind::Quadrant).unwrap();
+        graph.nodes[0].parameters.insert("patterntype".into(), Value::Int(2));
+        graph.nodes[0].children[0] = Some(gate);
+        graph.nodes[1].children[1] = Some(middle);
+        graph.nodes[2].children[3] = Some(leaf);
+        for enabled in [false, true] {
+            if kind == PatternNodeKind::Switch {
+                graph.nodes[1].parameters.insert("switch".into(), Value::Bool(enabled));
+            } else {
+                graph.nodes[1].parameters.insert("numberadded".into(), Value::Int(i32::from(enabled)));
+            }
+            assert_eq!(center_at_roughness(graph.clone(), 1.0), 1.0 / 3.0);
+            assert_eq!(center_at_roughness(graph.clone(), 0.6), 0.510_204_1);
+        }
+        graph.nodes[0].children[0] = None;
+        assert_eq!(center_at_roughness(graph, 0.6), 1.0);
+    }
 }
 
 #[test]

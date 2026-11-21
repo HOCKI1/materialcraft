@@ -11,7 +11,7 @@ const MAX_SAMPLES: u64 = 256_000_000;
 const MAX_STAMP_COPIES: u64 = 1_048_576;
 const MIN_STAMP_SIZE: f32 = 1e-8;
 
-pub(super) fn render(context: &CookContext, groups: [&[PatternStamp]; 5], max_depth: u32) -> Result<Image, String> {
+pub(super) fn render(context: &CookContext, groups: [&[PatternStamp]; 5], opacities: Result<Vec<f32>, String>) -> Result<Image, String> {
     let (width, height) = craft_texture::clamp_size(context.w, context.h);
     let kind = if context.b("color_mode") { Kind::Color } else { Kind::Gray };
     let background = if context.input(0).is_some_and(|image| image.kind() != kind) {
@@ -30,7 +30,7 @@ pub(super) fn render(context: &CookContext, groups: [&[PatternStamp]; 5], max_de
     }
 
     let channels = kind.channels();
-    let opacities = depth_opacities(context.f("roughness"), max_depth, context.f("opacity"))?;
+    let opacities = opacities?;
     let integer_sampling = background.integer_sampling();
     let mut data = Arc::clone(background.shared_data());
     drop(background);
@@ -172,7 +172,7 @@ pub(super) fn render(context: &CookContext, groups: [&[PatternStamp]; 5], max_de
     Image::from_data(width, height, kind, data, &Limits::default()).map(|image| image.with_integer_sampling(integer_sampling)).map_err(|e| e.to_string())
 }
 
-fn depth_opacities(roughness: f32, max_depth: u32, opacity: f32) -> Result<Vec<f32>, String> {
+pub(super) fn depth_opacities(roughness: f32, max_depth: u32, opacity: f32) -> Result<Vec<f32>, String> {
     // Match the depth allocation cap to the 4096-node acyclic traversal limit
     if max_depth >= 4096 || !roughness.is_finite() || roughness < 0.0 {
         return Err("pattern roughness must be finite and nonnegative, with depth below 4096".into());

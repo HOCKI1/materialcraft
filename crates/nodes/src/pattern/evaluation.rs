@@ -15,7 +15,7 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
         return Err("missing pattern graph".into());
     };
 
-    graph.validate()?;
+    let opacity_depth = graph.validated_depth()?;
     let mut nodes = BTreeMap::new();
     let mut functions = BTreeMap::new();
     let mut fixed_switches = BTreeSet::new();
@@ -56,7 +56,8 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
     let mut state = EvaluationState::default();
     let mut remaining = MAX_VISITS;
     let mut discard_allowance = MAX_VISITS;
-    let grid = SampleGrid::new(context, graph.nodes.len());
+    let opacities = raster::depth_opacities(context.f("roughness"), opacity_depth, context.f("opacity"));
+    let grid = opacities.as_deref().ok().and_then(|weights| SampleGrid::new(context, weights));
     let mut parameter_values = Vec::new();
     let mut children = Vec::new();
     let mut empty_switches = BTreeSet::new();
@@ -266,7 +267,7 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
         if !empty_switches.is_empty() {
             children.retain(|child| {
                 if empty_switches.contains(&child.node) {
-                    // Empty branches still contribute their visited depth to the roughness weights.
+                    // A cached empty branch still contributes its visited depth to draw ordering.
                     max_depth = max_depth.max(child.depth);
                     false
                 } else {
@@ -298,5 +299,5 @@ pub(crate) fn cook(context: &CookContext) -> CookResult {
         }
     }
     groups[0] = prefix;
-    Ok(vec![raster::render(context, groups, max_depth)?])
+    Ok(vec![raster::render(context, groups, opacities)?])
 }
