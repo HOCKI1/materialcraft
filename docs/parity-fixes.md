@@ -526,6 +526,21 @@ The standalone root matched all **635,904** pixels across 53 distinct settings. 
 
 At 32 × 64 in the first row the pattern package matched 768/2,048 pixels in each format. The maximum errors were 21 U8 levels, 5,461 U16 levels, .08349609375 in F16 and .0833333731 in F32. The pattern generator in the F32 setting matched 2,048/2,048 pixels, maximum 0. Both preceding directional blurs and the blend feeding the last blur also matched all 2,048 words. The first difference was in the last vertical directional blur. The standalone package matched all 2,048 at the same setting.
 
+### Nadir patch after reopening its linked shape package
+
+Replay the archived seeds and input variations, the four 64² formats, the independent 32² input and the [eight banded Nadir Patch inputs](#sobel-normals-and-nadir-projection). For Plane Light repeat its [nine projection fields and four plane-space controls](#panoramic-line-light-and-horizon-across-the-seam).
+
+| Root (inventory index) | Distinct settings | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|---:|
+| Nadir Patch (329) | 17 | 8,192/8,192 · 0 | 8,192/8,192 · 0 | 8,192/8,192 · 0 | 148,666/148,736 · 1.1920929e-07 |
+| Plane Light (334) | 22 | 8,192/8,192 · 0 | 8,192/8,192 · 0 | 8,192/8,192 · 0 | 174,579/175,360 · 4.76837158e-07 |
+
+Nadir Patch matched all 114,688 archived pixels, all 16,384 pixels in the four 64² formats and all 1,024 in the independent 32² field. Its remaining 70 differences occur in the banded F32 comparison, maximum 1.1920929e−7. The earlier 17-render comparison had 532 differing pixels and a maximum F32 error of .000473022461.
+
+The patch graph calls functions in the shape package. Save the patch graph and the shape package independently with MaterialCraft, retain the shape dependency as a relative path and reopen the patch. Across all eight banded settings the reference reproduced **41,216/41,216** original pixels. MaterialCraft reproduced its original buffers at all eight settings. Saving and reopening this pair again gave the same results in both applications. The cross-application comparison after each save was **41,146/41,216**, maximum 1.1920929e−7. Plane Light's four saved renders reproduced every original pixel within each application and matched 28,459/28,672 across applications, maximum 1.1920929e−7.
+
+Keeping the shape dependency pointed at the unconverted inventory source gave **36,657/41,216** matching pixels between the original and reopened reference renders, maximum 65,535 U16 levels. The reference could not open that unconverted local patch package directly. In a separate 16² default, changed 64² and seam 128² comparison, resolving only the shape dependency to its available native package restored all **20,736/20,736** reference pixels. Resolving only the math dependency gave 18,013/20,736, maximum 1 in F32. Both image bridges matched their original source fields in all three observed renders. At 16² the first discrepancy was the pixel processor, with 240/256 exact and maximum .739467438. These measurements distinguish dependency resolution on reopen from the small F32 differences in the working graph.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color
