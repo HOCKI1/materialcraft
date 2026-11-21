@@ -64,6 +64,27 @@ fn expanding_the_render_window_preserves_the_tiling_region() {
 }
 
 #[test]
+fn wide_tiling_regions_place_and_wrap_stamps_at_the_authored_period() {
+    for vertical in [false, true] {
+        let region = if vertical { [-15.5, 16.5, -31.5, 32.5] } else { [-31.5, 32.5, -15.5, 16.5] };
+        for (center, size, columns, rows) in
+            [([26.0, 2.0], [3.0, 4.0], 56..=58, 31..=38), ([-24.0, -3.0], [3.0, 5.0], 6..=8, 20..=29), ([35.0, 4.0], [4.0, 3.0], 1..=4, 36..=41)]
+        {
+            let orient = |[x, y]: [f32; 2]| if vertical { [y, x] } else { [x, y] };
+            let offset = orient(center).map(|v| v - 0.5);
+            let image = render_stamp(region, region, 3, offset, orient(size)).unwrap().remove(0);
+            for y in 0..64 {
+                for x in 0..64 {
+                    let (column, row) = if vertical { (y, x) } else { (x, y) };
+                    let expected = if columns.contains(&column) && rows.contains(&row) { 1.0 } else { 0.0 };
+                    assert_eq!(image.get(x, y, false)[0], expected, "center {center:?}, pixel ({x},{y}), vertical {vertical}");
+                }
+            }
+        }
+    }
+}
+
+#[test]
 fn a_stamp_repeats_on_each_enabled_axis_inside_the_tiling_region() {
     let unit = [0.0, 1.0, 0.0, 1.0];
     for (region, tiling, counts) in [(unit, unit, [27, 324, 72, 864]), ([-0.25, 1.25, 0.0, 1.0], [0.125, 0.875, 0.25, 0.75], [117, 216, 312, 576])] {

@@ -917,6 +917,25 @@ Set disorder, disorder speed, disorder anisotropy, angle random and pattern amou
 
 Both Gaussian Noise outputs are exact at the default 256² and 512² settings. The 128 × 512 test at scale 32 with non-square expansion differs at all 65,536 F32 pixels in the first version, with maximum error 1.93185183. The 512 × 128 test at scale 19 with expansion disabled differs at 2,432 pixels, with maximum 1.49011612e-7. The earlier stage comparisons locate differences in the pattern generator. The scratch and spots counts also retain nonzero errors. All six roots remain open.
 
+### Tiling periods on rectangular Gaussian noise graphs
+
+A single square stamp exposed the displacement at the edge of a wide tiling region. The parameter resolver clipped each tiling coordinate to the catalog slider range extended by 16 units. A 64-unit interval centered on .5 became a 33-unit interval, which moved repeated stamps. The resolver now passes the finite coordinates to the pattern renderer. The renderer bounds visited stamps, copies and sampled pixels.
+
+Center the render and tiling rectangles on (.5,.5). Use (render width, render height, tile width, tile height) of (32,32,32,32), (38,19,33,19), (19,38,19,33), (64,32,33,32), (32,64,32,33), (44,11,33,11), (32,64,32,64), (64,32,64,32), (33,33,33,33), (34,17,34,17) and (32,64,32,33). Enable both tiling axes except in the last case. Place the root branch at (−.5,−.5) with zero rotation, zero variation and additive blending. Use a single square for zero-based indices 1, 4, 7 and 10, and a horizontal ramp for the others. Render at 128 × 64 F32 when the render width is at least the height, and 64 × 128 otherwise. Set (X offset, Y offset, X size, Y size) to (0,0,5.75,6.25), (9,.5,7,11), (−14.5,−5,3.25,2.25), (17,2,5,3), (26,−14,3,4), (−31,1,3.75,3), (.25,22,8,6), (1,−19,7,9) and (.5,−27,4,2). Use seed `457591 + 11j + h` for interval index `j` and stamp index `h`.
+
+The independent 64² controls use identical render and tile intervals 64 × 32, repeated with the axes exchanged. Set (center X, center Y, width, height) to (26,2,3,4), (−24,−3,3,5), (14.5,−1,5,3) and (35,4,4,3), with seeds 458293 through 458296. In the first orientation the first stamp covers columns 56–58 and rows 31–38 inclusive. The last wraps into columns 1–4 and rows 36–41. The transposed masks exchange rows and columns. Across the 99 rectangular and eight square cases, **841,920/843,776** F32 pixels previously matched, maximum error 1. The full intervals match **843,776/843,776**, maximum error zero.
+
+The same 79 [whole-root settings](#scaled-scratch-and-gaussian-noise-and-spot-generators) were compared again for each version, including defaults, varied scale, non-square expansion, seeds, resolutions and four storage formats. Each version also reproduced the raw pixels of both 30-setting series after a save and reopen in each application. The table counts the original settings once.
+
+| Root (inventory index) | Distinct settings | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|---:|
+| Gaussian Noise (281) | 79 | 507,392/507,392 · 0 | 917,296/917,504 · 1 | 507,390/507,392 · 0.000244140625 | 825,603/907,520 · 3.57627869e-07 |
+| Gaussian Noise v2 (282) | 79 | 540,160/540,160 · 0 | 884,582/884,736 · 1 | 507,392/507,392 · 0 | 839,170/907,520 · 2.38418579e-07 |
+
+Four additional file pairs isolate the region setting. Use scale 19 with disorder .8125, non-square expansion enabled and 64 × 32 F32 or 32 × 64 U16. Use seeds 87892 and 87893 in the first version and 87899 and 87900 in v2. In v2 set disorder speed to 1.375, anisotropy to .625, anisotropy angle to −.3125 and tile offset to (−.4375,.0625). Reopen files with the authored tiling expression and with the full render interval assigned directly. Both reproduce every original reference pixel. Assigning the clipped interval instead changes 797 and 774 pixels in the first version and 2,048 and 1,390 in v2. The maximum F32 errors are .668966413 and 1.01086843 respectively. The corresponding U16 maxima are 43,886 and 51,197 levels.
+
+Across all inventory settings, both versions now agree on every U8 pixel. The first version retains two F16 differences, and both retain one-level U16 differences and small F32 discrepancies in the pattern generator. The wide-stamp regression failed before the interval change. All 318 node release tests, strict workspace Clippy, formatting, dependency layers and WebAssembly checks passed.
+
 ### Short directional blur tap order on rectangular inputs
 
 Fluid matches **25,969,920/25,969,920 final pixels across 121 distinct settings** through 2048 pixels per side. Both applications reopened the MaterialCraft package and reproduced every pixel of their originals over 28, 38 and 36 settings (498,688, 8,654,848 and 17,588,224 pixels). The three instrumented renders at 512×1024, 1024×512 and 1024² match 9,961,472/9,961,472 intermediate and final samples. [First differing stage and earlier settings](#fibers-1-and-fluid-through-1024-pixels-per-side)
