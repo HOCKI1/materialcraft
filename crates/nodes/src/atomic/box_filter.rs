@@ -4,11 +4,16 @@ use rayon::prelude::*;
 
 mod mip_window;
 
-/// Filter a periodic square on a sheared grid, accounting for the transverse shift at a seam.
+/// Filter on a periodic sheared grid, accounting for the transverse shift at a seam.
 pub(super) fn sheared(input: &Image, reach: f32, horizontal: bool, slope: f32, source: OutputFormat, destination: OutputFormat) -> Option<Image> {
-    let length = input.width();
+    let (width, height) = (input.width(), input.height());
+    let (length, across) = if horizontal { (width, height) } else { (height, width) };
     let radius = reach + 0.5;
-    if length != input.height() || !length.is_power_of_two() || !radius.is_finite() || radius > length as f32 {
+    if !length.is_power_of_two() || !across.is_power_of_two() || !radius.is_finite() || radius > length as f32 {
+        return None;
+    }
+    // Between exact diagonals, the edge samples on rectangular shear grids still differ.
+    if length != across && slope.abs() != 1.0 {
         return None;
     }
     // Shearing and reduction accumulate before normalization. Use the bounded fallback for HDR overflow.
@@ -17,16 +22,18 @@ pub(super) fn sheared(input: &Image, reach: f32, horizontal: bool, slope: f32, s
         return None;
     }
     let intermediate = if destination == OutputFormat::Inherit { OutputFormat::U16 } else { destination };
+    // The slope is in texels. A full period along the line spans this many transverse UV periods.
+    let uv_slope = slope * (length as f32 / across as f32);
     let shear = |image: &Image, slope: f32, format| {
-        Image::generate_uv(length, length, image.kind(), |u, v| {
+        Image::generate_uv(width, height, image.kind(), |u, v| {
             let uv = if horizontal { [u, v + slope * (u - 0.5)] } else { [u + slope * (v - 0.5), v] };
             crate::texture_sampler::sample(image, uv, [true; 2], format, None)
         })
     };
-    let displaced = crate::output_precision::apply(shear(input, slope, source), intermediate);
-    let filtered = mip_window::filter(&displaced, reach, horizontal, true, intermediate, intermediate, mip_window::Edges::Sheared(slope));
+    let displaced = crate::output_precision::apply(shear(input, uv_slope, source), intermediate);
+    let filtered = mip_window::filter(&displaced, reach, horizontal, true, intermediate, intermediate, mip_window::Edges::Sheared(uv_slope));
     let filtered = crate::output_precision::apply(filtered, intermediate);
-    Some(shear(&filtered, -slope, intermediate))
+    Some(shear(&filtered, -uv_slope, intermediate))
 }
 
 pub(super) fn short_line(input: &Image, reach: f32, step: [f32; 2], tile: [bool; 2], source_format: OutputFormat) -> Image {

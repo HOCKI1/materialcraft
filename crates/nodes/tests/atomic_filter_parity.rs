@@ -471,18 +471,38 @@ fn rotated_axial_blurs_project_the_outer_texel_coverage() {
     }
 }
 
+fn modular_blur_field(size: [u32; 2]) -> Image {
+    Image::gray(size[0], size[1], |x, y| {
+        let level = (17 * x + 113 * y + 59 * x * y + 19) % 65536;
+        ((level * 7919) % 65536) as f32 / 65535.0
+    })
+    .with_integer_sampling(true)
+}
+
 #[test]
 fn short_diagonal_blur_orders_the_taps_in_texture_coordinates() {
     let params = [("intensity", Value::Float(2.64)), ("angle", Value::Float(-0.125))];
     for (size, corner, interior) in [([64, 128], 0x3ec0b937, 0x3ebf5a70), ([128, 64], 0x3ed1f3e7, 0x3ebf5a71), ([64, 64], 0x3ee9db4a, 0x3ea1a134)] {
-        let input = Image::gray(size[0], size[1], |x, y| {
-            let level = (17 * x + 113 * y + 59 * x * y + 19) % 65536;
-            ((level * 7919) % 65536) as f32 / 65535.0
-        })
-        .with_integer_sampling(true);
+        let input = modular_blur_field(size);
         let image = cook("directional_blur", &[Some(input)], &params, size, true);
         assert_eq!(image.get_gray(1, 0, false).to_bits(), corner, "{size:?}");
         assert_eq!(image.get_gray(6, 4, false).to_bits(), interior, "{size:?}");
+    }
+}
+
+#[test]
+fn diagonal_blur_on_rectangles_carries_the_shear_across_tile_edges() {
+    let intensity = Value::Float(f32::from_bits(0x416b_a592));
+    for (size, angle, expected) in [
+        ([128, 64], -0.125, [0x3f0d_c0a6, 0x3ec8_c627, 0x3f04_266e]),
+        ([64, 128], -0.125, [0x3f09_c0a1, 0x3efd_dda2, 0x3f09_9ad0]),
+        ([128, 64], 0.125, [0x3eac_69f3, 0x3eab_237d, 0x3ef0_cd20]),
+    ] {
+        let controls = [("intensity", intensity.clone()), ("angle", Value::Float(angle))];
+        let image = cook("directional_blur", &[Some(modular_blur_field(size))], &controls, size, true);
+        let [w, h] = size.map(i64::from);
+        let pixels = [(0, 0), (w - 1, h - 1), (w / 2, h / 2)].map(|(x, y)| image.get_gray(x, y, false).to_bits());
+        assert_eq!(pixels, expected, "{size:?}, {angle}");
     }
 }
 

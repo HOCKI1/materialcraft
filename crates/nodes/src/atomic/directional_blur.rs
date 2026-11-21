@@ -64,7 +64,7 @@ pub(super) fn blur(context: &CookContext, angle: f32) -> CookResult {
     if tile == [true; 2] && context.w == input.width() && context.h == input.height() {
         // Compare the components before rounding the direction to the sample grid.
         let (sine, cosine) = f64::from(angle * std::f32::consts::TAU).sin_cos();
-        let horizontal = cosine.abs() > sine.abs();
+        let horizontal = cosine.abs() / f64::from(context.w) > sine.abs() / f64::from(context.h);
         let slope = if horizontal { sine / cosine } else { cosine / sine };
         // An authored eighth turn has an exact unit slope even after radian conversion.
         let slope = if (angle * 8.0).fract() == 0.0 { slope.signum() as f32 } else { slope as f32 };
