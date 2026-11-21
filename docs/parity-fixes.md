@@ -1509,6 +1509,60 @@ Create one original grayscale PNG from the field ((71x+31y+17xy+3k) mod 257)/256
 
 All 160 observed U16 Bitmap buffers agreed between the two reference runs and the filter variants at their respective size. At 64² from the byte input, the first automatic F32 render agreed with bilinear. After the intervening U16 render, repeating F32 changed 238 pixels. The 128 × 32 control used the same source file and was stable. At 32² from the odd input, the first and later F32 results both differed from bilinear, and they also differed from each other. Automatic sampling of embedded bitmaps remains open.
 
+### Selected Blend inputs and odd-sized float backgrounds in tile generators
+
+Pattern Tile Generator now matches **757,504/757,504** raw grayscale pixels in 221 distinct settings, with maximum error zero in U8, U16, F16 and F32. The 176 settings from the [bitmap-slot comparison](#pattern-draw-order-for-fixed-and-runtime-image-slots) had 1,204 differing pixels. Preserving the sampling levels of a resized image selected by Blend removed 1,198 differences. Correcting float-to-byte dithering in an odd-sized background removed the last six. An additional 45 settings matched all 116,736 pixels.
+
+An unmasked Switch at full opacity can forward the foreground's available sampling levels. A grayscale Copy also does so. At zero opacity the nine bounded blend modes forward the background's levels. This requires matching dimensions, channel kind and storage depth. Connecting a mask, changing depth, or driving opacity from a bound graph input gives the downstream automatic filter a full mip chain. The reference retained the source levels with a literal-valued opacity function, image-size read, unused seed read and unbound opacity input. Binding the blend mode, alpha switch or color interpretation at fixed opacity also retained them. The two paths can produce identical intermediate Blend pixels.
+
+Bind a 32 × 16 single-channel F32 image with one white pixel at (10,8) to a 16 × 64 U16 bridge. Use an unmasked Switch with fixed opacity 1, U16 output, then a centered quarter-size bitmap quadrant with automatic filtering. In the final U16 stamp the column at x = 7, rows 30–34, reads **0, 2048, 12288, 2048, 0**. Rebind the same bridge pixels directly at 16 × 64 to get **0, 1280, 5632, 1280, 0**. A F32 Blend output followed by the U16 stamp gives the latter values. A U8 Blend output gives **0, 1285, 5654, 1285, 0**.
+
+For the five field controls, use 32 × 64 to 128 × 32, 32² to 32², 32² to 64 × 32, 64² to 16 × 32 and 32 × 16 to 16 × 64. Use byte, byte, byte, word and F32 sources, respectively. At zero-based size index j, use seed 108131 + 53j. Set channel c to ((23x + 71y + 11xy + 13j + 53c) mod 263)/262, mark the texel at one third of the width and half the height white, and round PNG samples to the nearest stored level. Compare automatic and bilinear filtering after a direct input, Switch, Copy and Add. Use (.125,.3125,.6875,.40625) for the optional background. For the mask and depth controls, bind the field on either side against (.375,.375,.375,.375), move opacity between −.25 and 1.25 and try masks of 0, .5 and 1. For the property controls, drive one property at a time from a literal, folded addition of zero, a sequence reading an exposed value, image size or seed, or a missing getter.
+
+The float-to-byte writer adds centered noise in units of 1/256 and diffused quantization error in units of 1/255 before rounding. Use a zero F32 16 × 3 image and set the first texel to 50.997/255, 50.998/255, 50.999/255, then 51/255. On conversion to a 16 × 4 U8 input the first texel reads **50, 50, 51, 51**. A 256 × 3 constant F32 image of 128/255 retains byte 128 throughout. Further controls use exact byte and word levels stored in F32, binary fields, one-F32-step offsets around predicted thresholds, and independent gray and four-channel fields. The eight source sizes are 31 × 23, 23 × 31, 7 × 23, 15 × 23, 31 × 32, 32 × 23, 63 × 47 and 33 × 21. At index j and channel c use u = ((71x + 31y + 17xy + 3j + 43c + 109273 + 19j) mod 383)/382, then .75u plus .25 wherever (5x + 7y + 3j + c) mod 17 > 9.
+
+The asymmetric Blend background also exposed the grayscale Uniform conversion. A fixed RGB value of (.125,.3125,.6875) produces .375, independent of alpha. The fixed signed tuple (1.75,−.875,−.25) gives .20833333. The twelve color controls cover primary, equal-channel, out-of-range and nearly canceling values as literals and exposed four-component inputs. The latter still differ in two F32 settings, including the signed tuple. The four remaining RGBA Copy pixels in the mask and interpretation series occur in color interpretation modes 2 and 3 at full opacity.
+
+| Independent comparison | Renders | Exact before / compared | Maximum before, U8 / U16 / F16 / F32 | Exact after / compared | Maximum after, U8 / U16 / F16 / F32 |
+|---|---:|---:|---|---:|---|
+| Field, depth and filter | 252 | 526,630/534,528 | — / 15676 / — / 0.239200413 | 534,528/534,528 | — / 0 / — / 0 |
+| Blend side, mask and color interpretation | 168 | 339,359/344,064 | — / — / — / 0.239200413 | 344,060/344,064 | — / — / — / 1.090765e-05 |
+| Blend mode, output depth and exposed opacity | 204 | 410,250/417,792 | — / — / — / 0.241184056 | 417,792/417,792 | — / — / — / 0 |
+| Property source and image filtering | 112 | 280,856/286,720 | — / — / — / 0.239200413 | 286,720/286,720 | — / — / — / 0 |
+| Single impulse through Blend | 12 | 12,282/12,288 | — / 6656 / — / — | 12,288/12,288 | — / 0 / — / — |
+| Earlier graph, background and depth controls | 155 | 172,800/172,800 | — / 0 / 0 / 0 | 172,800/172,800 | — / 0 / 0 / 0 |
+| Odd-sized procedural image fields | 130 | 149,097/149,504 | 1 / 0 / — / 0 | 149,504/149,504 | 0 / 0 / — / 0 |
+| Byte boundaries and sparse ramps | 74 | 71,448/75,776 | 1 / — / — / — | 75,776/75,776 | 0 / — / — / — |
+| Single-step threshold controls | 56 | 20,682/26,112 | 1 / 0 / — / 0 | 26,112/26,112 | 0 / 0 / — / 0 |
+| Fixed and exposed Uniform colors | 192 | 17,280/27,648 | 164 / 42139 / 0.642578006 / 0.642999947 | 27,456/27,648 | 0 / 0 / 0 / 2.98023224e-08 |
+
+The property-source row counts completed image comparisons. In 16 additional attempts, the reference evaluated a sequence that read the seed before returning a literal. MaterialCraft reported an undefined seed variable for both grayscale and RGBA. Those attempts have no local pixel result.
+
+For the 45 additional grayscale settings, start with rows 3 and 4 of the [six-size field](#pattern-draw-order-for-fixed-and-runtime-image-slots). At each size compare empty inputs, background alone, stamps alone, each slot alone and each slot with background. Change one control at a time across all three filters, both blend modes, one image slot, square expansion, full or zero opacity and fixed position and rotation. Repeated settings count once. The expanded color series also includes row 0 and single-tile controls at 32² using a white bitmap or procedural shape 2 or 3. Use seeds 31, 12071 and 68047, fixed tint (.6875,.375,.8125,.78125) or white, then vary hue, saturation, lightness and alpha individually by .5 or in combination. The single-tile series includes exact fixed-color and lightness-only settings. Hue, saturation and alpha differences keep the color generator open.
+
+| Root (inventory index) | Distinct settings | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|---:|
+| Pattern Tile Generator (373) | 221 | 32,256/32,256 · 0 | 202,496/202,496 · 0 | 77,312/77,312 · 0 | 445,440/445,440 · 0 |
+| Pattern Tile Generator Color (374) | 331 | 19,701/20,992 · 50 | 146,125/155,136 · 15147 | 33,005/34,304 · 0.193847656 | 422,513/554,752 · 0.366030335 |
+| Pattern Tile Random (375) | 52 | 23,208/26,624 · 255 | 169,553/177,664 · 65535 | 19,655/23,552 · 1 | 78,668/88,832 · 1.00000006 |
+| Pattern Tile Random Color (376) | 126 | 26,868/30,720 · 255 | 172,566/181,760 · 65535 | 23,591/27,648 · 1 | 275,964/379,648 · 1.00000006 |
+
+| MaterialCraft save reopened by both applications | Renders | Cross-application exact / compared | Maximum, U8 / U16 / F16 / F32 |
+|---|---:|---:|---|
+| Pattern Tile Generator | 57 | 178,688/178,688 | 0 / 0 / 0 / 0 |
+| Pattern Tile Generator Color | 57 | 124,284/144,896 | 50 / 15147 / 0.193847656 / 0.231126025 |
+| Pattern Tile Random | 30 | 76,704/107,008 | 255 / 65535 / 1 / 1.00000006 |
+| Pattern Tile Random Color | 30 | 75,455/107,008 | 255 / 65535 / 1 / 1.00000006 |
+| Selected Blend controls | 35 | 72,704/72,704 | — / 0 / — / 0 |
+| Odd-sized inputs | 48 | 33,536/33,536 | 0 / 0 / — / 0 |
+| Uniform controls | 44 | 6,336/6,336 | 0 / 0 / 0 / 0 |
+| Additional grayscale generator settings | 10 | 25,600/25,600 | — / — / — / 0 |
+| Additional color generator settings | 12 | 4,775/9,216 | — / — / — / 0.341796875 |
+
+Both applications reproduced their own originals on all 323 reopened renders. For the grayscale generator alone this covers 204,288/204,288 exact cross-application pixels across 67 reopens. The two random tilers still differ in pattern placement and composition. Previously exact controls retained 403,712/403,712 pixels across 93 grayscale Splatter settings, 354,560/354,560 across 55 color Splatter settings and 591,616/591,616 across 80 grayscale Radial Blur settings, all with maximum zero.
+
+All three new release regressions failed before their respective fixes and passed afterward. The 406 release evaluation and node tests passed using the committed resource set. Formatting, strict workspace Clippy, dependency layering and all ten WebAssembly checks passed.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color

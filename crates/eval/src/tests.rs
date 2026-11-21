@@ -655,8 +655,7 @@ fn bitmap_half_storage_uses_the_original_integer_channel_depth() {
     }
 }
 
-#[test]
-fn pattern_mips_of_a_resized_bitmap_preserve_the_measured_impulse() {
+fn bitmap_impulse_graph() -> (Graph, NodeId, NodeId) {
     use materialcraft_core::{OutputFormat, ParameterInheritance, PatternGraph, PatternNodeKind};
 
     let mut graph = Graph::new("Bitmap mip levels");
@@ -674,7 +673,12 @@ fn pattern_mips_of_a_resized_bitmap_preserve_the_measured_impulse() {
     node.params.insert("roughness".into(), Value::Float(0.0));
     node.params.insert("pattern".into(), Value::PatternGraph(Box::new(pattern)));
     graph.connect(input, "output", stamp, "pattern0").unwrap();
+    (graph, input, stamp)
+}
 
+#[test]
+fn pattern_mips_of_a_resized_bitmap_preserve_the_measured_impulse() {
+    let (graph, input, stamp) = bitmap_impulse_graph();
     let mut package = Package::new("Impulse");
     package.graphs.push(graph);
     let mut options = Options::new(&no_res);
@@ -688,6 +692,44 @@ fn pattern_mips_of_a_resized_bitmap_preserve_the_measured_impulse() {
         assert_eq!(levels, expected);
         // Binding the identical bridge pixels at their final size supplies an ordinary mip chain.
         options.inputs.insert("input".into(), result.image(input, 0).unwrap().clone());
+    }
+}
+
+#[test]
+fn blend_preserves_the_selected_texture_levels_at_matching_precision() {
+    use materialcraft_core::{FunctionGraph, OutputFormat, ParameterInheritance, ValueType};
+
+    let (mut graph, input, stamp) = bitmap_impulse_graph();
+    let blend = graph.add_node("blend", [0.0; 2]);
+    graph.connect(input, "output", blend, "foreground").unwrap();
+    graph.connect(blend, "output", stamp, "pattern0").unwrap();
+    let mut package = Package::new("Selected impulse");
+    package.graphs.push(graph);
+    let mut options = Options::new(&no_res);
+    options.inputs.insert("input".into(), Image::gray(32, 16, |x, y| f32::from(x == 10 && y == 8)));
+    options.overrides.insert("coverage".into(), Value::Float(1.0));
+    let cache = Mutex::new(Cache::default());
+    for (mode, format, bound, expected) in [
+        (7, OutputFormat::U16, false, [0, 2048, 12288, 2048, 0]),
+        (7, OutputFormat::U16, true, [0, 1280, 5632, 1280, 0]),
+        (0, OutputFormat::U16, false, [0, 2048, 12288, 2048, 0]),
+        (7, OutputFormat::U8, false, [0, 1285, 5654, 1285, 0]),
+        (7, OutputFormat::F32, false, [0, 1280, 5632, 1280, 0]),
+    ] {
+        let node = package.graphs[0].node_mut(blend).unwrap();
+        node.params.insert("mode".into(), Value::Int(mode));
+        node.base.format_mode = ParameterInheritance::Absolute;
+        node.base.format = format;
+        if bound {
+            node.functions.insert("opacity".into(), FunctionGraph::input("coverage", ValueType::Float));
+        } else {
+            node.functions.remove("opacity");
+        }
+        let result = cook(&package, 0, &options, &cache);
+        assert!(result.nodes.values().all(|node| node.error.is_none()));
+        let image = result.image(stamp, 0).unwrap();
+        let levels = [30, 31, 32, 33, 34].map(|y| (image.get_gray(7, y, false) * 65535.0).round() as u16);
+        assert_eq!(levels, expected);
     }
 }
 

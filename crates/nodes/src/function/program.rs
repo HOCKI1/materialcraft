@@ -32,6 +32,15 @@ impl Program {
         self.instructions.get(self.output).is_some_and(|instruction| instruction.literal)
     }
 
+    /// Whether the property reads a bound graph parameter, even if its final value is constant.
+    pub fn reads_graph_parameter(&self, variables: &std::collections::BTreeMap<String, Value>) -> bool {
+        self.instructions.iter().any(|op| {
+            !op.literal
+                && op.definition.id.starts_with("get_")
+                && matches!(&op.value, Some(Value::Text(name)) if !name.starts_with('$') && variables.contains_key(name))
+        })
+    }
+
     /// Unbound user inputs in a fixed pattern image selector contribute their typed zero.
     pub(crate) fn uses_fixed_image_slot(&self, variables: &std::collections::BTreeMap<String, Value>) -> bool {
         self.output_is_literal()

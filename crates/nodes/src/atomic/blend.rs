@@ -21,11 +21,27 @@ pub(super) fn definition() -> NodeDefinition {
         .cook(blend)
 }
 
+/// The texture a fully weighted, unmasked Blend selects before size or depth conversion.
+pub fn blend_selected_input(context: &CookContext) -> Option<usize> {
+    let mode = context.i("mode");
+    let opacity = context.f("opacity");
+    if context.input(2).is_some() || !(0..=8).contains(&mode) {
+        return None;
+    }
+    if opacity <= 0.0 {
+        Some(1)
+    } else if opacity >= 1.0 && (mode == 7 || (mode == 0 && context.input(0).is_some_and(Image::is_gray))) {
+        Some(0)
+    } else {
+        None
+    }
+}
+
 fn blend(context: &CookContext) -> CookResult {
     let (mode, opacity) = (context.i("mode"), context.f("opacity"));
     // Stored graphs can compute an opacity outside the slider range. Bound it before applying the mask.
     let opacity = if (0..=8).contains(&mode) { opacity.clamp(0.0, 1.0) } else { opacity };
-    let copies_foreground = opacity == 1.0 && context.input(2).is_none() && (mode == 7 || (mode == 0 && context.input(0).is_some_and(Image::is_gray)));
+    let copies_foreground = blend_selected_input(context) == Some(0);
     let foreground = resized_input(context, 0, if copies_foreground { InputResize::Copy } else { InputResize::Filter });
     let background = resized_input(context, 1, if opacity == 0.0 { InputResize::Copy } else { InputResize::Filter });
     let kind = if [&foreground, &background].iter().any(|i| i.as_ref().is_some_and(|i| !i.is_gray())) { Kind::Color } else { Kind::Gray };

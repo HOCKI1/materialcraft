@@ -2,7 +2,7 @@ use crate::{Cache, Cooked, NodeOutput, NodeResult, Options, identifier, now_ms};
 use crate::{
     cache_key::{graph_tree_hash_with_registry, hash_of, image_key, variable_key},
     graph_instance::cook_instance,
-    parameter::{inspection_parameters, resolve_parameters},
+    parameter::{ResolvedParameters, inspection_parameters, resolve_parameters},
     prepared_graph::PreparedGraph,
     value_execution::evaluate_value,
 };
@@ -167,10 +167,11 @@ pub(crate) fn cook_node(
     }
 
     let seed = base.seed;
-    let (mut parameters, instance_literals) = match resolve_parameters(package, node, definition, &mut variables, base, &fixed) {
-        Ok(parameters) => parameters,
-        Err(error) => return fail(error, 0),
-    };
+    let ResolvedParameters { values: mut parameters, instance_literals, dynamic_blend_opacity } =
+        match resolve_parameters(package, node, definition, &mut variables, base, &fixed) {
+            Ok(parameters) => parameters,
+            Err(error) => return fail(error, 0),
+        };
     if matches!(node.def.as_str(), "blur" | "emboss") {
         variables.to_mut().insert("$pixelsize".into(), Value::Float2(base.pixel_size));
     }
@@ -208,6 +209,7 @@ pub(crate) fn cook_node(
     let key = hash_of(&(
         &node.def,
         serde_json::to_string(&parameters).unwrap_or_default(),
+        dynamic_blend_opacity,
         (
             w,
             h,
@@ -324,12 +326,25 @@ pub(crate) fn cook_node(
             } else {
                 (definition.cook)(&context)
             };
+            let selected = if node.def == "blend" && !dynamic_blend_opacity {
+                materialcraft_nodes::atomic::blend_selected_input(&context).and_then(|slot| incoming.get(slot).copied().flatten())
+            } else {
+                None
+            };
             result.map(|images| {
                 images
                     .into_iter()
                     .map(|image| {
                         // Bridges retain their source pixels; filters store their declared precision
                         let image = if matches!(node.def.as_str(), "output" | "dot") { image } else { crate::output_precision::apply(image, base.format) };
+                        // A Blend that selects a compatible texture retains its available sampling levels.
+                        if let Some((NodeOutput::BaseLevel(source), format)) = selected
+                            && format == base.format
+                            && source.kind() == image.kind()
+                            && (source.width(), source.height()) == (w, h)
+                        {
+                            return NodeOutput::BaseLevel(image);
+                        }
                         NodeOutput::Image(image)
                     })
                     .collect()

@@ -4,6 +4,12 @@ use materialcraft_nodes::function::compile_with_literal_inputs;
 use materialcraft_nodes::{NodeDefinition, ParameterDescriptor, accepts_scalar_function, clamp_params, resolve_params};
 use std::collections::BTreeMap;
 
+pub(crate) struct ResolvedParameters {
+    pub values: BTreeMap<String, Value>,
+    pub instance_literals: Vec<String>,
+    pub dynamic_blend_opacity: bool,
+}
+
 pub(crate) fn resolve_parameters(
     package: &Package,
     node: &Node,
@@ -11,7 +17,7 @@ pub(crate) fn resolve_parameters(
     variables: &mut std::borrow::Cow<'_, BTreeMap<String, Value>>,
     base: ResolvedBaseParameters,
     literal_inputs: &[String],
-) -> Result<(BTreeMap<String, Value>, Vec<String>), String> {
+) -> Result<ResolvedParameters, String> {
     let mut parameters = match definition {
         Some(definition) if node.def != "graph_instance" => resolve_params(definition, &node.params),
         _ => {
@@ -30,6 +36,7 @@ pub(crate) fn resolve_parameters(
     }
 
     let mut dynamic = std::collections::BTreeSet::new();
+    let mut dynamic_blend_opacity = false;
     for (parameter, exposed) in &node.bindings {
         if node.def == "graph_instance" && !literal_inputs.contains(exposed) {
             dynamic.insert(parameter);
@@ -37,6 +44,9 @@ pub(crate) fn resolve_parameters(
         if let (Some(value), Some(current)) = (variables.get(exposed), parameters.get(parameter))
             && let Some(coerced) = current.coerce_json(&serde_json::to_value(value).unwrap_or_default())
         {
+            if node.def == "blend" && parameter == "opacity" {
+                dynamic_blend_opacity = !literal_inputs.contains(exposed);
+            }
             parameters.insert(parameter.clone(), coerced);
         }
     }
@@ -54,7 +64,12 @@ pub(crate) fn resolve_parameters(
             _ => ChannelMode::Opaque,
         };
         let (value, literal) = compile_with_literal_inputs(function, base.seed, literal_inputs)
-            .and_then(|program| crate::parameter_function::evaluate(&program, expected, variables.to_mut(), base.size, channels, Some(current)))
+            .and_then(|program| {
+                if node.def == "blend" && parameter == "opacity" {
+                    dynamic_blend_opacity = program.reads_graph_parameter(variables);
+                }
+                crate::parameter_function::evaluate(&program, expected, variables.to_mut(), base.size, channels, Some(current))
+            })
             .map_err(|error| format!("function of `{parameter}`: {error}"))?;
         if matches!(channels, ChannelMode::GrayPatternOpacity) {
             // Keep the result in floating point until blending. JSON and slider limits lose signed infinities.
@@ -91,7 +106,7 @@ pub(crate) fn resolve_parameters(
     } else {
         Vec::new()
     };
-    Ok((parameters, fixed))
+    Ok(ResolvedParameters { values: parameters, instance_literals: fixed, dynamic_blend_opacity })
 }
 
 pub(crate) fn inspection_parameters(node: &Node, parameters: &mut BTreeMap<String, Value>) {

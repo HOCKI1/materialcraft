@@ -186,8 +186,9 @@ fn dither(image: &Image, maximum: f32, word_to_byte: bool) -> Option<Image> {
             let word = (original * 65535.0).round();
             ((word + received * 257.0 + (random - 0.5) * 256.0) / 256.0).floor()
         } else {
-            let noise = if maximum == 255.0 { (random * maximum).round() / maximum } else { random };
-            ((original + (received + (noise - 0.5)) * unit) * maximum).round()
+            // The byte writer adds noise in units of 1/256. Diffused error stays in 1/255 units.
+            let offset = if maximum == 255.0 { received * unit + (random - 0.5) / 256.0 } else { (received + (random - 0.5)) * unit };
+            ((original + offset) * maximum).round()
         }
         .clamp(0.0, maximum);
         (stored, original * maximum - stored)
@@ -231,4 +232,24 @@ fn diffuse(image: &Image, mut quantize: impl FnMut(f32, f32) -> (f32, f32)) -> O
         errors[current].fill([0.0; 4]);
     }
     Image::from_data(image.width(), image.height(), image.kind(), samples, &Limits::default()).ok()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn odd_float_rasters_keep_exact_byte_levels_and_dither_fractional_levels() {
+        let level = 128.0 / 255.0;
+        let flat = Image::filled(256, 3, Kind::Color, [level; 4]);
+        let out = resize(&flat, (256, 4), Kind::Color, OutputFormat::F32, OutputFormat::U8).unwrap();
+        assert!(out.as_image().unwrap().data().iter().all(|&v| v == level));
+
+        let ramp = Image::generate(256, 3, Kind::Color, |x, _| [(51.0 + x as f32 / 256.0) / 255.0; 4]);
+        let out = resize(&ramp, (256, 4), Kind::Color, OutputFormat::F32, OutputFormat::U8).unwrap();
+        let image = out.as_image().unwrap();
+        for (x, y, channel, expected) in [(16, 1, 1, 51), (219, 1, 2, 52), (18, 3, 1, 52), (105, 3, 3, 51)] {
+            assert_eq!((image.get(x, y, false)[channel] * 255.0).round() as u8, expected);
+        }
+    }
 }
