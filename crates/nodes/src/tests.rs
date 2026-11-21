@@ -145,6 +145,42 @@ fn linear_color_bitmap_filters_each_channel_at_stored_precision() {
 }
 
 #[test]
+fn bitmap_converts_normalized_rgb_to_gray_on_the_first_filter_pass() {
+    use materialcraft_core::OutputFormat;
+
+    let definition = find("bitmap").unwrap();
+    let params = resolve_params(
+        definition,
+        &BTreeMap::from([("colour_space".into(), Value::Enum(1)), ("color_mode".into(), Value::Bool(false)), ("resource".into(), Value::Text("field".into()))]),
+    );
+    let source = Image::generate(32, 64, Kind::Color, |x, y| {
+        [(583, 191, 371, 3229), (47, 313, 59, 4511), (31, 693, 41, 8943), (997, 811, 97, 9043)]
+            .map(|(a, b, c, d)| ((a * x + b * y + c * x * y + d) % 65536) as f32 / 65535.0)
+    })
+    .with_integer_sampling(true);
+    for (format, size, positions, expected) in [
+        (OutputFormat::U16, [16, 16], [(0, 0), (3, 7), (15, 15)], [6388, 27024, 28209].map(|v| v as f32 / 65535.0)),
+        (OutputFormat::F32, [32, 64], [(0, 0), (3, 7), (31, 63)], [0x3dadc8af, 0x3e4060c0, 0x3e80ab2c].map(f32::from_bits)),
+    ] {
+        let context = CookContext {
+            input_formats: &[],
+            format,
+            w: size[0],
+            h: size[1],
+            seed: 520885,
+            tile: true,
+            inputs: &[],
+            params: &params,
+            resource: &|_| Some(source.clone()),
+            vars: &BTreeMap::new(),
+        };
+        let result = (definition.cook)(&context).unwrap();
+        let stored = crate::output_precision::apply(result[0].clone(), format);
+        assert_eq!(positions.map(|(x, y)| stored.get_gray(x, y, false)), expected);
+    }
+}
+
+#[test]
 fn nearest_transform_mip_keeps_the_last_column_of_an_odd_width_input() {
     let definition = find("transformation").unwrap();
     let mut params = resolve_params(definition, &BTreeMap::new());

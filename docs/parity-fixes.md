@@ -401,6 +401,23 @@ The 64 original renders matched **108,544/108,544** pixels. The 24 saved renders
 
 The default interpretation of an untagged color source, color-to-grayscale conversion and odd-sized RGBA sources have separate comparisons. For example, the 29 × 47 linear byte field still differed in the six-resolution series.
 
+### Grayscale conversion on the first bitmap filter pass
+
+A normalized RGBA bitmap with grayscale output filters RGB at source precision on the first resize pass. It takes the equally weighted mean of the three sampled channels, then stores the gray value at the requested precision. Later passes filter that grayscale image. A same-size render takes the same channel mean directly. Alpha varies independently in these controls.
+
+Generate the modular RGBA word field at 32 × 64. For the byte field use the same four coefficient tuples modulo 256 at 64 × 32. Choose linear input and grayscale output. Render 32 × 64, 16², 16 × 64, 64 × 16, 64² and 32 × 128 in U8, U16, F16 and F32, with seed 520884 + size index. For the word field at 16², the first pixel stores 6388 in U16. A same-size F32 render starts with the word `3dadc8af`. [Field coefficients](#stored-levels-of-linear-color-bitmap-resources)
+
+| Output | Renders | Exact before / total · maximum | Exact after / total · maximum |
+|---|---:|---:|---:|
+| LUM16 | 12 | 2/25,088 · 24283 | 25,088/25,088 · 0 |
+| LUM16F | 12 | 46/25,088 · 0.370605469 | 25,088/25,088 · 0 |
+| LUM32F | 12 | 0/25,088 · 0.370539784 | 25,088/25,088 · 0 |
+| LUM8 | 12 | 453/25,088 · 94 | 25,088/25,088 · 0 |
+
+Across all 48 renders, **100,352/100,352** pixels match, maximum zero. Converting the source to stored gray before filtering matches 52,263/100,352. Converting at the last level matches 85,196/100,352. The 20 saved renders matched **47,616/47,616** across applications and reproduced the original buffers in both, maximum zero. The node regression reproduces the earlier error. The release node suite, formatting, strict workspace Clippy, dependency layers and WebAssembly passed.
+
+These measurements cover power-of-two dimensions and an explicit linear data read. The separate comparisons for odd-sized color resources and file-default color interpretation remain open for this evaluator.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color
