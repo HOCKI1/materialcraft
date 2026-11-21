@@ -168,7 +168,9 @@ pub(super) fn render(
                         let (foreground, stamp_alpha) = if let Some(sampler) = &mut texture {
                             let sample = sampler.sample(local, [x, y], planes.as_ref(), &mut mipmaps)?.map(flush_subnormal);
                             if kind == Kind::Gray {
-                                ([(sample[0] - 1.0).mul_add(alpha, alpha); 4], 1.0)
+                                // Store coverage before tinting. Its zero then takes the sign of the opacity.
+                                let coverage = (sample[0] - 1.0) + 1.0;
+                                ([coverage * alpha; 4], 1.0)
                             } else {
                                 let coverage = sample[3] * alpha;
                                 let image_alpha = if stamp.premultiplied { 1.0 } else { 1.0 - (1.0 - sample[3]) };

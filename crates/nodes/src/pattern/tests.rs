@@ -1691,6 +1691,31 @@ fn an_unbound_image_selector_keeps_the_fixed_slot() {
 }
 
 #[test]
+fn grayscale_bitmap_stores_coverage_before_applying_opacity() {
+    use craft_texture::Image;
+    use materialcraft_core::OutputFormat;
+
+    let values = [-0.0, 0.0, 2.0_f32.powi(-30), -2.0_f32.powi(-30), 2.0_f32.powi(-24), -2.0_f32.powi(-24), 0.125, -0.125];
+    let source = Image::gray(16, 16, |x, _| values[(x % 8) as usize]);
+    let stamp = [("opacity", Value::Float4([0.75, 0.75, 0.75, 1.0])), ("blendingmode", Value::Int(1)), ("imagefiltering", Value::Int(2))];
+    for (gain, expected) in
+        [(-1.0, [-0.0, -0.0, -0.0, -0.0, -0.75 * 2.0_f32.powi(-24), -0.0, -0.09375, 0.09375]), (0.0, [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -0.0])]
+    {
+        let controls = [("color_mode", Value::Bool(false)), ("background", Value::Color([-4.0; 4])), ("opacity", Value::Float(gain))];
+        let image = render_bitmap(source.clone(), OutputFormat::F32, [16; 2], &stamp, &controls);
+        let bits: [u32; 8] = std::array::from_fn(|x| image.get_gray(x as i64, 0, false).to_bits());
+        assert_eq!(bits, expected.map(f32::to_bits));
+    }
+
+    let source = Image::gray(16, 16, |x, _| if x % 2 == 0 { 16_777_218.0 } else { -16_777_218.0 });
+    for (gain, x, expected) in [(0.6137, 0, 0x4aeb_a92a), (-1.1875, 1, 0x4b64_0004)] {
+        let controls = [("color_mode", Value::Bool(false)), ("background", Value::Color([-4.0; 4])), ("opacity", Value::Float(gain))];
+        let image = render_bitmap(source.clone(), OutputFormat::F32, [16; 2], &stamp, &controls);
+        assert_eq!(image.get_gray(x, 0, false).to_bits(), expected);
+    }
+}
+
+#[test]
 fn bitmap_stamp_filters_use_the_selected_source_level() {
     use materialcraft_core::OutputFormat;
 

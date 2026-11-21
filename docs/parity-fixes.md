@@ -486,6 +486,20 @@ For series index j and residue h use seed 556013 + 83j + h for the original seri
 
 Near an isolated column, the two transverse texture reads have only two contributing rows each. At the column center and just inside both ends of the blur kernel, read the three color channels to distinguish adjacent 1/256-texel interpolation weights. Several ways of constructing an affine plane from rounded corners matched the three calibration settings to within 1.5e−8 on those interior reads. Across the ten independent settings, the existing coordinate calculation had 4,578 interior reads differing by more than 4e−7. No calibrated pair improved that count across the complete independent set. Both roots retain their [78-setting original and saved comparisons](#projected-weights-and-tap-order-in-short-directional-blurs).
 
+### Stored coverage before grayscale bitmap stamp opacity
+
+Grayscale bitmap stamps store `(sample − 1) + 1` at F32 precision before multiplying by opacity. This changes the sign of a zero coverage value under negative opacity. For a sample of 16,777,218, a tint of .75 and an opacity multiplier of .6137, it also changes a nonzero result. The measured output word is `4aeba92a`. Negate the sample and set the multiplier to −1.1875 to obtain `4b640004`.
+
+Use the [three- and five-stamp inputs, seeds and resolutions](#grayscale-bitmap-stamp-ordering-across-slots-and-filters). Compare stored words including the sign bit. The 120 composites matched **69,632/69,632** F32 pixels and the 312 individual-stamp renders matched **187,392/187,392**. The 60 reopened renders matched **33,792/33,792**, with identical original and reopened buffers in each application. All maxima are zero.
+
+For the coverage control, populate each row of an original 16² float field with −0, +0, ±2⁻³⁰, ±2⁻²⁶, ±2⁻²⁵, ±2⁻²⁴, ±.125, ±.25, 1, 1.25, with the positive value first in each ± pair. Use an F32 input bridge, a unit-size maximum stamp, background −4, tint .75, opacity multipliers 1, −1, 0 and −.5, and seeds 560722 through 560725. All 48 renders matched **12,288/12,288** pixels across three filter modes and U8, U16, F16 and F32 outputs, maximum zero.
+
+For an independent F32 control, fill each row with −1−2⁻²³, 1−2⁻²⁴, 2²⁴, 2²⁴+2, 2²⁴+4, −2²⁴−2, −2²⁴−4, 2¹⁸+.125, .1234, 1.25, 3.14, −3.14159, 0, 2⁻²⁵, 2⁻²⁴, 2⁻²². Use nearest filtering, background −2²⁸ and gains 1, −1, 0, −.5, .6137, −1.1875 and −0. Read both the input bridge and output in the reference app. Rounding the coverage first predicts **1,792/1,792** output words. A fused multiply-add predicts 1,232 and direct sample multiplication predicts 1,392. MaterialCraft's complete graph matched 1,536/1,792, maximum 14,942,196. An independent empty-pattern control reproduced a separate clamp on the literal background.
+
+For the byte field `29 × ((x + 3y) mod 9)`, keep the same four gains and formats, use nearest filtering, all three blend settings and backgrounds −1, +0, −0 and .25. Set the seed to 560713 + 61 × background index + 9 × blend setting + gain index. The four backgrounds matched 12,288, 12,032, 9,536 and 12,288 of 12,288 pixels respectively. The differences at zero were sign bits, maximum zero. Empty grayscale and color graphs with signed-zero, subnormal and mixed-channel backgrounds matched 37,376/47,104 pixels across 184 renders, maximum zero. Eight additional saved graphs reproduced each application's original in all 83 renders. Their cross-application count was 18,944/21,248, maximum 14,942,196.
+
+The regression failed on the earlier evaluator and passed with the coverage change. The release node suite passed all 328 tests. Formatting, strict workspace Clippy, dependency layers and WebAssembly passed.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color
