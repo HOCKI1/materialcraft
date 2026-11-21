@@ -333,6 +333,25 @@ fn grayscale_stamps_draw_in_shape_then_blend_order() {
     }
 }
 
+fn three_bitmap_stamps(slots: [i32; 3], filters: [i32; 3], modes: [i32; 3], colors: [[f32; 4]; 3]) -> PatternGraph {
+    let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
+    let first = graph.add(PatternNodeKind::Quadrant).unwrap();
+    let second = graph.add(PatternNodeKind::Quadrant).unwrap();
+    graph.nodes[0].children[0] = Some(first);
+    graph.nodes[1].children[1] = Some(second);
+    for (i, (node, size)) in graph.nodes.iter_mut().zip([1.0, 2.0, 4.0]).enumerate() {
+        node.parameters = BTreeMap::from([
+            ("patterntype".into(), Value::Int(1)),
+            ("imageindex".into(), Value::Int(slots[i])),
+            ("imagefiltering".into(), Value::Int(filters[i])),
+            ("blendingmode".into(), Value::Int(modes[i])),
+            ("opacity".into(), Value::Float4(colors[i])),
+            ("patternsize".into(), Value::Float2([size; 2])),
+        ]);
+    }
+    graph
+}
+
 #[test]
 fn grayscale_bitmap_stamps_group_repeated_slots_in_first_draw_order() {
     use craft_texture::{Image, Kind};
@@ -351,22 +370,7 @@ fn grayscale_bitmap_stamps_group_repeated_slots_in_first_draw_order() {
         ([1; 3], [1, 2, 1], [0; 3], [0.75, tiny, -0.75], [tiny, 0.75]),
         ([1; 3], [2, 1, 2], [0; 3], [0.75, tiny, -0.75], [0.0, 0.75]),
     ] {
-        let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
-        let first = graph.add(PatternNodeKind::Quadrant).unwrap();
-        let second = graph.add(PatternNodeKind::Quadrant).unwrap();
-        graph.nodes[0].children[0] = Some(first);
-        graph.nodes[1].children[1] = Some(second);
-        for (i, (node, size)) in graph.nodes.iter_mut().zip([1.0, 2.0, 4.0]).enumerate() {
-            let tint = tints[i];
-            node.parameters = BTreeMap::from([
-                ("patterntype".into(), Value::Int(1)),
-                ("imageindex".into(), Value::Int(slots[i])),
-                ("imagefiltering".into(), Value::Int(filters[i])),
-                ("blendingmode".into(), Value::Int(modes[i])),
-                ("opacity".into(), Value::Float4([tint, tint, tint, 1.0])),
-                ("patternsize".into(), Value::Float2([size; 2])),
-            ]);
-        }
+        let graph = three_bitmap_stamps(slots, filters, modes, tints.map(|tint| [tint, tint, tint, 1.0]));
         let params = resolve_params(
             definition,
             &BTreeMap::from([
@@ -389,6 +393,52 @@ fn grayscale_bitmap_stamps_group_repeated_slots_in_first_draw_order() {
         };
         let image = (definition.cook)(&context).unwrap().remove(0);
         assert_eq!([image.get_gray(0, 0, false), image.get_gray(31, 15, false)], expected);
+    }
+}
+
+#[test]
+fn bitmap_draw_order_uses_the_wired_slots_for_a_runtime_selector() {
+    use craft_texture::{Image, Kind};
+    use materialcraft_core::{OutputFormat, ValueType};
+
+    let definition = find("fx_map").unwrap();
+    let variables = BTreeMap::from([("$tiling".into(), Value::Int(0)), ("chosen".into(), Value::Int(0))]);
+    for (kind, gray, alpha, fixed, runtime) in [
+        (Kind::Gray, [0.125, 0.25, 0.875], [1.0; 3], 1.0004902_f32, 0.875_f32),
+        (Kind::Color, [0.75, 0.25, 0.5], [0.375, 0.59375, 0.71875], 0.51298636, 0.451574),
+    ] {
+        let colors = std::array::from_fn(|i| [gray[i], gray[i], gray[i], alpha[i]]);
+        let inputs = [
+            None,
+            Some(Image::filled(32, 16, kind, [128.0 / 255.0, 181.0 / 255.0, 79.0 / 255.0, 1.0])),
+            Some(Image::filled(32, 16, kind, [1.0, 205.0 / 255.0, 111.0 / 255.0, 1.0])),
+        ];
+        for (selector, expected) in [(FunctionGraph::constant(Value::Int(0)), fixed), (FunctionGraph::input("chosen", ValueType::Integer), runtime)] {
+            let mut graph = three_bitmap_stamps([1, 0, 1], [2; 3], [1, 0, 1], colors);
+            graph.nodes[1].parameters.insert("imageindex".into(), Value::Function(Box::new(selector)));
+            let params = resolve_params(
+                definition,
+                &BTreeMap::from([
+                    ("pattern".into(), Value::PatternGraph(Box::new(graph))),
+                    ("roughness".into(), Value::Float(0.0)),
+                    ("color_mode".into(), Value::Bool(kind == Kind::Color)),
+                ]),
+            );
+            let context = CookContext {
+                w: 32,
+                h: 16,
+                seed: 471817,
+                format: OutputFormat::F32,
+                tile: false,
+                input_formats: &[OutputFormat::U8; 3],
+                inputs: &inputs,
+                params: &params,
+                resource: &|_| None,
+                vars: &variables,
+            };
+            let image = (definition.cook)(&context).unwrap().remove(0);
+            assert_eq!(image.get(0, 0, false)[0].to_bits(), expected.to_bits());
+        }
     }
 }
 

@@ -1418,6 +1418,76 @@ In a separate one-output pixel processor, call the hash function with normalized
 
 Waveform v2 remains in progress for directly reopening the unchanged older detached dependency. The original graph, the portable library route and the measured current-format relative routes are exact.
 
+### Pattern draw order for fixed and runtime image slots
+
+Overlapping bitmap stamps with constant image selectors draw in the order each image slot is first used. When any visited bitmap quadrant reads a changing image selector, the slots draw in ascending input-port order. This applies to both grayscale and RGBA. The selector can return the same integer in both cases. A visited image with zero size, zero tint or an off-canvas footprint still establishes the order. A disconnected quadrant, an empty pattern, a procedural shape and an unbound getter retained first-use order in the controls.
+
+Use a black background and three overlapping bitmap quadrants that select slots (1,0,1). At successive depths use sizes (1,1), (2,2) and (4,4), nearest filtering, overall opacity 1 and a constant image per slot. In grayscale use byte levels 128 and 255. With maximum, additive and maximum blending and tints (.125,.25,.875), the F32 value at the upper left is **1.0004901885986328** for fixed selectors and **.875** for a bound selector. With three additive stamps and tints (.75,2⁻²⁷,−.75), the corresponding values are **3.7398995e−9** and **0**. For color use the byte tuples (128,181,79,255) and (255,205,111,255). Use source-over, additive and source-over, RGB tints (.75,.25,.5) and alpha (.375,.59375,.71875). The red channel changes from **.51298636** to **.451574**.
+
+For each blend family, render at 32 × 16 with seed 471817 and 16 × 32 with seed 471818. Repeat the first setting with the exposed slot values reversed to (0,1,0). Use fixed selectors, each of the seven nonempty subsets of exposed selectors, a literal-valued function, a read of the iteration number followed by the literal result, and an exposed integer plus zero. In separate two-size controls, attach the extra quadrant with its value fixed, bound or unbound, and vary connectivity, shape, size and footprint as described above.
+
+The mixed-shape controls compare all three layers together and each layer on its own. Group by procedural pattern identifier, then bitmap slot. Within a bitmap slot, filter modes draw in the order automatic, bilinear, nearest. Within each group additive draws first and equal keys keep their traversal order. For three overlapping RGBA quadrants, use a transparent background, RGB tints (.75,.25,.5) and alpha (.375,.5,.75). The twelve configurations below list each quadrant as (pattern, slot, filter, blend). Pattern 1 selects an image, while 2 and 5 select procedural shapes. Use the same images, quadrant sizes and two resolutions as above. Only row 11 reads all three image indices from exposed integers.
+
+| Configuration | First | Second | Third |
+|---:|---|---|---|
+| 1 | (1,1,2,0) | (1,1,0,1) | (1,1,2,1) |
+| 2 | (1,1,2,1) | (1,1,1,0) | (1,1,2,1) |
+| 3 | (1,1,1,1) | (1,1,2,0) | (1,1,1,1) |
+| 4 | (1,0,1,1) | (1,0,1,0) | (1,0,1,1) |
+| 5 | (1,0,1,1) | (1,0,1,2) | (1,0,1,0) |
+| 6 | (1,1,2,1) | (2,0,0,1) | (1,0,2,0) |
+| 7 | (2,0,2,1) | (1,0,2,1) | (2,0,2,0) |
+| 8 | (5,0,2,1) | (2,0,2,1) | (5,0,2,0) |
+| 9 | (2,0,2,1) | (5,0,2,0) | (2,0,2,0) |
+| 10 | (1,1,2,1) | (1,0,1,1) | (1,1,0,0) |
+| 11 | (1,1,2,0) | (1,0,1,1) | (1,1,0,1) |
+| 12 | (5,0,2,0) | (1,0,1,1) | (2,0,2,1) |
+
+| Independent F32 comparison | Renders | Exact before / compared | Maximum before | Exact after / compared | Maximum after |
+|---|---:|---:|---:|---:|---:|
+| Grayscale selectors | 66 | 23,472/33,792 | 0.25 | 33,792/33,792 | 0 |
+| RGBA selectors | 66 | 22,720/33,792 | 0.185526788 | 33,792/33,792 | 0 |
+| Grayscale quadrant reachability | 16 | 6,752/8,192 | 3.7398995e-09 | 8,192/8,192 | 0 |
+| RGBA quadrant reachability | 16 | 5,792/8,192 | 5.28845145e-09 | 8,192/8,192 | 0 |
+| Shapes, filters and blend order | 96 | 42,390/49,152 | 0.2578125 | 49,152/49,152 | 0 |
+
+After saving ten of the small graphs in MaterialCraft, both applications reproduced their original buffers. All **13,312/13,312** pixels matched across the 26 reopened renders, maximum zero. The release regression on fixed and bound selectors failed before the change and passed afterward.
+
+On the [previous whole-root comparison](#parameter-controlled-sizes-and-half-precision-pattern-backgrounds) the grayscale generator advanced from 298,527 to **298,752/298,752** across 63 settings. The color generator advanced from 214,457 to **215,296/215,296** across 39 settings. The maximum error is zero for both. The expanded comparison below also includes the background controls, each of the six slots alone or with background, all fifteen slot pairs at two sizes, and a new six-size field. Settings repeated across series are counted once.
+
+For the new field use seed S = 105607 + 19i + 157j, where i is the inventory index and j is the zero-based row below. For input m in sorted identifier order and zero-based channel c, form U = ((67x+43y+13xy+11cx+29m+59c+S) mod 383)/382. The channel is .75U plus .25 where (5x+7y+3m+c) mod 17 > 9. Set one texel to 1 at x = (3c+⌊input width/4⌋) mod input width, y = (m+⌊input height/4⌋) mod input height. Round the PNGs to their nearest stored levels, ties to even. Set position randomness to (.1875,.3125), global opacity to .75+j/32, rotation to −.09375+j/64, and rotation randomness to .125+j/32. Enable non-square expansion at even j. Use bitmap pattern 1. The grayscale tint is .875 with luminance randomness .21875. The RGBA tint is (.6875,.375,.8125,.78125) with variation (.21875,.125,.3125,.15625).
+
+| j | Output | Input | Input storage | Tiles | Images | Blend | Filter |
+|---:|---|---|---|---|---:|---:|---:|
+| 0 | 32 × 16 | 32 × 16 | U8 | 3 × 4 | 6 | 1 | 0 |
+| 1 | 64 × 32 | 64 × 32 | U16 | 5 × 3 | 6 | 0 | 1 |
+| 2 | 32 × 64 | 16 × 32 | F32 | 4 × 5 | 3 | 1 | 2 |
+| 3 | 32² | 31 × 23 | F32 | 5 × 7 | 2 | 0 | 1 |
+| 4 | 128 × 32 | 32 × 64 | U8 | 7 × 3 | 6 | 1 | 0 |
+| 5 | 32 × 64 | 32 × 64 | F16 | 3 × 5 | 4 | 0 | 2 |
+
+Connect every input except indices 2, 4 and 5 at j = 2, and index 0 at j = 5. Read U16 and F32 at all six sizes, with U8 and F16 also at j = 0 and 3.
+
+| Root (inventory index) | Distinct settings | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|---:|
+| Pattern Tile Generator (373) | 176 | 32,255/32,256 · 1 | 201,896/202,496 · 18902 | 77,310/77,312 · 0.00390625 | 328,103/328,704 · 0.288434759 |
+| Pattern Tile Generator Color (374) | 152 | 19,699/20,992 · 50 | 146,123/155,136 · 16285 | 33,003/34,304 · 0.193847656 | 285,643/294,656 · 0.248491704 |
+| Pattern Tile Random (375) | 52 | 23,208/26,624 · 255 | 169,553/177,664 · 65535 | 19,655/23,552 · 1 | 78,668/88,832 · 1.00000006 |
+| Pattern Tile Random Color (376) | 126 | 26,868/30,720 · 255 | 172,566/181,760 · 65535 | 23,591/27,648 · 1 | 275,964/379,648 · 1.00000006 |
+
+| Whole-root save, reopen and repeat | Renders | Exact / compared | Maximum by output format (U8 / U16 / F16 / F32) |
+|---|---:|---:|---|
+| Pattern Tile Generator | 57 | 177,484/178,688 | 1 / 18902 / 0.00390625 / 0.288434759 |
+| Pattern Tile Generator Color | 57 | 124,276/144,896 | 50 / 16285 / 0.193847656 / 0.248491704 |
+| Pattern Tile Random | 30 | 76,704/107,008 | 255 / 65535 / 1 / 1.00000006 |
+| Pattern Tile Random Color | 30 | 75,455/107,008 | 255 / 65535 / 1 / 1.00000006 |
+
+The two applications reproduced their own original buffers on all 174 whole-root reopens. These include the first and second saves of the earlier seven-size suite, both new sixteen-render series and the eleven focused background reopens per generator. Grayscale has two differing F32 pixels in the 31 × 23 field and 599 in the resized byte field. Removing every stamp retained the two odd-input differences in the U8 background bridge. For the resized byte field, changing only the automatic image filter to bilinear or nearest made the entire grayscale F32 output exact. With bilinear selected, 4,096/4,096 of the reference pixels also equal its automatic result. At the first size, disabling only the four color-variation controls made 512/512 RGBA F32 pixels exact, maximum zero. The two random tilers still have placement and pattern discrepancies.
+
+Seven alternating release cooks per version measured the median cook time for the color field at j = 1 (23.17 to 21.88 ms), at j = 4 (68.26 to 60.70 ms), and the earlier 128 × 32 grayscale field (39.77 to 43.13 ms).
+
+All 93 grayscale Splatter settings (403,712 pixels), 55 color Splatter settings (354,560 pixels), and 80 grayscale Radial Blur settings (591,616 pixels) matched after the change, with maximum zero. Formatting, strict workspace Clippy, dependency layering, all ten WebAssembly checks and all 343 release node tests passed. The release suite used the committed resource set.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color

@@ -17,6 +17,7 @@ pub(super) fn render(
     opacities: Result<Vec<f32>, String>,
     nonfinite_gray_opacity: bool,
     base_level_only: &[bool],
+    runtime_image_selector: bool,
 ) -> Result<Image, String> {
     let (width, height) = craft_texture::clamp_size(context.w, context.h);
     let kind = if context.b("color_mode") { Kind::Color } else { Kind::Gray };
@@ -54,35 +55,32 @@ pub(super) fn render(
 
     let mut traversal = groups.into_iter().flatten();
     let mut ordered = Vec::new();
-    if kind == Kind::Gray {
-        let mut bitmap_ranks = [0; crate::MAX_IMAGE_INPUTS];
-        let mut next_rank = 256;
-        let mut draw_order = |stamp: &PatternStamp| {
-            let mut rank = stamp.pattern;
-            let mut filtering = 0;
-            if rank >= 256
-                && let Some(slot) = bitmap_ranks.get_mut((rank - 256) as usize)
-            {
-                // Bitmap slots follow the procedural shapes, in the order each slot first drew.
-                if *slot == 0 {
-                    *slot = next_rank;
-                    next_rank += 1;
-                }
-                rank = *slot;
-                filtering = stamp.filtering;
+    // A runtime image selector reserves the wired slots in port order. Fixed slots acquire their ranks on first use.
+    let mut bitmap_ranks = if runtime_image_selector { std::array::from_fn(|index| 256 + index as i32) } else { [0; crate::MAX_IMAGE_INPUTS] };
+    let mut next_rank = 256;
+    let mut draw_order = |stamp: &PatternStamp| {
+        let mut rank = stamp.pattern;
+        let mut filtering = 0;
+        if rank >= 256
+            && let Some(slot) = bitmap_ranks.get_mut((rank - 256) as usize)
+        {
+            if *slot == 0 {
+                *slot = next_rank;
+                next_rank += 1;
             }
-            (rank, filtering, stamp.blend != 0)
-        };
-        if !traversal.clone().map(&mut draw_order).is_sorted() {
-            // Assign the remaining ranks in traversal order before the sort compares stamps.
-            for stamp in traversal.by_ref() {
-                draw_order(stamp);
-                ordered.push(stamp);
-            }
-            // Each bitmap slot draws by filtering mode, then additive before maximum.
-            // Equal keys keep their traversal order.
-            ordered.sort_by_key(|stamp| draw_order(stamp));
+            rank = *slot;
+            filtering = stamp.filtering;
         }
+        (rank, filtering, stamp.blend != 0)
+    };
+    if !traversal.clone().map(&mut draw_order).is_sorted() {
+        // Assign the remaining ranks in traversal order before the sort compares stamps.
+        for stamp in traversal.by_ref() {
+            draw_order(stamp);
+            ordered.push(stamp);
+        }
+        // Each shape or bitmap slot draws by filter, then additive before the other blend modes.
+        ordered.sort_by_key(|stamp| draw_order(stamp));
     }
     for stamp in traversal.chain(ordered) {
         if !stamp.center.iter().chain(&stamp.size).chain(&stamp.color).chain([&stamp.rotation, &stamp.variation]).all(|value| value.is_finite()) {

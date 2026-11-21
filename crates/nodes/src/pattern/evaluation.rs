@@ -53,6 +53,7 @@ pub fn cook_with_base_level_inputs(context: &CookContext, base_level_only: &[boo
     }
 
     let mut stamps = Vec::new();
+    let mut runtime_image_selector = false;
     let mut root_children_pending = 0;
     let mut branch_starts = [None; 4];
 
@@ -174,6 +175,8 @@ pub fn cook_with_base_level_inputs(context: &CookContext, base_level_only: &[boo
                 if image_pattern {
                     let requested = integer("imageindex");
                     let slot = if functions.get(&(node.id, "imageindex")).is_some_and(|(program, _)| !program.uses_fixed_image_slot(&variables.drawing)) {
+                        // Even a stamp with empty coverage establishes the wired order for the other image draws.
+                        runtime_image_selector = true;
                         // A runtime selector advances across disconnected slots and stops at the last wired image.
                         let pos = image_slots.partition_point(|&i| i < requested);
                         image_slots.get(pos).or_else(|| image_slots.last()).copied()
@@ -307,5 +310,5 @@ pub fn cook_with_base_level_inputs(context: &CookContext, base_level_only: &[boo
         }
     }
     groups[0] = prefix;
-    Ok(vec![raster::render(context, groups, opacities, nonfinite_gray_opacity, base_level_only)?])
+    Ok(vec![raster::render(context, groups, opacities, nonfinite_gray_opacity, base_level_only, runtime_image_selector)?])
 }
