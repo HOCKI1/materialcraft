@@ -462,6 +462,30 @@ Each source matched 50,176/50,176 pixels in 24 renders. All 45,056/45,056 pixels
 
 MaterialCraft saved ten procedural graphs. Both applications reopened them and reproduced their respective originals in all 52 settings. Across applications **70,144/70,144** pixels matched after reopening. All maxima are zero. The evaluation regression failed before this change and passed after it. The 57 release evaluation tests, formatting, strict workspace Clippy, dependency layers and WebAssembly passed. The measurements cover linear color reads from these two PNG sources.
 
+### Isolated sample coordinates in the two HQ blur roots
+
+A periodic RGB impulse separates the two sheared texture reads of the directional blur used in the HQ roots (55 and 56). Use an original F32 input and output. Choose the filtering axis from the larger absolute direction component divided by that axis’s image extent. Along that axis, light every sixteenth column with a chosen residue h from 0 to 15. Across the columns, repeat four rows of pure red, green, blue and black. Alpha is one. Transpose for the vertical axis. Set intensity to the tabulated radius times 256 divided by the shorter image side.
+
+| Series | Width × height · turns · radius | F32 renders including identity | Exact pixels / total | Maximum error |
+|---|---|---:|---:|---:|
+| Original | 128 × 64 · 0.08203125 · 6.8125 | 17 | 138,193/139,264 | 0.000504907221 |
+| Original | 512 × 128 · 0.4375 · 7.0537505 | 17 | 1,110,577/1,114,112 | 0.00061633531 |
+| Original | 256 × 256 · -0.0849609375 · 6.71875 | 17 | 1,112,133/1,114,112 | 0.000332366675 |
+| Independent | 256 × 128 · 0.396484375 · 6.71875 | 17 | 557,056/557,056 | 0 |
+| Independent | 128 × 256 · 0.146484375 · 6.71875 | 17 | 557,056/557,056 | 0 |
+| Independent | 256 × 128 · 0.103515625 · 6.71875 | 17 | 555,427/557,056 | 0.000445365906 |
+| Independent | 256 × 256 · 0.142578125 · 6.71875 | 17 | 1,111,296/1,114,112 | 0.000350469723 |
+| Independent | 256 × 256 · 0.447265625 · 6.71875 | 17 | 1,113,969/1,114,112 | 0.000278607011 |
+| Independent | 256 × 256 · 0.052734375 · 6.71875 | 17 | 1,111,759/1,114,112 | 0.000301325927 |
+| Independent | 256 × 256 · 0.302734375 · 6.71875 | 17 | 1,109,731/1,114,112 | 0.000300129876 |
+| Independent | 128 × 256 · 0.337890625 · 6.71875 | 17 | 552,016/557,056 | 0.000513050705 |
+| Independent | 128 × 512 · 0.4375 · 7.0537505 | 17 | 1,114,112/1,114,112 | 0 |
+| Independent | 256 × 128 · 0.1875 · 4.8675003 | 17 | 557,056/557,056 | 0 |
+
+For series index j and residue h use seed 556013 + 83j + h for the original series and 562811 + 83j + h for the independent series. The seventeenth render of each series repeats residue 7 at zero intensity. All 630,784 identity pixels match the authored RGB values. The original matrix matched 2,360,903/2,367,488 across 51 renders, maximum 0.00061633531. The independent matrix matched 8,339,478/8,355,840 across 170 renders, maximum 0.000513050705.
+
+Near an isolated column, the two transverse texture reads have only two contributing rows each. At the column center and just inside both ends of the blur kernel, read the three color channels to distinguish adjacent 1/256-texel interpolation weights. Several ways of constructing an affine plane from rounded corners matched the three calibration settings to within 1.5e−8 on those interior reads. Across the ten independent settings, the existing coordinate calculation had 4,578 interior reads differing by more than 4e−7. No calibrated pair improved that count across the complete independent set. Both roots retain their [78-setting original and saved comparisons](#projected-weights-and-tap-order-in-short-directional-blurs).
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color
