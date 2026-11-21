@@ -418,6 +418,33 @@ Across all 48 renders, **100,352/100,352** pixels match, maximum zero. Convertin
 
 These measurements cover power-of-two dimensions and an explicit linear data read. The separate comparisons for odd-sized color resources and file-default color interpretation remain open for this evaluator.
 
+### Grayscale bitmap stamp ordering across slots and filters
+
+In a grayscale pattern graph, bitmap slots draw after the procedural shapes. Their first traversal use determines the order of the slots. Within a slot the measured order is automatic mip filtering (0), bilinear (1), then nearest (2). At each filter mode additive stamps draw before maximum stamps. Equal keys keep traversal order.
+
+Use a three-node quadrant chain with the first child connected at quadrant 0 and the next at quadrant 1. Give the three stamps sizes 1, 2 and 4 and use zero roughness, zero background, tiling off, unit opacity multiplier and F32 grayscale output. Supply constant byte images of 128 and 255 at slots 0 and 1. At 32 × 16 and 16 × 32, seeds 471817 and 471818, the following results distinguish the ordering.
+
+| Slots | Filters | Blend modes | Signed grayscale tints | Top-left F32 value |
+|---|---|---|---|---:|
+| 1,0,1 | 2,2,2 | add,add,add | .75, 2⁻²⁷, −.75 | 3.7398995e−9 |
+| 1,0,1 | 2,2,2 | max,add,max | .125, .25, .875 | 1.00049019 |
+| 1,1,1 | 0,1,0 | max,add,max | .75, .3125, .1875 | 1.0625 |
+| 1,1,1 | 1,0,1 | max,add,max | .75, .3125, .1875 | .75 |
+
+The independent filter sweep uses each ordered pair of distinct filters a,b from 0,1,2 with the stamps set to a,b,a. It repeats the maximum/additive case and the signed three-addition case. For the five-stamp controls, vary the slot sequence across 2,1,2,0,1 and 0,0,0,0,0 as well as mixed shapes and slots. Use filters (i+j) mod 3 for zero-based stamp i and case j, sizes 1,2,4,8,16, and exercise additions, both maximum mode values, positive and negative gains. Reversing the serialized node list in alternating cases preserves the connected traversal order. The tested sizes are 32 × 16, 16 × 32, 32² and 16².
+
+| F32 comparison | Renders | Exact before / total · maximum | Exact after / total · maximum |
+|---|---:|---:|---:|
+| Three stamps with two slots | 40 | 20,184/23,040 · 0.212009817 | 23,040/23,040 · 0 |
+| Five stamps with up to three slots | 24 | 9,335/13,824 · 0.593627483 | 13,823/13,824 · 0 |
+| Constant fields | 8 | 1,984/4,096 · 0.25 | 4,096/4,096 · 0 |
+| Procedural shapes with a bitmap | 24 | 11,879/16,384 · 0.375 | 16,384/16,384 · 0 |
+| Filter pairs on one slot | 24 | 9,120/12,288 · 0.3125 | 12,288/12,288 · 0 |
+
+The 120 composite renders matched **69,631/69,632** pixels. Rendering the individual stamps separately matched **187,390/187,392** across 312 renders. Starting with the same independently authored graph serialized by MaterialCraft, saving it again and reopening it in both applications matched **33,791/33,792** across 60 renders. Each application reproduced its own originals. The maximum numerical error is zero. At (0,0) on the 16 × 32 five-stamp, one-slot control with negative gain, the reference stored negative zero and MaterialCraft stored positive zero. The same sign difference occurred in two isolated-stamp renders.
+
+The four 64² U8, U16, F16 and F32 root controls stayed exact on Arc Pavement, Tile Generator, Tile Random and Weave 2 in the first group of rechecks. Paths Trace and Splatter Circular still differ. The larger root matrices retain their existing status. The ordering regression reproduced the earlier error. The release node suite, formatting, strict workspace Clippy, dependency layers and WebAssembly passed.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color

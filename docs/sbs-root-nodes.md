@@ -49,6 +49,8 @@ Odd-sized grayscale bitmap resources match 116,736/116,736 pixels directly and 9
 
 Linear RGBA bitmap resources match 108,544/108,544 pixels on two procedural fields. [Exact counts by format and saved-package results](parity-fixes.md#stored-levels-of-linear-color-bitmap-resources)
 
+The 120 mixed-stamp renders matched 69,631/69,632 F32 pixels across slot, filtering and blend changes. [Measurements and saved packages](parity-fixes.md#grayscale-bitmap-stamp-ordering-across-slots-and-filters)
+
 Grayscale output from normalized RGB bitmaps matched 100,352/100,352 pixels across 48 renders. [Measurements and saved packages](parity-fixes.md#grayscale-conversion-on-the-first-bitmap-filter-pass)
 
 Enlarged RGBA pattern backgrounds now match 71,680/71,680 pixels across 280 independent renders. The earlier source-storage tests still differ at 121 grayscale zero signs. [Background sign measurements](parity-fixes.md#signs-of-zero-in-enlarged-color-backgrounds)

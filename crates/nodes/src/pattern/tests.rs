@@ -334,6 +334,65 @@ fn grayscale_stamps_draw_in_shape_then_blend_order() {
 }
 
 #[test]
+fn grayscale_bitmap_stamps_group_repeated_slots_in_first_draw_order() {
+    use craft_texture::{Image, Kind};
+    use materialcraft_core::OutputFormat;
+
+    let definition = find("fx_map").unwrap();
+    let level = 128.0 / 255.0;
+    let tiny = 2.0_f32.powi(-27);
+    // The input bridges have already resized both constant fields to the graph dimensions.
+    let inputs = [None, Some(Image::filled(32, 16, Kind::Gray, [level; 4])), Some(Image::filled(32, 16, Kind::Gray, [1.0; 4]))];
+    for (slots, filters, modes, tints, expected) in [
+        ([1, 0, 1], [2; 3], [0, 0, 0], [0.75, tiny, -0.75], [tiny * level, 0.75]),
+        ([1, 0, 1], [2; 3], [1, 0, 1], [0.125, 0.25, 0.875], [0.875 + 0.25 * level, 0.125]),
+        ([1, 1, 1], [2; 3], [1, 0, 1], [0.875, 0.25, 0.75], [0.875, 0.875]),
+        ([1; 3], [0, 1, 0], [1, 0, 1], [0.75, 0.3125, 0.1875], [1.0625, 0.75]),
+        ([1; 3], [1, 2, 1], [0; 3], [0.75, tiny, -0.75], [tiny, 0.75]),
+        ([1; 3], [2, 1, 2], [0; 3], [0.75, tiny, -0.75], [0.0, 0.75]),
+    ] {
+        let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
+        let first = graph.add(PatternNodeKind::Quadrant).unwrap();
+        let second = graph.add(PatternNodeKind::Quadrant).unwrap();
+        graph.nodes[0].children[0] = Some(first);
+        graph.nodes[1].children[1] = Some(second);
+        for (i, (node, size)) in graph.nodes.iter_mut().zip([1.0, 2.0, 4.0]).enumerate() {
+            let tint = tints[i];
+            node.parameters = BTreeMap::from([
+                ("patterntype".into(), Value::Int(1)),
+                ("imageindex".into(), Value::Int(slots[i])),
+                ("imagefiltering".into(), Value::Int(filters[i])),
+                ("blendingmode".into(), Value::Int(modes[i])),
+                ("opacity".into(), Value::Float4([tint, tint, tint, 1.0])),
+                ("patternsize".into(), Value::Float2([size; 2])),
+            ]);
+        }
+        let params = resolve_params(
+            definition,
+            &BTreeMap::from([
+                ("pattern".into(), Value::PatternGraph(Box::new(graph))),
+                ("roughness".into(), Value::Float(0.0)),
+                ("color_mode".into(), Value::Bool(false)),
+            ]),
+        );
+        let context = CookContext {
+            w: 32,
+            h: 16,
+            seed: 471817,
+            format: OutputFormat::F32,
+            tile: false,
+            input_formats: &[OutputFormat::U8; 3],
+            inputs: &inputs,
+            params: &params,
+            resource: &|_| None,
+            vars: &BTreeMap::from([("$tiling".into(), Value::Int(0))]),
+        };
+        let image = (definition.cook)(&context).unwrap().remove(0);
+        assert_eq!([image.get_gray(0, 0, false), image.get_gray(31, 15, false)], expected);
+    }
+}
+
+#[test]
 fn six_quadrant_levels_composite_overlapping_subtrees_in_reverse_slot_order() {
     let small = f32::EPSILON * 0.5;
     for (depth, expected) in [(5, 0.0_f32), (6, small)] {

@@ -53,12 +53,35 @@ pub(super) fn render(
 
     let mut traversal = groups.into_iter().flatten();
     let mut ordered = Vec::new();
-    let draw_order = |stamp: &PatternStamp| (stamp.pattern, stamp.blend != 0);
-    if kind == Kind::Gray && !traversal.clone().map(draw_order).is_sorted() && traversal.clone().all(|stamp| (2..=18).contains(&stamp.pattern)) {
-        // Procedural grayscale stamps draw by shape, with additive stamps first.
-        // Keep traversal order among equal keys, including depth-six sibling groups.
-        ordered.extend(traversal.by_ref());
-        ordered.sort_by_key(|stamp| draw_order(stamp));
+    if kind == Kind::Gray {
+        let mut bitmap_ranks = [0; crate::MAX_IMAGE_INPUTS];
+        let mut next_rank = 256;
+        let mut draw_order = |stamp: &PatternStamp| {
+            let mut rank = stamp.pattern;
+            let mut filtering = 0;
+            if rank >= 256
+                && let Some(slot) = bitmap_ranks.get_mut((rank - 256) as usize)
+            {
+                // Bitmap slots follow the procedural shapes, in the order each slot first drew.
+                if *slot == 0 {
+                    *slot = next_rank;
+                    next_rank += 1;
+                }
+                rank = *slot;
+                filtering = stamp.filtering;
+            }
+            (rank, filtering, stamp.blend != 0)
+        };
+        if !traversal.clone().map(&mut draw_order).is_sorted() {
+            // Assign the remaining ranks in traversal order before the sort compares stamps.
+            for stamp in traversal.by_ref() {
+                draw_order(stamp);
+                ordered.push(stamp);
+            }
+            // Each bitmap slot draws by filtering mode, then additive before maximum.
+            // Equal keys keep their traversal order.
+            ordered.sort_by_key(|stamp| draw_order(stamp));
+        }
     }
     for stamp in traversal.chain(ordered) {
         if !stamp.center.iter().chain(&stamp.size).chain(&stamp.color).chain([&stamp.rotation, &stamp.variation]).all(|value| value.is_finite()) {
