@@ -1767,6 +1767,26 @@ Each application reproduced every pixel of its own original renders after reopen
 
 Across all 958 previously recorded settings for roots 373–376, 441, 488 and 491, the exact counts and maxima are unchanged. Grayscale Tile Generator remains exact in **757,504/757,504** pixels across 221 settings. Color Tile Generator matches **621,344/765,184** across 331. Its per-channel tint draws still differ. A call with unknown dependencies can read a variable assigned in its caller, so those graphs retain their existing evaluation order. Four node regressions reproduced the earlier errors. All 416 release tests in the node and evaluator crates passed, along with formatting, strict workspace Clippy, dependency layers and WebAssembly.
 
+### Rectangular inputs and remaining half-float pixels in the eighth specular passes
+
+Repeat the [eighth specular pass comparison](#eighth-raytraced-specular-passes) for both root packages. The complete 26-setting capture at `02d910f` and a repeat of one 128² setting per root at `a45240f` give the counts below. The earlier first-pass report had 279 differing pixels in root 396. Five remain in the complete capture. Every floating-point difference in those two matrices is in F16.
+
+| Root | Full matrix, exact / total | F16 exact / total · maximum | 128² F16 repeat, exact / total · maximum |
+|---|---:|---:|---:|
+| 396 | 142,335/142,340 | 119,883/119,888 · 0.0009765625 | changed, 16,383/16,384 · 0.0001220703125 |
+| 408 | 142,337/142,340 | 119,885/119,888 · 0.000244140625 | default, 16,383/16,384 · 0.000244140625 |
+
+For an independent rectangular test at `a45240f`, use output sizes 8 × 4, 4 × 8, 16 × 8 and 8 × 16, with input sizes 8 × 4, 8 × 4, 16 × 8 and 8 × 16 respectively. Number these settings j from zero and use seed 126331 + 31j. Number input identifiers m in alphabetical order and RGBA components c from zero. Store each source channel as F32 using ((29x + 43y + 7xy + 61m + 17c + 3cx + seed) mod 257)/256. Use channel zero for height and blue noise. Decode the first two normal channels to signed values, multiply by .45, reconstruct positive Z and encode back to [0,1], with alpha one. Position uses texel-center UV, .3125 + .375 times channel two and alpha one.
+
+Keep the first setting at defaults. At j = 1, 2 and 3 set shape to 1, 2 and 0 respectively, scale to .625 + .0625j, plane size to (.75,1.125), rotation to .03125j, rotation direction to −.0625j, displacement to .015625j, UV tiling to 1.125 and UV offset to (.1875,−.3125). Compare F16 and F32 for each setting and add U8 and U16 at j = 0 and 2. Save one package per root, reopen it in both applications, and compare j = 0/U16, 1/F16, 2/U8 and 3/F32 to the original renders.
+
+| Root | New renders | U8 exact / total · maximum | U16 exact / total · maximum | F16 exact / total · maximum | F32 exact / total · maximum | Reopened exact / total · maximum |
+|---|---:|---:|---:|---:|---:|---:|
+| 396 | 12 | 160/160 · 0 | 160/160 · 0 | 320/320 · 0 | 320/320 · 0 | 320/320 · 0 |
+| 408 | 12 | 160/160 · 0 | 160/160 · 0 | 320/320 · 0 | 320/320 · 0 | 320/320 · 0 |
+
+Each application reproduced every component of its own saved-file controls. Both roots remain in progress on the full-size F16 settings.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color
