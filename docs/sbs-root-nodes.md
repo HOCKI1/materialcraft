@@ -49,6 +49,8 @@ Odd-sized grayscale bitmap resources match 116,736/116,736 pixels directly and 9
 
 Linear RGBA bitmap resources match 108,544/108,544 pixels on two procedural fields. [Exact counts by format and saved-package results](parity-fixes.md#stored-levels-of-linear-color-bitmap-resources)
 
+Choosing axial taps for a one-axis directional footprint recovered 53,078 pixels across 390 renders. Pattern Stripes retained 762,880/762,880. [Measurements and saved packages](parity-fixes.md#oblique-directional-filters-with-one-zero-pixel-extent)
+
 Wide literal pattern backgrounds matched 17,920/17,920 pixels directly and again after saving. The seven wide bitmap stamp renders now match 1,792/1,792 pixels. [Measurements and saved packages](parity-fixes.md#finite-hdr-backgrounds-in-empty-pattern-graphs)
 
 Bitmap file-default and explicit data reads matched all 570,112 pixels across 329 renders. Reopening 24 saved packages matched another 203,520/203,520 pixels and reproduced each original buffer in both applications. [Measurements and saved packages](parity-fixes.md#bitmap-file-transfer-and-stored-channel-precision)

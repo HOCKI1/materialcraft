@@ -31,34 +31,45 @@ pub(super) fn blur(context: &CookContext, angle: f32) -> CookResult {
     }
 
     let tile = context.tiling_axes();
-    let quarters = angle * 4.0;
-    if quarters.fract() == 0.0 {
-        let horizontal = quarters % 2.0 == 0.0;
-        // Rotated axial footprints project their reach one float below unity before normalization.
-        let projection = if angle == 0.0 { 1.0 } else { f32::from_bits(0x3f7f_ffff) };
-        let reach = (if horizontal { extent_x } else { extent_y }) * projection;
-        if reach > 2.0 {
-            return Ok(vec![box_filter::axis(&input, reach, horizontal, tile[usize::from(!horizontal)], source_format, context.format)]);
-        }
-        if reach > 0.0 {
-            let step = if !horizontal {
-                [0.0, -1.0]
-            } else if reach <= 1.0 {
-                [-1.0, 0.0]
-            } else {
-                [1.0, 0.0]
-            };
-            return Ok(vec![box_filter::short_line(&input, reach, step, tile, source_format)]);
-        }
-        // On stretched pixels the other axis can still have a nonzero projected footprint.
-        if angle == 0.0 {
-            return Ok(vec![input]);
-        }
-    }
-
     let radians = angle * std::f32::consts::TAU;
     let sine = projected_sine(radians.abs()) * radians.signum();
     let cosine = projected_sine(radians.abs() + std::f32::consts::FRAC_PI_2);
+    let quarters = angle * 4.0;
+    let cardinal = (quarters.fract() == 0.0).then_some(quarters % 2.0 == 0.0);
+    // On a rectangle one pixel extent can vanish before projection. Its surviving axis sets the tap layout.
+    let axis = if extent_x == 0.0 {
+        Some(false)
+    } else if extent_y == 0.0 {
+        Some(true)
+    } else {
+        cardinal
+    };
+    if let Some(horizontal) = axis {
+        let projection = if cardinal == axis {
+            // Rotated axial footprints project their reach one float below unity before normalization.
+            if angle == 0.0 { 1.0 } else { f32::from_bits(0x3f7f_ffff) }
+        } else if horizontal {
+            cosine.abs()
+        } else {
+            sine.abs()
+        };
+        let reach = (if horizontal { extent_x } else { extent_y }) * projection;
+        if reach == 0.0 {
+            return Ok(vec![input]);
+        }
+        if reach > 2.0 {
+            return Ok(vec![box_filter::axis(&input, reach, horizontal, tile[usize::from(!horizontal)], source_format, context.format)]);
+        }
+        let step = if !horizontal {
+            [0.0, -1.0]
+        } else if reach <= 1.0 {
+            [-1.0, 0.0]
+        } else {
+            [1.0, 0.0]
+        };
+        return Ok(vec![box_filter::short_line(&input, reach, step, tile, source_format)]);
+    }
+
     let (reach_x, reach_y) = (extent_x * cosine, extent_y * sine);
     let short_reach = reach_x.abs().max(reach_y.abs());
     let (sample_x, sample_y) = if stretched { (reach_x, reach_y) } else { (cosine, sine) };

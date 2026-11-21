@@ -606,6 +606,38 @@ Replay the [Stripes settings](#stripes-across-square-and-rectangular-canvases). 
 
 Pattern Stripes improved from 744,064/762,880 to **762,880/762,880** across all 83 settings. Its 29 saved renders matched **316,416/316,416**, and the standalone root retained **277,504/277,504** on its 21 saved renders. Each application reproduced every original buffer for those saves. The two HQ blur roots retain 646 and 130 differing pixels across their respective 78 settings. The rectangular regression failed on the prior build. All 666 release tests across the engine, evaluator and node crates passed, as did formatting, strict workspace Clippy, dependency layers and WebAssembly.
 
+### Oblique directional filters with one zero pixel extent
+
+When one pixel extent is zero on a stretched rectangle, the surviving projection determines the sample locations, even at an oblique angle. Six F32 controls with a projected reach between one and two pixels went from 2,218/55,296 to **55,296/55,296** exact pixels, maximum zero. They use the [independent rectangle fields and intensities](#pixel-ratio-in-rectangular-directional-filters). At 16 × 64 with strength 7 and −.15625 turns, the red value at (7,13) has F32 word `3ea89223`. At 128 × 32 with strength 4 and .125 turns it has word `3f010625`. The regression for these two values failed on the previous build.
+
+Across all 390 renders in that sweep, this change recovers 53,078 pixels. Normalized errors in the tables are stored integer levels. Floating errors are absolute.
+
+| Output | Renders | Exact before / total · maximum | Exact after / total · maximum |
+|---|---:|---:|---:|
+| RGBA16 | 60 | 430,068/430,080 · 1 | 430,068/430,080 · 1 |
+| RGBA16F | 60 | 430,080/430,080 · 0 | 430,080/430,080 · 0 |
+| RGBA32F | 210 | 1,441,905/1,505,280 · 0.00105390698 | 1,494,983/1,505,280 · 0.00105390698 |
+| RGBA8 | 60 | 430,080/430,080 · 0 | 430,080/430,080 · 0 |
+
+For an independent sweep use 16 × 256 and 256 × 16, in that order, with S = 617147 + 31 × size index. Use (((73x + 41y + 19xy + S) mod 509) − 91)/364 in red, ((53x + 101y + 7xy + S) mod 257)/256 in green and 1 in blue when (x + 2y + S) mod 11 equals 2, otherwise 0. Select ratio 0 and turns −.15625, .125, .203125 and .328125. Use strengths 1.125, 1.75, 2.375, 3.5, 4.75, 6.5 and 7.75, with seed S + 13 × angle index + strength index. Render all strengths in F32 and add U8, U16 and F16 at 2.375 and 4.75.
+
+| Comparison | Format | Renders | Exact pixels / total | Maximum error |
+|---|---|---:|---:|---:|
+| Independent field | RGBA16 | 16 | 65,483/65,536 | 1 |
+| Independent field | RGBA16F | 16 | 61,391/65,536 | 0.00048828125 |
+| Independent field | RGBA32F | 56 | 209,045/229,376 | 1.78813934e-07 |
+| Independent field | RGBA8 | 16 | 65,504/65,536 | 1 |
+| Reopened independent field | RGBA16 | 8 | 32,751/32,768 | 1 |
+| Reopened independent field | RGBA16F | 8 | 32,719/32,768 | 0.000244140625 |
+| Reopened independent field | RGBA32F | 32 | 118,888/131,072 | 1.78813934e-07 |
+| Reopened independent field | RGBA8 | 8 | 32,736/32,768 | 1 |
+
+Seven of the eight angle and size pairs matched in every format. All differences in the independent sweep occur on the tall field at .203125 turns. Saving the eight graphs and reopening them in each application reproduced every original buffer at the 56 selected settings. Across apps those saves matched 217,094/229,376 pixels. The 70 saves from the earlier sweep matched 436,716/437,248, maximum 1.1920929e-07, with all originals reproduced in each app.
+
+To isolate the remaining projection error, replace red with a one-column impulse at the horizontal center and green with a one-row impulse at the vertical center. Read the center weight and its axial neighbor at strengths .625, .6875, .7109375, .765625, .828125, .921875, 1, 1.0625, 1.1875, 1.296875, 1.390625 and 1.484375. Across 22 angles and both orientations these weights agree with the current projected component in 42 of 44 comparisons. At .203125 turns the vertical component needs one additional F32 unit in the last place. At .302734375 turns the horizontal component does too. Two-axis oblique filtering remains open.
+
+Pattern Stripes retained **762,880/762,880** exact pixels across 83 distinct settings. All 331 node release tests, formatting, strict workspace Clippy, dependency layers and WebAssembly passed.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color

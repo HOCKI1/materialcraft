@@ -35,6 +35,31 @@ fn empty_pattern_uses_the_finite_background_before_grayscale_conversion() {
 }
 
 #[test]
+fn oblique_blur_uses_axial_taps_when_one_pixel_extent_is_zero() {
+    let definition = find("directional_blur").unwrap();
+    let vars = BTreeMap::from([("$pixelratio".into(), Value::Int(0))]);
+    for (w, h, angle, intensity, phase, expected) in [(16, 64, -0.15625, 7.0, 606401, 0x3ea8_9223), (128, 32, 0.125, 4.0, 606448, 0x3f01_0625)] {
+        let params = resolve_params(definition, &BTreeMap::from([("angle".into(), Value::Float(angle)), ("intensity".into(), Value::Float(intensity))]));
+        let field = Image::gray(w, h, |x, y| ((59 * x + 23 * y + 7 * x * y + phase) % 251) as f32 / 250.0);
+        let inputs = [Some(field)];
+        let context = CookContext {
+            w,
+            h,
+            seed: 0,
+            format: OutputFormat::F32,
+            tile: true,
+            input_formats: &[OutputFormat::F32],
+            inputs: &inputs,
+            params: &params,
+            resource: &|_| None,
+            vars: &vars,
+        };
+        let image = (definition.cook)(&context).unwrap().remove(0);
+        assert_eq!(image.get_gray(7, 13, false).to_bits(), expected, "{w} x {h}");
+    }
+}
+
+#[test]
 fn min_blend_accumulates_the_background_weight_on_the_foreground_product() {
     let foreground = Image::gray(1, 1, |_, _| 46.0 / 255.0);
     let background = Image::gray(1, 1, |_, _| 79.0 / 255.0);
