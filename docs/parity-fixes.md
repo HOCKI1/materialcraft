@@ -214,6 +214,26 @@ Repeated renders distinguish a stable difference from variation in the original 
 
 Of the 44 original pixel-format differences, 25 matched on at least one subsequent full-root render in the repeat series. The default 256² U16 comparison retained the same nine differences in all 15 captures. F32 retained nine. In three further captures with intermediate outputs observed, one F16 output also matched. The two stable groups account for 18 pixel-format differences across nine coordinates. The published original total stays 3,177,940/3,177,984. The origin of the generator's F32 accumulation difference remains open.
 
+### Fractal Voronoi roots with shared lookup tables
+
+The 2D fractal Voronoi root (307) reaches measured parity with the same procedural lookup in both applications. The 3D fractal root (305) had residual differences on the shuffled table in the same evaluator. Both roots use the [shared assignment and style controls](#shared-pixel-assignments-in-voronoi-color-selection) and the [36-setting parameter matrix and five undistorted controls](#package-ownership-of-saved-function-calls), once with the seeded shuffled table and once with the affine table. These cover defaults, distortion, signed position fields, noise and color seeds, distance and color choices, octave settings, square and rectangular outputs and all four storage formats.
+
+| Root (inventory index) | Distinct settings | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|---:|
+| 3D fractal Voronoi (305) | 82 | 23,900/24,064 · 18 | 57,565/57,856 · 28698 | 23,832/24,064 · 0.0678710938 | 67,781/68,096 · 0.437905461 |
+| 2D fractal Voronoi (307) | 82 | 24,064/24,064 · 0 | 57,856/57,856 · 0 | 24,064/24,064 · 0 | 68,096/68,096 · 0 |
+
+After writing the packages with MaterialCraft and reopening them in both applications, the corresponding 24 saved cases measured as follows.
+
+| Root (inventory index) | Distinct settings | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|---:|
+| 3D fractal Voronoi, saved (305) | 24 | 12,669/12,800 · 18 | 32,221/32,256 · 638 | 4,096/4,096 · 0 | 8,187/8,192 · 0.437905461 |
+| 2D fractal Voronoi, saved (307) | 24 | 12,800/12,800 · 0 | 32,256/32,256 · 0 | 4,096/4,096 · 0 | 8,192/8,192 · 0 |
+
+The 2D fractal results also match **32,256/32,256** across 38 supplemental settings and **7,168/7,168** across the ten supplemental saves, maximum zero. The seven shuffled-table and three affine-table cases compare the original and saved pixel buffers inside each application as well. At 16² and 32², the two applications each reproduce every original stored pixel after reopening, for both fractal roots. With the 3D shuffled table the differences were present before saving and persisted after reopening.
+
+The [stock-table comparison](#voronoi-distortion-and-shared-noise-inputs) used different resources in the two applications. All 27 undistorted renders matched 146,688/146,688 pixels per root. The three distorted 32² stock renders differed throughout, with F32 maxima .175076187 for the 2D fractal and .205578864 for the 3D fractal. Those cases remain distinct from the shared-table results.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color
