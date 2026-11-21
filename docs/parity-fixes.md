@@ -1636,6 +1636,28 @@ Twenty-three pairs have identical coefficients at all five extents, and one diff
 
 The 480 original branch renders matched **351,169/491,520** whole RGB pixels across applications, maximum 1.78813934e-07. Save the three graphs in MaterialCraft, reopen them in both applications and repeat the first and last extents at both sizes. All sixteen named outputs reproduced their own originals in each application. Across applications, the 192 reopened renders matched **142,599/196,608**, maximum 1.78813934e-07. Both HQ blur roots remain in progress.
 
+### Uniform channel width and grayscale rounding in node properties
+
+Grayscale Uniform preserves a scalar input directly. A fixed four-component color sums red, green and blue in that order, then divides by three. A runtime four-component color multiplies each of those channels by F32(1/3) first, then adds the three rounded contributions from left to right. Alpha does not enter the mean. A three-component function result yields zero in grayscale and opaque black in RGBA. Packing the same RGB with an explicit alpha restores its color. Graph inspection keeps the original RGB parameter available.
+
+Use (1,2⁻²³,−1,.59375) to distinguish the two means. The fixed F32 result has bits `332aaaab` and the exposed result has bits `33000000`. A fixed signed tuple (−65536,65536,2⁻⁹,.5) yields `3a2aaaab`. Feed the scalar with bits `3ed51632` to either channel mode. In grayscale, it retains that word. The controls also cover three primaries, equal-channel levels, signed colors and permutations of nearly canceling channels.
+
+For the first dependency series, compare a literal, a folded sum with zero, a bound RGBA color, the same color plus a zero vector, and a sequence that reads the bound color before returning the literal. Also read image size before the literal, take alpha from the bound input, select between the bound and fixed colors, return a scalar channel, or return a scalar after reading size. Use the signed tuple above, (1.75,−.875,−.25,.5), (.1,.1,.1,.25), three copies of `3ed51632` with alpha .875, the HDR cancellation tuple, and (−.4,1.875,.1375,−.5). At tuple j use seed 116491 + 17j, width 16 for even j and 8 for odd j, and height 8 when j is divisible by three and 4 otherwise. Compare F32 at all six and all four formats at j = 0, 2 and 4.
+
+For the last two series, return the signed cancellation tuple after reading the source, or make its green component (1 + source) × 2⁻²³. Render grayscale and RGBA at 8 × 4, 16 × 8, 32 × 16 and 64 × 16. Use seeds 31, 12071, 68047 and 471817 and exposed scalar values .03125, .25, .875 and 1. Size uses the first width divided by 16, and log size uses the first exponent divided by four. Compare fixed arithmetic after size, log size, tiling, pixel ratio, UV tile, physical size, an unbound integer seed, an invented reserved integer and absent user inputs. Definedness tests on time, the exposed input, a missing input and pixel ratio also use the fixed mean. Reading time, normal format or an exposed value, performing a random draw, and writing a named value use the runtime mean. Both the direct and sequence forms are measured.
+
+| Raw image comparison | Renders | Exact before / compared | Maximum before by storage (U8 / U16 / F16 / F32) | Exact after / compared | Maximum after |
+|---|---:|---:|---|---:|---:|
+| Fixed and exposed colors | 192 | 27,456/27,648 | 0 / 0 / 0 / 2.98023224e-08 | 27,648/27,648 | 0 |
+| Permutations, equal channels and cancellation | 116 | 1,088/7,424 | — / — / — / 0.895311117 | 7,424/7,424 | 0 |
+| Scalar, RGB and RGBA endpoints | 246 | 4,992/7,872 | 255 / 65535 / 1.3125 / 1.3125 | 7,872/7,872 | 0 |
+| Packing, selecting and binding channels | 329 | 5,984/10,528 | — / 45055 / — / 65520 | 10,528/10,528 | 0 |
+| Folded, bound and sequenced colors | 300 | 19,840/23,040 | 85 / 21845 / 65488 / 65520 | 23,040/23,040 | 0 |
+| Image size, seed, time, random draws and assignments | 160 | 54,272/67,840 | — / — / — / 1.98682173e-08 | 67,840/67,840 | 0 |
+| Other system variables, missing inputs and definedness | 160 | 64,448/67,840 | — / — / — / 9.93410865e-09 | 67,840/67,840 | 0 |
+
+Across the seven series, **212,192/212,192** raw pixels matched across 1,503 renders. Save twelve of the system-variable and source graphs and reopen them in both applications. All 20,352/20,352 pixels matched in 48 F32 renders. The earlier 16 saved graphs cover widths, direct links, folded and bound parameters and extreme colors. All 5,568/5,568 pixels matched across 78 reopens. Both applications reproduced their own original buffers. The three regressions failed on the earlier evaluation paths and passed after correction. The 413 release node and evaluation tests, strict Clippy, formatting, layering and all ten WebAssembly checks passed using the committed resource set. In a separate control with the pattern random-order changes disabled, the grayscale and color tile generators and both random tiling roots matched the earlier totals of 757,504/757,504, 621,344/765,184, 291,084/316,672, 498,989/619,776, respectively.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color

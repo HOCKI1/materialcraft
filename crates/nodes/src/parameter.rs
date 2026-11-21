@@ -41,9 +41,10 @@ pub fn clamp_params(definition: &NodeDefinition, params: &mut BTreeMap<String, V
             continue;
         }
 
+        // These colors supply image samples, including signed HDR values.
+        let image_color = matches!((definition.id, parameter.id), ("fx_map", "background") | ("uniform", "color"));
         if let Value::Color(components) = value {
-            // A pattern background supplies image samples, including signed HDR values.
-            let (lo, hi) = if (definition.id, parameter.id) == ("fx_map", "background") { (f32::MIN, f32::MAX) } else { (-HARD_SPAN, 1.0 + HARD_SPAN) };
+            let (lo, hi) = if image_color { (f32::MIN, f32::MAX) } else { (-HARD_SPAN, 1.0 + HARD_SPAN) };
             for component in components {
                 *component = clamp_finite(*component, lo, hi, 0.0);
             }
@@ -59,7 +60,7 @@ pub fn clamp_params(definition: &NodeDefinition, params: &mut BTreeMap<String, V
                 // The pattern renderer bounds copy count and pixel work using the resolved region.
                 | ("fx_map", "roughness" | "opacity" | "tiling_region")
         );
-        let ranged = parameter.min < parameter.max && !unbounded;
+        let ranged = parameter.min < parameter.max && !unbounded && (definition.id, parameter.id) != ("uniform", "color");
         let span = parameter.max - parameter.min;
         let (lo, hi) = if ranged { (parameter.min - HARD_SPAN * span, parameter.max + HARD_SPAN * span) } else { (f32::MIN, f32::MAX) };
 

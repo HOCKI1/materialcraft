@@ -32,6 +32,25 @@ impl Program {
         self.instructions.get(self.output).is_some_and(|instruction| instruction.literal)
     }
 
+    /// A grayscale Uniform folds its channel mean when its property has only fixed operands.
+    pub fn uses_fixed_uniform_color(&self, variables: &std::collections::BTreeMap<String, Value>) -> bool {
+        self.instructions.iter().all(|op| {
+            op.literal
+                || op.depends_only_on_operands()
+                || op.definition.id == "isdefined"
+                || match (&op.value, op.definition.id) {
+                    (Some(Value::Text(name)), getter) if getter.starts_with("get_") && !name.starts_with('$') => !variables.contains_key(name),
+                    (Some(Value::Text(name)), "get_float2") => matches!(name.as_str(), "$size" | "$sizelog2"),
+                    (Some(Value::Text(name)), "get_integer1") => {
+                        matches!(name.as_str(), "$tiling" | "$pixelratio") || super::SystemVariable::named(name).is_none()
+                    }
+                    (Some(Value::Text(name)), "get_integer2") => name == "$uvtile",
+                    (Some(Value::Text(name)), "get_float3") => name == "$physicalsize",
+                    _ => false,
+                }
+        })
+    }
+
     /// Whether the property reads a bound graph parameter, even if its final value is constant.
     pub fn reads_graph_parameter(&self, variables: &std::collections::BTreeMap<String, Value>) -> bool {
         self.instructions.iter().any(|op| {

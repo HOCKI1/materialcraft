@@ -6,6 +6,7 @@ use std::collections::BTreeMap;
 pub(crate) enum ChannelMode {
     Opaque,
     Broadcast,
+    UniformColor,
     GrayPatternOpacity,
     Levels { normalized: bool },
 }
@@ -26,7 +27,7 @@ pub(crate) fn evaluate(
     if let Some(value) = fallback
         && program.input_identifier().is_some_and(|name| !name.starts_with('$') && !variables.contains_key(name))
     {
-        return Ok((value.clone(), false));
+        return Ok((value.clone(), matches!(channels, ChannelMode::UniformColor)));
     }
 
     let context = EvaluationContext {
@@ -47,6 +48,7 @@ pub(crate) fn evaluate(
     // A scalar level is already luminance. Its RGB expansion would introduce a second rounding.
     let scalar_level = matches!(channels, ChannelMode::Levels { .. }) && program.output_type() == ValueType::Float as u32;
     let value = match value {
+        value if matches!(channels, ChannelMode::UniformColor) => value,
         Value::Float(level) | Value::Float4([level, _, _, _]) if scalar_level => Value::Float(level),
         Value::Float(level) if widened && matches!(channels, ChannelMode::Broadcast) => Value::Float4([level; 4]),
         Value::Float(level) if widened => Value::Float4([level, level, level, 1.0]),
@@ -54,7 +56,10 @@ pub(crate) fn evaluate(
         value => value,
     };
 
+    let fixed = match channels {
+        ChannelMode::UniformColor => program.uses_fixed_uniform_color(variables),
+        _ => program.output_is_literal(),
+    };
     variables.extend(state.assignments().clone());
-
-    Ok((value, program.output_is_literal()))
+    Ok((value, fixed))
 }

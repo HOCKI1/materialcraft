@@ -1,6 +1,7 @@
 use super::ATOMIC;
 use crate::{CookContext, CookResult, NodeDefinition, node};
 use craft_texture::{Image, Kind};
+use materialcraft_core::Value;
 
 pub(super) fn definition() -> NodeDefinition {
     node("uniform", "Uniform color", ATOMIC)
@@ -14,10 +15,18 @@ pub(super) fn definition() -> NodeDefinition {
 }
 
 fn uniform(context: &CookContext) -> CookResult {
-    let color = context.v4("color");
+    let source = context.value("color");
+    // A three-component function needs an explicit alpha to supply this property.
+    let color = if matches!(source, Some(Value::Float3(_))) { [0.0, 0.0, 0.0, 1.0] } else { context.v4("color") };
 
     Ok(vec![if !context.b("color_mode") {
-        Image::filled(context.w, context.h, Kind::Gray, [(color[0] + color[1] + color[2]) / 3.0; 4])
+        let gray = match source {
+            Some(Value::Float(level)) => *level,
+            // Runtime RGBA rounds each channel's contribution before accumulating the three.
+            Some(Value::Float4([r, g, b, _])) => r * (1.0 / 3.0) + g * (1.0 / 3.0) + b * (1.0 / 3.0),
+            _ => (color[0] + color[1] + color[2]) / 3.0,
+        };
+        Image::filled(context.w, context.h, Kind::Gray, [gray; 4])
     } else {
         Image::filled(context.w, context.h, Kind::Color, color)
     }])
