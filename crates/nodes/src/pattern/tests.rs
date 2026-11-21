@@ -431,6 +431,28 @@ fn rotated_stamps_use_the_pixel_center_when_snapping_the_near_vertex() {
 }
 
 #[test]
+fn narrow_rotated_stamps_align_the_plane_origin_before_interpolation() {
+    for (canvas, center, size, turns, shape, pixel, expected) in [
+        ([32, 64], [0.59865606, 0.84110206], [0.004831543, 0.28550416], -0.13097546, 10, [18, 52], 0x3f43_ca7a),
+        ([64, 64], [0.28058177, 0.822639], [0.006552735, 0.31079665], 1.4040037, 6, [18, 53], 0x3f25_4208),
+        ([128, 64], [0.2890158, 0.7890536], [0.0022128907, 0.43932068], 0.8263619, 8, [29, 48], 0x3ec1_6c44),
+        ([128, 128], [0.8203125, 0.8671875], [0.00625, 0.23773901], 1.489372, 10, [105, 116], 0x3eab_9835),
+    ] {
+        let variables = BTreeMap::from([("turn".into(), Value::Float(turns))]);
+        let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
+        graph.nodes[0].parameters = BTreeMap::from([
+            ("patterntype".into(), Value::Int(shape)),
+            ("branchoffset".into(), Value::Float2([-0.5; 2])),
+            ("frameoffset".into(), Value::Float2(center)),
+            ("patternsize".into(), Value::Float2(size)),
+            ("patternrotation".into(), stamp_turn_input()),
+        ]);
+        let image = cook_at_dimensions(graph, &variables, 0, canvas[0], canvas[1]).unwrap().remove(0);
+        assert_eq!(image.get_gray(pixel[0], pixel[1], false).to_bits(), expected, "{canvas:?} at {pixel:?}");
+    }
+}
+
+#[test]
 fn clipped_square_stamp_triangles_use_the_far_vertex_for_both_slope_terms() {
     for (dimensions, center, size, turns, shape, pixel, expected) in [
         ([256, 256], [-0.08850241, 2.9797058], [0.06013941, 0.0625], 161.3187, 4, [236, 1], 0x3dec_9e10),

@@ -854,6 +854,24 @@ Fluid retained 25,969,920/25,969,920 across 121 settings. For Noise Fluid the ta
 
 All 312 release node tests, formatting, strict workspace Clippy, dependency layers and WebAssembly passed. Over seven alternating single-worker release runs, median time for the 256×64 primitive at r=14.375 fell from 53.1 to 25.7 ms. The 1024×512 color and grayscale patch medians changed from 3315.9 to 3332.8 ms and 3557.5 to 3151.7 ms respectively. The 256×64 color HQ graph took 145.7 to 158.2 ms.
 
+### Starting coordinates of narrow rotated stamps
+
+Scratches 2 matches 5,414,144/5,414,144 RGBA pixels across 113 distinct settings, with zero maximum error. All eight previously differing F32 pixels in the earlier 82 settings now match. Each application reopened the MaterialCraft save and reproduced every pixel of its original in series of 30, 32 and 36 settings (521,216, 3,313,664 and 2,531,328 pixels).
+
+| Root (inventory index) | Distinct settings | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|---:|
+| Scratches 2 (206) | 113 | 971,008/971,008 · 0 | 1,741,056/1,741,056 · 0 | 938,240/938,240 · 0 | 1,763,840/1,763,840 · 0 |
+
+For the 36 additional settings use dimensions (32×128,128×32,64²,256×64,64×256,128²,256²,512×128,128×512,512×256,256×512,512²) and d=(default,.08984375,.796875,.43359375,.99609375,.0625,default,.890625,.3203125,.265625,.6953125,default). Set width to 31+141d, height to 61+129(1−d) and disorder to d. Use seed zero at the three defaults, 42 at j=2 and 455377+47j otherwise. Render U16 and F32 throughout, adding U8 and F16 at j=0,2,5,6,9,11. The table counts identical settings once. [Earlier root and repeat settings](#tile-patch-inputs-and-scratch-color-precision)
+
+To isolate the cause, replay the 130 contributing Gaussian stamps at five differing pixels, with each stamp over transparent black and then over (127/255,127/255,1,1). Five individual foregrounds differed. Compositing the independently observed foregrounds in draw order reproduced all five original reference pixels exactly. Using the earlier local foregrounds reproduced all five local results. At 32×64, center (.59865606,.84110206), size (.004831543,.28550416), input-driven rotation −.13097546 turns and pixel (18,52), the reference signed horizontal coordinate is .52961653471. The preceding evaluator returned .52961647511. A single white horizontal ramp gives F32 bits 0x3f43ca7a at this pixel.
+
+The plane origin now truncates toward zero on the interpolation grid before either gradient contributes. The grid spacing is one sixty-fourth of the larger gradient’s F32 spacing. The change handles small negative origins when a thin rotated stamp has steep gradients in opposite directions. Across 260 isolated source/backdrop renders, 130 individual stamps over independently controlled incoming colors and 36 unit-gain profile renders, all 3,317,760 F32 pixels match. The six profiles were the paraboloid, horizontal ramp, pyramid, Gaussian, quartic bell and cone.
+
+An independent right-triangle graphics probe used 1,800 original triangles, integer edge spans of 8–86 texels, positive and negative vertex attributes, and one attribute pair close to zero. The previous calculation differed on 27 of 1,496,272 active coordinate components. Truncating the starting coordinate first matches every component. Four earlier triangle series retained all 5,623,484 exact components. The 40-setting BNW Spots 1 comparison still matches 2,399,204/2,399,232. The earlier 32-setting Clouds 1 and 2 series still match 707,562 and 707,572 out of 707,584 respectively. Their reference-repeat differences remain open. [Earlier variable-stage comparisons](#pixel-center-rounding-at-the-near-stamp-vertex)
+
+The new regression failed on the preceding evaluator. All 313 release node tests, formatting, strict workspace Clippy, dependency layers and WebAssembly passed. Across seven alternating single-worker release runs, the 128² default-seed median changed from 869.1 to 747.0 ms and the 512² default from 7140.4 to 5854.7 ms.
+
 ### Short directional blur tap order on rectangular inputs
 
 Fluid matches **25,969,920/25,969,920 final pixels across 121 distinct settings** through 2048 pixels per side. Both applications reopened the MaterialCraft package and reproduced every pixel of their originals over 28, 38 and 36 settings (498,688, 8,654,848 and 17,588,224 pixels). The three instrumented renders at 512×1024, 1024×512 and 1024² match 9,961,472/9,961,472 intermediate and final samples. [First differing stage and earlier settings](#fibers-1-and-fluid-through-1024-pixels-per-side)

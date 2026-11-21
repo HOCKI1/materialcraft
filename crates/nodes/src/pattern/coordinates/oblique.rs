@@ -63,7 +63,11 @@ pub(super) fn planes(triangle: &Triangle, frame: &Footprint, size: [f32; 2], [[l
             [half_remainder, -half_remainder]
         });
         let quantum = unit / 64.0;
-        Plane { base: f64::from(base), step, pair_offset, quantum, inverse_quantum: quantum.recip() }
+        let inverse_quantum = quantum.recip();
+        // A narrow stamp can have a tiny origin between steep steps. Discard its
+        // sub-quantum bits before adding either step, including for negative origins.
+        let base = (f64::from(base) * inverse_quantum).trunc() * quantum;
+        Plane { base, step, pair_offset, quantum, inverse_quantum }
     });
     planes.iter().all(|p| p.quantum.is_finite()).then_some(planes)
 }
