@@ -304,6 +304,22 @@ Repeat the two modular fields at 37 × 23, with field indices 4 and 5. These non
 
 The new release regression failed before this change and passed afterward. All 324 node and 55 evaluator release tests passed, along with formatting, strict workspace Clippy, dependency layers and WebAssembly checks.
 
+### Variation in the order of additions in the basic spots generator
+
+Use the 128 × 128 third generator from the [single-texel comparison](#one-differing-generator-texel-in-the-basic-spots-root). At a 256 × 256 parent size, render it directly to F32 nine times per setting. Rotate the order of the three settings between captures. The table counts bitwise-equal pixels against the unmodified MaterialCraft renderer. A varying coordinate produced at least two different stored values in the nine reference captures.
+
+| Seed and disorder | Exact / total across nine renders | Maximum error | Varying reference coordinates |
+|---|---:|---:|---:|
+| 0, default | 144,288/147,456 | 2.98023224e-08 | 524 |
+| 42, default | 144,385/147,456 | 2.98023224e-08 | 469 |
+| 0, .35 | 144,726/147,456 | 2.98023224e-08 | 447 |
+
+To test the addition order, capture the position in traversal order and the F32 contribution of every MaterialCraft stamp that covers each pixel. The seven quadrant subdivisions yield 16,384 leaves. Group the leaves by their first two quadrant choices, numbering each group from 0 to 15 in traversal order. Keep the 1,024 leaves inside each group in order. For each pixel, enumerate the orderings of the groups that touch it, and accumulate the original contributions one at a time in F32 starting from zero. Keep the orderings that produce the observed F32 bits. Find a single order of all 16 groups that satisfies these constraints across the image.
+
+One group order per capture reproduces **442,368/442,368** pixels over all 27 renders, maximum zero. For example, the first default capture fits group order `0 12 9 1 4 5 13 10 14 15 8 11 6 7 2 3`. Fitting on part of each image also predicts withheld pixels. Exclude every coordinate with `(x + 3*y) % 5 == 0` and the coordinate (99,47) before choosing each order. An ascending search for the first compatible group order predicts **88,476/88,479** withheld pixels, maximum 1.49011612e−8. All nine default captures predict the held-out (99,47) value .15169809758663177.
+
+In the default graph the four MaterialCraft contributions at (99,47), in its traversal order, are .05887965112924576, .031324971467256546, .02835862897336483 and .03313484787940979. Their accumulation order accounts for the U16 boundary at that coordinate. The observed changes between captures prevent a single fixed image from matching every repeat. These reordered images explain the disagreement. The original renderer counts above and the [125-setting root comparison](#gaussian-generators-and-spots-through-1024-pixels-per-side) remain the parity measurements.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color
