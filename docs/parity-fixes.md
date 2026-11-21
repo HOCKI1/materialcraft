@@ -1994,6 +1994,27 @@ For the complete roots, repeat the previous 110 settings. Then use H = ((61x + 3
 
 Each root matches 5,487,872/5,487,872 original pixels. At the disputed root output the alpha is 157/255 in both applications. Each root also matches 4,241,408/4,241,408 pixels across 82 reopened settings, and both applications reproduced their respective original buffers. Maximum error is zero. The signed horizontal and vertical stripe checks and the thirteen-texel byte regression exercise the same window through normal node evaluation. The regression failed on the earlier build. All 425 node and evaluator release tests passed, along with formatting, strict workspace Clippy, dependency layers and WebAssembly.
 
+### Environment and intermediate precision in the eighth specular passes
+
+Repeat the two [128² F16 settings](#rectangular-inputs-and-remaining-half-float-pixels-in-the-eighth-specular-passes) at seed zero, using the changed shape for root 396 and defaults for root 408. Keep the same eight bound inputs and final output format. Set only the first connected pixel processor to F32 and compare its raw RGBA with its F16 output at the root. All eight intermediate input images on this path matched in the preceding capture.
+
+For three controls replace one input with a generated opaque black 128² F32 texture. For the fourth replace the environment with an F32 texture containing red (x+.5)/128, green (y+.5)/128, blue ((17x+37y+5xy) mod 257)/256 and alpha one. All other inputs and parameters keep their values from the same original setting. Each count below requires all four channel bit patterns of a pixel to match.
+
+| Root | Input change | First processor F32 exact / 16,384 | Maximum F32 error | Final F16 exact / 16,384 | Maximum F16 error |
+|---|---|---:|---:|---:|---:|
+| 396 | Original inputs | 14,265 | 2.384185791015625e-07 | 16,383 | 0.0001220703125 |
+| 396 | Black environment | 16,384 | 0 | 16,384 | 0 |
+| 396 | Coordinate environment | 14,542 | 2.9802322387695312e-08 | 16,384 | 0 |
+| 396 | Black emissive | 14,162 | 2.384185791015625e-07 | 16,383 | 0.0001220703125 |
+| 396 | Black specular and roughness | 14,871 | 7.450580596923828e-09 | 16,352 | 2.384185791015625e-07 |
+| 408 | Original inputs | 14,809 | 2.384185791015625e-07 | 16,383 | 0.000244140625 |
+| 408 | Black environment | 16,384 | 0 | 16,384 | 0 |
+| 408 | Coordinate environment | 15,023 | 1.4901161193847656e-08 | 16,384 | 0 |
+| 408 | Black emissive | 14,768 | 2.384185791015625e-07 | 16,383 | 0.000244140625 |
+| 408 | Black specular and roughness | 15,061 | 1.1920928955078125e-07 | 16,384 | 0 |
+
+At (54,36) in root 396, the green component reaches F32 bits `be745fff` in the reference app and `be746000` in MaterialCraft. At (62,57) in root 408, blue reaches `3e81bfff` and `3e81c000`, respectively. Each pair straddles a half-precision truncation boundary. The black environment makes both the intermediate and the final image exact. The coordinate environment removes the final discrepancies while retaining F32 differences. The individual arithmetic operation in the environment-dependent calculation remains unresolved in both roots.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color
