@@ -1488,6 +1488,27 @@ Seven alternating release cooks per version measured the median cook time for th
 
 All 93 grayscale Splatter settings (403,712 pixels), 55 color Splatter settings (354,560 pixels), and 80 grayscale Radial Blur settings (591,616 pixels) matched after the change, with maximum zero. Formatting, strict workspace Clippy, dependency layering, all ten WebAssembly checks and all 343 release node tests passed. The release suite used the committed resource set.
 
+### First and repeated automatic samples of an embedded bitmap
+
+An embedded bitmap can report identical U16 pixels on every read while the reference app returns different automatically filtered pattern samples. The first render after opening the graph and a later render of exactly the same setting differed in three of five tests. Explicit bilinear sampling reproduced every repeat.
+
+Create one original grayscale PNG from the field ((71x+31y+17xy+3k) mod 257)/256 at each source size below. Round to the nearest byte or word, ties to even. Place it as a linear Bitmap resource, set the Bitmap to U16 at parent size, and connect it to a centered quarter-size bitmap quadrant. Use input slot 0, additive blending, unit opacity and tint, zero rotation and roughness, and disable tiling. Capture the Bitmap node and the pattern. At row j use seed 107203+17j for every render. Open the graph and set the pattern format successively to F32, U16, F32, U16, F16, U8, F16 and U8. In a fresh copy run the formats in reverse order. Repeat both runs with explicit bilinear filtering. Leave the source, seed and dimensions fixed throughout each run.
+
+| j | Source and k | Output | First vs second F32 in the forward order | Maximum | First vs second U8 in the reverse order | Maximum |
+|---:|---|---|---:|---:|---:|---:|
+| 0 | 16 × 64, U8, k = 0 | 64² | 3,858/4,096 | 0.250156403 | 3,900/4,096 | 64 |
+| 1 | 16 × 64, U8, k = 0 | 128 × 32 | 4,096/4,096 | 0 | 4,096/4,096 | 0 |
+| 2 | 32², U16, k = 1 | 16 × 64 | 1,024/1,024 | 0 | 1,024/1,024 | 0 |
+| 3 | 7 × 23, U8, k = 8 | 32² | 965/1,024 | 0.00318908691 | 1,009/1,024 | 1 |
+| 4 | 128², U16, k = 6 | 16² | 240/256 | 0.0225528479 | 241/256 | 6 |
+
+| MaterialCraft against the reference app | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|
+| Automatic | 40,680/41,984 · 64 | 40,544/41,984 · 16143 | 40,620/41,984 · 0.246337891 | 40,349/41,984 · 0.250156403 |
+| Bilinear | 41,984/41,984 · 0 | 41,984/41,984 · 0 | 41,984/41,984 · 0 | 41,984/41,984 · 0 |
+
+All 160 observed U16 Bitmap buffers agreed between the two reference runs and the filter variants at their respective size. At 64² from the byte input, the first automatic F32 render agreed with bilinear. After the intervening U16 render, repeating F32 changed 238 pixels. The 128 × 32 control used the same source file and was stable. At 32² from the odd input, the first and later F32 results both differed from bilinear, and they also differed from each other. Automatic sampling of embedded bitmaps remains open.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color
