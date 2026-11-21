@@ -1063,6 +1063,45 @@ The earlier center-and-neighbor coefficient test gives a nonempty interval for e
 
 The 960 original branch renders matched **943,932/983,040** pixels, maximum 1.78813934e-07. Save each graph in MaterialCraft, reopen it in both applications, and repeat the first and last extent at both sizes. Across the 384 reopened branch renders, **375,149/393,216** pixels matched across applications, maximum 1.1920929e-07. Each application reproduced every pixel of its own original outputs. The color and grayscale HQ blur roots remain in progress with their previous 78-setting whole-root counts.
 
+### Repeated wood fiber renders and isolated drawing depths
+
+On revision `02d910f`, compare Wood Fibers 1 on the [original stage settings](#tile-weave-splatter-and-fiber-stage-comparisons) and the [seven dimensions, formats and seeds](#reopened-gaussian-polygon-and-weave-pattern-generators) used for the other procedural generators. The root has no image pins. At 64 × 16, 32 × 64, 64², 128 × 64 and 256 × 128, set Disorder to .1875, .671875, .375, .890625 and .53125 respectively. Use defaults at 16 × 32 and 64 × 128. The table gives one reference render per original setting.
+
+| Root (inventory index) | Distinct settings | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|---:|
+| Wood Fibers 1 (544) | 39 | 43,007/43,008 · 1 | 176,702/177,152 · 2 | 45,048/45,056 · 0.00048828125 | 66,664/66,816 · 1.94907188e-05 |
+
+Across 39 distinct original settings **331,421/332,032** pixels matched. Save the package in MaterialCraft and reopen it in both applications. Compare all 20 seven-size renders after the first save and F32 at all seven sizes plus U8, U16 and F16 at 64² after a second save. Across the 30 reopened renders, **258,128/258,560** pixels matched across applications, maximum two stored integer levels. MaterialCraft reproduced every original buffer. In the reference app 219 pixels changed from the original to the first save across 20 renders and 111 from the first to the second across ten. Repeated renders of the same original package also varied.
+
+Render each of the following nine original settings five times. Number the settings from zero and rotate their execution order by the run index, reversing that order on odd runs. Compare the five stored outputs from the reference app with one MaterialCraft render. A varying pixel changes between reference renders. A stable difference is a pixel that all five reference renders agree on and that differs from MaterialCraft. The two columns are disjoint.
+
+| Width × height | Seed | Disorder | Output | Varying / stable differences in first pattern | Varying / stable differences in final output | Final exact pixels across five runs (min–max) | Largest error |
+|---|---:|---:|---|---:|---:|---:|---:|
+| 256 × 256 | 0 | Default | LUM16 | 256 / 57 | 240 / 57 | 65,361–65,379 / 65,536 | 2 |
+| 128 × 128 | 0 | Default | LUM16 | 75 / 15 | 72 / 14 | 16,337–16,341 / 16,384 | 2 |
+| 32 × 32 | 117089 | 0.375 | LUM32F | 6 / 2 | 8 / 3 | 1,016–1,021 / 1,024 | 1.94907188e-05 |
+| 256 × 128 | 704285 | 0.53125 | LUM16 | 119 / 20 | 116 / 21 | 32,690–32,713 / 32,768 | 2 |
+| 256 × 128 | 704285 | 0.53125 | LUM32F | 118 / 26 | 121 / 26 | 32,688–32,709 / 32,768 | 1.85966492e-05 |
+| 128 × 64 | 703927 | 0.890625 | LUM16 | 35 / 13 | 41 / 8 | 8,163–8,169 / 8,192 | 2 |
+| 128 × 64 | 703927 | 0.890625 | LUM32F | 39 / 11 | 40 / 9 | 8,160–8,170 / 8,192 | 1.94907188e-05 |
+| 64 × 128 | 704106 | Default | LUM16 | 34 / 4 | 27 / 8 | 8,171–8,175 / 8,192 | 2 |
+| 64 × 128 | 704106 | Default | LUM32F | 30 / 4 | 35 / 4 | 8,169–8,181 / 8,192 | 1.87754631e-05 |
+
+For the drawing-depth controls, keep traversal, connections and expressions that supply the stamp values. Replace only the shape of each omitted depth with the empty shape. Read the pattern output directly at the requested precision. Use 32²/117089, 32 × 16/117093, 64 × 32/730713 and 64²/730757, where the second number is the seed. Use Disorder .375, .8125, .171875 and .671875 respectively. Render U16 and F32 for each size.
+
+| Drawing depths | U16 exact / total · maximum | F32 exact / total · maximum |
+|---|---:|---:|
+| 1–9 | 7,657/7,680 · 1 | 2,510/7,680 · 2.98023224e-07 |
+| 1–3 | 7,676/7,680 · 1 | 3,076/7,680 · 1.1920929e-07 |
+| 1–5 | 7,668/7,680 · 1 | 2,616/7,680 · 1.78813934e-07 |
+| 4 | 7,680/7,680 · 0 | 5,965/7,680 · 2.98023224e-08 |
+| 5 | 7,680/7,680 · 0 | 6,050/7,680 · 2.98023224e-08 |
+| 6 | 7,680/7,680 · 0 | 5,965/7,680 · 2.98023224e-08 |
+| 6–9 | 7,677/7,680 · 1 | 3,661/7,680 · 8.94069672e-08 |
+| 5–9 | 7,672/7,680 · 1 | 3,058/7,680 · 1.1920929e-07 |
+
+The individual depths 4, 5 and 6 each match all 7,680 U16 pixels. F32 distinguishes differences within each of those depths. At the 256² default final output, the five reference renders vary at 240 pixels and agree on 57 additional pixels that differ from MaterialCraft. Both effects remain open.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color
