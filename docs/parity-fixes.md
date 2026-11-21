@@ -500,6 +500,32 @@ For the byte field `29 × ((x + 3y) mod 9)`, keep the same four gains and format
 
 The regression failed on the earlier evaluator and passed with the coverage change. The release node suite passed all 328 tests. Formatting, strict workspace Clippy, dependency layers and WebAssembly passed.
 
+### Stripes across square and rectangular canvases
+
+Both Stripes roots now match **215,040/215,040** pixels across the original 18 renders in the [hard-edge, filtering and archived controls](#other-roots-using-uniform-arc-tangents), maximum zero. The pattern package previously differed at (23,59) on a hard edge in four formats. The standalone package differed at 28 archived U16 pixels.
+
+For the new series render each row below in U8, U16, F16 and F32. Width and softness are normalized. The seed is 571801 + 137 × the zero-based row index.
+
+| Canvas | Stripes | Width | Softness | Shift | Align | Filtering |
+|---|---:|---:|---:|---:|---:|---|
+| 32 × 64 | 5 | .375 | .5 | 2 | 0 | On |
+| 128 × 32 | 11 | .21875 | .25 | 3 | 2 | Off |
+| 64 × 128 | 19 | .796875 | .0625 | 4 | 1 | On |
+| 256 × 64 | 7 | .515625 | .6875 | 1 | 0 | Off |
+| 16 × 64 | 1 | 1 | 0 | 0 | 2 | Off |
+| 256² | 17 | .34375 | .15625 | 5 | 1 | On |
+
+For a separate F32 sweep use the first row's parameters at 32 × 64, 64 × 32, 32², 64², 32 × 128 and 64 × 128. At 32 × 64 also turn filtering off, set shift to 0, set align to 2, set width to .5 and set softness to .25, changing one parameter per render. Use seeds 582801 + 17 × the zero-based case index. For the pattern package compare both settings of non-square expansion at 32 × 64 and repeat rows two, three and five above in all four formats at both settings, adding 97 to each row's original seed. The counts include its earlier [field controls](#facet-masks-and-stripe-boundaries).
+
+| Root (inventory index) | Distinct settings | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|---:|
+| Pattern Stripes (372) | 83 | 151,296/152,576 · 21 | 265,984/267,264 · 5461 | 151,296/152,576 · 0.0834960938 | 175,488/190,464 · 0.291666687 |
+| Standalone Stripes (510) | 53 | 121,856/121,856 · 0 | 236,544/236,544 · 0 | 121,856/121,856 · 0 | 155,648/155,648 · 0 |
+
+The standalone root matched all **635,904** pixels across 53 distinct settings. Its 21 saved renders matched **277,504/277,504** across applications. The pattern root matched **744,064/762,880** across 83 distinct settings. Its 29 saved renders matched **313,856/316,416**, maximum 21. In both applications, reopening regenerated every original pixel for the saved settings.
+
+At 32 × 64 in the first row the pattern package matched 768/2,048 pixels in each format. The maximum errors were 21 U8 levels, 5,461 U16 levels, .08349609375 in F16 and .0833333731 in F32. The pattern generator in the F32 setting matched 2,048/2,048 pixels, maximum 0. Both preceding directional blurs and the blend feeding the last blur also matched all 2,048 words. The first difference was in the last vertical directional blur. The standalone package matched all 2,048 at the same setting.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color
