@@ -9,6 +9,8 @@ pub struct Program {
     pub(crate) instructions: Vec<Instruction>,
     pub(crate) output: usize,
     pub(crate) seed: u32,
+    pub(super) pattern_draws: std::collections::BTreeMap<usize, super::branch_random::PatternDraws>,
+    pub(super) pattern_components: std::collections::BTreeMap<usize, super::vector::PatternComponent>,
 }
 
 const MAX_EVALUATION_STEPS: usize = 100_000;
@@ -195,6 +197,15 @@ impl Program {
                     }
 
                     state.steps.push(Store(index));
+                    if context.scope == super::FunctionScope::FxMap
+                        && let Some(source) = self.pattern_components.get(&index)
+                    {
+                        match source {
+                            super::vector::PatternComponent::Scalar(source) => state.steps.push(Enter(*source)),
+                            super::vector::PatternComponent::Zero => state.values.push(Value::Float(0.0)),
+                        }
+                        continue;
+                    }
 
                     match instruction.definition.id {
                         "set" if matches!(&instruction.value, Some(Value::Text(name)) if bindings.is_some_and(|scope| scope.call.defaults.contains_key(name))) =>
@@ -219,6 +230,11 @@ impl Program {
                             state.steps.push(Apply { instruction: index, base: state.values.len() });
                             let inputs = match &instruction.pixel_product_sum {
                                 Some(product) if context.scope == super::FunctionScope::PixelProcessor => product.inputs.as_slice(),
+                                _ if context.scope == super::FunctionScope::FxMap => instruction
+                                    .call
+                                    .as_ref()
+                                    .and_then(|call| call.pattern_arguments.as_ref())
+                                    .map_or(instruction.inputs.as_slice(), |arguments| arguments.registers.as_slice()),
                                 _ => instruction.inputs.as_slice(),
                             };
                             state.steps.extend(inputs.iter().rev().map(|&index| Enter(index)));
@@ -247,7 +263,10 @@ impl Program {
                         storage.argument_factors = factors;
                         storage.variables.clone_from(&state.variables);
                         storage.variables.extend(call.defaults.clone());
-                        for (name, value) in call.inputs.iter().zip(arguments) {
+                        let pattern = call.pattern_arguments.as_ref().filter(|_| context.scope == super::FunctionScope::FxMap);
+                        for (i, value) in arguments.iter().enumerate() {
+                            let slot = pattern.map_or(Some(i), |params| params.slots.get(i).copied()).ok_or("missing function argument slot")?;
+                            let name = call.inputs.get(slot).ok_or("missing function argument name")?;
                             storage.variables.insert(name.clone(), value.clone());
                         }
 
@@ -295,16 +314,24 @@ impl Program {
                 }
                 Branch(index) => {
                     let condition = state.values.pop().ok_or("missing branch condition")?;
-                    let slot = if value_type::boolean(&condition)? { 1 } else { 2 };
-
-                    state.steps.push(Enter(self.input(index, slot)?));
-                    if context.scope == super::FunctionScope::PixelProcessor {
-                        for &shared in self.instruction(index)?.control_registers.iter().rev() {
-                            if state.registers.get(shared).is_some_and(Option::is_none) {
-                                state.steps.push(Discard);
-                                state.steps.push(Enter(shared));
-                            }
+                    let take_true = value_type::boolean(&condition)?;
+                    let selected = self.input(index, if take_true { 1 } else { 2 })?;
+                    let (shared, after_selected) = match context.scope {
+                        super::FunctionScope::PixelProcessor => (self.instruction(index)?.control_registers.as_slice(), false),
+                        super::FunctionScope::FxMap => self.pattern_draws.get(&index).map_or((&[][..], false), |draws| (draws.skipped(take_true), take_true)),
+                        _ => (&[][..], false),
+                    };
+                    if !after_selected {
+                        state.steps.push(Enter(selected));
+                    }
+                    for &index in shared.iter().rev() {
+                        if state.registers.get(index).is_some_and(Option::is_none) {
+                            state.steps.push(Discard);
+                            state.steps.push(Enter(index));
                         }
+                    }
+                    if after_selected {
+                        state.steps.push(Enter(selected));
                     }
                 }
                 Discard => {

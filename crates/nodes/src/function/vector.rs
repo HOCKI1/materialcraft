@@ -1,6 +1,47 @@
 use super::value_type::{dimensions, floats, integer_value, integers, intermediate_float_value as float_value};
 use materialcraft_core::Value;
 
+#[derive(Clone, Copy)]
+pub(super) enum PatternComponent {
+    Scalar(usize),
+    Zero,
+}
+
+/// A pattern that selects one packed channel visits only the expressions that supply it.
+pub(super) fn identify_pattern_components(program: &mut super::Program) {
+    let instructions = &program.instructions;
+    if !instructions.iter().any(|op| op.definition.id == "swizzle1")
+        || !instructions.iter().any(|op| matches!(op.definition.id, "rand" | "set") || op.call.is_some())
+    {
+        return;
+    }
+    // A call can read state written elsewhere in this graph, without an argument wire.
+    // Keep the original evaluation order when those dependencies are unknown.
+    if instructions.iter().any(|op| op.definition.id == "set")
+        && instructions.iter().any(|op| op.call.as_ref().is_some_and(|call| call.pattern_arguments.is_none()))
+    {
+        return;
+    }
+    let mut sources = Vec::with_capacity(instructions.len());
+    for (index, op) in instructions.iter().enumerate() {
+        let mut lanes = [None; 4];
+        if let Some(forwarded) = super::returned_product::forwarded(op, instructions, &sources, Some(PatternComponent::Zero)) {
+            lanes = forwarded;
+            if op.definition.id == "swizzle1"
+                && let Some(source) = lanes[0]
+            {
+                program.pattern_components.insert(index, source);
+            }
+        } else if let Some(arguments) = op.call.as_ref().and_then(|call| call.pattern_arguments.as_ref()) {
+            lanes = arguments.channels.map(|register| register.map(PatternComponent::Scalar));
+        }
+        if op.type_code == 256 && lanes[0].is_none() {
+            lanes[0] = Some(PatternComponent::Scalar(index));
+        }
+        sources.push(lanes);
+    }
+}
+
 pub(crate) fn evaluate(op: &str, args: &[Value], setting: Option<&Value>) -> Result<Value, String> {
     let first = args.first().ok_or("missing vector input")?;
     let count = op.chars().last().and_then(|c| c.to_digit(10)).unwrap_or(1) as usize;

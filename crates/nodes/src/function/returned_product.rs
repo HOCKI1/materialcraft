@@ -79,7 +79,7 @@ pub(super) fn evaluate_sum(terms: &Sum, arguments: &[Value], subtract: bool, sta
 pub(super) type Lanes = [Option<Source>; 4];
 type Origins = [Option<usize>; 4];
 
-fn float_width(code: u32) -> usize {
+pub(super) fn float_width(code: u32) -> usize {
     match code {
         256 => 1,
         512 => 2,
@@ -90,10 +90,15 @@ fn float_width(code: u32) -> usize {
 }
 
 /// Packing and component selection forward a lane without observing its rounded value.
-fn forwarded(op: &Instruction, instructions: &[Instruction], origins: &[Origins]) -> Option<Origins> {
+pub(super) fn forwarded<T: Copy>(op: &Instruction, instructions: &[Instruction], origins: &[[Option<T>; 4]], padding: Option<T>) -> Option<[Option<T>; 4]> {
     let mut out = [None; 4];
     match (op.definition.id, op.inputs.as_slice()) {
-        ("vector2" | "vector3" | "vector4", [_, _]) => {
+        ("vector2" | "vector3" | "vector4", [left, right]) => {
+            let left_width = float_width(instructions.get(*left)?.type_code);
+            let right_width = float_width(instructions.get(*right)?.type_code);
+            if left_width == 0 || right_width == 0 || left_width + right_width != float_width(op.type_code) {
+                return None;
+            }
             let lanes = op.inputs.iter().flat_map(|i| {
                 let width = instructions.get(*i).map_or(0, |v| float_width(v.type_code));
                 origins.get(*i).into_iter().flatten().take(width)
@@ -104,9 +109,15 @@ fn forwarded(op: &Instruction, instructions: &[Instruction], origins: &[Origins]
         }
         ("swizzle1" | "swizzle2" | "swizzle3" | "swizzle4", [input]) => {
             let indices = value_type::integers(op.value.as_ref()?).ok()?;
+            let width = float_width(instructions.get(*input)?.type_code);
+            if width == 0 {
+                return None;
+            }
             let input = origins.get(*input)?;
             for (dst, i) in out.iter_mut().take(float_width(op.type_code)).zip(indices) {
-                *dst = usize::try_from(i).ok().and_then(|i| input.get(i)).copied().flatten();
+                let i = usize::try_from(i).ok()?;
+                let source = *input.get(i)?;
+                *dst = if i < width { source } else { padding };
             }
         }
         _ => return None,
@@ -127,7 +138,7 @@ pub(super) fn identify(program: &mut Program, mut returned: BTreeMap<usize, Lane
     let mut products: Vec<(Source, usize)> = Vec::new();
     let mut sums = Vec::new();
     for (index, op) in program.instructions.iter().enumerate() {
-        if let Some(lanes) = forwarded(op, &program.instructions, &origins) {
+        if let Some(lanes) = forwarded(op, &program.instructions, &origins, None) {
             origins.push(lanes);
             continue;
         }

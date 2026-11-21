@@ -154,9 +154,9 @@ fn compile_nested(graph: &FunctionGraph, seed: u32, depth: usize, remaining: &mu
                     return Err(format!("{}: input `{}` has the wrong type", instance.graph, port.identifier));
                 }
             }
-            let inputs: Vec<_> = ports.iter().filter(|(_, input)| input.is_some()).map(|(name, _)| (*name).to_string()).collect();
+            let names: Vec<_> = ports.iter().filter(|(_, input)| input.is_some()).map(|(name, _)| (*name).to_string()).collect();
             let mut defaults = instance.defaults.clone();
-            if !inputs.is_empty() {
+            if !names.is_empty() {
                 // Once a call supplies arguments, an omitted numeric argument reads its typed zero.
                 for (name, input) in &ports {
                     if input.is_none()
@@ -170,7 +170,8 @@ fn compile_nested(graph: &FunctionGraph, seed: u32, depth: usize, remaining: &mu
             }
             let exports =
                 program.instructions.iter().any(|instruction| instruction.definition.id == "set" || instruction.call.as_ref().is_some_and(|call| call.exports));
-            Some(super::function_call::FunctionCall { program, inputs, defaults, argument_factors: None, exports })
+            let pattern_arguments = super::function_call::PatternArguments::identify(&program, &names, &defaults, &inputs);
+            Some(super::function_call::FunctionCall { program, inputs: names, defaults, argument_factors: None, pattern_arguments, exports })
         } else {
             None
         };
@@ -226,7 +227,7 @@ fn compile_nested(graph: &FunctionGraph, seed: u32, depth: usize, remaining: &mu
 
     let output = indices.get(&output).copied().ok_or("missing result instruction")?;
 
-    Ok(Program { instructions, output, seed })
+    Ok(Program { instructions, output, seed, pattern_draws: BTreeMap::new(), pattern_components: BTreeMap::new() })
 }
 
 fn mark_literals(program: &mut Program, mut arguments: BTreeSet<&str>, pixel: Option<&super::EvaluationContext<'_>>) -> super::returned_product::Lanes {
@@ -272,6 +273,7 @@ fn mark_literals(program: &mut Program, mut arguments: BTreeSet<&str>, pixel: Op
     let readers = pixel.and_then(|context| super::pixel_condition::live_readers(program, context));
     super::product_sum::identify(&mut program.instructions, readers.as_deref());
     super::branch_assignments::identify(program);
+    super::vector::identify_pattern_components(program);
     super::branch_random::identify(program);
     super::returned_product::identify(program, returned)
 }

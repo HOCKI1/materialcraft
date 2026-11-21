@@ -1736,6 +1736,37 @@ The whole-root comparison uses the [78 settings per HQ blur](#directional-blur-w
 
 Both whole roots retain differing pixels. The two impulse regressions failed on the previous renderer and passed after the change. The 416 release node and evaluation tests, formatting, strict Clippy, layering and all ten WebAssembly checks passed using the committed resource set.
 
+### Shared random draws in pattern branches and returned color channels
+
+In a pattern tint, a random draw used by a conditional arm and a later channel keeps its place in the order of the arms. The condition runs first. With the false arm selected, the tested draws shared with the skipped true arm run before the false result. With the true arm selected, its result runs before draws needed from the false arm. A scalar selection from a packed vector visits the supplying component. In a straight-line called function with scalar inputs, the first uses of those inputs determine their evaluation order. Repeated reads reuse the same draw.
+
+Use one full-coverage rectangle, additive color on a black background, with unit alpha and independent unit draws A, B, C, D and E. Set the RGB result to (if take then lerp(A,B,C) else D, E, A). At seed 31 the F32 words for true are `3f51c505 3e9a198c 3f3457e6` and for false are `3f5a33c2 3f46fab2 3f3457e6`. Replace the false arm with lerp(C,B,D) and return D in blue. True gives `3f51c505 3f5b5a9e 3e9a198c` and false gives `3f3cc6a3 3e9a198c 3f46fab2`. Test all four combinations of two Boolean inputs when nesting the arms. Use 16², 32 × 16 and 16 × 32 with seeds 31, 12071 and 68047 respectively, and range inputs .25, .625 and .9375.
+
+For the channel controls, form RGBA from two pairs of unit draws. Select individual channels, reverse or repeat them, try a padded channel and reuse an original draw in a later output. For the call controls expose red, green and blue as scalar arguments, each wired to a distinct draw. Return (blue,green,red), (blue,blue,red) or selected arithmetic on them. Compare the whole result and a single selected result assembled with the caller's next draw. Repeat with three return channels derived from one packed RGBA argument. The four F32 settings use 16² seed 31 with the switch off and on, 32 × 16 seed 12071 with it off, and 16 × 32 seed 68047 with it on. The saved controls preserve the original connections and argument order.
+
+| F32 comparison | Renders | Earlier exact pixels / total · maximum | Current exact pixels / total · maximum |
+|---|---:|---:|---:|
+| Shared draws and branch controls | 84 | 29,184/32,256 · 0.852352262 | 30,720/32,256 · 0.852352262 |
+| Two conditional arms, nested branches and assignments | 216 | 58,880/92,160 · 0.836026192 | 89,600/92,160 · 0.836026192 |
+| Channel selection through nested vectors | 136 | 4,608/52,224 · 0.836026192 | 49,152/52,224 · 0.836026192 |
+| Three scalar function inputs in different return orders | 104 | 6,144/39,936 · 0.836026192 | 23,040/39,936 · 0.836026192 |
+| Returned channels with sums, products and interpolation | 96 | 1,536/36,864 · 0.836026192 | 29,184/36,864 · 0.873463869 |
+| One vector argument with reordered and repeated channels | 180 | 0/69,120 · 0.836026192 | 11,520/69,120 · 0.836026192 |
+| Channel selection with a local assignment or sequence | 80 | 1,536/30,720 · 3.07092288e+16 | 13,824/30,720 · 3.07092288e+16 |
+
+The first six groups went from **100,352 to 233,216 exact pixels out of 322,560** across 816 renders. Another 338 renders matched every pixel. Each render retained or increased its exact count. The largest error in the arithmetic-call group increased from .836026192 to .873463869. Some last-group graphs read a variable without an executed write. That row reports exact captured pixels and the largest finite component difference. The captures include non-finite values, so the value of an undefined read remains unresolved.
+
+| Saved graph family | Packages | Reopened renders | Cross-application exact pixels / total · maximum |
+|---|---:|---:|---:|
+| Packed channel selections | 10 | 40 | 15,360/15,360 · 0 |
+| Scalar call arguments | 7 | 28 | 6,144/10,752 · 0.798588514 |
+| Shared conditional draws | 8 | 32 | 11,520/12,288 · 0.271984816 |
+| Packed call arguments | 10 | 40 | 1,536/15,360 · 0.836026192 |
+
+Each application reproduced every pixel of its own original renders after reopening these files. Calls with vector inputs, arithmetic-dependent selections, assignments and nested conditionals retain measured differences.
+
+Across all 958 previously recorded settings for roots 373–376, 441, 488 and 491, the exact counts and maxima are unchanged. Grayscale Tile Generator remains exact in **757,504/757,504** pixels across 221 settings. Color Tile Generator matches **621,344/765,184** across 331. Its per-channel tint draws still differ. A call with unknown dependencies can read a variable assigned in its caller, so those graphs retain their existing evaluation order. Four node regressions reproduced the earlier errors. All 416 release tests in the node and evaluator crates passed, along with formatting, strict workspace Clippy, dependency layers and WebAssembly.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color

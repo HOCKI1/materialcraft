@@ -1150,6 +1150,134 @@ fn pixel_branch_shared_draws_precede_the_selected_arm() {
 }
 
 #[test]
+fn pattern_branch_draws_shared_with_a_later_channel_keep_their_order() {
+    let mut graph = FunctionGraph::default();
+    let condition = graph.add("get_bool", &[], Some(Value::Text("take".into())));
+    let one = graph.add_constant(Value::Float(1.0));
+    let [a, b, c, alternate, green] = std::array::from_fn(|_| graph.add("rand", &[one], None));
+    let mixed = graph.add("lerp", &[a, b, c], None);
+    let red = graph.add("ifelse", &[condition, mixed, alternate], None);
+    let rg = graph.add("vector2", &[red, green], None);
+    graph.output = Some(graph.add("vector3", &[rg, a], None));
+    for (take, seed, bits) in [
+        (true, 31, [0x3f51_c505, 0x3e9a_198c, 0x3f34_57e6]),
+        (false, 31, [0x3f5a_33c2, 0x3f46_fab2, 0x3f34_57e6]),
+        (true, 12071, [0x3f12_cb20, 0x3f48_974e, 0x3ee5_cd7c]),
+        (false, 68047, [0x3c33_7c80, 0x3f58_d3c2, 0x3d46_3760]),
+    ] {
+        let values = BTreeMap::from([("take".into(), Value::Bool(take))]);
+        let context = EvaluationContext {
+            scope: super::FunctionScope::FxMap,
+            position: [0.5; 2],
+            size: [16.0; 2],
+            images: &[],
+            image_formats: &[],
+            tile: true,
+            variables: &values,
+        };
+        let program = compile(&graph, seed).unwrap();
+        assert_eq!(program.evaluate(&context, &mut EvaluationState::default()).unwrap(), Value::Float3(bits.map(f32::from_bits)));
+    }
+}
+
+#[test]
+fn shared_pattern_draws_follow_the_order_of_the_conditional_arms() {
+    let mut graph = FunctionGraph::default();
+    let take = graph.add("get_bool", &[], Some(Value::Text("take".into())));
+    let one = graph.add_constant(Value::Float(1.0));
+    let [a, b, c, d, next] = std::array::from_fn(|_| graph.add("rand", &[one], None));
+    let yes = graph.add("lerp", &[a, b, c], None);
+    let no = graph.add("lerp", &[c, b, d], None);
+    let branch = graph.add("ifelse", &[take, yes, no], None);
+    let rg = graph.add("vector2", &[branch, next], None);
+    graph.output = Some(graph.add("vector3", &[rg, d], None));
+    let program = compile(&graph, 31).unwrap();
+    for (take, bits) in [(true, [0x3f51_c505, 0x3f5b_5a9e, 0x3e9a_198c]), (false, [0x3f3c_c6a3, 0x3e9a_198c, 0x3f46_fab2])] {
+        let variables = BTreeMap::from([("take".into(), Value::Bool(take))]);
+        let context = EvaluationContext {
+            scope: super::FunctionScope::FxMap,
+            position: [0.5; 2],
+            size: [16.0; 2],
+            images: &[],
+            image_formats: &[],
+            tile: true,
+            variables: &variables,
+        };
+        assert_eq!(program.evaluate(&context, &mut EvaluationState::default()).unwrap(), Value::Float3(bits.map(f32::from_bits)));
+    }
+}
+
+#[test]
+fn selecting_a_packed_pattern_channel_consumes_only_its_draw() {
+    let mut graph = FunctionGraph::default();
+    let one = graph.add_constant(Value::Float(1.0));
+    let [a, b, c, d] = std::array::from_fn(|_| graph.add("rand", &[one], None));
+    let left = graph.add("vector2", &[a, b], None);
+    let right = graph.add("vector2", &[c, d], None);
+    let packed = graph.add("vector4", &[left, right], None);
+    let [last, third, first] = [3, 2, 0].map(|i| graph.add("swizzle1", &[packed], Some(Value::Int(i))));
+    let pair = graph.add("vector2", &[last, third], None);
+    graph.output = Some(graph.add("vector3", &[pair, first], None));
+    let variables = BTreeMap::new();
+    let context = EvaluationContext {
+        scope: super::FunctionScope::FxMap,
+        position: [0.5; 2],
+        size: [16.0; 2],
+        images: &[],
+        image_formats: &[],
+        tile: true,
+        variables: &variables,
+    };
+    let value = compile(&graph, 31).unwrap().evaluate(&context, &mut EvaluationState::default()).unwrap();
+    assert_eq!(value, Value::Float3([0x3f34_57e6, 0x3f5a_33c2, 0x3f46_fab2].map(f32::from_bits)));
+}
+
+#[test]
+fn pattern_call_arguments_follow_the_returned_channels() {
+    let names = ["red", "green", "blue"];
+    let mut body = FunctionGraph::default();
+    let [red, green, blue] = names.map(|n| body.add("get_float1", &[], Some(Value::Text(n.into()))));
+    let bg = body.add("vector2", &[blue, green], None);
+    body.output = Some(body.add("vector3", &[bg, red], None));
+
+    let mut graph = FunctionGraph::default();
+    let one = graph.add_constant(Value::Float(1.0));
+    let args: [_; 3] = std::array::from_fn(|_| graph.add("rand", &[one], None));
+    let result = graph.add("instance", &args, None);
+    let call = graph.nodes.last_mut().unwrap();
+    call.type_code = 1024;
+    call.instance = Some(materialcraft_core::GraphInstance {
+        package: String::new(),
+        graph: "reverse_channels".into(),
+        label: String::new(),
+        inputs: names.map(|n| materialcraft_core::GraphPort { identifier: n.into(), type_code: 256 }).into(),
+        outputs: Vec::new(),
+        defaults: names.map(|n| (n.into(), Value::Float(0.0))).into(),
+    });
+    call.source = Some(Ok(std::sync::Arc::new(body)));
+    let variables = BTreeMap::new();
+    let context = EvaluationContext {
+        scope: super::FunctionScope::FxMap,
+        position: [0.5; 2],
+        size: [16.0; 2],
+        images: &[],
+        image_formats: &[],
+        tile: true,
+        variables: &variables,
+    };
+    graph.output = Some(result);
+    let run = |graph: &FunctionGraph| compile(graph, 31).unwrap().evaluate(&context, &mut EvaluationState::default()).unwrap();
+    let draws = [0x3f34_57e6, 0x3f5a_33c2, 0x3f46_fab2].map(f32::from_bits);
+    assert_eq!(run(&graph), Value::Float3(draws));
+
+    let selected = graph.add("swizzle1", &[result], Some(Value::Int(0)));
+    let next = graph.add("rand", &[one], None);
+    let pair = graph.add("vector2", &[selected, next], None);
+    graph.output = Some(graph.add("vector3", &[pair, args[2]], None));
+    assert_eq!(run(&graph), Value::Float3([draws[0], draws[1], draws[0]]));
+}
+
+#[test]
 fn packed_random_ranges_preserve_the_unrounded_draw_in_each_lane() {
     let mut graph = FunctionGraph::default();
     let [a, b, c, d] = [0.999, -1.731053, 0.001, 0.352111].map(|x| graph.add_constant(Value::Float(x)));
