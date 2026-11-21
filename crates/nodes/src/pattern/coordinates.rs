@@ -116,6 +116,23 @@ impl PixelPlanes {
     }
 
     pub fn row(&self, y: u32) -> impl Fn(u32) -> Option<[f32; 2]> + '_ {
+        let sample = self.unclipped_row(y);
+        let aligned = matches!(self.mapping, Mapping::Aligned { .. });
+        move |x| {
+            let uv = sample(x);
+            (aligned || uv.iter().all(|v| v.abs() <= 1.0)).then_some(uv)
+        }
+    }
+
+    /// Texture gradients include the neighboring lanes even when they fall outside the stamp.
+    pub fn quad_gradients(&self, [x, y]: [u32; 2]) -> [[f32; 2]; 2] {
+        let top = self.unclipped_row(y);
+        let uv = |point: [f32; 2]| point.map(|v| v * 0.5 + 0.5);
+        let origin = uv(top(x));
+        [uv(top(x + 1)), uv(self.unclipped_row(y + 1)(x))].map(|neighbor| [neighbor[0] - origin[0], neighbor[1] - origin[1]])
+    }
+
+    fn unclipped_row(&self, y: u32) -> impl Fn(u32) -> [f32; 2] + '_ {
         let vertical = match &self.mapping {
             Mapping::Aligned { axes, .. } => [f64::from(axes[1].sample(y)), 0.0],
             Mapping::Oblique { planes, origin } => planes.each_ref().map(|plane| plane.y_term(y, f64::from(y) + 0.5 - origin[1])),
@@ -124,12 +141,11 @@ impl PixelPlanes {
             Mapping::Aligned { axes, swap } => {
                 let u = axes[0].sample(x);
                 let v = vertical[0] as f32;
-                Some(if *swap { [v, u] } else { [u, v] })
+                if *swap { [v, u] } else { [u, v] }
             }
             Mapping::Oblique { planes, origin } => {
                 let dx = f64::from(x) + 0.5 - origin[0];
-                let uv: [f32; 2] = std::array::from_fn(|i| planes[i].sample(x, dx, vertical[i]));
-                uv.iter().all(|v| v.abs() <= 1.0).then_some(uv)
+                std::array::from_fn(|i| planes[i].sample(x, dx, vertical[i]))
             }
         }
     }

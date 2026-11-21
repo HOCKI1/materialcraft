@@ -1485,7 +1485,7 @@ fn image_indices_outside_the_supported_range_return_an_error() {
 fn render_bitmap(
     input: craft_texture::Image,
     format: materialcraft_core::OutputFormat,
-    size: u32,
+    [width, height]: [u32; 2],
     stamp: &[(&str, Value)],
     controls: &[(&str, Value)],
 ) -> craft_texture::Image {
@@ -1496,8 +1496,8 @@ fn render_bitmap(
     let mut params = BTreeMap::from([("pattern".into(), Value::PatternGraph(Box::new(graph)))]);
     params.extend(controls.iter().map(|(k, v)| ((*k).into(), v.clone())));
     let context = CookContext {
-        w: size,
-        h: size,
+        w: width,
+        h: height,
         seed: 0,
         format: materialcraft_core::OutputFormat::F32,
         tile: false,
@@ -1523,7 +1523,7 @@ fn an_unbound_image_selector_keeps_the_fixed_slot() {
             selector.output = Some(selector.add("add", &[index, step], None));
         }
         let stamp = [("patterntype", Value::Int(pattern)), ("imageindex", Value::Function(Box::new(selector)))];
-        let image = render_bitmap(source.clone(), OutputFormat::F32, 4, &stamp, &[("color_mode", Value::Bool(false))]);
+        let image = render_bitmap(source.clone(), OutputFormat::F32, [4; 2], &stamp, &[("color_mode", Value::Bool(false))]);
         assert_eq!(image.get_gray(2, 2, false), expected, "pattern {pattern}, offset {offset:?}");
     }
 }
@@ -1540,7 +1540,7 @@ fn bitmap_stamp_filters_use_the_selected_source_level() {
         if let Some(mode) = mode {
             stamp.push(("imagefiltering", Value::Int(mode)));
         }
-        let image = render_bitmap(input.clone(), OutputFormat::U8, 64, &stamp, &[("color_mode", Value::Bool(false))]);
+        let image = render_bitmap(input.clone(), OutputFormat::U8, [64; 2], &stamp, &[("color_mode", Value::Bool(false))]);
         for (x, bits) in [32, 33].into_iter().zip(expected) {
             assert_eq!(image.get_gray(x, 32, false).to_bits(), bits, "filter {mode:?}, x {x}");
         }
@@ -1548,8 +1548,32 @@ fn bitmap_stamp_filters_use_the_selected_source_level() {
     for (angle, expected) in [(0.0625, 0x3f2f57af), (0.125, 0x3f0b1f8b)] {
         let stamp =
             [("patternsize", Value::Float2([0.17, 1.0])), ("frameoffset", Value::Float2([0.07125, -0.0390625])), ("patternrotation", Value::Float(angle))];
-        let image = render_bitmap(input.clone(), OutputFormat::U8, 64, &stamp, &[("color_mode", Value::Bool(false))]);
+        let image = render_bitmap(input.clone(), OutputFormat::U8, [64; 2], &stamp, &[("color_mode", Value::Bool(false))]);
         assert_eq!(image.get_gray(36, 29, false).to_bits(), expected, "angle {angle}");
+    }
+}
+
+#[test]
+fn automatic_bitmap_mips_use_texel_gradients_from_neighboring_pixels() {
+    use materialcraft_core::OutputFormat;
+
+    for (canvas, size, turn, points) in [
+        ([128, 32], [0.1767934, 0.38444963], 0.00014097655, &[(64, 16, 0x3ee1_d8e2)][..]),
+        ([64, 64], [0.17683654, 0.3839], 0.0005, &[(32, 32, 0x3ed0_40d0)][..]),
+        ([128, 32], [0.10727861, 0.12664622], 0.48012114, &[(64, 16, 0x3ef4_f4f4)][..]),
+        ([256, 128], [0.17679575, 0.24720412], 0.00014, &[(128, 64, 0x3e8b_bc8c), (128, 63, 0x3f09_4d89)][..]),
+    ] {
+        let input = craft_texture::Image::gray(canvas[0], canvas[1], |x, y| {
+            let band = |dx, dy| (x / dx + y / dy) & 1_u32;
+            let byte = 6 + 64 * band(1, 1) + 48 * band(2, 2) + 36 * band(4, 4) + 32 * band(8, 8) + 28 * band(16, 8) + 24 * band(32, 8);
+            byte as f32 / 255.0
+        })
+        .with_integer_sampling(true);
+        let stamp = [("patternsize", Value::Float2(size)), ("patternrotation", Value::Float(turn))];
+        let image = render_bitmap(input, OutputFormat::U8, canvas, &stamp, &[("color_mode", Value::Bool(false))]);
+        for &(x, y, expected) in points {
+            assert_eq!(image.get_gray(x, y, false).to_bits(), expected, "{canvas:?} at ({x},{y})");
+        }
     }
 }
 
@@ -1566,7 +1590,7 @@ fn bitmap_stamp_filters_include_the_last_interpolated_texel() {
             ("patternsize", Value::Float2([0.135_416_67, 0.8125])),
             ("imagefiltering", Value::Int(mode)),
         ];
-        let image = render_bitmap(input.clone(), OutputFormat::U8, 32, &stamp, &controls);
+        let image = render_bitmap(input.clone(), OutputFormat::U8, [32; 2], &stamp, &controls);
         assert_eq!(image.get_gray(1, 1, false).to_bits(), expected, "filter {mode}");
     }
 }
@@ -1579,7 +1603,7 @@ fn bitmap_stamp_requires_an_input_matching_the_output_kind() {
     let background = [0.125, 0.5, 0.875, 0.75];
     for (kind, color_output) in [(Kind::Color, false), (Kind::Gray, true)] {
         let controls = [("color_mode", Value::Bool(color_output)), ("background", Value::Color(background))];
-        let image = render_bitmap(Image::filled(4, 4, kind, [1.0; 4]), OutputFormat::F32, 4, &[], &controls);
+        let image = render_bitmap(Image::filled(4, 4, kind, [1.0; 4]), OutputFormat::F32, [4; 2], &[], &controls);
         let expected = if color_output { background } else { [0.5, 0.5, 0.5, 1.0] };
         assert_eq!(image.get(2, 2, false), expected);
     }
@@ -1655,7 +1679,7 @@ fn bitmap_stamp_tint_and_coverage_compose_straight_and_premultiplied_colors() {
             ("imagepremul", Value::Bool(premultiplied)),
             ("imagefiltering", Value::Int(2)),
         ];
-        let image = render_bitmap(Image::filled(1, 1, Kind::Color, source), OutputFormat::F32, 1, &stamp, &controls);
+        let image = render_bitmap(Image::filled(1, 1, Kind::Color, source), OutputFormat::F32, [1; 2], &stamp, &controls);
         assert_eq!(image.get(0, 0, false).map(f32::to_bits), expected, "blend {blend}, premultiplied {premultiplied}");
     }
 }
@@ -1674,13 +1698,13 @@ fn bitmap_stamp_blend_preserves_guard_bits_during_cancellation() {
         (2, [0x34f98400, 0x3a61d400, 0x364a3400, 0x388c5c00]),
     ] {
         let stamp = [("imagefiltering", Value::Int(2)), ("imagepremul", Value::Bool(true)), ("blendingmode", Value::Int(mode))];
-        let image = render_bitmap(Image::filled(1, 1, Kind::Color, source), OutputFormat::F32, 1, &stamp, &controls);
+        let image = render_bitmap(Image::filled(1, 1, Kind::Color, source), OutputFormat::F32, [1; 2], &stamp, &controls);
         assert_eq!(image.get(0, 0, false).map(f32::to_bits), expected, "blend {mode}");
     }
     let controls = [("color_mode", Value::Bool(true)), ("background", Value::Color([-0.0; 4]))];
     for mode in 0..=2 {
         let stamp = [("imagefiltering", Value::Int(2)), ("blendingmode", Value::Int(mode))];
-        let image = render_bitmap(Image::filled(1, 1, Kind::Color, [0.0; 4]), OutputFormat::F32, 1, &stamp, &controls);
+        let image = render_bitmap(Image::filled(1, 1, Kind::Color, [0.0; 4]), OutputFormat::F32, [1; 2], &stamp, &controls);
         assert_eq!(image.get(0, 0, false).map(f32::to_bits), [(-0.0_f32).to_bits(); 4]);
     }
 }

@@ -81,12 +81,15 @@ pub(super) fn render(context: &CookContext, groups: [&[PatternStamp]; 5], max_de
         if authored_alpha == 0.0 && matches!(stamp.pattern, 2..=16 | 18) {
             continue;
         }
-        let texture = if stamp.pattern >= 256 {
+        let mut texture = if stamp.pattern >= 256 {
             let index = (stamp.pattern - 256) as usize + 1;
             let Some(input) = context.input(index).filter(|image| image.kind() == kind) else { continue };
             let format = context.input_formats.get(index).copied().unwrap_or(if input.integer_sampling() { OutputFormat::U16 } else { OutputFormat::F32 });
-            let level = if stamp.filtering == 0 { bitmap::mip_level(input, stamp.size, pixel_size, frame.sine, frame.cosine) } else { 0 };
-            Some((mipmaps.image(index, input, format, level)?, format))
+            let gradients = [
+                [frame.cosine * pixel_size[0] / stamp.size[0], -frame.sine * pixel_size[0] / stamp.size[1]],
+                [frame.sine * pixel_size[1] / stamp.size[0], frame.cosine * pixel_size[1] / stamp.size[1]],
+            ];
+            Some(bitmap::Sampler::new(input, index, format, stamp.filtering, gradients))
         } else {
             None
         };
@@ -110,6 +113,9 @@ pub(super) fn render(context: &CookContext, groups: [&[PatternStamp]; 5], max_de
                 }
                 budget = budget.checked_sub(samples).ok_or("pattern rendering exceeded its pixel budget")?;
                 let planes = PixelPlanes::new(&frame, &render_region, center, stamp.size, [width, height]);
+                if let Some(sampler) = &mut texture {
+                    sampler.start_copy();
+                }
                 let [[left, right], [top, bottom]] = planes.as_ref().map_or(bounds, |p| p.clip(bounds));
                 for y in top..bottom {
                     let row = planes.as_ref().map(|planes| planes.row(y));
@@ -122,8 +128,8 @@ pub(super) fn render(context: &CookContext, groups: [&[PatternStamp]; 5], max_de
                         };
                         let Some(local) = local else { continue };
 
-                        let (foreground, stamp_alpha) = if let Some((input, format)) = &texture {
-                            let sample = bitmap::sample(input, local, *format, stamp.filtering == 2).map(flush_subnormal);
+                        let (foreground, stamp_alpha) = if let Some(sampler) = &mut texture {
+                            let sample = sampler.sample(local, [x, y], planes.as_ref(), &mut mipmaps)?.map(flush_subnormal);
                             if kind == Kind::Gray {
                                 ([(sample[0] - 1.0).mul_add(alpha, alpha); 4], 1.0)
                             } else {
