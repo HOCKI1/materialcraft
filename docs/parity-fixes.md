@@ -1622,6 +1622,20 @@ At zero-based row j, use seed 117731 + 13i + 31j with the inventory index i show
 
 Material Switch outputs were diffuse, normal, specular, height, roughness, metallic, glossiness, ambient occlusion, base color, emissive, specular level and opacity. The 216 original output renders matched **331,776/331,776** pixels, maximum zero. Save each package in MaterialCraft and reopen it in both applications. Read every selected output by identifier at row 0 U16, row 1 U8, row 2 F32 and row 3 F16 and F32. The 90 reopened output renders matched **129,024/129,024** pixels, maximum zero. Each application also reproduced all its own original buffers. These cases extend the seven roots' existing measured parity.
 
+### Equal reduced phases with distinct rectangular blur coefficients
+
+The [48 paired-angle controls](#paired-angles-isolate-the-reduced-phase-of-rectangular-blur) agreed at every tested extent. To distinguish the remaining cases, start with 24 angles where the current direction estimate misses the observed interval. For each, choose a different positive angle with the same F32 folded phase. Keep the same red column impulse, green row impulse, blue modular field, two rectangular sizes and five projected extents. Use seed 121587 + 17b + 5j + k with the earlier batch, size and extent numbering. The table lists the F32 turn words. H selects the horizontal impulse coefficient and V the vertical one.
+
+| Batch | Paired turn words and axes, in order |
+|---:|---|
+| 0 | 3e7f6800H/3a17ffd0V, 3e67ad41H/3ef3d6a0V, 3e5b467aH/3eeda33dV, 3e59d226H/3eece913V, 3e520f6fH/3d37c23fV, 3fb9fd7fV/3f99fd7fH, 3e9b0000H/3d580003V, 3f98c676H/3fb8c675V |
+| 1 | 3e365aafH/3edb2d58V, 3d965000V/3f969b00H, 3e32ecebH/3d9a2629V, 3da20001V/3f144000V, 3db80000V/3eae0000H, 3dc80000V/3f58ffffH, 3e1a89d4H/3dcaec59V, 3dd48688H/3f92b797V |
+| 2 | 3dbf4a89H/3e205abbV, 3f574300V/3f174300H, 3fab1280V/3fb4ed80H, 3da20002H/3fea2000V, 3d7e04baH/3e407ecfV, 3fa62980V/402314bfH, 3fb9fd82H/3e4fec0fV, 3d3ffffbH/3d3ffffaH |
+
+Twenty-three pairs have identical coefficients at all five extents, and one differs. For H at .249420166015625 turns the stored phase is 3.1379494667053223 radians. For V at .0005798311904072762 turns it is .0036431869957596064. Both absolute folded phases round to F32 word `3b6ec289`. All five center weights agree. All five neighboring weights differ by one F32 word. The five observations constrain the horizontal direction magnitude to `3b6ec265` and the vertical one to `3b6ec266`. A calculation that retains only the rounded absolute folded phase cannot reproduce both. This distinguishes the reduction or subsequent precision even with identical stored input to the existing sine polynomial.
+
+The 480 original branch renders matched **351,169/491,520** whole RGB pixels across applications, maximum 1.78813934e-07. Save the three graphs in MaterialCraft, reopen them in both applications and repeat the first and last extents at both sizes. All sixteen named outputs reproduced their own originals in each application. Across applications, the 192 reopened renders matched **142,599/196,608**, maximum 1.78813934e-07. Both HQ blur roots remain in progress.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color
