@@ -95,10 +95,21 @@ fn mip_level(input: &Image, matrix: [f32; 4], context: &CookContext) -> u32 {
     }
     let width = context.w.max(1) as f32;
     let height = context.h.max(1) as f32;
-    let dx = (matrix[0] * input.width() as f32 / width).hypot(matrix[1] * input.height() as f32 / width);
-    let dy = (matrix[2] * input.width() as f32 / height).hypot(matrix[3] * input.height() as f32 / height);
-
-    dx.max(dy).max(1.0).log2().round().clamp(0.0, 13.0) as u32
+    // Measure each source coordinate's gradient over both output axes, in source texels.
+    let gradient_squared = |dx: f32, dy: f32, size: u32| {
+        let x = dx * (size as f32 / width);
+        let y = dy * (size as f32 / height);
+        x * x + y * y
+    };
+    let u = gradient_squared(matrix[0], matrix[2], input.width());
+    let v = gradient_squared(matrix[1], matrix[3], input.height());
+    // Round the natural log of the squared footprint before converting it to a mip level.
+    let log_footprint = f64::from(u.max(v).max(1.0)).ln() as f32;
+    let level = 0.5 * (log_footprint / std::f32::consts::LN_2);
+    // The fractional level is rounded to ten bits before selecting the nearest image.
+    const LEVEL_STEPS: f32 = 1024.0;
+    let stored_level = (level * LEVEL_STEPS).round() / LEVEL_STEPS;
+    stored_level.round().clamp(0.0, 13.0) as u32
 }
 
 fn reduce_mip(mut input: Image, levels: u32, mut source_format: OutputFormat, format: OutputFormat) -> Image {
@@ -121,6 +132,44 @@ mod tests {
     use crate::resolve_params;
     use materialcraft_core::Value;
     use std::collections::BTreeMap;
+
+    #[test]
+    fn automatic_mip_samples_near_half_level_boundaries() {
+        let vars = BTreeMap::new();
+        for (source, output, matrix, corner, interior) in [
+            ([64; 2], [64; 2], [1.0, -1.0, 1.0, 1.0], 0x3f1bdc1c, 0x3ee969e9),
+            ([64; 2], [64; 2], [0.995, -0.995, 0.995, 0.995], 0x3f45eac6, 0x3eee42ee),
+            ([64; 2], [64; 2], [0.9998, -0.9998, 0.9998, 0.9998], 0x3f1c4282, 0x3ee9c847),
+            ([64; 2], [64; 2], [1.4139308, 0.0, 0.0, 0.875], 0x3f18f838, 0x3f061050),
+            ([64; 2], [64; 2], [1.9993231, -1.9993231, 1.9993231, 1.9993231], 0x3f351f60, 0x3eee62e2),
+            ([64; 2], [64; 2], [0.625, 2.7598505, -0.34375, 0.61466354], 0x3f033f7f, 0x3f0292d2),
+            ([64; 2], [64; 2], [0.625, 4.667103, -0.34375, 10.302016], 0x3f02df1f, 0x3ef555d5),
+            ([64; 2], [64; 2], [1.9996, -1.9996, 1.9996, 1.9996], 0x3f353172, 0x3eee62e2),
+            ([64; 2], [64; 2], [3.9992, -3.9992, 3.9992, 3.9992], 0x3f163273, 0x3ef48504),
+            ([64; 2], [64; 2], [1.2, 0.9, 0.19, 0.13], 0x3f2c8cad, 0x3e7988fa),
+            ([64; 2], [64; 2], [1.2, 0.19, 0.9, 0.13], 0x3f00abeb, 0x3f265292),
+            ([128, 32], [64; 2], [1.0, -1.0, 1.0, 1.0], 0x3f054585, 0x3ef272f2),
+            ([128, 32], [32, 128], [1.2, 0.9, 0.19, 0.13], 0x3ef1be3d, 0x3f0bd212),
+        ] {
+            let input = Image::gray(source[0], source[1], |x, y| ((13 * x + 19 * y + 7 * x * y) % 256) as f32 / 255.0).with_integer_sampling(true);
+            let params = resolve_params(&definition(), &BTreeMap::from([("matrix".into(), Value::Float4(matrix))]));
+            let context = CookContext {
+                w: output[0],
+                h: output[1],
+                seed: 0,
+                format: OutputFormat::F32,
+                tile: true,
+                inputs: &[Some(input)],
+                input_formats: &[OutputFormat::U8],
+                params: &params,
+                resource: &|_| None,
+                vars: &vars,
+            };
+            let image = transformation(&context).unwrap();
+            assert_eq!(image[0].get_gray(0, 0, false).to_bits(), corner, "{matrix:?}");
+            assert_eq!(image[0].get_gray(19, 43, false).to_bits(), interior, "{matrix:?}");
+        }
+    }
 
     #[test]
     fn affine_texture_coordinates_keep_the_fraction_at_rotated_texel_boundaries() {

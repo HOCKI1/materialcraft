@@ -641,6 +641,53 @@ Use the dimensions, formats, seeds and d for index i in the two tile-patch serie
 
 Separate downstream checks replaced each live generator with a different original U16 field in Messy Fibers 1, Messy Fibers 4 and Microscope View. All 46,336/46,336 output pixels per graph matched across the twelve settings, maximum zero. [Field formulas and stage measurements](#scratches-messy-fibers-microscope-and-moisture)
 
+### Affine mip selection on rectangular and skewed footprints
+
+Mesh 2 matches **8,912,896/8,912,896 final pixels across 73 distinct settings**. Mesh 1 has 454 unequal pixels. Both applications reopened the saved packages and reproduced their own original results on every pixel of the smaller 36 renders (588,800 pixels) and the larger 34 renders (8,536,064 pixels) for each root.
+
+| Root (inventory index) | Distinct settings | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|---:|
+| Mesh 1 (211) | 73 | 1,568,000/1,568,000 · 0 | 2,904,143/2,904,320 · 1 | 1,567,998/1,568,000 · 0.000244140625 | 2,872,301/2,872,576 · 1.52587891e-05 |
+| Mesh 2 (212) | 73 | 1,568,000/1,568,000 · 0 | 2,904,320/2,904,320 · 0 | 1,568,000/1,568,000 · 0 | 2,872,576/2,872,576 · 0 |
+
+The two generators take no image inputs. The table lists (width×height, tiling, rotation switch) for each row. A dash selects all defaults. For the smaller series use seed zero at j=0,6,11 and 401129+13i+31j elsewhere, where i is the root index. Use U16 and F32 on all rows and also U8 and F16 at j=0,2,5,6,8,11. The larger series uses the listed seed and adds U8 and F16 at j=0,2,4,6,7,10.
+
+| j | Smaller dimensions | Tiling, rotation | Larger dimensions | Tiling, rotation | Larger seed |
+|---:|---|---|---|---|---:|
+| 0 | 16×16 | — | 32×64 | — | 0 |
+| 1 | 32×32 | 1, off | 128×32 | 1, off | 42 |
+| 2 | 32×32 | 1, on | 64×256 | 3, on | 7823 |
+| 3 | 32×64 | 2, off | 256×128 | 2, off | 55337 |
+| 4 | 64×32 | 3, on | 256×256 | — | 0 |
+| 5 | 64×64 | 3, off | 512×256 | 1, on | 42 |
+| 6 | 128×128 | — | 256×512 | 3, off | 7789 |
+| 7 | 128×128 | 1, off | 512×512 | — | 0 |
+| 8 | 128×128 | 1, on | 512×1024 | 2, on | 70717 |
+| 9 | 128×256 | 2, on | 1024×512 | 1, off | 58073 |
+| 10 | 256×128 | 3, off | 1024×1024 | — | 39133 |
+| 11 | 256×256 | — | — | — | — |
+
+The affine transform now measures the source U and V gradients in texels across both output axes. Each squared gradient rounds its two products and their sum to F32. The natural log of the larger squared gradient rounds to F32 before conversion to a mip level. Rounding the fractional level to ten bits selects the nearest stored image. At 64² the matrix (1,−1,1,1) now samples level 1. A diagonal matrix (s,−s,s,s) with s=1.9993231296539307 samples level 2. The former implementation sampled a finer image at both settings.
+
+Generate a U8 RGBA field with R=(13x+19y+7xy) mod 256, G=255((x XOR y) mod 2), B=255((⌊x/2⌋+⌊y/4⌋) mod 2), A=4+((5x+19y+33) mod 251). Use both tiling axes, zero offset and F32 output. At the second matrix, pixel (0,0) has red bits 0x3f351f60 and (19,43) has 0x3eee62e2. For the skew matrix (.625,2.7598505,−.34375,.61466354), the corresponding values are 0x3f033f7f and 0x3f0292d2. The regression also exercises non-square sources and outputs.
+
+| Original transform series | Renders | Exact before | Exact after / total | Maximum error before | Maximum error after |
+|---|---:|---:|---:|---:|---:|
+| Initial auto levels | 84 | 235,810 | 344,064/344,064 | 0.49609375 | 0 |
+| Manual levels 0–3 | 336 | 1,376,256 | 1,376,256/1,376,256 | 0 | 0 |
+| Coarse thresholds | 78 | 286,849 | 319,488/319,488 | 0.49609375 | 0 |
+| Fine thresholds | 66 | 180,224 | 270,336/270,336 | 0.48343116 | 0 |
+| Square and rectangular footprints | 138 | 313,345 | 409,600/409,600 | 0.549227991 | 0 |
+| Adjacent F32 coefficients | 66 | 118,899 | 270,336/270,336 | 0.5 | 0 |
+| Rectangular source, nearest and bilinear | 96 | 357,578 | 393,216/393,216 | 0.541451991 | 0 |
+| Repeat, sign and dimension controls | 51 | 114,002 | 365,568/365,568 | 0.5 | 0 |
+| Independent near-threshold skew matrices | 155 | 352,259 | 634,880/634,880 | 0.547572951 | 0 |
+| High levels on a 2048×32 source | 90 | 6,736 | 92,160/92,160 | 0.423014522 | 0 |
+
+For the fine sweep use 33 equally spaced values between 1.4130859375 and 1.4140625 on one axis and on the 45-degree diagonal. For the adjacent-coefficient sweep start at F32(2^(.5−.5/1024)), offset its bit pattern by −96,−32,−12,−4,−1,0,1,4,12,32,96 and scale by 1,2 or 4. Compare the axis-aligned matrix (s,0,0,.875) and the diagonal with coefficients ±s/√2. The 155 skew probes distinguish separate squared products from a fused product and from a double-precision norm. In the high-level series render 32² with a 2048×32 source. For levels l=4…9, resolve radii 2^(l+.5−.5/1024) at angles 0,.231,.613,π/4,1.117 radians and the preceding, nearest and following F32 horizontal coefficient. The 90 auto images match the selected manual levels.
+
+Mesh 1 first differs in its two-stamp pattern source. Six original-only F32 captures agree across every pixel at 128×64 and 256². Against MaterialCraft the source matches 7,994/8,192 (maximum 2.38418579e−7) and 62,825/65,536 (4.17232513e−7). An original two-leaf graph reproduces those counts. With only the positive eighth-turn stamp, all 74,752 F32 pixels match across three sizes when both tiling axes are disabled. Wrapping both axes gives 70,822/74,752 with maximum 3.75672244e−7. Its rectangle is (.75,1.5) centered at (.5,.5). Changing either size or rotation to a graph input makes a separate four-size probe exact. Fixed size and rotation together give 86,299/91,136 at the same values. [Earlier per-stamp measurements](#directional-and-additive-stamp-profiles)
+
 ### Short directional blur tap order on rectangular inputs
 
 Fluid matches **25,969,920/25,969,920 final pixels across 121 distinct settings** through 2048 pixels per side. Both applications reopened the MaterialCraft package and reproduced every pixel of their originals over 28, 38 and 36 settings (498,688, 8,654,848 and 17,588,224 pixels). The three instrumented renders at 512×1024, 1024×512 and 1024² match 9,961,472/9,961,472 intermediate and final samples. [First differing stage and earlier settings](#fibers-1-and-fluid-through-1024-pixels-per-side)
