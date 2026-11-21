@@ -170,6 +170,42 @@ fn native_sbs_is_the_default_save_format() {
     assert_eq!(run(&mut session, "file.save", json!({}))["path"], json!(saved));
 }
 
+#[test]
+fn saving_a_library_graph_opened_from_disk_keeps_its_portable_function_links() {
+    let directory = TempDir::new("library-function-export");
+    let name = "waveform_01_v2.sbs";
+    let library = materialcraft_engine::formats::sbs::library::root();
+    let mut session = sample_session();
+    for (index, source) in [library.join(name).to_str().unwrap().to_string(), format!("sbs://{name}")].into_iter().enumerate() {
+        run(&mut session, "file.open", json!({ "path": source }));
+        let saved = directory.file(&format!("caller-{index}.sbs"));
+        run(&mut session, "file.saveAs", json!({ "path": saved }));
+        let xml = std::fs::read_to_string(&saved).unwrap();
+        for helper in ["functions.sbs", "functions_hash.sbs"] {
+            assert!(xml.contains(&format!(r#"<filename v="sbs://{helper}""#)), "{helper}");
+        }
+        let mut reopened = sample_session();
+        run(&mut reopened, "file.open", json!({ "path": saved }));
+        assert!(reopened.pkg.dependencies.contains_key("sbs://functions_hash.sbs"));
+    }
+}
+
+#[test]
+fn a_changed_or_detached_function_file_keeps_its_disk_identity() {
+    use materialcraft_engine::formats::sbs::library;
+    use std::path::Path;
+
+    let directory = TempDir::new("local-function-source");
+    let name = "functions_hash.sbs";
+    let path = directory.file(name);
+    let mut changed = library::read(&format!("sbs://{name}")).unwrap();
+    changed[0] = b' ';
+    std::fs::write(&path, changed).unwrap();
+    assert!(library::bundled_package_uri(&directory.0.canonicalize().unwrap(), Path::new(&path)).is_none());
+    std::fs::copy(library::root().join(name), &path).unwrap();
+    assert!(library::bundled_package_uri(&library::root().canonicalize().unwrap(), Path::new(&path)).is_none());
+}
+
 /// Saving an SBS file another program wrote must not overwrite it: MaterialCraft can't write back what it couldn't read
 #[test]
 fn saving_an_sbs_file_from_another_program_needs_a_new_name() {

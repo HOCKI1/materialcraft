@@ -214,13 +214,38 @@ fn package_for_save(session: &Session, path: Option<&str>) -> Package {
             }
         }
 
+        let mut packages = std::collections::BTreeMap::new();
         for instance in package.graphs.iter_mut().flat_map(|graph| graph.instances_mut()) {
             if !instance.package.is_empty() {
-                instance.package = crate::document_path::relative(path, &instance.package);
+                let source = std::mem::take(&mut instance.package);
+                let reference = packages.entry(source).or_insert_with_key(|source| package_reference(&session.pkg, path, source));
+                instance.package.clone_from(reference);
             }
         }
     }
     package
+}
+
+fn package_reference(_package: &Package, destination: &str, source: &str) -> String {
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        use materialcraft_formats::sbs::library;
+        use std::path::Path;
+
+        // A function library with external calls or resources can rely on other local edits.
+        if Path::new(source).is_absolute()
+            && let Some(dependency) = _package.dependencies.get(source)
+            && dependency.resources.is_empty()
+            && !dependency.graphs.is_empty()
+            && dependency.graphs.iter().all(|graph| graph.function.is_some() && graph.instances().all(|instance| instance.package.is_empty()))
+            && !library::contains_file(Path::new(destination))
+            && let Ok(root) = library::root().canonicalize()
+            && let Some(uri) = library::bundled_package_uri(&root, Path::new(source))
+        {
+            return uri;
+        }
+    }
+    crate::document_path::relative(destination, source)
 }
 
 pub fn save_files_at(session: &Session, path: &str) -> Result<materialcraft_formats::project::ProjectFiles> {

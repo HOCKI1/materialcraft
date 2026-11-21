@@ -1246,6 +1246,28 @@ The six-setting authored-shape and disc controls from the earlier branch compari
 
 Splatter Color and Weave 2 have measured parity across the reported settings. Pattern Weave 2 still differs on 351 whole pixels. Grayscale Splatter differs on the 16 × 64 default fed by the 32 × 16 field at seed 811492. Its input bridge matched all 1,024 U16 words. The following pattern draw differed on all 1,024 words, maximum 9,366. Rebinding the measured bridge levels as a 16 × 64 original-field input gave 1,024/1,024 matching F32 output pixels, maximum zero.
 
+### Portable function links when opening a library graph from disk
+
+Open the physical `waveform_01_v2.sbs` beneath the configured package library in MaterialCraft. Save to a directory outside that library with `file.saveAs`. Close and reopen the new file directly in both applications. Repeat the [seven-size and fixed-field waveform comparisons](#waveform-v2-with-library-and-file-based-hash-functions). Include a second save and reopen.
+
+Before the fix, opening the graph through its physical path wrote relative links to the two local function packages. Opening through the library alias preserved both portable links. At the 16² default and the changed 64 × 32 and 128 × 32 F32 controls, the two saved files produced the following results.
+
+| How MaterialCraft opened the original | Saved F32 pixels exact / compared | Maximum error |
+|---|---:|---:|
+| Physical path | 4,712/6,400 | 1 |
+| Library alias | 6,400/6,400 | 0 |
+
+When a graph is saved outside the configured library, unchanged, self-contained function packages from that library use portable URIs. The positive control uses the package files bundled with the tested build. The second library contains the earlier general math file from revision `97f2e06` and the unchanged hash file. The earlier math file differs byte-for-byte from the bundled version and keeps its relative link.
+
+| Source directory used to open the waveform | Saved general math link | Saved hash link | First save, 20 renders | Second save, 10 renders | Fixed-field reopens, 13 renders |
+|---|---|---|---:|---:|---:|
+| Bundled files | Library URI | Library URI | 109,056/109,056 | 44,288/44,288 | 26,624/26,624 |
+| Earlier file for general math | Relative file path | Library URI | 109,056/109,056 | 44,288/44,288 | 26,624/26,624 |
+
+All **179,968/179,968** pixels on each route matched across applications and repeated the original render in each application. The U8, U16, F16 and F32 maxima were zero. Saving within the same configured library to a child directory wrote relative links resolving to both original functions. A detached older hash file still has the [separate measured handoff difference](#waveform-v2-with-library-and-file-based-hash-functions). Waveform v2 remains in progress for that case.
+
+The normal open/save/reopen regression failed before the change and passed after it. Separate controls retain file identity for a same-length edit and a byte-identical copy outside the library. The release engine and format suites passed, along with the hostile-command check, formatting, strict workspace Clippy, dependency layering and WebAssembly.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color
