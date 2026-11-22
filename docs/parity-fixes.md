@@ -2427,6 +2427,51 @@ One processor matched 1,792,256/1,792,256 raw whole-root pixels, including the s
 
 For ten representative whole settings, alternate the original seed with offsets +13, +29 and +43, returning to the original after each change. Include the earlier capture for five raw comparisons per setting. Two separately pinned single processors each reproduced every coordinate in all five frames. On eight processors between one and seven coordinates per setting varied across the five frames. Five coordinates across four settings differed from MaterialCraft in all five eight-processor frames. Clouds 2 remains in progress. Six interleaved one-processor release timings per revision after warmup gave median generator times of 574 to 571 ms at 256² and 567 to 562 ms at 512 × 128. All 431 release tests for the node and evaluation crates, formatting, workspace Clippy, dependency layers and the WebAssembly check passed.
 
+### Inverting the stored pixel projection in scaled stamp regions
+
+The last two differing settings in each Cells 1 root reproduced with individual original paraboloids. Turn off tiling and place one stamp at each contributing translated center. The maximum of those untiled stamps reproduced each original tiled paraboloid. Two signed offset ramps, one along each local axis, further isolated the coordinate error. In the 128 × 512 case, one horizontal ramp differed at center X −2.5763158798217773, while its copy at X 4.423684120178223 matched. Across 127 isolated, translated and tiled stamp renders, the current comparisons improved from 2,844,826/2,907,136 pixels to 2,907,136/2,907,136, maximum zero. All 34 original isolated cell stamps also match, 579,584/579,584 F32 pixels.
+
+A smaller reproduction uses one horizontal ramp, additive blend, tint 2, offset −1 and a zero gray F32 background. Disable tiling. Use stamp size (1,1), center (.5,.5), render bounds (0,13,0,1), output 32 × 64 and seed 181317. The first two pixels have bits BF180001 and 3E5FFFF0. The previous build returned BF180000 at column zero. With horizontal span 7, stamp width .4375, center X one F32 step below .109375, 32² output and seed 181746, the first two pixels return B3800000 and 3F7FFFFC. MaterialCraft now computes pattern units per pixel by taking the reciprocal of the rounded F32 pixels-per-unit projection. The integration regression failed on the first reproduction before this change.
+
+The [150 original scaled windows, 198 one-ULP variations and 34 half-pixel edges](#projecting-stamp-vertices-relative-to-pixel-centers-in-scaled-windows) now match 337,920/337,920, 645,120/645,120 and 54,272/54,272 F32 pixels, all maxima zero. The previous last two counts were 644,992 and 53,760. The 20 reopened ramp settings matched 45,056/45,056. The 544 earlier ramp and brick checks retained 7,065,600/7,065,600 exact pixels.
+
+For 64 independent signed ramps, use horizontal spans S = 7,13,15,61,109,121,1.125,3.375. The vertical span T is the entry three positions ahead, wrapping at the end. For zero-based span index j, the window origin X is −(S−1)/2 for even j and −S/4 for odd j, while Y is zero for multiples of three and −3T/8 for the others. For zero-based case k use the eight tuples (output, width fraction, rotation in turns) below. Center the stamp at origin + (S(.375 + .01953125k), T(.25 + .041015625k)). Its size is (S times the width fraction, T(.375 + .046875k)). At k = 6 use size (1,T) and center origin + (.5,T/2). Use seed 185109 + 97j + k.
+
+| k | Output | Width fraction | Rotation |
+|---:|---|---:|---:|
+| 0 | 32 × 64 | .0625 | 0 |
+| 1 | 64 × 32 | .296875 | .25 |
+| 2 | 128 × 64 | .4375 | 0 |
+| 3 | 64 × 128 | .53125 | .25 |
+| 4 | 64² | .3125 | .0576171875 |
+| 5 | 32 × 128 | .203125 | −.1015625 |
+| 6 | 32 × 64 | 1/S | 0 |
+| 7 | 64 × 32 | .3828125 | .125 |
+
+These 64 frames improved from 261,376/262,144 pixels, maximum 1.43051147e−6, to 262,144/262,144, maximum zero. They include spans where inverting the stored projection rounds the pixel size up, down and exactly.
+
+Repeat the [whole Cells 1 suites](#projecting-stamp-vertices-relative-to-pixel-centers-in-scaled-windows) with one and eight reference processors. Add the cases below to each root. Use the scale, disorder and expansion settings shown here. For v2 set speed .625, angle .0625, random angle .1875, anisotropy .25 at angle .125, pattern 4, pattern size (.875,1.125), pattern scale .8125, luminance random .375 and tile offset (.1875,−.3125). Use U16 and F32 throughout and add U8 and F16 for both scale-13 settings.
+
+| Output | Seed | Scale | Disorder | Non-square expansion |
+|---|---:|---:|---:|---|
+| 128 × 256 | 411896 | 7 | .53125 | Off |
+| 64 × 128 | 411898 | 7 | .53125 | On |
+| 64² | 185241 | 13 | .6875 | Off |
+| 128 × 64 | 185253 | 13 | .6875 | On |
+| 32 × 64 | 185293 | 15 | .34375 | On |
+| 64 × 32 | 185303 | 9 | .78125 | Off |
+
+Both processor configurations gave the following exact counts independently. Every maximum error is zero. The source captures also reproduced all 729,344 original archived pixels for Cells 1 and all 748,800 for Cells 1 v2.
+
+| Root | Distinct settings | U8 exact / total | U16 exact / total | F16 exact / total | F32 exact / total |
+|---|---:|---:|---:|---:|---:|
+| Cells 1 (240) | 88 | 108,288/108,288 | 372,992/372,992 | 116,480/116,480 | 330,240/330,240 |
+| Cells 1 v2 (241) | 89 | 160,512/160,512 | 324,864/324,864 | 111,360/111,360 | 350,720/350,720 |
+
+Save and reopen the previously differing settings and every third new setting, starting with the first, in addition to the earlier file checks. Across applications Cells 1 matched 265,472/265,472 pixels in 26 distinct reopened settings. Cells 1 v2 matched 286,464/286,464 in 28. Both applications also reproduced their own source frames. A duplicate Cells 1 reopen at 128 × 512 was exact and is counted once. Cells 1 and Cells 1 v2 are marked Parity for these measured cases. The inventory now has 449 roots at Parity and 97 in progress.
+
+The six interleaved one-processor release timings per revision after warmup gave Cells 1 medians of 39.6 to 39.4 ms and 26.3 to 26.3 ms. The two Clouds 2 medians were 747 to 754 ms and 716 to 759 ms. All 431 release tests for the node and evaluation crates, formatting, strict workspace Clippy, dependency layers and the WebAssembly check passed.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color

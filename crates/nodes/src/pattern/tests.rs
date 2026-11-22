@@ -833,10 +833,12 @@ fn narrow_rotated_stamps_align_the_plane_origin_before_interpolation() {
 #[test]
 fn stamp_projection_rounds_at_the_pixel_center_in_scaled_regions() {
     let variables = BTreeMap::from([("$tiling".into(), Value::Int(0))]);
-    for (span, dx, dimensions, expected) in [
-        (7.0, 0.0, [64, 64], [0xbf1c_0001, 0xbec8_0004]),
-        (3.0, 3.0 / 4096.0, [32, 32], [0xbe60_8008, 0x3e5f_7ff8]),
-        (13.0, 0.0, [32, 64], [0xbe60_0008, 0x3e5f_fff8]),
+    for (span, center, size, dimensions, samples) in [
+        ([7.0; 2], [3.5; 2], [7.0; 2], [64, 64], [(12, 0xbf1c_0001), (19, 0xbec8_0004)]),
+        ([3.0; 2], [1.5 + 3.0 / 4096.0, 1.5], [3.0; 2], [32, 32], [(12, 0xbe60_8008), (19, 0x3e5f_7ff8)]),
+        ([13.0; 2], [6.5; 2], [13.0; 2], [32, 64], [(12, 0xbe60_0008), (19, 0x3e5f_fff8)]),
+        ([13.0, 1.0], [0.5; 2], [1.0; 2], [32, 64], [(0, 0xbf18_0001), (1, 0x3e5f_fff0)]),
+        ([7.0, 1.0], [0.109_375_f32.next_down(), 0.5], [0.4375, 1.0], [32, 32], [(0, 0xb380_0000), (1, 0x3f7f_fffc)]),
     ] {
         let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
         graph.nodes[0].parameters = BTreeMap::from([
@@ -845,13 +847,13 @@ fn stamp_projection_rounds_at_the_pixel_center_in_scaled_regions() {
             ("blendingmode".into(), Value::Int(0)),
             ("opacity".into(), Value::Float(2.0)),
             ("branchoffset".into(), Value::Float2([-0.5; 2])),
-            ("frameoffset".into(), Value::Float2([span * 0.5 + dx, span * 0.5])),
-            ("patternsize".into(), Value::Float2([span; 2])),
+            ("frameoffset".into(), Value::Float2(center)),
+            ("patternsize".into(), Value::Float2(size)),
         ]);
-        let region = [0.0, span, 0.0, span];
+        let region = [0.0, span[0], 0.0, span[1]];
         let image = cook_in_regions(graph, &variables, 170235, dimensions, [region; 2], 0.0).unwrap().remove(0);
-        for (x, bits) in [12, 19].into_iter().zip(expected) {
-            assert_eq!(image.get_gray(x, 0, false).to_bits(), bits, "span {span}, column {x}");
+        for (x, bits) in samples {
+            assert_eq!(image.get_gray(x, 0, false).to_bits(), bits, "span {span:?}, column {x}");
         }
     }
 }

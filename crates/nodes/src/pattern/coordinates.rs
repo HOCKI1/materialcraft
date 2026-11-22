@@ -31,7 +31,9 @@ struct Triangle {
 
 impl PixelPlanes {
     pub fn new(frame: &Footprint, region: &Region, center: [f32; 2], size: [f32; 2], dimensions: [u32; 2]) -> Option<Self> {
-        let pixel_size: [f32; 2] = std::array::from_fn(|i| region.period()[i] / dimensions[i] as f32);
+        // Snapping displacements use the inverse of the stored projection scale.
+        // A direct window-to-pixel division changes edge texels in scaled regions.
+        let pixel_size: [f32; 2] = std::array::from_fn(|i| (dimensions[i] as f32 / region.period()[i]).recip());
         let projected: [_; 2] = std::array::from_fn(|i| region.stamp_sample_vertices(i, center[i], frame.radius[i], dimensions[i]));
         // Even a subpixel stamp interpolates its signed coordinates. Extents too large
         // to resolve half pixels use the ordinary footprint.
