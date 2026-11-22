@@ -163,12 +163,70 @@ fn full_pairs_defer_individual_copies_after_two_batches() {
     for (group, count) in [(50, 91), (54, 96), (58, 93), (62, 95)] {
         crossing[group] = count;
     }
+    let second_pair_markers = [
+        (279537, 138231, true),
+        (279583, 94160, true),
+        (87397, 15706, true),
+        (90047, 978, true),
+        (92773, 303597, false),
+        (95423, 213678, false),
+        (95461, 94418, true),
+    ];
+    let mut second_pair = [32; 64];
+    second_pair[50] = 75;
+    second_pair[51] = 107;
+    let penultimate_prefix_markers = [
+        (327930, 327964, false),
+        (327931, 328139, false),
+        (327934, 327958, false),
+        (327935, 328054, false),
+        (327967, 263018, true),
+        (327973, 280124, true),
+        (329279, 332822, false),
+        (329317, 331280, false),
+        (330623, 331042, false),
+        (330661, 311138, true),
+    ];
+    let mut penultimate_prefix = [32; 64];
+    penultimate_prefix[60] = 90;
+    let combined_prefixes_markers = [
+        (279537, 144436, true),
+        (279583, 328198, false),
+        (327930, 92890, true),
+        (327931, 93598, true),
+        (327934, 92755, true),
+        (327935, 93864, true),
+        (327967, 262553, true),
+        (87397, 7121, true),
+        (90047, 33270, true),
+        (92773, 173881, false),
+    ];
+    let mut combined_prefixes = [32; 64];
+    combined_prefixes[50] = 75;
+    combined_prefixes[51] = 107;
+    combined_prefixes[60] = 90;
+    let fourth_pair_markers = [
+        (301041, 217929, true),
+        (301087, 180528, true),
+        (173413, 18515, true),
+        (176063, 11958, true),
+        (178789, 262684, false),
+        (181439, 265280, false),
+        (181477, 179464, true),
+    ];
+    let mut fourth_pair = [32; 64];
+    fourth_pair[54] = 75;
+    fourth_pair[55] = 107;
     for (group_counts, seed, axes, markers) in [
         (pair_copy_counts(58), 653180, 1, pair58.as_slice()),
         (pair_copy_counts(60), 1763066, 1, pair60.as_slice()),
         (pair_copy_counts(62), 653180, 1, pair62.as_slice()),
         ([96; 64], 206407, 3, all_pairs.as_slice()),
         (crossing, 214261, 1, preceding_subtrees.as_slice()),
+        (fourth_pair, 222453, 1, fourth_pair_markers.as_slice()),
+        (second_pair, 220419, 1, second_pair_markers.as_slice()),
+        (penultimate_prefix, 220472, 1, penultimate_prefix_markers.as_slice()),
+        (combined_prefixes, 220525, 1, combined_prefixes_markers.as_slice()),
     ] {
         let variables = BTreeMap::from([("$tiling".into(), Value::Int(axes))]);
         let inputs = [None, Some(stamp_field(&group_counts, markers))];

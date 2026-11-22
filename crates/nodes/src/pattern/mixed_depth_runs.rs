@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use materialcraft_core::{PatternNode, PatternNodeKind};
 
 use super::{
@@ -209,15 +211,16 @@ impl MixedDepthRuns {
             return None;
         }
         self.starts.push(DrawPosition { stamp: stamps.len(), copy: 0 });
+        let mut layout = Cow::Borrowed(self.layout);
         if let Some(copies) = self.copies {
             if self.children_per_parent == 2 {
                 return copies.two_child_runs(stamps);
             }
-            self.layout = copies.layout(self.layout)?;
-            self.starts = copies.boundaries(self.layout, self.draws_per_parent)?;
+            layout = copies.layout(self.layout)?;
+            self.starts = copies.boundaries(&layout, self.draws_per_parent)?;
         }
-        let mut groups = vec![DrawRun::whole(&[]); self.layout.len()];
-        for ((_, rank), bounds) in self.layout.iter().zip(self.starts.windows(2)) {
+        let mut groups = vec![DrawRun::whole(&[]); layout.len()];
+        for ((_, rank), bounds) in layout.iter().zip(self.starts.windows(2)) {
             *groups.get_mut(*rank)? = DrawRun::between(stamps, bounds[0], bounds[1])?;
         }
         Some(groups)

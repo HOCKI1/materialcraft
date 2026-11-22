@@ -4,7 +4,7 @@ use super::{
     region::Region,
 };
 use crate::CookContext;
-use std::ops::Range;
+use std::{borrow::Cow, ops::Range};
 
 mod paired_batches;
 mod sparse_quadrants;
@@ -98,20 +98,75 @@ impl TileCopies {
         ranges.into_iter().map(|r| DrawRun::between(stamps, self.draw_position(r.start), self.draw_position(r.end))).collect()
     }
 
-    pub(super) fn layout(&self, ordinary: &'static [(usize, usize)]) -> Option<&'static [(usize, usize)]> {
+    fn group_copies(&self, groups: Range<usize>) -> Option<u32> {
+        let boundary = |group: usize| {
+            let subtrees = group * (DEPTH_THREE_PARENTS / self.parents_per_subtree);
+            self.subtree_ends.get(subtrees.checked_sub(1)?).copied()
+        };
+        boundary(groups.end)?.checked_sub(boundary(groups.start)?)
+    }
+
+    fn horizontal_layout(&self, ordinary: &'static [(usize, usize)], pair: Option<(usize, usize)>) -> Option<Cow<'static, [(usize, usize)]>> {
+        let prefix = self.group_copies(60..61)?;
+        let full_prefix = prefix >= COPIES_PER_BATCH;
+        let fallback = || pair.is_none().then_some(Cow::Borrowed(ordinary));
+        if !full_prefix && pair.is_none() {
+            return fallback();
+        }
+        if let Some((group, head)) = pair {
+            // The paired prefix defers everything after its second batch. Filling another
+            // batch in the receiving subtree changes the order of the remaining draws.
+            let deferred = self.group_copies(group..group + 2)?.checked_sub(2 * COPIES_PER_BATCH)?;
+            if self.group_copies(head..head + 1)?.checked_add(deferred)? >= COPIES_PER_BATCH {
+                return fallback();
+            }
+        }
+        if full_prefix && self.group_copies(16..17)?.checked_add(prefix - COPIES_PER_BATCH)? >= COPIES_PER_BATCH {
+            // The later copy from group 60 can then move across another partially filled batch.
+            return fallback();
+        }
+
+        let mut layout = ordinary.to_vec();
+        for (end, _) in &mut layout {
+            if let Some((group, head)) = pair {
+                let start = head * DEPTH_THREE_PARENTS;
+                if *end == start + DEPTH_FOUR_PARENTS || *end == start + 3 * DEPTH_FOUR_PARENTS {
+                    *end += DEPTH_THREE_PARENTS;
+                } else if ((group + 1) * DEPTH_THREE_PARENTS..(group + 2) * DEPTH_THREE_PARENTS).contains(end) {
+                    // Repeated endpoints split the final subtree at the physical copy count.
+                    *end = (group + 2) * DEPTH_THREE_PARENTS;
+                }
+            }
+            let last = 61 * DEPTH_THREE_PARENTS;
+            if full_prefix && last < *end && *end <= last + 3 * DEPTH_FOUR_PARENTS {
+                *end = (*end - DEPTH_FOUR_PARENTS).max(last);
+            }
+        }
+        Some(Cow::Owned(layout))
+    }
+
+    pub(super) fn layout(&self, ordinary: &'static [(usize, usize)]) -> Option<Cow<'static, [(usize, usize)]>> {
         if self.full_pairs == u8::MAX && self.axes[0] {
-            return Some(paired_batches::ALL_FULL_PAIRS);
+            return Some(Cow::Borrowed(paired_batches::ALL_FULL_PAIRS));
         }
         // The first pair also submits its parts separately in the ordinary layout.
         let later = self.full_pairs & !1;
+        if self.parents_per_subtree == DEPTH_FOUR_PARENTS && self.axes == [true, false] {
+            match later {
+                0 => return self.horizontal_layout(ordinary, None),
+                0b10 => return self.horizontal_layout(ordinary, Some((50, 16))),
+                0b1000 => return self.horizontal_layout(ordinary, Some((54, 32))),
+                _ => {}
+            }
+        }
         if later == 0 {
-            return Some(ordinary);
+            return Some(Cow::Borrowed(ordinary));
         }
         if self.axes != [true, false] || !later.is_power_of_two() {
             return None;
         }
         let end = FIRST_PAIR_END + later.trailing_zeros() as usize * PAIRED_SUBTREE_PARENTS;
-        Some(PairedBatches::ending_at(end)?.layout())
+        Some(Cow::Borrowed(PairedBatches::ending_at(end)?.layout()))
     }
 
     fn split_fits_subtree(&self, parents: usize, cut: u32) -> bool {
