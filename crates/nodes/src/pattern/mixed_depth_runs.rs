@@ -37,39 +37,6 @@ const TWO_CHILDREN: &[(usize, usize)] = &[
     (15872, 17),
     (16384, 19),
 ];
-// Wrapping both children of every sixteenth parent moves the split into the preceding
-// subtree. Paired interior squares also exchange order between whole subtrees.
-const TWO_CHILDREN_WRAPPED: &[(usize, usize)] = &[
-    (1235, 6),
-    (1280, 14),
-    (1536, 11),
-    (1792, 24),
-    (2048, 15),
-    (3795, 2),
-    (4096, 27),
-    (5331, 4),
-    (5376, 9),
-    (5632, 18),
-    (5888, 21),
-    (6144, 10),
-    (7891, 0),
-    (8192, 25),
-    (9427, 8),
-    (9472, 12),
-    (9728, 16),
-    (9984, 28),
-    (10240, 13),
-    (11987, 1),
-    (12288, 22),
-    (12800, 20),
-    (13312, 3),
-    (13824, 26),
-    (14336, 7),
-    (14848, 23),
-    (15360, 5),
-    (15872, 17),
-    (16384, 19),
-];
 const FOUR_CHILDREN: &[(usize, usize)] = &[
     (580, 6),
     (1024, 19),
@@ -188,16 +155,10 @@ impl MixedDepthRuns {
         }
         self.starts.push(DrawPosition { stamp: stamps.len(), copy: 0 });
         if let Some(copies) = self.copies {
-            self.starts = if let Some(starts) = copies.boundaries(self.layout, 0) {
-                starts
-            } else if self.children_per_parent == 2 {
-                self.layout = TWO_CHILDREN_WRAPPED;
-                // The leading three prefixes can finish in either of the last two subtrees
-                // before their continuations end. The remaining cuts must stay in their subtree.
-                copies.boundaries(self.layout, 3)?
-            } else {
-                return None;
-            };
+            if self.children_per_parent == 2 {
+                return copies.two_child_runs(stamps);
+            }
+            self.starts = copies.boundaries(self.layout)?;
         }
         let mut groups = vec![DrawRun::whole(&[]); self.layout.len()];
         for ((_, rank), bounds) in self.layout.iter().zip(self.starts.windows(2)) {

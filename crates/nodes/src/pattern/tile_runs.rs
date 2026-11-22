@@ -1,10 +1,12 @@
 use super::{
     footprint::Footprint,
-    pattern_stamp::{DrawPosition, PatternStamp},
+    pattern_stamp::{DrawPosition, DrawRun, PatternStamp},
     region::Region,
 };
 use crate::CookContext;
 use std::ops::Range;
+
+mod two_children;
 
 const UNIT_WINDOW: [f32; 4] = [0.0, 1.0, 0.0, 1.0];
 const PARENTS_PER_SUBTREE: usize = 256;
@@ -44,7 +46,19 @@ impl TileCopies {
         Some(())
     }
 
-    pub(super) fn boundaries(&self, layout: &[(usize, usize)], leading_paired_subtrees: usize) -> Option<Vec<DrawPosition>> {
+    fn draw_position(&self, cut: u32) -> DrawPosition {
+        let stamp = self.retained.partition_point(|range| range.end <= cut);
+        // Across discarded draws the next retained stamp starts at its first copy.
+        let copy = self.retained.get(stamp).map_or(0, |range| cut.saturating_sub(range.start));
+        DrawPosition { stamp, copy }
+    }
+
+    pub(super) fn two_child_runs<'a>(&self, stamps: &'a [PatternStamp]) -> Option<Vec<DrawRun<'a>>> {
+        let ranges = two_children::ranges(&self.subtree_ends)?;
+        ranges.into_iter().map(|r| DrawRun::between(stamps, self.draw_position(r.start), self.draw_position(r.end))).collect()
+    }
+
+    pub(super) fn boundaries(&self, layout: &[(usize, usize)]) -> Option<Vec<DrawPosition>> {
         let mut cuts = vec![None; layout.len() + 1];
         let mut order = vec![0; layout.len()];
         cuts[0] = Some(0_u32);
@@ -63,10 +77,8 @@ impl TileCopies {
                 None => {
                     let end = start.checked_add(COPIES_PER_BATCH - drawn % COPIES_PER_BATCH)?;
                     // Crossing the measured subtree interval can change the order of the later runs.
-                    let (parents, rank) = layout[run];
-                    let first = parents / PARENTS_PER_SUBTREE;
-                    let last = first + usize::from(rank < leading_paired_subtrees);
-                    if !(first..=last).contains(&self.subtree_ends.partition_point(|boundary| *boundary <= end)) {
+                    let (parents, _) = layout[run];
+                    if self.subtree_ends.partition_point(|boundary| *boundary <= end) != parents / PARENTS_PER_SUBTREE {
                         return None;
                     }
                     cuts[run + 1] = Some(end);
@@ -78,14 +90,6 @@ impl TileCopies {
         if self.total != drawn {
             return None;
         }
-        cuts.into_iter()
-            .map(|cut| {
-                let cut = cut?;
-                let stamp = self.retained.partition_point(|range| range.end <= cut);
-                // Across discarded draws the next retained stamp starts at its first copy.
-                let copy = self.retained.get(stamp).map_or(0, |range| cut.saturating_sub(range.start));
-                Some(DrawPosition { stamp, copy })
-            })
-            .collect()
+        cuts.into_iter().map(|cut| cut.map(|cut| self.draw_position(cut))).collect()
     }
 }
