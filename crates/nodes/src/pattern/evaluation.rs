@@ -123,6 +123,7 @@ pub fn cook_with_base_level_inputs(context: &CookContext, base_level_only: &[boo
     let mut discard_allowance = MAX_VISITS;
     let grayscale = !context.b("color_mode");
     let mut seven_level_runs = (grayscale && opacity_depth == 7).then(SevenLevelRuns::default);
+    let mut sparse_runs = if grayscale && opacity_depth == 8 { super::tile_runs::SparseQuadrantRuns::new(context) } else { None };
     let mut mixed_depth_runs = if grayscale && matches!(opacity_depth, 8 | 9) { MixedDepthRuns::new(context, opacity_depth) } else { None };
     // A grayscale opacity expression can produce an infinity or NaN which participates in the blend.
     let opacity = context.value("opacity").and_then(Value::as_f32).unwrap_or(0.0);
@@ -153,6 +154,9 @@ pub fn cook_with_base_level_inputs(context: &CookContext, base_level_only: &[boo
         let &(node, literal_geometry) = nodes.get(&visit.node).ok_or("missing pattern node")?;
         if seven_level_runs.as_mut().is_some_and(|runs| !runs.visit(node, visit.depth, stamps.len())) {
             seven_level_runs = None;
+        }
+        if sparse_runs.as_ref().is_some_and(|runs| !runs.visit(node, visit.depth)) {
+            sparse_runs = None;
         }
         if mixed_depth_runs.as_mut().is_some_and(|runs| !runs.visit(node, visit.depth, stamps.len())) {
             mixed_depth_runs = None;
@@ -290,6 +294,9 @@ pub fn cook_with_base_level_inputs(context: &CookContext, base_level_only: &[boo
                     // Evaluate every property before discarding a stamp. Its assignments can reach
                     // later visits. Keep the first stamp so raster setup still validates depth weights.
                     let missed = !stamps.is_empty() && grid.as_ref().is_some_and(|grid| grid.misses(&stamp));
+                    if sparse_runs.as_mut().is_some_and(|runs| runs.draw(&stamp, opacities.as_deref().unwrap_or_default(), !missed).is_none()) {
+                        sparse_runs = None;
+                    }
                     if mixed_depth_runs.as_mut().is_some_and(|runs| !runs.draw(&stamp, opacities.as_deref().unwrap_or_default(), !missed)) {
                         mixed_depth_runs = None;
                     }
@@ -392,6 +399,6 @@ pub fn cook_with_base_level_inputs(context: &CookContext, base_level_only: &[boo
         groups[0] = prefix;
     }
     let groups = groups.map(super::pattern_stamp::DrawRun::whole);
-    let mixed_groups = mixed_depth_runs.and_then(|runs| runs.finish(&stamps));
+    let mixed_groups = mixed_depth_runs.and_then(|runs| runs.finish(&stamps)).or_else(|| sparse_runs.and_then(|runs| runs.finish(&stamps)));
     Ok(vec![raster::render(context, mixed_groups.as_deref().unwrap_or(&groups), opacities, nonfinite_gray_opacity, base_level_only, runtime_image_selector)?])
 }

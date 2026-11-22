@@ -233,6 +233,29 @@ The measured whole-root counts are 2,862,824/2,863,360 on one processor and 2,86
 
 All 433 node and evaluator release tests passed, along with formatting, strict workspace Clippy, dependency layers and WebAssembly.
 
+### Sparse quadrant parents and leaves in Moisture Noise
+
+Number the 64 depth-three groups in child-slot order and count the nonzero tile copies for each group. Each copy contributes to the count even when it misses all output samples. The first twelve depth-two parents precede their four depth-three groups. The last four parents precede their second pair of groups. With those parent positions the same 5,460-copy batch splits used by two-child trees reproduce the source generator at 64² and 32 × 64 with seed 42, and at 64 × 32 with seed 187476. The three tiled F32 fields now agree at 8,192/8,192 pixels, compared with 7,864 before. [Five generator settings](#two-independent-pattern-sources-in-moisture-noise) · [Two-child batch splits](#two-child-draw-order-when-neighboring-subtrees-cross-different-tile-batches)
+
+In the [original square tree](#zero-luminosity-draws-and-addition-order-in-moisture-noise), divide each depth-four subtree into its 16 × 16 depth-eight grid. Give the first 86, 96 or 128 cells in row-major order luminosity .25 and give the other cells zero. For a fourth field use 70 + (11j mod 35) cells in depth-four subtree j, numbered in child-slot order. At 128² F32, repeat all 63 depth-seven pairing rounds at 86 cells and reverse the gains every seventh round. For each of the other three fields use rounds 0, 5, 17, 28, 41 and 62 in both polarities. Across 108 renders the upper-half readouts match 884,736/884,736 pixels.
+
+For an independent comparison, give every depth-two square size (.5,.5) and compare parent p to depth-three group (4p + k) mod 64 at all 256 readout pixels. Use k = 0, 1, 2, 13, 27, 41 and 63, seed 189319 and both gain polarities. Repeat for the 86-cell, 96-cell and varying-count fields. All 172,032 readout pixels match. For the regression, use the 86-cell field and retain just parent 0 and group 27 at the upper-left 16² readout. With parent −1 and leaves 2⁻²⁵, the reference returns zero across the tile. The previous renderer returned 2⁻²⁵ at (0,0). Reversing both gains gives 2⁻²⁵ across the tile. Across all 150 full procedural renders the applications agree on 2,457,600/2,457,600 pixels. Reopen round 0 of the 86-cell and varying-count fields and the k = 27 parent comparison of the 86-cell field, each in both polarities. Both applications reproduce their originals and agree on 98,304/98,304 pixels.
+
+| Isolated output across five settings | Destination exact / total · max | Source exact / total · max |
+|---|---:|---:|
+| U16, original tiling | 26,622/26,624 · 1 | 26,624/26,624 · 0 |
+| F32, original tiling | 26,227/26,624 · 1.19209290e−7 | 26,404/26,624 · 7.45058060e−9 |
+| F32, tiling off | 26,356/26,624 · 1.19209290e−7 | 26,302/26,624 · 7.45058060e−9 |
+
+| Moisture Noise, 110 distinct whole settings | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|
+| One processor | 760,062/760,064 · 1 | 1,413,761/1,413,888 · 6 | 760,042/760,064 · .00048828125 | 1,338,252/1,338,368 · 7.80820847e−5 |
+| Eight processors | 760,062/760,064 · 1 | 1,413,679/1,413,888 · 6 | 760,036/760,064 · .00048828125 | 1,338,179/1,338,368 · 7.83205032e−5 |
+
+The one-processor comparison gains 63 exact pixels, reaching 4,272,117/4,272,384. The eight-processor comparison loses seven, reaching 4,271,956/4,272,384. Both applications reproduce their own 487,424 pixels across 18 saved settings. The cross-application result is 487,376/487,424. Source settings with a later split or too few copies to fill the leading batch still differ. The isolated destination still differs in all five F32 settings. Moisture Noise remains in progress.
+
+On one processor, alternate the old and new release builds four times each after warmup for the tiled F32 source at 64² seed 42, 64 × 32 seed 187476 and 128² seed 187695. Median elapsed cook times changed from 2,586 to 3,221 ms, 2,529 to 2,903 ms and 2,187 to 3,055 ms during the concurrent verification run. A second interleaved series measured total process CPU time for all three settings, including package loading and readback. Its median changed from 13.602 to 13.680 seconds. All 434 node and evaluator release tests, formatting, strict workspace Clippy, dependency layers and WebAssembly passed.
+
 ## 2026-11-21 root comparisons
 
 ### Connected quadrant depth and amplified spot patterns

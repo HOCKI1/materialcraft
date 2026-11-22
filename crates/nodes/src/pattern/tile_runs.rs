@@ -7,7 +7,10 @@ use crate::CookContext;
 use std::ops::Range;
 
 mod paired_batches;
+mod sparse_quadrants;
 mod two_children;
+
+pub(super) use sparse_quadrants::SparseQuadrantRuns;
 
 use paired_batches::PairedBatches;
 
@@ -46,18 +49,26 @@ impl TileCopies {
         })
     }
 
-    pub(super) fn record(&mut self, stamp: &PatternStamp, retained: bool, draws: usize, draws_per_parent: usize) -> Option<()> {
-        let footprint = Footprint::new(stamp).ok()?;
-        let center = self.window.copy_origin(stamp.center, self.axes);
-        let [x, y] = self.window.repeats(&self.window, center, footprint.radius, self.axes).ok()?;
-        if !(1..=2).contains(&x.count) || !(1..=2).contains(&y.count) {
-            return None;
+    fn count_stamp(&mut self, stamp: Option<&PatternStamp>, retained: bool) -> Option<Range<u32>> {
+        let start = self.total;
+        if let Some(stamp) = stamp {
+            let footprint = Footprint::new(stamp).ok()?;
+            let center = self.window.copy_origin(stamp.center, self.axes);
+            let [x, y] = self.window.repeats(&self.window, center, footprint.radius, self.axes).ok()?;
+            if !(1..=2).contains(&x.count) || !(1..=2).contains(&y.count) {
+                return None;
+            }
+            self.total = self.total.checked_add((x.count * y.count) as u32)?;
         }
-        let end = self.total.checked_add((x.count * y.count) as u32)?;
+        let range = start..self.total;
         if retained {
-            self.retained.push(self.total..end);
+            self.retained.push(range.clone());
         }
-        self.total = end;
+        Some(range)
+    }
+
+    pub(super) fn record(&mut self, stamp: &PatternStamp, retained: bool, draws: usize, draws_per_parent: usize) -> Option<()> {
+        let end = self.count_stamp(Some(stamp), retained)?.end;
         if draws.is_multiple_of(draws_per_parent * self.parents_per_subtree) {
             let parents = draws / draws_per_parent;
             // The first pair of the final quadrant submits its parts separately.
