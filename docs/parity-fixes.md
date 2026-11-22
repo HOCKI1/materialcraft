@@ -2068,6 +2068,36 @@ At revision `8ec728b`, repeat the archived source-graph settings for fourteen ro
 
 The remaining fluid-noise root has 95,744/95,744 U8 pixels, 495,343/495,616 U16, 95,744/95,744 F16 and 354,389/354,560 F32. Maximum errors in the same order are 0, 6 stored levels, 0 and .0000152587890625. This reproduces the earlier 53-setting result.
 
+### Single-processor comparisons for Clouds 2 and five dirt fields
+
+At revision `b10bdb5`, render the archived seed, size and format settings on one logical processor, then compare every output pixel in the declared storage. Use the 47 distinct archived settings for Clouds 2, 56 each for Dirt 1 and Dirt 3, and 55 each for Dirt 5, Dirt 6 and Dirt Gradient. The archived roots include their default settings. [Cloud settings](#compositing-complete-seven-level-additive-quadrant-trees) · [Dirt settings](#wave-frequency-and-phase-in-directional-noise) · [Additional dirt precision settings](#original-and-reopened-dirt-moisture-and-cellular-noise-fields)
+
+For Clouds 2 add the seven size/seed pairs in the linked Clouds 1 matrix with all parameters at default. For the dirt fields add (width, height, seed, disorder) of (16,32,142171,.625), (128,64,142327,.53125), (256,128,142453,.921875) and (128,256,142631,.1875). Set disorder on Dirt 1 and Dirt 3, which expose that parameter. Use U16 and F32 at all four sizes and add U8 and F16 on the middle two. Integer errors below are storage levels. Float errors are absolute differences.
+
+| Root (inventory index) | Distinct settings | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|---:|
+| Clouds 2 (79) | 67 | 202,240/202,240 · 0 | 401,389/401,408 · 2 | 202,238/202,240 · 0.00048828125 | 370,927/370,944 · 2.29179859e-05 |
+| Dirt 1 (128) | 68 | 510,208/510,208 · 0 | 671,469/671,488 · 1 | 510,208/510,208 · 0 | 624,622/624,640 · 1.53183937e-05 |
+| Dirt 3 (129) | 68 | 510,208/510,208 · 0 | 671,471/671,488 · 1 | 510,208/510,208 · 0 | 624,624/624,640 · 1.52587891e-05 |
+| Dirt 5 (130) | 67 | 510,206/510,208 · 1 | 654,711/655,104 · 4 | 510,046/510,208 · 0.00048828125 | 624,269/624,640 · 5.08725643e-05 |
+| Dirt 6 (131) | 67 | 510,208/510,208 · 0 | 654,786/655,104 · 5 | 510,078/510,208 · 0.000244140625 | 623,810/624,640 · 9.27764922e-05 |
+| Dirt Gradient (132) | 67 | 510,208/510,208 · 0 | 654,844/655,104 · 2 | 510,183/510,208 · 0.00048828125 | 624,380/624,640 · 1.93715096e-05 |
+
+Save each package in MaterialCraft. Reopen on a different logical processor and compare both applications to their own original output and to one another. The Clouds 2 reopen figures below cover the new ten renders. The [earlier eleven reopens](#compositing-complete-seven-level-additive-quadrant-trees) have their own counts. The dirt reopens take every sixth setting in archive-then-new order, starting with the first.
+
+| Root | All original settings, exact / total | New settings, exact / total | Reopens | Cross-application pixels after reopening | Maximum after reopening by storage |
+|---|---:|---:|---:|---:|---|
+| Clouds 2 | 1,176,794/1,176,832 | 405,489/405,504 | 10 | 162,809/162,816 | U8 0, U16 2, F32 0 |
+| Dirt 1 | 2,316,507/2,316,544 | 230,396/230,400 | 12 | 238,842/238,848 | U8 0, U16 1, F16 0, F32 1.52587891e-05 |
+| Dirt 3 | 2,316,511/2,316,544 | 230,400/230,400 | 12 | 461,041/461,056 | U8 0, U16 1, F16 0, F32 1.52587891e-05 |
+| Dirt 5 | 2,299,232/2,300,160 | 230,297/230,400 | 12 | 238,714/238,848 | U8 0, U16 4, F32 5.08725643e-05 |
+| Dirt 6 | 2,298,882/2,300,160 | 230,335/230,400 | 12 | 460,719/461,056 | U8 0, U16 5, F32 8.08723271e-05 |
+| Dirt Gradient | 2,299,615/2,300,160 | 230,353/230,400 | 12 | 238,770/238,848 | U8 0, U16 1, F32 1.93715096e-05 |
+
+Each application reproduced every pixel of its own original output on these reopens. The Clouds 2 generator still differs with a fixed processor. An original square-stamp probe isolates an effect at the tile boundary. Start with a white 256² F32 field and a full seven-level branching tree. Each depth-seven quadrant draws a square of size (.875,.875). Add depth-eight children in slots 0 and 2 with gain .25 and shift their frames down by half the image. Set roughness to zero. Number the first 64 subtrees by the first three base-four child slots. Pair them using a rotating list 0 through 63, keeping the first element fixed and moving the last element to position one each round. Pair position j with 63−j, translate both subtrees into upper-half tile (j mod 8, floor(j/8)) on an 8 × 8 grid, and assign the two parent gains −1 and 2⁻²⁵. Repeat with the gains exchanged.
+
+In rounds 0, 19 and 41, moving the parent frames right and down by half a texel changed 5, 10 and 10 of the 8,192 upper-half odd-coordinate samples. The sampled pixels distinguish which parent draws first. With tiling disabled, all 24,576 samples reproduced the original order. Reducing the shifted squares to size (.375,.375) also reproduced all 24,576. A fixed order derived on the unshifted squares left 1,592 differences among 65,536 F32 texels in the 256-square Clouds 2 generator at seed 0 and defaults. This leaves the mixed-depth accumulation order open.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color
