@@ -627,28 +627,50 @@ fn depth_eight_parent_order_counts_children_that_cross_the_tile_edge() {
 
 #[test]
 fn three_active_quadrant_levels_split_on_physical_tile_copies() {
+    fn top_pair_frame(subdivisions: f32) -> Value {
+        let mut frame = FunctionGraph::default();
+        let pos = frame.add("get_float2", &[], Some(Value::Text("$pos".into())));
+        let x = frame.add("swizzle1", &[pos], Some(Value::Int(0)));
+        let y = frame.add("swizzle1", &[pos], Some(Value::Int(1)));
+        let eighth = frame.add_constant(Value::Float(0.125));
+        let left = frame.add("lr", &[x, eighth], None);
+        let top = frame.add("lr", &[y, eighth], None);
+        let edge = -0.5 / subdivisions;
+        let first = frame.add_constant(Value::Float2([edge, 0.5]));
+        let second = frame.add_constant(Value::Float2([edge - 0.125, 0.5]));
+        let interior = frame.add_constant(Value::Float2([0.25, 0.5]));
+        let seam = frame.add("ifelse", &[left, first, second], None);
+        frame.output = Some(frame.add("ifelse", &[top, seam, interior], None));
+        Value::Function(Box::new(frame))
+    }
+
     let tiny = f32::EPSILON * 0.25;
     let interior = [0.25, 0.5];
     let horizontal_seam = [[-0.5 / 256.0, 0.5], [-0.5 / 512.0, 0.5]];
-    for (tiling, negative, positive, frames, first_group_frames, first, second) in [
+    for (tiling, negative, positive, frames, group_frames, first, second) in [
         (0, 12, 0, [[0.0, 0.5]; 2], None, 64..128, 512..1024),
         (0, 9, 11, [[0.0, 0.5], horizontal_seam[1]], None, 796..932, 0..0),
         (1, 9, 11, [[0.0, 0.5], horizontal_seam[1]], None, 784..919, 0..0),
         (2, 9, 11, [[0.0, 0.5], [0.5, -0.5 / 512.0]], None, 784..922, 0..0),
         // Two levels cross the seam in the first grandchild, filling a batch in an early subtree.
-        (1, 12, 0, [interior; 2], Some(horizontal_seam), 64..128, 512..1024),
+        (1, 12, 0, [interior; 2], Some((0, horizontal_seam.map(Value::Float2))), 64..128, 512..1024),
+        // The first two subtrees of the final quadrant together submit 10,944 tile copies.
+        (1, 12, 0, [interior; 2], Some((12, [256.0, 512.0].map(top_pair_frame))), 64..128, 512..1024),
     ] {
         let (mut graph, groups) = seven_level_tree();
-        let mut add_descendants = |[child_frame, leaf_frame]: [[f32; 2]; 2]| {
+        let mut add_descendants = |frames: [Value; 2]| {
             let middle = graph.add(PatternNodeKind::Quadrant).unwrap();
             let leaf = graph.add(PatternNodeKind::Quadrant).unwrap();
-            graph.nodes[(middle - 1) as usize].parameters = additive_square(0.25, [0.0; 2], child_frame);
-            graph.nodes[(leaf - 1) as usize].parameters = additive_square(0.25, [0.0; 2], leaf_frame);
+            for (id, frame) in [middle, leaf].into_iter().zip(frames) {
+                let parameters = &mut graph.nodes[(id - 1) as usize].parameters;
+                *parameters = additive_square(0.25, [0.0; 2], [0.0; 2]);
+                parameters.insert("frameoffset".into(), frame);
+            }
             graph.nodes[(middle - 1) as usize].children.fill(Some(leaf));
             middle
         };
-        let middle = add_descendants(frames);
-        let first_middle = first_group_frames.map_or(middle, add_descendants);
+        let middle = add_descendants(frames.map(Value::Float2));
+        let selected = group_frames.map(|(group, frames)| (group, add_descendants(frames)));
         for (group, QuadrantProbeGroup { last_three: [_, _, parent], offset }) in groups.into_iter().enumerate() {
             let (gain, frame) = if group == negative {
                 (-1.0, [0.0; 2])
@@ -658,7 +680,8 @@ fn three_active_quadrant_levels_split_on_physical_tile_copies() {
                 (0.25, [0.5, 0.0])
             };
             graph.nodes[parent].parameters = additive_square(gain, offset, frame);
-            graph.nodes[parent].children.fill(Some(if group == 0 { first_middle } else { middle }));
+            let child = selected.filter(|(index, _)| *index == group).map_or(middle, |(_, child)| child);
+            graph.nodes[parent].children.fill(Some(child));
         }
         let variables = BTreeMap::from([("$tiling".into(), Value::Int(tiling))]);
         let image = cook_in_regions(graph, &variables, 188119, [128; 2], [[0.0, 1.0, 0.0, 1.0]; 2], 1.0).unwrap().remove(0);

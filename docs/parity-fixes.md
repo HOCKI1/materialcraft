@@ -189,6 +189,29 @@ In each real generator, 87,376 logical draws occur at depths two through eight. 
 
 The maximum upper-half error is zero for exact comparisons and 2⁻²⁵ for the others. At round zero with the initial polarity, (0,0) changes from 2⁻²⁵ to zero as soon as the lower squares take any of the three tested nonzero gains. MaterialCraft matches 610,816/786,432 complete pixels across the 48 exposed settings, maximum 2⁻²⁵. At zero gain reopen rounds 0 and 28 with initial polarity, at 2⁻²⁰ the same rounds reversed, at .125 rounds 5 and 41 with initial polarity, and at −.125 those rounds reversed. Both applications reproduced their own 131,072/131,072 saved pixels. The cross-application result was 97,792/131,072, maximum 2⁻²⁵. Moisture Noise remains in progress.
 
+### The first subtree pair in the final Dirt Gradient quadrant
+
+The first pair of depth-three subtrees in the final quadrant can submit 10,944 tile copies and still follow the order measured for its separate parts. The previous two-batch check selected traversal order for the entire generator. The renderer now keeps the measured ordering for that pair when the computed splits stay inside their depth-four subtrees. Later pairs still select traversal order when they reach two batches. [Paired subtree capacity and the 16-group probe](#paired-subtree-capacity-in-horizontally-tiled-dirt-gradient)
+
+Use the earlier 16-group graph with zero roughness. Number depth-two groups from zero in child-slot order. Select group 12, 13, 14 or 15. At depths eight and nine use the position after the selected group's branch offset. In its upper eighth of the unit tile (y < .125), set e = −.5 / 2ᵈ at depth d. For horizontal or both-axis tiling use frame (e,.5) if x < .125 and (e − .125,.5) otherwise. For vertical tiling use (.5,e). The other child and grandchild frames stay at (.25,.5) for horizontal or both axes and (.5,.25) for vertical. With horizontal tiling and width .875, this adds 96 copies in each of the two adjacent depth-three subtrees, on top of 10,752 draws.
+
+Repeat the six negative/positive group pairs, widths, resolutions and six shape/axis combinations in the preceding setup. Use seed 193637 + 73j for zero-based row j. At 128², horizontal tiling, square shape and groups (12,0), interleave the five low bits of x and y in the upper-left 32² readout, with x in the least significant bit. The reference returns 2⁻²⁵ for parent indices 64–127 and 512–1023 and zero elsewhere. The previous implementation returned zero at parent 64.
+
+| Selected depth-two group | F32 settings | Earlier exact / total | Current exact / total | Current max |
+|---:|---:|---:|---:|---:|
+| 12 | 36 | 754,248/786,432 | 786,432/786,432 | 0 |
+| 13 | 36 | 754,248/786,432 | 754,248/786,432 | 2⁻²⁵ |
+| 14 | 36 | 753,769/786,432 | 753,769/786,432 | 2⁻²⁵ |
+| 15 | 36 | 754,288/786,432 | 754,288/786,432 | 2⁻²⁵ |
+
+Save and reopen rows 0, 2 and 4 of group 12 for shape 2/horizontal, shape 3/vertical and shape 6/both axes. All 196,608/196,608 reopened F32 pixels matched across applications and in each application's comparison to its own originals. All 144 earlier density controls also reproduced 3,145,728/3,145,728 reference pixels, maximum zero.
+
+The horizontal Dirt Gradient generator at 32 × 64, seed 186580, improved from 599/2,048 to 2,048/2,048 exact F32 pixels, maximum error from 5.96046448e−8 to zero. Five of nine horizontal settings now match throughout. Together the nine improved from 99,776/175,104 to 101,225/175,104, maximum 1.19209290e−7. The untiled generator and the two Dirt 5 generator configurations matched 525,312/525,312 pixels. Dirt Gradient with both axes enabled matched 42,464/175,104, maximum 1.34110451e−7.
+
+The same 111 whole-root settings again matched 2,862,735/2,863,360 pixels on one reference processor and 2,862,750/2,863,360 on eight. The 28 saved settings matched 430,237/430,336 across applications and 430,336/430,336 against each application's own original. The linked whole-root table gives the counts and maximum errors by output format. Dirt Gradient remains in progress. [Whole-root settings and per-format results](#paired-subtree-capacity-in-horizontally-tiled-dirt-gradient)
+
+The new regression failed at parent 64 before the change. After the fix, all 432 node and evaluation release tests passed. Formatting, strict workspace Clippy for all targets, dependency layers and WebAssembly passed. Four interleaved one-processor release measurements after warmup gave median cook times of 1,910 to 1,922 ms for the corrected 32 × 64 generator, and 1,934 to 1,954 ms at 128 × 64 and seed 186722.
+
 ## 2026-11-21 root comparisons
 
 ### Connected quadrant depth and amplified spot patterns

@@ -11,8 +11,8 @@ mod two_children;
 const UNIT_WINDOW: [f32; 4] = [0.0, 1.0, 0.0, 1.0];
 const DEPTH_THREE_PARENTS: usize = 256;
 const DEPTH_FOUR_PARENTS: usize = 64;
-const LAST_QUADRANT_START: usize = 48 * DEPTH_THREE_PARENTS;
 const PAIRED_SUBTREE_PARENTS: usize = 2 * DEPTH_THREE_PARENTS;
+const FIRST_PAIR_END: usize = 48 * DEPTH_THREE_PARENTS + PAIRED_SUBTREE_PARENTS;
 // Paired interior squares change order when the preceding draws fill 5,460 tile copies.
 const COPIES_PER_BATCH: u32 = 5460;
 
@@ -55,9 +55,9 @@ impl TileCopies {
         self.total = end;
         if draws.is_multiple_of(draws_per_parent * self.parents_per_subtree) {
             let parents = draws / draws_per_parent;
-            // Pairs in the final quadrant supply prefixes and continuations to other
-            // runs. Filling two batches in a pair can change the continuation order.
-            if self.parents_per_subtree == DEPTH_FOUR_PARENTS && parents > LAST_QUADRANT_START && parents.is_multiple_of(PAIRED_SUBTREE_PARENTS) {
+            // The first pair of the final quadrant submits its parts separately.
+            // In later pairs, filling two batches can reorder other subtrees.
+            if self.parents_per_subtree == DEPTH_FOUR_PARENTS && parents > FIRST_PAIR_END && parents.is_multiple_of(PAIRED_SUBTREE_PARENTS) {
                 let subtrees = PAIRED_SUBTREE_PARENTS / DEPTH_FOUR_PARENTS;
                 let start = self.subtree_ends.iter().rev().nth(subtrees - 1)?;
                 if end - start >= 2 * COPIES_PER_BATCH {
