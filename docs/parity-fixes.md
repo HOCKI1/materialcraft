@@ -2280,6 +2280,51 @@ Add five distinct F32 whole-root settings for Dirt 6. Use seeds 398552 and 39855
 
 In six interleaved single-processor release runs per binary after warmup, median times at 128 × 64 and 256 × 128 changed from 578.4/637.5 to 561.4/618.3 ms for Dirt 1 and from 603.3/638.7 to 604.2/669.4 ms for Dirt 6.
 
+### Four cloud noise generators and repeated saved-file comparisons
+
+Use each cloud noise root’s own procedural graph. Combine the initial output cases, the [four-format inventory](#four-format-inventory-comparison), the [cloud scale comparisons](#cloud-and-crystal-pattern-sources-across-scales), the follow-up wrapper settings and 12 new settings. Deduplicate by dimensions, seed, exposed values, input and storage format. For the new settings use (width, height, disorder d, scale) of (16,32,default,default), (32,16,.34375,1), (32,32,.78125,2) and (64,32,.5625,1). Use seed zero for the first size and 160303 + 37i + 109j elsewhere, with root index i and zero-based size index j. In both v2 roots set disorder speed to .625 + .5d, anisotropy to .5d, anisotropy angle to d − .375 and tile offset to (.21875d,−.375d) on changed settings. Render U16 and F32 at every size and add U8 and F16 at the middle two.
+
+The 60-setting comparison used MaterialCraft revision 3e6da95, first against a reference process on one logical processor and then on eight. Counts compare complete stored grayscale pixels. Integer maxima are in stored levels and floating maxima are absolute. A setting that returned an execution-budget error contributes no pixels to the denominator.
+
+| Root | Reference processors | Completed / requested | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|---:|---:|
+| Clouds 1 (244) | 1 | 58/60 | 85,760/85,760 · 0 | 293,710/294,144 · 2 | 93,947/93,952 · 0.00048828125 | 250,945/251,392 · 3.05175781e-05 |
+| Clouds 1 (244) | 8 | 58/60 | 85,760/85,760 · 0 | 293,748/294,144 · 2 | 93,945/93,952 · 0.00048828125 | 250,953/251,392 · 3.05175781e-05 |
+| Clouds 1 v2 (245) | 1 | 56/60 | 134,912/134,912 · 0 | 228,500/228,608 · 1 | 93,948/93,952 · 0.00048828125 | 204,756/235,008 · 3.93390656e-06 |
+| Clouds 1 v2 (245) | 8 | 56/60 | 134,912/134,912 · 0 | 228,495/228,608 · 1 | 93,949/93,952 · 0.00048828125 | 209,591/235,008 · 3.93390656e-06 |
+| Clouds 2 (246) | 1 | 60/60 | 85,759/85,760 · 1 | 296,115/296,192 · 2 | 93,951/93,952 · 0.00048828125 | 253,352/253,440 · 2.29477882e-05 |
+| Clouds 2 (246) | 8 | 60/60 | 85,759/85,760 · 1 | 296,115/296,192 · 2 | 93,951/93,952 · 0.00048828125 | 253,353/253,440 · 2.29477882e-05 |
+| Clouds 2 v2 (247) | 1 | 58/60 | 134,912/134,912 · 0 | 244,961/244,992 · 1 | 93,952/93,952 · 0 | 245,384/251,392 · 9.53674316e-07 |
+| Clouds 2 v2 (247) | 8 | 58/60 | 134,912/134,912 · 0 | 244,970/244,992 · 1 | 93,952/93,952 · 0 | 245,666/251,392 · 9.53674316e-07 |
+
+The missing scale-five settings are 64 × 32 F32 and 32 × 64 U16. Use seeds 103023/103024 for root 244, 103034/103035 for 245 and 103056/103057 for 247. Root 245 also exceeds the visit budget at 128², seed 411810 and scale three in U16 and F32. All 60 settings completed for root 246.
+
+MaterialCraft revision 039f310 repeated the 12 new settings per root and reproduced its earlier source-file outputs byte for byte. In inventory order the cross-app exact counts were 11,254, 10,839, 11,264 and 11,216 out of 11,264 each. The maximum errors on these settings were one U16 level and 1.52587891e−5 F32 for 244, 1.49011612e−7 F32 for 245, zero throughout for 246 and 5.96046448e−8 F32 for 247. Saving in MaterialCraft and reopening four of these settings reproduced every application’s own originals. Cross-app, the four saved settings matched 3,072, 2,969, 3,072 and 3,058 of 3,072 pixels respectively, with the same nonzero F32 maxima for 245 and 247.
+
+For the larger file comparison save each root in MaterialCraft, reopen the package in both applications and repeat every fourth setting in combination order, beginning at the first. The reference rendered 15 settings per saved package. MaterialCraft reproduced the raw digest of every setting it could render. The completed cross-app comparisons on one processor follow.
+
+| Root | Completed reopens / requested | Exact / total | Maximum U8 / U16 / F16 / F32 error |
+|---|---:|---:|---|
+| Clouds 1 | 14/15 | 120,793/121,088 | 0 / 1 / 0 / 3.05175781e-05 |
+| Clouds 1 v2 | 13/15 | 102,982/104,704 | 0 / 1 / 0 / 3.09944153e-06 |
+| Clouds 2 | 15/15 | 123,072/123,136 | 0 / 2 / 0 / 2.29477882e-05 |
+| Clouds 2 v2 | 14/15 | 118,757/121,088 | 0 / 1 / 0 / 9.53674316e-07 |
+
+The reference source and saved images agreed on every pixel in all 15 settings for roots 244 and 246. The first comparison differed in three settings for root 245 and two for 247. Repeat both source and saved files with the reference pinned to each of the same two individual processors. For each tested configuration render seed offsets 0,7,0,19,0 and compare the three visits at the original seed. Use defaults in the initial U8 case. For the U16 scale-five case set disorder .8125, speed 1.4375, anisotropy .625, angle −.21875 and tile offset (−.3125,.4375), with non-square expansion enabled. At 64² and 128² F32 use scale three. Set disorder, speed and anisotropy all to .34375 or .65625 respectively, angle to .09375 or .40625, offset to (0,.10546875) or (.3125,−.16796875), and expansion on or off. Include the earlier single-processor capture, giving seven renders per file at each configuration. The following counts show coordinates that varied within each file. Every coordinate had at least one stored value in common between the two files at all eight configurations. A single pinned processor produced distinct frames on repeated visits to the same file in the listed varying F32 cases.
+
+| Root | Dimensions · format · seed | Varying pixels in source | Varying pixels in save | Largest difference across the 14 renders |
+|---|---|---:|---:|---:|
+| Clouds 1 v2 | 128 × 128 · U8 · 0 | 0 | 0 | 0 |
+| Clouds 1 v2 | 32 × 64 · U16 · 103035 | 3 | 3 | 1 |
+| Clouds 1 v2 | 64 × 64 · F32 · 411627 | 262 | 249 | 2.38418579e-07 |
+| Clouds 1 v2 | 128 × 128 · F32 · 411810 | 1,657 | 1,554 | 2.98023224e-07 |
+| Clouds 2 v2 | 128 × 128 · U8 · 0 | 0 | 0 | 0 |
+| Clouds 2 v2 | 32 × 64 · U16 · 103057 | 0 | 0 | 0 |
+| Clouds 2 v2 | 64 × 64 · F32 · 411641 | 12 | 17 | 1.1920929e-07 |
+| Clouds 2 v2 | 128 × 128 · F32 · 411824 | 108 | 151 | 1.78813934e-07 |
+
+In the spot generator’s [32², scale-two case](#moisture-spot-and-cell-fields-across-processors-and-saved-packages), use seed 162174, disorder .78125, speed 1.015625, anisotropy .390625, angle .40625 and tile offset (.1708984375,−.29296875). Its first two U8 stages match 64/64 and 256/256, maximum zero. A bounded diagnostic run allowed 4,194,304 visits in the final stage. It counted 4,025,030 graph visits, 4,003,160 draws and 3,985,551 draws dropped before rasterization, leaving 17,609. The resulting F32 output matched 889/1,024 pixels, maximum 1.49011612e−7. The three-stage release diagnostic took 132,269 ms on one processor. The production visit bound still stops this setting. All five roots remain in progress.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color
