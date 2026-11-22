@@ -684,6 +684,37 @@ Add the following original procedural settings. Render U16 and F32 at each size 
 
 All 442 release tests in the node and evaluator crates passed, along with formatting, strict workspace Clippy, dependency layers and WebAssembly.
 
+### Gaussian Noise across scaled projection windows
+
+Both Gaussian Noise packages match 2,855,168/2,855,168 pixels each in 91 distinct settings, on one and eight processors. Each has 68 MaterialCraft saves with 2,708,480/2,708,480 exact pixels on reopening in both applications and comparing across them. Maximum stored error is zero across all four formats.
+
+| Root and comparison | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|
+| Gaussian Noise, one or eight processors | 509,952/509,952 · 0 | 922,624/922,624 · 0 | 509,952/509,952 · 0 | 912,640/912,640 · 0 |
+| Gaussian Noise, saved files | 506,880/506,880 · 0 | 805,888/805,888 · 0 | 504,320/504,320 · 0 | 891,392/891,392 · 0 |
+| Gaussian Noise v2, one or eight processors | 542,720/542,720 · 0 | 889,856/889,856 · 0 | 509,952/509,952 · 0 | 912,640/912,640 · 0 |
+| Gaussian Noise v2, saved files | 441,344/441,344 · 0 | 871,424/871,424 · 0 | 504,320/504,320 · 0 | 891,392/891,392 · 0 |
+
+Render the 79 archived settings, including the two thirty-case series. Their fresh one-processor captures reproduce all 2,839,808 original pixels per root. The following independent release comparisons locate the earlier differences at the change that projects stamp vertices relative to pixel centers in scaled windows. The rectangular stamp regression measures that displacement directly. [Archived scratch and Gaussian settings](#scaled-scratch-and-gaussian-noise-and-spot-generators) · [Pixel-center controls](#projecting-stamp-vertices-relative-to-pixel-centers-in-scaled-windows) · [Rectangular regression](#fur-1-across-scaled-windows-and-saved-files)
+
+| Root | Size | Seed | Format | Previous exact / total · max | Corrected exact / total · max |
+|---|---|---:|---|---:|---:|
+| Gaussian Noise | 32 × 64 | 87893 | U16 | 2,046/2,048 · 1 | 2,048/2,048 · 0 |
+| Gaussian Noise v2 | 32 × 128 | 433827 | U16 | 4,091/4,096 · 1 | 4,096/4,096 · 0 |
+
+Gaussian Noise at seed 87893 uses scale 19, disorder 0.8125, non-square expansion on. Gaussian Noise v2 at seed 433827 uses scale 27, disorder 0.5625, disorder speed 0.5625, disorder anisotropy 0.5625, disorder anisotropy angle 0.3125, tile offset (0.21875, -0.0859375), non-square expansion off.
+
+Add the following original procedural settings. Render U16 and F32 at each size and add U8 and F16 at 32 × 16 and 64 × 32. Save the settings from both thirty-case series that contributed a distinct entry after the original default, seed and precision sweeps. Also save every fifth distinct archived setting from the first, and the new F32, U8, U16 and F16, and F32 controls in size order. Count each setting once.
+
+| Root | Output size and seed | Exposed settings |
+|---|---|---|
+| Gaussian Noise | 16 × 32 at 238598 | defaults |
+| Gaussian Noise | 32 × 16 at 235392, 64 × 32 at 235438, 32 × 64 at 235460 | disorder 0.3125, non-square expansion off, scale 3 |
+| Gaussian Noise v2 | 16 × 32 at 238599 | defaults |
+| Gaussian Noise v2 | 32 × 16 at 235393, 64 × 32 at 235439, 32 × 64 at 235461 | disorder 0.3125, disorder anisotropy 0.375, disorder anisotropy angle 0.1875, disorder speed 0.625, non-square expansion off, scale 3, tile offset (0.1875, -0.3125) |
+
+All 442 release tests in the node and evaluator crates passed, along with formatting, strict workspace Clippy, dependency layers and WebAssembly.
+
 ## 2026-11-21 root comparisons
 
 ### Connected quadrant depth and amplified spot patterns
