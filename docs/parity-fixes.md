@@ -883,6 +883,35 @@ For the whole root, repeat the original 19 settings, then add 16 × 32, 32 × 16
 
 All 19 fresh reference captures reproduced the 142,592 archived pixels. The one- and eight-processor reference outputs also matched each other on all 157,952 pixels. Save every fifth archived case starting with the first, then the new F32, U8, U16 and F16, and F32 settings on the four additional rows respectively. All nine saved whole-root cases reproduced their original in each application, totaling 29,184 pixels. Cross-application differences remain. Both new regression tests failed before their respective corrections and passed afterwards. All 445 node and evaluator release tests, formatting, strict workspace Clippy, dependency layers and WebAssembly passed.
 
+### Three consecutive full pairs in the final Dirt Gradient quadrant
+
+At 128 × 64 and seed 191520 the horizontal Dirt Gradient generator now matches all 8,192 F32 pixels. It previously matched 2,346/8,192 with maximum error 7.4505806e−8. The other 14 isolated F32 settings retain their previous scores. Across the [111 whole-root settings](#individual-tile-copies-after-two-full-horizontal-batches), 109 settings are exact on one processor and 43 on eight. The reference captures for the two processor counts differ at 707 pixels. The 28 saved whole-root settings reproduce their original buffers in both applications.
+
+| Comparison | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|
+| One processor | 600,320/600,320 · 0 | 846,590/846,592 · 1 | 600,320/600,320 · 0 | 816,126/816,128 · 1.74641609e−5 |
+| Eight processors | 600,320/600,320 · 0 | 846,262/846,592 · 2 | 600,296/600,320 · 0.00048828125 | 815,779/816,128 · 2.03251839e−5 |
+| Reopened, one processor | 36,864/36,864 · 0 | 80,894/80,896 · 1 | 32,768/32,768 · 0 | 279,808/279,808 · 0 |
+
+The three full pairs start at groups 58, 60 and 62. In each, the first group contains at least 5,460 physical copies. Copies beyond the first two batches of groups 58–59 join group 0 and fill its first batch. Those left by groups 62–63 join group 48 and leave that batch short. In the later submission, add the copies in group 60, the final two depth-four subtrees of group 61 and the middle two of group 16. At 10,920 copies their order changes. The first 32 submitted ranges and final nine ranges are shared across the boundary. The middle ranges differ in where they resume the partially drawn subtree.
+
+Build the [original square and signed overlap probes](#horizontal-pattern-batches-ending-in-the-preceding-subtree) with horizontal tiling. Start each depth-three group at 32 extra copies, then use the table below. In each group divide the extras evenly among four subtrees, giving the remainder to slots for which (slot + group) modulo 4 is less than the remainder. Within each subtree give the earliest draws the second tile copy. The regression stores measured comparisons between draw indices with reversed gains. The eight signed F32 renders improve from 130,944/131,072 · 2.98023224e−8 to 131,072/131,072 · 0.
+
+| Group 0 | Group 16 | Group 48 | Groups 58–63 | Later batch relative to capacity | Seed |
+|---:|---:|---:|---|---:|---:|
+| 83 | 79 | 49 | 85, 84, 84, 86, 84, 87 | -1 | 246191 |
+| 83 | 74 | 61 | 90, 81, 88, 87, 87, 85 | +0 | 246220 |
+| 86 | 67 | 60 | 94, 79, 94, 83, 93, 81 | +1 | 246249 |
+| 81 | 75 | 46 | 99, 83, 102, 80, 96, 87 | +12 | 246278 |
+
+A separate forward and reverse comparison ordered 208 parent markers on each of four fields. Markers around parent 641 change order when the later batch fills. Two complete scans started with both ends of each 64-parent subtree, then bisected gaps across which the measured rank changed. Auditing single-copy children after the parent scan placed 39 displaced children in the redistributed field and 23 in a second field. Each reconstructed order matched its independent 8,192-pixel weighted output.
+
+For 56 independent 128 × 64 fields use PCG64 seed 245317. In each row j draw 64 group quotas from integers [24,83). Let E = (0,1,3,9,15,23,35). For first groups 58, 60 and 62 take (84,85,91,103)[j mod 4], (84,85,96,109)[floor(j/2) mod 4] and (84,85,94,101)[floor(j/3) mod 4]. Set the three pair sums to 168 + E at indices j, floor(j/2)+2 and floor(j/5)+1 modulo 7. Set group 0 to 84 minus the first pair's excess plus (0,1,6,15)[j mod 4]. Set group 48 to 84 minus the last pair's excess minus (1,2,7,22)[j mod 4]. Split each quota with four equal multinomial probabilities, then replace the distribution by the even split above where j modulo 4 is 1. From j = 28 onward adjust subtree 65 to make the later batch fall (−2,−1,0,1,2,9,15)[j mod 7] copies from capacity. If the quota would go below zero, take its deficit from subtree 66, then 247. Use seed 245343 + 23j for the [weighted square field](#paired-subtree-capacity-in-horizontally-tiled-dirt-gradient).
+
+The 22 variations of the original quotas match 180,224/180,224 · 0. Eight independent cases from the earlier split-field series match 65,536/65,536 · 0. The 56 new fields match 457,004/458,752 · 1.90734863e−6 on their first reference capture. At rows 6 and 15 three fresh single-processor captures each match all 8,192 pixels. Together the two eight-processor repeats match 14,444/16,384 · 2.62260437e−6. Six further MaterialCraft saves of signed and weighted fields reproduce all six local originals. Their first cross-application comparison matches 72,783/73,728 · 1.90734863e−6. All six subsequent single-processor readbacks of the original and saved row 29 match the original buffer, 49,152/49,152 pixels, maximum zero.
+
+Remaining single-processor root differences are n1u16 (2 pixels), n1f32 (2 pixels). At 64 × 128, seed 142326, the isolated horizontal source still matches 2,713/8,192 F32 pixels, maximum 5.96046448e−8. The new signed regression failed before the correction. All 446 node and evaluator release tests, formatting, strict workspace Clippy, dependency layers and WebAssembly passed.
+
 ## 2026-11-21 root comparisons
 
 ### Connected quadrant depth and amplified spot patterns

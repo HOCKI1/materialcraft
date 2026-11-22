@@ -431,3 +431,50 @@ fn second_quadrant_fills_a_batch_with_the_first_overflowing_pair() {
         check_batch_markers(&group_counts, seed, 1, &markers);
     }
 }
+
+#[test]
+fn three_final_pairs_share_the_penultimate_batch_with_middle_subtrees() {
+    for (head, middle, last_head, pairs, seed, markers) in [
+        (
+            83,
+            79,
+            49,
+            [[85, 84], [84, 86], [84, 87]],
+            246191,
+            [(13460, 191490, false), (13480, 253590, false), (14803, 320991, false), (212523, 37343, true), (215059, 7974, true), (266111, 10751, true)],
+        ),
+        (
+            83,
+            74,
+            61,
+            [[90, 81], [88, 87], [87, 85]],
+            246220,
+            [(13460, 321900, false), (13480, 290313, false), (14803, 60605, false), (212523, 221710, false), (215059, 67593, true), (266111, 268976, false)],
+        ),
+        (
+            86,
+            67,
+            60,
+            [[94, 79], [94, 83], [93, 81]],
+            246249,
+            [(13460, 145396, false), (13480, 136182, false), (14803, 58999, false), (212523, 29195, true), (215059, 113808, true), (266111, 339580, false)],
+        ),
+        (
+            81,
+            75,
+            46,
+            [[99, 83], [102, 80], [96, 87]],
+            246278,
+            [(13460, 150313, false), (13480, 84657, false), (14803, 24014, false), (212523, 7900, true), (215059, 60885, true), (266111, 317978, false)],
+        ),
+    ] {
+        let mut group_counts = [32; 64];
+        group_counts[0] = head;
+        group_counts[16] = middle;
+        group_counts[48] = last_head;
+        for (group, pair) in [58, 60, 62].into_iter().zip(pairs) {
+            group_counts[group..group + 2].copy_from_slice(&pair);
+        }
+        check_batch_markers(&group_counts, seed, 1, &markers);
+    }
+}

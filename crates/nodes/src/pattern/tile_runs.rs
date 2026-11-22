@@ -99,8 +99,8 @@ impl TileCopies {
     }
 
     fn subtree_copies(&self, subtrees: Range<usize>) -> Option<u32> {
-        let start = self.subtree_ends.get(subtrees.start.checked_sub(1)?)?;
-        self.subtree_ends.get(subtrees.end.checked_sub(1)?)?.checked_sub(*start)
+        let start = if subtrees.start == 0 { 0 } else { *self.subtree_ends.get(subtrees.start - 1)? };
+        self.subtree_ends.get(subtrees.end.checked_sub(1)?)?.checked_sub(start)
     }
 
     fn group_copies(&self, groups: Range<usize>) -> Option<u32> {
@@ -173,13 +173,11 @@ impl TileCopies {
         Some(layout)
     }
 
-    fn penultimate_layout(&self, ordinary: &'static [(usize, usize)]) -> Option<Cow<'static, [(usize, usize)]>> {
-        let prefix = self.group_copies(60..61)?;
-        let full_prefix = prefix >= COPIES_PER_BATCH;
+    fn penultimate_batch_fills(&self, prefix: u32) -> Option<bool> {
         let subtrees = DEPTH_THREE_PARENTS / DEPTH_FOUR_PARENTS;
         let receiver = 16 * subtrees;
         let following = 61 * subtrees;
-        let first = if full_prefix { following + 2 } else { following };
+        let first = if prefix >= COPIES_PER_BATCH { following + 2 } else { following };
         // After the first batch, the first remaining part of group 61 and its
         // final subtree join the two middle subtrees of group 16. Only a full
         // batch at that point separates the later runs.
@@ -187,8 +185,29 @@ impl TileCopies {
         for range in [first..first + 1, following + 3..following + 4, receiver + 1..receiver + 3] {
             copies = copies.checked_add(self.subtree_copies(range)?)?;
         }
-        let layout = if copies >= 2 * COPIES_PER_BATCH { PairedBatches::Penultimate.layout() } else { ordinary };
+        Some(copies >= 2 * COPIES_PER_BATCH)
+    }
+
+    fn penultimate_layout(&self, ordinary: &'static [(usize, usize)]) -> Option<Cow<'static, [(usize, usize)]>> {
+        let prefix = self.group_copies(60..61)?;
+        let full_prefix = prefix >= COPIES_PER_BATCH;
+        let layout = if self.penultimate_batch_fills(prefix)? { PairedBatches::Penultimate.layout() } else { ordinary };
         Some(Self::shift_horizontal_boundaries(layout, None, full_prefix))
+    }
+
+    fn three_final_pairs_layout(&self) -> Option<Cow<'static, [(usize, usize)]>> {
+        let penultimate = self.group_copies(60..61)?;
+        if self.group_copies(58..59)? < COPIES_PER_BATCH || penultimate < COPIES_PER_BATCH || self.group_copies(62..63)? < COPIES_PER_BATCH {
+            return None;
+        }
+        // The first overflowing pair's tail fills group 0. The final pair's
+        // tail leaves space in group 48, where its remaining draws continue.
+        let first_tail = self.group_copies(58..60)?.checked_sub(2 * COPIES_PER_BATCH)?;
+        let last_tail = self.group_copies(62..64)?.checked_sub(2 * COPIES_PER_BATCH)?;
+        if self.group_copies(0..1)?.checked_add(first_tail)? < COPIES_PER_BATCH || self.group_copies(48..49)?.checked_add(last_tail)? >= COPIES_PER_BATCH {
+            return None;
+        }
+        Some(Cow::Owned(paired_batches::three_final_pairs(self.penultimate_batch_fills(penultimate)?)))
     }
 
     fn final_pair_layout(&self) -> Option<Cow<'static, [(usize, usize)]>> {
@@ -219,6 +238,7 @@ impl TileCopies {
                 // Groups 52–53 and 56–57 submit their subtrees separately,
                 // including when both pairs contain two full batches.
                 0 | 0b100 | 0b10000 | 0b10100 => return self.horizontal_layout(ordinary, None),
+                0b1110_0000 if later == self.full_pairs => return self.three_final_pairs_layout(),
                 0b1000000 => return self.penultimate_layout(ordinary),
                 0b10000000 => return self.final_pair_layout(),
                 0b10 => return self.horizontal_layout(ordinary, Some((50, 16))),

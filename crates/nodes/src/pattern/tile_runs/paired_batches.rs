@@ -26,6 +26,25 @@ impl PairedBatches {
     }
 }
 
+// Three full final pairs have the same first 32 submissions. If the partial
+// subtrees from groups 61 and 16 fill a batch, their remainder moves to a later run.
+pub(super) fn three_final_pairs(filled: bool) -> Vec<(usize, usize)> {
+    let prefix = [
+        16384, 13057, 7940, 14081, 12034, 15360, 3845, 15616, 13312, 4160, 6027, 14336, 8256, 10120, 15360, 256, 1795, 4096, 15622, 8192, 13376, 13701, 16384,
+        12545, 2048, 13381, 12288, 14400, 14722, 6144, 8384, 12620,
+    ];
+    let middle = if filled {
+        [15616, 15872, 4288, 10240, 393, 12672, 576, 512, 768, 13440, 14464, 640, 4288]
+    } else {
+        [10240, 392, 15616, 15872, 4288, 641, 12672, 576, 512, 768, 13440, 14464, 640]
+    };
+    let suffix = [704, 12608, 12800, 14528, 14848, 13824, 12736, 15744, 13504];
+    let mut layout: Vec<_> = prefix.into_iter().chain(middle).chain(suffix).enumerate().map(|(rank, end)| (end, rank)).collect();
+    // Natural parent order locates each span. Equal endpoints split at a physical batch boundary.
+    layout.sort_unstable();
+    layout
+}
+
 // Depth-seven parent endpoints and compositing ranks measured with original square overlaps.
 // Inside a depth-four subtree the physical batch count determines the exact copy at the split.
 // The tail of groups 54 and 55 fills another batch with group 32. Two runs then
