@@ -2137,6 +2137,34 @@ For each root repeat its 85 archived settings on one processor. Add (width, heig
 
 Each root matched all **1,494,016 pixels across 13 single-processor reopens**. Both applications reproduced their own original pixels. The initial four F32 controls at 64², 64 × 128, 256 × 64 and 256² matched 94,208/94,208 per root, compared with 76,499 for Fur 2 and 72,032 for Gaussian Spots 2. Their eight-processor results keep both roots in progress. The new parent-overlap regression failed at (0,0) on the preceding code. All 428 node and evaluator release tests passed, together with formatting, strict workspace Clippy, dependency layers and WebAssembly.
 
+### Tile copies and the draw order in Clouds 2
+
+Clouds 2 has a generator with 16,384 depth-seven parents, each drawing a stamp and two depth-eight children in slots 0 and 2. An original square probe separates the parent readout from the child positions. Use the [64-subtree pairing and gains](#single-processor-comparisons-for-clouds-2-and-five-dirt-fields) on a white 256² F32 field. Draw the parents at size (.875,.875) and keep them in the upper half. Draw both children at gain .25 and size (2.25,.875). Add .5 to their frame Y and set their frame X offset to the target X minus their incoming X position. Use the original 63 rounds and seed 137143 + 17 times the zero-based round. Read the upper 128 rows on a single processor. Each of the 2,016 subtree pairs contributes 1,024 samples. The parent gains distinguish the two possible orders by 2⁻²⁵.
+
+Compare two separate controls. The first draws two unshifted-X children in slots 0 and 2. The second draws all four children. In both controls the children have size (.875,.875), gain .25 and the half-image Y shift. The two controls differ at 480,608 upper-half samples.
+
+| Two-child probe | Exact against two-child control | Exact against four-child control | Maximum F32 error against the two controls |
+|---|---:|---:|---|
+| X = .5, tiled | 2,064,384/2,064,384 | 1,583,776/2,064,384 | 0 / 2.98023224e-08 |
+| X = 0, tiled | 1,583,776/2,064,384 | 2,064,384/2,064,384 | 2.98023224e-08 / 0 |
+| X = 0, tiling disabled | 2,064,384/2,064,384 | 1,583,776/2,064,384 | 0 / 2.98023224e-08 |
+| X = 0 for odd-numbered subtrees and .5 for even, tiled | 1,725,200/2,064,384 | 1,670,224/2,064,384 | 2.98023224e-08 / 2.98023224e-08 |
+
+Changing only the position of the child draws changed the order of parent draws elsewhere in the image. Centering every child on the wrapped edge reproduced the four-child control across the entire readout. Disabling tiling reproduced the two-child control. Save all four original graphs in MaterialCraft, reopen them in the reference on a different processor, and repeat rounds 0, 10, 20, 30, 40, 50 and 60. Each reopened graph reproduced all 458,752 pixels of its own full-frame original, maximum F32 error zero.
+
+For the root generator, save Clouds 2 in MaterialCraft and wire the middle of its three pattern stages directly to the output. At default graph controls, set its base tiling to neither, X, Y or both. Render F32 at (width, height, seed) of (32,16,42), (256,256,0) and (512,128,382479). With both axes enabled the reconnected stage reproduced the original intermediate at every pixel. The baseline below is MaterialCraft's normal accumulation order for this graph. The replay sums the same original nonzero F32 contributions in the order measured on the two-child control. To determine the order, label the 64 subtrees with their first three base-four slots in traversal order. Within each subtree the control has two observed parent orders, separated after 28 of 256 parents in Morton order. Repeat all 63 rounds after translating the second member of each pair by ±16 texels in both axes and read an 8 × 8 region in the common interior. Those 8,064 pair relations fix the relative order between different subtrees. Number draws in traversal order from zero. The resulting contiguous intervals below use an exclusive end.
+
+18432–23892, 30720–36180, 6144–11604, 38400–39936, 12288–16212, 41472–43008, 24576–28500, 44544–46080, 0–3924, 16212–16896, 17664–18432, 29184–29952, 28500–29184, 29952–30720, 4608–5376, 3924–4608, 5376–6144, 46080–47616, 16896–17664, 47616–49152, 36864–38400, 36180–36864, 43008–44544, 23892–24576, 39936–41472, 11604–12288.
+
+| Tiling | Baseline exact / 131,584 | Baseline maximum F32 error | Replay exact at 32 × 16 | Replay exact at 256² | Replay exact at 512 × 128 | Replay maximum F32 error |
+|---|---:|---:|---:|---:|---:|---:|
+| Neither | 116,310 | 2.98023224e-08 | 512/512 | 65,536/65,536 | 65,536/65,536 | 0 |
+| X | 113,411 | 3.7252903e-08 | 510/512 | 64,867/65,536 | 64,919/65,536 | 3.7252903e-08 |
+| Y | 112,053 | 4.47034836e-08 | 512/512 | 64,708/65,536 | 64,067/65,536 | 3.7252903e-08 |
+| Both | 109,269 | 4.47034836e-08 | 510/512 | 63,944/65,536 | 63,594/65,536 | 3.7252903e-08 |
+
+The replay matched all 131,584 generator pixels with tiling disabled. With both axes enabled it left 3,536 differences across the same sizes. The mixed placement control also differs from both uniform placements. Clouds 2 remains in progress. Its [67 whole-root comparisons](#single-processor-comparisons-for-clouds-2-and-five-dirt-fields) used the production renderer.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color
