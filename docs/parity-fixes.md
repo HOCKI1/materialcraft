@@ -6029,6 +6029,58 @@ Where there are downstream stages, replace the source patterns with the same ori
 | noise_perlin_noise | 10,496/10,496 | 0 / 0 / 0 / 0 |
 | noise_plasma | 10,496/10,496 | 0 / 0 / 0 / 0 |
 
+### Sixty whole renders after correcting the inner iterator
+
+The 60 settings for Noise Dirt Gradient v2 include the 12 fresh cases in the [isolated iterator measurements](#initial-branch-of-a-nested-pattern-iterator). The table counts stored pixels from successful cooks. The other settings reached the pattern graph traversal budget. Both whole and saved comparisons use the same material output. Integer maxima are in storage levels.
+
+| Comparison | Rendered / attempted | Exact settings | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|---:|---:|
+| Earlier, one processor | 40/60 | 0 | 170,088/173,568 · 40 | 92,735/96,768 · 11437 | 90,188/93,696 · 0.16015625 | 61,278/100,608 · 0.174517393 |
+| Corrected, one processor | 40/60 | 15 | 173,567/173,568 · 1 | 96,663/96,768 · 1 | 93,692/93,696 · 0.00048828125 | 64,247/100,608 · 7.15255737e-07 |
+| Corrected, eight processors | 40/60 | 18 | 173,568/173,568 · 0 | 96,689/96,768 · 1 | 93,690/93,696 · 0.00048828125 | 71,020/100,608 · 3.57627869e-07 |
+| Reference one versus eight | 60/60 | 19 | 198,143/198,144 · 1 | 240,335/240,640 · 1 | 101,878/101,888 · 0.00048828125 | 147,429/244,992 · 1.54972076e-06 |
+| Earlier after reopening | 8/12 | 0 | 20,618/22,528 · 40 | 18,041/18,944 · 7324 | — | 43,808/66,560 · 0.0274509788 |
+| Corrected after reopening | 8/12 | 3 | 22,528/22,528 · 0 | 18,927/18,944 · 1 | — | 44,076/66,560 · 4.76837158e-07 |
+| Reference original versus reopened | 12/12 | 11 | 26,624/26,624 · 0 | 51,712/51,712 · 0 | — | 70,540/71,168 · 2.38418579e-07 |
+
+Every comparable MaterialCraft save reproduces its original local floating-point buffer. The reference columns include all successful reference renders, including the settings that exceeded the MaterialCraft budget.
+
+<details>
+<summary>Whole and reopened settings</summary>
+
+Use `disorder`, `disorder_speed`, `disorder_anisotropy`, `disorder_anisotropy_angle`, `non_square_expansion` in the listed control order.
+
+| Size | Seed | Controls | Formats | Reopened | Whole budget reached | Reopen budget reached |
+|---|---:|---|---|---|---|---|
+| 128 × 128 | 0 | Defaults | U8, U16, F16, F32 | U8, U16 | — | — |
+| 256 × 256 | 0 | Defaults | U8 | — | — | — |
+| 128 × 128 | 42 | Defaults | U8 | — | — | — |
+| 128 × 128 | 0 | 0.37, 0.6, 0.3, 0.125, default | U8 | — | U8 | — |
+| 32 × 32 | 113 | 0.37, 0.6, 0.3, 0.125, default | F32 | — | — | — |
+| 64 × 64 | 42 | 0.37, 0.6, 0.3, 0.125, default | U8, U16, F16, F32 | U8 | — | — |
+| 16 × 16 | 105594 | Defaults | F32 | — | — | — |
+| 32 × 32 | 105595 | 0, 1, 0, 0, on | F32 | F32 | — | — |
+| 32 × 32 | 105596 | 0.3125, 0.6875, 0.25, 0.3125, off | U8, U16, F16, F32 | — | — | — |
+| 32 × 16 | 105600 | 0.8125, 1.4375, 0.625, -0.21875, on | F32 | F32 | F32 | F32 |
+| 16 × 32 | 105601 | 0.8125, 1.4375, 0.625, -0.21875, on | U16 | — | — | — |
+| 64 × 32 | 105602 | 0.3125, 0.6875, 0.25, 0.3125, off | F32 | — | — | — |
+| 32 × 64 | 105603 | 0, 1, 0, 0, on | F16 | — | — | — |
+| 16 × 32 | 0 | Defaults | U8, U16, F16, F32 | U16 | — | — |
+| 32 × 16 | 42 | 0.21875, 0.21875, 0.21875, -0.03125, on | U16, F32 | — | U16, F32 | — |
+| 64 × 64 | 433610 | 0.9375, 0.9375, 0.9375, 0.6875, off | U8, U16, F16, F32 | U8 | U8, U16, F16, F32 | U8 |
+| 128 × 32 | 433647 | 0.046875, 0.046875, 0.046875, -0.203125, on | U16, F32 | F32 | U16, F32 | F32 |
+| 32 × 128 | 433684 | 0.5625, 0.5625, 0.5625, 0.3125, off | U8, U16, F16, F32 | — | U8, U16, F16, F32 | — |
+| 256 × 128 | 433758 | 0.328125, 0.328125, 0.328125, 0.078125, off | U16, F32 | — | U16, F32 | — |
+| 128 × 256 | 433795 | 0.8125, 0.8125, 0.8125, 0.5625, on | U16, F32 | U16 | U16, F32 | U16 |
+| 256 × 256 | 42 | Defaults | U8, U16, F16, F32 | F32 | — | — |
+| 512 × 128 | 433869 | 0.671875, 0.671875, 0.671875, 0.421875, on | U16, F32 | — | U16, F32 | — |
+| 16 × 32 | 281778 | Defaults | U16, F32 | — | — | — |
+| 64 × 32 | 281845 | 0, 1, 0, 0, on | U8, U16, F16, F32 | U8 | — | — |
+| 32 × 64 | 281912 | 0.8125, 1.4375, 0.625, -0.21875, on | U8, U16, F16, F32 | U16 | — | — |
+| 64 × 64 | 281979 | 0.21875, 0.21875, 0.21875, -0.03125, on | U16, F32 | — | — | — |
+
+</details>
+
 ### Initial branch of a nested pattern iterator
 
 In Noise Dirt Gradient v2 the initial branch of an inner iterator reads the caller’s iteration number. MaterialCraft had set it to zero. The repeated branch starts at zero and increments for its own repetitions. This affected opacity in the middle of the graph’s three pattern stages. Passing the existing number to the initial branch corrects all 704 middle-stage U8 samples in the following three settings. The final F32 stage still has rounding differences.
