@@ -59,6 +59,82 @@ The first pass classifies all 546 roots: 166 Parity and 380 Too hard. These meas
 
 ## 2026-11-22 root comparisons
 
+### Noise Fluid across procedural controls and stored formats
+
+Noise Fluid matches all 1,266,944 pixels in 71 distinct settings on both one and eight processors. The first 53 repeat the earlier measurements against both fresh captures and the original archived buffers. They include the 273 U16 and 171 F32 pixels that previously differed. The generator has no image inputs. Every saved case reopened in both applications and reproduced its original raw values. [Earlier whole outputs and controls](#diagonal-blur-across-rectangular-tile-edges)
+
+| Comparison | Settings | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|---:|
+| One processor | 71 | 138,752/138,752 · 0 | 565,248/565,248 · 0 | 138,752/138,752 · 0 | 424,192/424,192 · 0 |
+| Eight processors | 71 | 138,752/138,752 · 0 | 565,248/565,248 · 0 | 138,752/138,752 · 0 | 424,192/424,192 · 0 |
+| Earlier reference buffers | 53 | 95,744/95,744 · 0 | 495,616/495,616 · 0 | 95,744/95,744 · 0 | 354,560/354,560 · 0 |
+| Reopened in both applications | 15 | 20,480/20,480 · 0 | 143,872/143,872 · 0 | 2,048/2,048 · 0 | 105,472/105,472 · 0 |
+| Reopened versus original reference | 15 | 20,480/20,480 · 0 | 143,872/143,872 · 0 | 2,048/2,048 · 0 | 105,472/105,472 · 0 |
+
+Expose the initial pattern generator directly at its original U16 precision. The original stage and the isolated output agree in all four cases. The following counts compare MaterialCraft with those captures. Each maximum for the stage is in stored U16 levels. The whole comparison uses the format shown.
+
+| Size, seed | Whole format | Earlier initial pattern · max | Current initial pattern · max | Earlier whole output · max | Current whole output · max |
+|---|---|---:|---:|---:|---:|
+| 32 × 64, 33632 | U16 | 502/512 · 1 | 512/512 · 0 | 2,003/2,048 · 1 | 2,048/2,048 · 0 |
+| 64 × 32, 33631 | F32 | 499/512 · 1 | 512/512 · 0 | 1,989/2,048 · 1.52587891e-05 | 2,048/2,048 · 0 |
+| 128 × 32, 433660 | U16 | 1,010/1,024 · 1 | 1,024/1,024 · 0 | 4,037/4,096 · 1 | 4,096/4,096 · 0 |
+| 64 × 32, 286222 | F32 | 512/512 · 0 | 512/512 · 0 | 2,048/2,048 · 0 | 2,048/2,048 · 0 |
+
+The four isolated sources and their downstream outputs first match in the build that projects stamp vertices from the pixel-center origin in scaled windows. The preceding build retains the earlier errors. To measure the projection independently, use one fading bell stamp (type 12, variation .78), maximum blend, black background, no tiling, unit opacity and zero roughness. Use the same window for render and tiling. The four width, height and window combinations are (16,32,−1,2,−2.5,3.5), (32,16,−2.5,3.5,−1,2), (64,16,−5.5,6.5,−1,2) and (32,16,−1.5,2.5,−.5,1.5). The window values are left, right, top and bottom. [Pixel-center projection](#projecting-stamp-vertices-relative-to-pixel-centers-in-scaled-windows)
+
+At each size use these (center, size, turns) settings in order. The first is ((.52734375,.40625),(2.25,1.25),.25), the second ((.6015625,.4375),(1.8125,.96875),.25), and the third ((.4375,.65625),(1.1875,.6875),0). Render all four formats at the first setting and U16 and F32 at the others. Use seed 290171 + 23j + 7m, where j indexes the window and m the stamp. Reopen the first U8, first F32 and third U16 settings at each size. At pixel (9,15) of the 16 × 32 second stamp, the old F32 bits were `3f0cd03f`. The reference and current cook give `3f0cd037`. The regression checks this pixel through the node’s normal cook. [Fading stamp regression](../crates/nodes/src/pattern/tests.rs)
+
+| Independent stamp | Settings | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|---:|
+| Earlier, one processor | 32 | 2,560/2,560 · 0 | 7,680/7,680 · 0 | 2,560/2,560 · 0 | 7,661/7,680 · 4.76837158e-07 |
+| Corrected, one processor | 32 | 2,560/2,560 · 0 | 7,680/7,680 · 0 | 2,560/2,560 · 0 | 7,680/7,680 · 0 |
+| Corrected, eight processors | 32 | 2,560/2,560 · 0 | 7,680/7,680 · 0 | 2,560/2,560 · 0 | 7,680/7,680 · 0 |
+| After reopening | 12 | 2,560/2,560 · 0 | 2,560/2,560 · 0 | — | 2,560/2,560 · 0 |
+
+All 454 node and evaluator release tests, workspace formatting, strict workspace Clippy, dependency layers and WebAssembly passed.
+
+<details>
+<summary>Reproduce all 71 whole renders and the 15 reopen checks</summary>
+
+Only changed controls are listed. Use graph defaults for the rest. Reopen the formats listed in the last column.
+
+| Size | Seed | Controls | Formats | Reopened |
+|---|---:|---|---|---|
+| 128 × 128 | 0 | Defaults | U16, U8, F16, F32 | U16, U8 |
+| 256 × 256 | 0 | Defaults | U16, F32 | — |
+| 128 × 128 | 42 | Defaults | U16 | — |
+| 128 × 128 | 0 | `scale` 2, `disorder` 0.37, `pattern_size` (0.8, 1.2), `warp_intensity` 0.4 | U16 | — |
+| 64 × 64 | 42 | `scale` 2, `disorder` 0.37, `pattern_size` (0.8, 1.2), `warp_intensity` 0.4 | U8, U16, F16, F32 | U16 |
+| 32 × 32 | 113 | `scale` 2, `disorder` 0.37, `pattern_size` (0.8, 1.2), `warp_intensity` 0.4 | F32 | — |
+| 16 × 16 | 33625 | Defaults | F32 | — |
+| 32 × 32 | 33626 | `scale` 1, `disorder` 0.0, `warp_intensity` 0.0, `pattern_size` (0.5, 1.0), `non_square_expansion` on | F32 | F32 |
+| 32 × 32 | 33627 | `scale` 2, `disorder` 0.3125, `warp_intensity` 0.1875, `pattern_size` (0.625, 0.25), `non_square_expansion` off | U8, U16, F16, F32 | — |
+| 64 × 32 | 33631 | `scale` 3, `disorder` 0.71875, `warp_intensity` 0.4375, `pattern_size` (0.8125, 0.375), `non_square_expansion` on | F32 | F32 |
+| 32 × 64 | 33632 | `scale` 3, `disorder` 0.71875, `warp_intensity` 0.4375, `pattern_size` (0.8125, 0.375), `non_square_expansion` on | U16 | — |
+| 64 × 64 | 33633 | `scale` 2, `disorder` 0.3125, `warp_intensity` 0.1875, `pattern_size` (0.625, 0.25), `non_square_expansion` off | F32 | — |
+| 128 × 128 | 41713 | Defaults | F32 | — |
+| 256 × 256 | 41713 | Defaults | U16 | U16 |
+| 256 × 128 | 13217 | `scale` 2, `disorder` 0.3125, `warp_intensity` 0.1875, `pattern_size` (0.625, 0.25), `non_square_expansion` off | F32 | — |
+| 128 × 256 | 13217 | `scale` 2, `disorder` 0.3125, `warp_intensity` 0.1875, `pattern_size` (0.625, 0.25), `non_square_expansion` off | U16 | — |
+| 256 × 256 | 6217 | `scale` 3, `disorder` 0.71875, `warp_intensity` 0.4375, `pattern_size` (0.8125, 0.375), `non_square_expansion` on | U16 | — |
+| 16 × 32 | 0 | Defaults | U8, U16, F16, F32 | U16 |
+| 32 × 16 | 42 | `scale` 2, `disorder` 0.21875, `warp_intensity` 0.21875, `pattern_size` (0.6015625, 1.349609375), `non_square_expansion` on | U16, F32 | — |
+| 64 × 64 | 433623 | `scale` 1, `disorder` 0.9375, `warp_intensity` 0.9375, `pattern_size` (1.140625, 0.85546875), `non_square_expansion` off | U8, U16, F16, F32 | U8 |
+| 128 × 32 | 433660 | `scale` 3, `disorder` 0.046875, `warp_intensity` 0.046875, `pattern_size` (0.47265625, 1.4677734375), `non_square_expansion` on | U16, F32 | F32 |
+| 32 × 128 | 433697 | `scale` 2, `disorder` 0.5625, `warp_intensity` 0.5625, `pattern_size` (0.859375, 1.11328125), `non_square_expansion` off | U8, U16, F16, F32 | — |
+| 256 × 128 | 433771 | `scale` 3, `disorder` 0.328125, `warp_intensity` 0.328125, `pattern_size` (0.68359375, 1.2744140625), `non_square_expansion` off | U16, F32 | — |
+| 128 × 256 | 433808 | `scale` 1, `disorder` 0.8125, `warp_intensity` 0.8125, `pattern_size` (1.046875, 0.94140625), `non_square_expansion` on | U16, F32 | U16 |
+| 256 × 256 | 42 | Defaults | U8, U16, F16, F32 | F32 |
+| 512 × 128 | 433882 | `scale` 1, `disorder` 0.671875, `warp_intensity` 0.671875, `pattern_size` (0.94140625, 1.0380859375), `non_square_expansion` on | U16, F32 | — |
+| 32 × 64 | 286151 | Defaults | U8, U16, F16, F32 | F16 |
+| 64 × 32 | 286222 | `scale` 2, `disorder` 0.34375, `warp_intensity` 0.2578125, `pattern_size` (0.6953125, 1.263671875), `non_square_expansion` on | U16, F32 | — |
+| 64 × 128 | 286293 | `scale` 3, `disorder` 0.78125, `warp_intensity` 0.5859375, `pattern_size` (1.0234375, 0.962890625), `non_square_expansion` off | U8, U16, F16, F32 | U16 |
+| 128 × 64 | 286364 | `scale` 1, `disorder` 0.59375, `warp_intensity` 0.4453125, `pattern_size` (0.8828125, 1.091796875), `non_square_expansion` on | U16, F32 | — |
+| 128 × 128 | 286435 | `scale` 2, `disorder` 0.125, `warp_intensity` 0.09375, `pattern_size` (0.53125, 1.4140625), `non_square_expansion` off | U16, F32 | U16 |
+| 256 × 128 | 286506 | `scale` 3, `disorder` 0.9375, `warp_intensity` 0.703125, `pattern_size` (1.140625, 0.85546875), `non_square_expansion` on | U8, U16, F16, F32 | F32 |
+
+</details>
+
 ### Two independent pattern sources in Moisture Noise
 
 Repeat the [94 Moisture Noise settings](#moisture-spot-and-cell-fields-across-processors-and-saved-packages) with one and eight reference processors. Add five size and parameter combinations. Use the default controls at 32 × 64. For 64 × 32, 64 × 128, 128 × 64 and 128², set disorder d to .375, .8125, .46875 and .1875 respectively. Set pattern width to 36 + 96d and height to 27 + 64(1 − d). Use seed 187403 + 73j for zero-based row j. Request U16 and F32 for all rows, plus U8 and F16 at the three middle sizes.

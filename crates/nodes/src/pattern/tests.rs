@@ -941,6 +941,24 @@ fn stamp_projection_rounds_at_the_pixel_center_in_scaled_regions() {
 }
 
 #[test]
+fn fading_stamp_uses_the_pixel_center_in_an_offset_rectangular_window() {
+    let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
+    graph.nodes[0].parameters = BTreeMap::from([
+        ("patterntype".into(), Value::Int(12)),
+        ("patternsuppl".into(), Value::Float(0.78)),
+        ("blendingmode".into(), Value::Int(1)),
+        ("branchoffset".into(), Value::Float2([-0.5; 2])),
+        ("frameoffset".into(), Value::Float2([0.6015625, 0.4375])),
+        ("patternsize".into(), Value::Float2([1.8125, 0.96875])),
+        ("patternrotation".into(), stamp_turn_input()),
+    ]);
+    let variables = BTreeMap::from([("$tiling".into(), Value::Int(0)), ("turn".into(), Value::Float(0.25))]);
+    let region = [-1.0, 2.0, -2.5, 3.5];
+    let image = cook_in_regions(graph, &variables, 290178, [16, 32], [region; 2], 0.0).unwrap().remove(0);
+    assert_eq!(image.get_gray(9, 15, false).to_bits(), 0x3f0c_d037);
+}
+
+#[test]
 fn clipped_square_stamp_triangles_use_the_far_vertex_for_both_slope_terms() {
     for (dimensions, center, size, turns, shape, pixel, expected) in [
         ([256, 256], [-0.08850241, 2.9797058], [0.06013941, 0.0625], 161.3187, 4, [236, 1], 0x3dec_9e10),
