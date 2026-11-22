@@ -610,6 +610,47 @@ Add the following settings. Render U16 and F32 at each size, and add U8 and F16 
 | 64 × 32 | 235512 | 235513 | 5 | .8125 | .1875 |
 | 32 × 64 | 235534 | 235535 | 2 | .15625 | .046875 |
 
+### Weighted color accumulation in the palette iteration
+
+The K-means iteration root matches all 135,168 RGBA pixels in 33 distinct whole-root settings on one and eight processors. All ten MaterialCraft saves reopen to their original 40,960 pixels in both applications and agree across applications. The output palette is 256 × 16 at every input size. Maximum channel error is zero for every measured format.
+
+| Root and comparison | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|
+| One or eight processors | 16,384/16,384 · 0 | 32,768/32,768 · 0 | 20,480/20,480 · 0 | 65,536/65,536 · 0 |
+| Saved packages, one processor | 4,096/4,096 · 0 | 12,288/12,288 · 0 | 4,096/4,096 · 0 | 20,480/20,480 · 0 |
+
+The first difference was in the weighted RGB sum over each 256-sample row. The two input images and the 256² classification map already agreed bit for bit. The function multiplies each RGB component by its weight, packs the three products with a fourth weight component, then adds that vector to the running total. Preserving the product through packing allows a single F32 rounding per RGB addition. The evaluator uses these factors within the current iteration when each factor survives until the sum. A nested loop that clears a factor uses the previously stored vector value. The fourth component follows ordinary F32 addition.
+
+| Stage | 32² input before | 64² input before | 32² input after | 64² input after |
+|---|---:|---:|---:|---:|
+| Weighted rows | 65,416/65,536 · 3.81469727e−5 | 65,404/65,536 · 1.52587891e−5 | 65,536/65,536 · 0 | 65,536/65,536 · 0 |
+| Final palette | 4,080/4,096 · 5.96046448e−8 | 4,080/4,096 · 8.94069672e−8 | 4,096/4,096 · 0 | 4,096/4,096 · 0 |
+
+For the two stage comparisons, use the independent 32² input at seed 113 and the changed 64² setting at seed 42, each with four centroids, the alpha control enabled and color space 1. Read the two source images, classification, weighted rows and final palette in their declared formats. The preceding 19 whole-root settings had 77,776/77,824 exact pixels. The new run matches all 77,824 and reproduces the retained captures. [Original palette settings and fields](#tile-weave-splatter-and-fiber-stage-comparisons)
+
+For a reduction to one centroid, fill the initial 256 × 16 palette with byte RGBA (64,64,64,255). Fill a 16² source with (21,89,149,99), use seed 235133, the alpha control enabled, and color space 0. In the first pixel of each weighted row the reference F32 bit patterns are 4102F577, 420AC0FE, 42684BC8, 42C6C6EC. Rounding the product separately gives 4102F576, 420AC0FF, 42684BCA, 42C6C6EC. A release regression distinguishes the two arithmetic paths and checks the nested-loop case. Across twelve one- and two-color fields, both the independent fused calculation and the corrected evaluator match all 786,432 RGBA pixels in the weighted-row stage. To reproduce the two six-case series, use the following byte colors, splitting two-color fields evenly at the middle column. Cycle through 16², 32 × 16 and 16 × 32. Use seed 235133 + 19j for zero-based row j.
+
+| j | First series | Second series | Alpha control |
+|---:|---|---|---|
+| 0 | (109,67,213,185) | (21,89,149,99) | On |
+| 1 | (179,191,61,103) | (23,103,145,117) | On |
+| 2 | (73,149,211,255) | Same | On |
+| 3 | (109,67,213,185) | (21,89,149,99) | Off |
+| 4 | (192,83,49,193) and (31,177,247,124) | (29,116,167,193) and (31,177,247,124) | On |
+| 5 | (220,127,18,79) and (31,177,247,124) | Same | Off |
+
+For the 14 additional whole-root renders, generate source bytes at zero-based (x,y) as (7x+13y+11m, 19x+5y+3xy+m, 3x+53y+7m, 17x+29y+m) modulo 256. The seed palette at column x uses (29x+17m,43x+3m,61x+7m) modulo 256 and alpha 255 across all 16 rows. Use U16 and F32 for every row below and add U8 and F16 for the third and fourth. Save the first and every fourth retained setting, then F32, U16, F16, U8 and F32 respectively from the new rows.
+
+| Source size | Seed | m | Centroids | Alpha control | Color space |
+|---|---:|---:|---|---|---|
+| 16² | 0 | 3 | Default | Default | Default |
+| 32 × 16 | 232039 | 5 | 1 | Default | Default |
+| 16 × 32 | 232067 | 7 | 3 | On | 1 |
+| 32² | 232091 | 11 | 5 | Off | 0 |
+| 64 × 32 | 232123 | 13 | 4 | On | 1 |
+
+The packed-loop regression failed on the original renderer and passed after the change. All 442 release tests in the node and evaluator crates passed, along with formatting, strict workspace Clippy, dependency layers and WebAssembly.
+
 ## 2026-11-21 root comparisons
 
 ### Connected quadrant depth and amplified spot patterns

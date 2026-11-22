@@ -22,6 +22,26 @@ impl Source {
         Self { calls: Vec::new(), factors, components: [0, 0], operation: Operation::Multiply }
     }
 
+    fn live_for_sum(&self, program: &Program, loops: &[usize], sum: usize) -> bool {
+        if loops.is_empty() {
+            return true;
+        }
+        if !self.calls.is_empty() {
+            return false;
+        }
+        let mut inside = false;
+        for &index in loops {
+            let members = &program.instructions[index].control_registers;
+            if members.binary_search(&sum).is_ok() {
+                inside = true;
+            } else if self.factors.iter().any(|factor| members.binary_search(factor).is_ok()) {
+                // A separate loop can clear a factor while the packed vector still holds its old value.
+                return false;
+            }
+        }
+        inside
+    }
+
     pub(super) fn factors<'a>(&self, mut state: &'a EvaluationState) -> Result<(&'a Value, &'a Value), String> {
         for call in &self.calls {
             state = state.calls.get(call).ok_or("missing evaluated product call")?;
@@ -127,13 +147,11 @@ pub(super) fn forwarded<T: Copy>(op: &Instruction, instructions: &[Instruction],
 
 pub(super) fn identify(program: &mut Program, mut returned: BTreeMap<usize, Lanes>) -> Lanes {
     let empty = || std::array::from_fn(|_| None);
-    // Loop iterations invalidate individual registers. Only retain factors for straight-line lifetimes.
-    if program.instructions.iter().any(|op| op.definition.id == "while")
-        || (returned.is_empty() && !program.instructions.iter().any(|op| op.product_operation().is_some() && float_width(op.type_code) > 0 && !op.literal))
-    {
+    if returned.is_empty() && !program.instructions.iter().any(|op| op.product_operation().is_some() && float_width(op.type_code) > 0 && !op.literal) {
         return empty();
     }
 
+    let loops: Vec<_> = program.instructions.iter().enumerate().filter_map(|(i, op)| (op.definition.id == "while").then_some(i)).collect();
     let mut origins: Vec<Origins> = Vec::with_capacity(program.instructions.len());
     let mut products: Vec<(Source, usize)> = Vec::new();
     let mut sums = Vec::new();
@@ -193,6 +211,8 @@ pub(super) fn identify(program: &mut Program, mut returned: BTreeMap<usize, Lane
         let (source, uses) = products.get(id?)?;
         (*uses == 0).then(|| source.clone())
     });
+    // A caller cannot retain registers that the callee's last loop iteration may have cleared.
+    let exported = if loops.is_empty() { exported } else { empty() };
     for id in output.into_iter().flatten() {
         if let Some((_, uses)) = products.get_mut(id) {
             *uses += 1;
@@ -204,7 +224,7 @@ pub(super) fn identify(program: &mut Program, mut returned: BTreeMap<usize, Lane
             sides.iter().enumerate().find_map(|(side, lanes)| {
                 let id = lanes.get(i).copied().flatten()?;
                 let (source, uses) = products.get(id)?;
-                (*uses == 1).then(|| Term { source: source.clone(), on_right: side == 1 })
+                (*uses == 1 && source.live_for_sum(program, &loops, index)).then(|| Term { source: source.clone(), on_right: side == 1 })
             })
         });
         if terms.iter().any(Option::is_some)

@@ -2514,3 +2514,49 @@ fn unconnected_ifelse_condition_stays_boolean_and_empty_branches_keep_declared_t
         assert_eq!(evaluate(&graph, &BTreeMap::new()).unwrap(), Value::Float2([0.0; 2]));
     }
 }
+
+#[test]
+fn packed_loop_products_keep_the_factors_from_the_current_iteration() {
+    let [r, g, b, weight] = [21.0_f32, 89.0, 149.0, 99.0].map(|code| code / 255.0);
+    let variables = BTreeMap::from([("color".into(), Value::Float3([r, g, b])), ("weight".into(), Value::Float(weight))]);
+    let context = EvaluationContext {
+        scope: super::FunctionScope::PixelProcessor,
+        position: [0.5; 2],
+        size: [1.0; 2],
+        images: &[],
+        image_formats: &[],
+        tile: true,
+        variables: &variables,
+    };
+    for nested_read in [false, true] {
+        let mut graph = FunctionGraph::default();
+        let name = Some(Value::Text("total".into()));
+        let zero = graph.add_constant(Value::Float(0.0));
+        let never = graph.add_constant(Value::Bool(false));
+        let start = graph.add_constant(Value::Float4([0.0; 4]));
+        let initialize = graph.add("set", &[start], name.clone());
+        let color = graph.add("get_float3", &[], Some(Value::Text("color".into())));
+        let scale = graph.add("get_float1", &[], Some(Value::Text("weight".into())));
+        let weighted = graph.add("mulscalar", &[color, scale], None);
+        let term = graph.add("vector4", &[weighted, scale], None);
+        let mut previous = graph.add("get_float4", &[], name.clone());
+        if nested_read {
+            // This inner loop clears the scale register after the vector has been packed.
+            let inner = graph.add("while", &[zero, never, scale], Some(Value::Int(1)));
+            previous = graph.add("sequence", &[inner, previous], None);
+        }
+        let sum = graph.add("add", &[term, previous], None);
+        let store = graph.add("set", &[sum], name.clone());
+        let body = graph.add("sequence", &[store, zero], None);
+        let repeat = graph.add("while", &[initialize, never, body], Some(Value::Int(256)));
+        let total = graph.add("get_float4", &[], name);
+        graph.output = Some(graph.add("sequence", &[repeat, total], None));
+        let Value::Float4(actual) = compile(&graph, 0).unwrap().evaluate_pixel(&context, &mut EvaluationState::default()).unwrap() else {
+            panic!("expected a four-component sum");
+        };
+        let [x, y, z] =
+            [r, g, b].map(|component| (0..256).fold(0.0_f32, |sum, _| if nested_read { component * weight + sum } else { component.mul_add(weight, sum) }));
+        let alpha = (0..256).fold(0.0_f32, |sum, _| sum + weight);
+        assert_eq!(actual.map(f32::to_bits), [x, y, z, alpha].map(f32::to_bits), "nested read {nested_read}");
+    }
+}
