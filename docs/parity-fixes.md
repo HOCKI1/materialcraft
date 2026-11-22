@@ -6029,6 +6029,51 @@ Where there are downstream stages, replace the source patterns with the same ori
 | noise_perlin_noise | 10,496/10,496 | 0 / 0 / 0 / 0 |
 | noise_plasma | 10,496/10,496 | 0 / 0 / 0 / 0 |
 
+### Initial branch of a nested pattern iterator
+
+In Noise Dirt Gradient v2 the initial branch of an inner iterator reads the caller’s iteration number. MaterialCraft had set it to zero. The repeated branch starts at zero and increments for its own repetitions. This affected opacity in the middle of the graph’s three pattern stages. Passing the existing number to the initial branch corrects all 704 middle-stage U8 samples in the following three settings. The final F32 stage still has rounding differences.
+
+| Root size, seed | Stage | Earlier exact / total · max | Corrected exact / total · max | Original versus separately exposed reference stage · max |
+|---|---|---:|---:|---:|
+| 16 × 16, 105594 | First pattern, U8 | 4/4 · 0 | 4/4 · 0 | 4/4 · 0 |
+| 16 × 16, 105594 | Middle pattern, U8 | 64/64 · 0 | 64/64 · 0 | 64/64 · 0 |
+| 16 × 16, 105594 | Final pattern, F32 | 177/256 · 2.38418579e-07 | 177/256 · 2.38418579e-07 | 256/256 · 0 |
+| 16 × 32, 281778 | First pattern, U8 | 8/8 · 0 | 8/8 · 0 | 8/8 · 0 |
+| 16 × 32, 281778 | Middle pattern, U8 | 100/128 · 48 | 128/128 · 0 | 128/128 · 0 |
+| 16 × 32, 281778 | Final pattern, F32 | 290/512 · 0.174517453 | 386/512 · 2.38418579e-07 | 430/512 · 2.38418579e-07 |
+| 64 × 32, 281845 | First pattern, U8 | 32/32 · 0 | 32/32 · 0 | 32/32 · 0 |
+| 64 × 32, 281845 | Middle pattern, U8 | 147/512 · 45 | 512/512 · 0 | 512/512 · 0 |
+| 64 × 32, 281845 | Final pattern, F32 | 170/2,048 · 0.15857181 | 1,378/2,048 · 2.38418579e-07 | 1,536/2,048 · 1.78813934e-07 |
+
+The first two settings use defaults. For the third use zero disorder, zero anisotropy and anisotropy angle, speed 1 and nonsquare expansion enabled. Read each original intermediate output before connecting that stage directly to the output in a separate copy. The last column records differences between those two reference captures. Leaving only the background matched 1,216/1,216 U8 pixels across six settings. The outer position, direction, counters and switch readouts matched 11,264/11,264 F32 samples. Selecting one inner initial branch at outer iterations 1 and 3 produced nonzero local pixels where the reference drew zero. The repeated branches matched. Pinning the number to zero or to one in the opacity expression made the isolated branches agree. All 20 isolated branch renders now match, 6,400/6,400 · 0.
+
+For an independent counter probe, connect the outer iterator’s repeat output to an inner iterator. Draw an additive half-width square on each of the inner iterator’s branches, centered at horizontal coordinates .25 and .75. Set roughness to zero, use black behind the squares and set opacity to the current iteration number divided by 32. For three outer and one inner repetition the two F32 halves read .09375 and 0. With four outer and three inner repetitions they read .1875 and .375. With two outer repetitions and zero inner repetitions the initial half still reads .03125. The new node test failed on the earlier implementation and passed after the correction. [Counter regression](../crates/nodes/src/pattern/tests.rs)
+
+| Independent square graph | Settings | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|---:|
+| Earlier one processor | 33 | 1,408/2,816 · 80 | 1,408/2,816 · 20480 | 1,408/2,816 · 0.3125 | 11,008/14,016 · 0.3125 |
+| One processor | 33 | 2,816/2,816 · 0 | 2,816/2,816 · 0 | 2,816/2,816 · 0 | 14,016/14,016 · 0 |
+| Eight processors | 33 | 2,816/2,816 · 0 | 2,816/2,816 · 0 | 2,816/2,816 · 0 | 14,016/14,016 · 0 |
+| One processor after reopening | 12 | 256/256 · 0 | 512/512 · 0 | 2,048/2,048 · 0 | 4,032/4,032 · 0 |
+
+Use (outer, inner, width, height) of (3,1,16,16), (1,1,16,32), (3,2,32,16), (4,3,8,8), (2,0,16,8), (0,3,8,16), (1,4,32,32) and (5,2,32,64), with seed 283271 + 19j for zero-based row j. Render F32 for all three wirings (both, initial only, repeat only). With both branches connected render all four formats at rows 0, 2 and 7. For a reopen take every third setting of each wiring, beginning with the first, in U8, U16, F16, F32 order where all are present.
+
+| Whole graph across four fresh seeds | Settings | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|---:|
+| Earlier, one processor | 12 | 2,301/4,096 · 40 | 5,753/8,704 · 11437 | 2,092/4,096 · 0.158691406 | 3,572/8,704 · 0.174517393 |
+| Corrected, one processor | 12 | 4,096/4,096 · 0 | 8,696/8,704 · 1 | 4,096/4,096 · 0 | 5,523/8,704 · 5.36441803e-07 |
+| Corrected, eight processors | 12 | 4,096/4,096 · 0 | 8,689/8,704 · 1 | 4,096/4,096 · 0 | 6,084/8,704 · 3.57627869e-07 |
+| Reference one versus eight | 12 | 4,096/4,096 · 0 | 8,691/8,704 · 1 | 4,096/4,096 · 0 | 5,577/8,704 · 4.76837158e-07 |
+
+| Size, seed | Exposed controls | Formats |
+|---|---|---|
+| 16 × 32, 281778 | Defaults | U16, F32 |
+| 64 × 32, 281845 | `disorder` 0.0, `disorder_anisotropy` 0, `non_square_expansion` on, `disorder_anisotropy_angle` 0, `disorder_speed` 1 | U8, U16, F16, F32 |
+| 32 × 64, 281912 | `disorder` 0.8125, `disorder_anisotropy` 0.625, `non_square_expansion` on, `disorder_anisotropy_angle` -0.21875, `disorder_speed` 1.4375 | U8, U16, F16, F32 |
+| 64 × 64, 281979 | `disorder` 0.21875, `disorder_speed` 0.21875, `disorder_anisotropy` 0.21875, `disorder_anisotropy_angle` -0.03125, `non_square_expansion` on | U16, F32 |
+
+Polygon Paths also has a function call beneath a nested initial branch. The 19 archived RGBA settings retain all 5,120 original pixels. Add 32 × 16 with 9 sides, 16 × 64 with 13 sides and 64 × 32 with 21 sides at seeds 285143, 285180 and 285217. Render all four formats in U8, U16, F16, F32 order. All 31 settings match 9,216/9,216 pixels on each processor count, with all four components exact. Reopen every fourth setting starting with the first. Both applications reproduce all 2,304 pixels across the eight reopens. All maxima are zero. [Archived polygon settings](#color-temperature-range-reductions-sky-parameters-and-polygon-paths)
+
 ### Sixty whole settings for three directional and dirt noise packages
 
 Each package has 60 distinct settings. The first 48 combine the earlier default, seed, control and format captures with the larger size sweep. Twelve additional settings exercise four fresh seeds and square and rectangular sizes. The table compares the same raw output against one- and eight-processor captures. Each saved package went through MaterialCraft’s SBS writer and reopened in both applications. The 12 settings per package include defaults and changed controls. Counts exclude replacement outputs from failed cooks. [Earlier directional stages](#directional-noise-and-scratch-pattern-sources) · [Earlier dirt stages](#dirt-noise-sources-and-downstream-stages)

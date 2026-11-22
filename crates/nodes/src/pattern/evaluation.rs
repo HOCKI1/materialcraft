@@ -358,10 +358,8 @@ pub fn cook_with_base_level_inputs(context: &CookContext, base_level_only: &[boo
                     repeated_roots = Some(0_usize);
                 }
                 if let Some(Some(child)) = node.children.first() {
-                    let mut first = visit.clone();
-                    first.node = *child;
-                    first.number = 0;
-                    children.push(first);
+                    // The initial branch keeps the enclosing iteration's number and seed.
+                    children.push(PatternVisit { node: *child, ..visit.clone() });
                 }
                 if let Some(repeats_left) = count.checked_sub(1)
                     && let Some(Some(child)) = node.children.get(1)

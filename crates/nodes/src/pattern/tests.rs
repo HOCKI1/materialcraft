@@ -1563,6 +1563,48 @@ fn iterate_sets_number_and_switch_selects_one_child() {
 }
 
 #[test]
+fn a_nested_iterators_initial_branch_inherits_the_callers_number() {
+    let mut graph = PatternGraph::with_root(PatternNodeKind::Iterate);
+    let inner = graph.add(PatternNodeKind::Iterate).unwrap();
+    let initial = graph.add(PatternNodeKind::Quadrant).unwrap();
+    let repeated = graph.add(PatternNodeKind::Quadrant).unwrap();
+    graph.nodes[0].children[1] = Some(inner);
+    graph.nodes[1].children = vec![Some(initial), Some(repeated)];
+
+    let mut gain = FunctionGraph::default();
+    let number = gain.add("get_float1", &[], Some(Value::Text("$number".into())));
+    let weight = gain.add_constant(Value::Float(1.0 / 32.0));
+    gain.output = Some(gain.add("mul", &[number, weight], None));
+    for (square, offset) in graph.nodes[2..].iter_mut().zip([-0.25, 0.25]) {
+        square.parameters = BTreeMap::from([
+            ("patterntype".into(), Value::Int(2)),
+            ("blendingmode".into(), Value::Int(0)),
+            ("patternsize".into(), Value::Float2([0.5, 1.0])),
+            ("frameoffset".into(), Value::Float2([offset, 0.0])),
+            ("opacity".into(), Value::Function(Box::new(gain.clone()))),
+        ]);
+    }
+
+    // The left half records the initial branch. The right half records the inner repetitions.
+    let variables = BTreeMap::from([("$tiling".into(), Value::Int(0))]);
+    for (outer, inner, seed, width, height, left, right) in [
+        (3, 1, 283271, 16, 16, 0.09375, 0.0),
+        (4, 3, 283328, 8, 8, 0.1875, 0.375),
+        (2, 0, 283347, 16, 8, 0.03125, 0.0),
+        (5, 2, 283404, 32, 64, 0.3125, 0.15625),
+    ] {
+        graph.nodes[0].parameters.insert("numberadded".into(), Value::Int(outer));
+        graph.nodes[1].parameters.insert("numberadded".into(), Value::Int(inner));
+        let image = cook_at_dimensions(graph.clone(), &variables, seed, width, height).unwrap().remove(0);
+        for row in image.data().chunks_exact(width as usize) {
+            let (a, b) = row.split_at(width as usize / 2);
+            assert!(a.iter().all(|&pixel| pixel == left), "outer {outer}, inner {inner}, initial branch");
+            assert!(b.iter().all(|&pixel| pixel == right), "outer {outer}, inner {inner}, repeated branch");
+        }
+    }
+}
+
+#[test]
 fn long_pattern_iterations_charge_only_connected_visits() {
     let mut graph = PatternGraph::with_root(PatternNodeKind::Iterate);
     let square = graph.add(PatternNodeKind::Quadrant).unwrap();
