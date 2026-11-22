@@ -160,6 +160,35 @@ In the original 95 settings, the one-processor comparison gained 41 exact pixels
 
 With one local processor, use the direct horizontal F32 generator at 256² seed 0, 256 × 128 seed 142453 and 64 × 128 seed 186651. Six interleaved release measurements per version after warmup gave median cook times of 2,242 to 2,275 ms, 2,145 to 2,239 ms, 2,100 to 2,145 ms. The two-level seam regression failed at parent 64 on the previous code and passed with the change. All 432 release tests for the node and evaluation crates passed, along with formatting, strict workspace Clippy, dependency layers and WebAssembly.
 
+### Zero-luminosity draws and addition order in Moisture Noise
+
+Expose each pattern source separately, retaining just its generator and output. Repeat the five size, seed and control combinations in the stage table. Capture the stored U16 result, then F32 with the original tiling and with both axes disabled, on one processor. The isolated U16 outputs reproduced every reference pixel from the intact graph. [Five settings and whole-root results](#two-independent-pattern-sources-in-moisture-noise)
+
+| Generator output | Destination exact / total · max | Source exact / total · max |
+|---|---:|---:|
+| U16, original tiling | 26,622/26,624 · 1 | 26,623/26,624 · 1 |
+| F32, original tiling | 26,227/26,624 · 1.1920929e-07 | 26,076/26,624 · 1.49011612e-08 |
+| F32, tiling off | 26,356/26,624 · 1.1920929e-07 | 26,302/26,624 · 7.4505806e-09 |
+
+In each F32 render, record the background and the F32 contribution of each original stamp at each covered pixel in MaterialCraft. Replaying them in traversal order reproduced all 106,496 MaterialCraft pixels. Of those, 104,961 matched the reference, maximum 1.19209290e−7. For each of the 1,535 others, permute the same contributions and round to F32 after each addition. Verify the resulting order independently with F32 addition. Each differing pixel had at least one order giving the exact reference bits. The diagnostic reconstructs 106,496/106,496 pixels with zero maximum error. Finding a consistent order shared by all pixels and held-out settings remains open.
+
+For example, use 64², seed 42 and tiling off. At destination (63,21) the F32 background is 0x3efefef8. Adding 0x3ac65b72 then 0x3b0da8f8 yields 0x3f007052. Reversing them yields the reference 0x3f007053. At source (37,10) start from zero. The three contributions 0x3bb14b71, 0x3bee99ee and 0x3c451a3a yield 0x3cca8675 in that order. Moving the third to the front yields the reference 0x3cca8674.
+
+Build an independent four-child square tree from depth zero through eight. Enable shape 2 at depths two through eight, additive blending, width and height .875, zero roughness, unit global opacity, a white background and no tiling. Use a 128² F32 output. Keep depths two through six and depth eight centered at (.5,.75) with luminosity .25. Number the 64 depth-three groups in child-slot traversal order. Move their depth-seven grids by multiples of 1/8 so each pair lands on the same 16 × 16 tile in the upper half. Assign −1 to one grid and 2⁻²⁵ to the other. The two possible orders give either 2⁻²⁵ or zero at the pixel centers.
+
+Start with group numbers 0 through 63 in order. Pair the ends inward, keep the first number fixed, move the last number to the second position and repeat for 63 rounds. Lay the 32 pairs left-to-right in eight columns. Use seed 137143 + 17j for zero-based round j and reverse the gains in a second capture every seventh round starting at zero. Every one of the 589,824 readings agreed with one order of the 64 groups across all 256 local coordinates. For an independent parent comparison, give each active depth-two square width and height .5 and move it to the center of a readout tile. In round j place parent p opposite group (4p + j) modulo 64, for j = 0 through 63. Reverse every seventh round. Also compare all parent pairs in a 15-round rotation, reversing every third round. Use seed 189319 for these comparisons. All 344,064 readings agreed with a single ordering of the 16 parents and 64 groups, maximum error zero.
+
+In each real generator, 87,376 logical draws occur at depths two through eight. Across the five settings, 43,449–43,776 of the destination draws and 43,600–43,927 of the source draws have nonzero luminosity. To isolate the effect of these draws, expose a single scalar controlling the depth-eight luminosity in the square tree. All depth-eight squares still occupy the lower half. Repeat rounds 0, 5, 17, 28, 41 and 62 with both polarities. Compare the upper 64 rows to separate captures with constant depth-eight luminosity zero and .25.
+
+| Exposed luminosity | Against zero control · exact / total | Against .25 control · exact / total |
+|---:|---:|---:|
+| 0 | 98,304/98,304 | 29,184/98,304 |
+| 2⁻²⁰ | 29,184/98,304 | 98,304/98,304 |
+| .125 | 29,184/98,304 | 98,304/98,304 |
+| −.125 | 29,184/98,304 | 98,304/98,304 |
+
+The maximum upper-half error is zero for exact comparisons and 2⁻²⁵ for the others. At round zero with the initial polarity, (0,0) changes from 2⁻²⁵ to zero as soon as the lower squares take any of the three tested nonzero gains. MaterialCraft matches 610,816/786,432 complete pixels across the 48 exposed settings, maximum 2⁻²⁵. At zero gain reopen rounds 0 and 28 with initial polarity, at 2⁻²⁰ the same rounds reversed, at .125 rounds 5 and 41 with initial polarity, and at −.125 those rounds reversed. Both applications reproduced their own 131,072/131,072 saved pixels. The cross-application result was 97,792/131,072, maximum 2⁻²⁵. Moisture Noise remains in progress.
+
 ## 2026-11-21 root comparisons
 
 ### Connected quadrant depth and amplified spot patterns
