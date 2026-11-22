@@ -581,6 +581,49 @@ fn depth_six_stamps_and_their_four_leaves_draw_in_the_same_grandchild_run() {
 }
 
 #[test]
+fn single_branch_controls_keep_the_order_of_a_complete_nine_level_tree() {
+    let (mut graph, groups) = seven_level_tree();
+    let middle = graph.add(PatternNodeKind::Quadrant).unwrap();
+    let leaf = graph.add(PatternNodeKind::Quadrant).unwrap();
+    for id in [middle, leaf] {
+        graph.nodes[(id - 1) as usize].parameters = additive_square(0.25, [0.0; 2], [0.0, 0.5]);
+    }
+    graph.nodes[(middle - 1) as usize].children.fill(Some(leaf));
+    let tiny = f32::EPSILON * 0.25;
+    for (group, QuadrantProbeGroup { last_three: [_, prior, parent], offset }) in groups.into_iter().enumerate() {
+        let (weight, frame) = match group {
+            12 => (-1.0, [0.0; 2]),
+            0 => (tiny, [0.0; 2]),
+            _ => (0.25, [0.5, 0.0]),
+        };
+        graph.nodes[parent].parameters = additive_square(weight, offset, frame);
+        graph.nodes[parent].children.fill(Some(middle));
+        let pass = graph.add(PatternNodeKind::Iterate).unwrap();
+        graph.nodes[(pass - 1) as usize].children[1] = Some(graph.nodes[parent].id);
+        graph.nodes[(pass - 1) as usize].parameters.insert("numberadded".into(), Value::Int(1));
+        graph.nodes[prior].children.fill(Some(pass));
+    }
+
+    // Only the fourth outer repetition submits a quadrant tree.
+    let select = graph.add(PatternNodeKind::Switch).unwrap();
+    let mut condition = FunctionGraph::default();
+    let number = condition.add("get_float1", &[], Some(Value::Text("$number".into())));
+    let three = condition.add_constant(Value::Float(3.0));
+    condition.output = Some(condition.add("eq", &[number, three], None));
+    graph.nodes[(select - 1) as usize].children[1] = graph.root;
+    graph.nodes[(select - 1) as usize].parameters.insert("switch".into(), Value::Function(Box::new(condition)));
+    let outer = graph.add(PatternNodeKind::Iterate).unwrap();
+    graph.nodes[(outer - 1) as usize].children[1] = Some(select);
+    graph.nodes[(outer - 1) as usize].parameters.insert("numberadded".into(), Value::Int(9));
+    graph.root = Some(outer);
+
+    let variables = BTreeMap::from([("$tiling".into(), Value::Int(0))]);
+    let image = cook_in_regions(graph, &variables, 188119, [128; 2], [[0.0, 1.0, 0.0, 1.0]; 2], 1.0).unwrap().remove(0);
+    let samples = [(0, 0), (8, 0), (0, 16), (16, 0)].map(|(x, y)| image.get_gray(x, y, false));
+    assert_eq!(samples, [0.0, tiny, tiny, 0.0], "one active tree through both iterators");
+}
+
+#[test]
 fn depth_eight_parent_order_counts_children_that_cross_the_tile_edge() {
     let tiny = f32::EPSILON * 0.25;
     for (child_count, tiling, child_x, width, early) in [

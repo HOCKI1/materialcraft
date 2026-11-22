@@ -134,6 +134,7 @@ pub(super) struct MixedDepthRuns {
     starts: Vec<DrawPosition>,
     next_boundary: usize,
     parents: usize,
+    saw_root: bool,
     children_per_parent: usize,
     draws_per_parent: usize,
     deepest: u32,
@@ -157,7 +158,14 @@ impl MixedDepthRuns {
 
     pub(super) fn visit(&mut self, node: &PatternNode, depth: u32, retained: usize) -> bool {
         if node.kind != PatternNodeKind::Quadrant {
-            return false;
+            return true;
+        }
+        // Empty outer repetitions emit no quadrants. A second actual tree has a different draw order.
+        if depth == 0 {
+            if self.saw_root {
+                return false;
+            }
+            self.saw_root = true;
         }
         if depth != 7 {
             return match depth {

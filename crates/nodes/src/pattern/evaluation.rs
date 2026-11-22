@@ -365,6 +365,10 @@ pub fn cook_with_base_level_inputs(context: &CookContext, base_level_only: &[boo
                     && let Some(Some(child)) = node.children.get(1)
                     && !empty_switches.contains(child)
                 {
+                    // An inner iterator that submits multiple branches breaks the complete quadrant layout.
+                    if visit.depth > 0 && (repeats_left != 0 || !children.is_empty()) {
+                        mixed_depth_runs = None;
+                    }
                     // Each connected visit costs at least one unit, even if its stamp is discarded.
                     // A fixed switch can discover an empty branch on its first visit and skip the rest.
                     if count as usize > remaining + discard_allowance && !fixed_switches.contains(child) {

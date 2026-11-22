@@ -6105,6 +6105,109 @@ Where there are downstream stages, replace the source patterns with the same ori
 | noise_perlin_noise | 10,496/10,496 | 0 / 0 / 0 / 0 |
 | noise_plasma | 10,496/10,496 | 0 / 0 / 0 / 0 |
 
+### Single-branch controls in complete quadrant trees
+
+A switch or a one-branch iterator can pass a single complete tree to the pattern renderer. MaterialCraft previously discarded the measured draw order as soon as it visited either control. The renderer now counts the outer trees that actually reach a quadrant. It checks inner iteration branching, the connected quadrants, draw counts and stamp properties before applying the order. The regression’s fourth outer repetition passes a depth-nine tree through one inner repetition. At (8,0) and (0,16) the previous cook returned zero. The corrected cook and the one-processor reference return 2⁻²⁵. [Original square construction](#three-active-quadrant-levels-in-dirt-5-and-dirt-gradient) · [Normal cook regression](../crates/nodes/src/pattern/tests.rs)
+
+The following comparisons use original square stamps on white with wrapping off. Draw at depths seven, eight and nine, or seven and eight in the shorter tree. For the first four configurations use the first four rows of the linked square construction with the same sizes, offsets, gains and seeds. Repeat the first two gain configurations at 64 × 32 and 32 × 64 with seeds 292177 and 292214. For the nine-repetition and shorter-tree controls use the first two 128² cases and the 64 × 32 case. Counts compare stored F32 bits. Each maximum is an absolute error.
+
+| Square control | Renders | Earlier exact / total · max | Corrected exact / total · max |
+|---|---:|---:|---:|
+| Direct depth-nine tree | 6 | 53,248/53,248 · 0 | 53,248/53,248 · 0 |
+| One outer repetition | 6 | 52,160/53,248 · 2.98023224e-08 | 53,248/53,248 · 0 |
+| One inner repetition at depth seven | 6 | 52,160/53,248 · 2.98023224e-08 | 53,248/53,248 · 0 |
+| Both iterators | 6 | 52,096/53,248 · 2.98023224e-08 | 53,184/53,248 · 2.98023224e-08 |
+| Both iterators and an outer switch | 6 | 52,160/53,248 · 2.98023224e-08 | 53,248/53,248 · 0 |
+| Inner initial branch with zero repetitions | 6 | 52,160/53,248 · 2.98023224e-08 | 53,248/53,248 · 0 |
+| Dot control at depth seven | 6 | 53,248/53,248 · 0 | 53,248/53,248 · 0 |
+| Reopened graph with both iterators and switch | 3 | 26,048/26,624 · 2.98023224e-08 | 26,624/26,624 · 0 |
+| Only outer repetition 3 of 0–8 draws | 3 | 33,728/34,816 · 2.98023224e-08 | 34,816/34,816 · 0 |
+| Outer repetitions 3 and 6 both draw | 3 | 34,752/34,816 · 5.96046448e-08 | 34,752/34,816 · 5.96046448e-08 |
+| Two inner repetitions | 3 | 34,816/34,816 · 0 | 34,816/34,816 · 0 |
+| Connected initial and repeated inner branches | 3 | 34,816/34,816 · 0 | 34,816/34,816 · 0 |
+| One outer draw, inner initial branch only | 3 | 33,728/34,816 · 2.98023224e-08 | 34,816/34,816 · 0 |
+| Direct depth-eight trees with four or two children | 6 | 69,632/69,632 · 0 | 69,632/69,632 · 0 |
+| Same depth-eight trees through both iterators and switch | 6 | 67,584/69,632 · 2.98023224e-08 | 69,632/69,632 · 0 |
+| Three independent recaptures of the 128² two-iterator case | 3 | 47,424/49,152 · 2.98023224e-08 | 49,152/49,152 · 0 |
+| Controls inserted before depths 3, 4, 5, 6 or 8 | 18 | 203,584/208,896 · 2.98023224e-08 | 208,896/208,896 · 0 |
+
+The first native render with both iterators differed from the direct tree at 64 of 16,384 pixels, maximum 2⁻²⁵. Three later captures on separate single processors each reproduced all 16,384 direct pixels. The table retains that first capture. Two active outer trees still differ at 64 pixels across the three settings. All three multiple-branch controls reproduced their earlier local raw buffers.
+
+In the final stage of Noise Dirt Gradient v2, remove the background connection and set both iteration counts to one. Use the [three gradient settings](#initial-branch-of-a-nested-pattern-iterator). For the constant-color rows give every active stamp RGBA (.3125,.3125,.3125,1). The original windows come from the stage. The unit window is (0,1,0,1) on both render and tiling regions.
+
+| Final-stage controls | Earlier F32 exact / total · max | Corrected F32 exact / total · max |
+|---|---:|---:|
+| Unit windows, wrapping off | 1,077/2,816 · 7.4505806e-08 | 2,816/2,816 · 0 |
+| Original windows, wrapping off | 1,643/2,816 · 4.47034836e-08 | 2,816/2,816 · 0 |
+| Unit windows, wrapping off, constant color | 1,041/2,816 · 2.98023224e-08 | 2,816/2,816 · 0 |
+| Original windows, wrapping off, constant color | 1,623/2,816 · 2.98023224e-08 | 2,816/2,816 · 0 |
+| Unit windows, both axes wrapped | 669/2,816 · 8.94069672e-08 | 669/2,816 · 8.94069672e-08 |
+
+| Final-stage controls | Eight-processor F32 · max | Reopened in both applications · max | Original versus reopened reference · max |
+|---|---:|---:|---:|
+| Unit windows, wrapping off | 1,090/2,816 · 7.4505806e-08 | 2,816/2,816 · 0 | 2,816/2,816 · 0 |
+| Original windows, wrapping off | 1,671/2,816 · 5.96046448e-08 | 2,816/2,816 · 0 | 2,816/2,816 · 0 |
+| Unit windows, both axes wrapped | 664/2,816 · 1.1920929e-07 | 669/2,816 · 8.94069672e-08 | 2,816/2,816 · 0 |
+
+Each successful local save reproduced its original raw buffer. All 344,064 logical stamps have one physical copy with wrapping disabled. With both axes wrapped, the same three trees submit 353,000, 352,711 and 353,256 copies. Their submission order remains open. With all original controls and the background connected, the first two stages still match 44/44 and 704/704 U8 samples. The final stage matches 1,941/2,816 · 2.38418579e-07 on the three original captures. [Sixty whole gradient settings](#sixty-whole-renders-after-correcting-the-inner-iterator)
+
+The following whole-graph measurements compare the corrected cook with the same native inputs at each processor count. Reopens use the normal SBS writer. The last column lists stored U8, U16, F16 and F32 maxima in that order. A dash identifies an unmeasured format.
+
+| Package · reference | Completed / requested | Exact / total | Maximum by format |
+|---|---:|---:|---|
+| noise_clouds_1 · one | 11/11 | 5,626/5,632 | 0 / 0 / 0 / 1.52587891e-05 |
+| noise_clouds_1 · eight | 11/11 | 5,626/5,632 | 0 / 0 / 0 / 1.52587891e-05 |
+| noise_clouds_1 · reopened, one | 2/2 | 768/768 | — / 0 / 0 / — |
+| noise_clouds_1_v2 · one | 11/11 | 5,373/5,632 | 0 / 0 / 0 / 1.49011612e-07 |
+| noise_clouds_1_v2 · eight | 11/11 | 5,411/5,632 | 0 / 0 / 0 / 1.78813934e-07 |
+| noise_clouds_1_v2 · reopened, one | 2/2 | 768/768 | — / 0 / 0 / — |
+| noise_clouds_2_v2 · one | 11/11 | 5,612/5,632 | 0 / 0 / 0 / 5.96046448e-08 |
+| noise_clouds_2_v2 · eight | 11/11 | 5,608/5,632 | 0 / 0 / 0 / 5.96046448e-08 |
+| noise_clouds_2_v2 · reopened, one | 2/2 | 768/768 | — / 0 / 0 / — |
+| noise_dirt_5 · one | 8/12 | 6,911/6,912 | 0 / — / 0.000122070312 / 0 |
+| noise_dirt_5 · eight | 8/12 | 6,911/6,912 | 0 / — / 0 / 5.08278608e-05 |
+| noise_dirt_5 · reopened, one | 1/2 | 1,024/1,024 | — / — / — / 0 |
+
+The default 16² F32 Clouds 2 v2 at seed 103050 improved from 251/256 to 256/256 against the one-processor capture. Against eight processors it changed from 255/256 to 252/256. The eight-processor maximum is 5.96046448e-08. Every other listed whole output and every comparable save reproduced the prior local digest.
+
+For an independent repeat, open both source and save and render seeds 103050, 103067, 103050, 103093 and 103050 in that order. Repeat on each of two individual processors and then on eight. The twelve single-processor visits to the original seed match 3,072/3,072 · 0. The six eight-processor visits match 1,512/1,536 · 5.96046448e-08. At the two changed seeds the counts are 2,048/2,048 · 0 on the individual processors and 1,014/1,024 · 5.96046448e-08 on eight. Each local reopen reproduces the source at all three seeds.
+
+<details>
+<summary>Whole-graph controls and saved cases</summary>
+
+| Package | Size | Seed | Controls | Formats | Reopened | Execution budget reached |
+|---|---|---:|---|---|---|---|
+| noise_clouds_1 | 16 × 16 | 103017 | Defaults | F32 | — | — |
+| noise_clouds_1 | 32 × 32 | 103019 | disorder=0.3125, non_square_expansion=false, scale=3 | F16 | — | — |
+| noise_clouds_1 | 16 × 16 | 0 | Defaults | U8, U16, F16 | U16 | — |
+| noise_clouds_1 | 64 × 16 | 42 | disorder=0.03125, non_square_expansion=true, scale=2 | F32 | — | — |
+| noise_clouds_1 | 16 × 32 | 0 | Defaults | F32 | — | — |
+| noise_clouds_1 | 32 × 16 | 169440 | disorder=0.34375, scale=1 | U8, U16, F16, F32 | F16 | — |
+| noise_clouds_1_v2 | 16 × 16 | 103028 | Defaults | F32 | — | — |
+| noise_clouds_1_v2 | 32 × 32 | 103030 | disorder=0.3125, disorder_anisotropy=0.25, disorder_anisotropy_angle=0.3125, disorder_speed=0.6875, non_square_expansion=false, scale=3, tile_offset=[0.125, -0.1875] | F16 | — | — |
+| noise_clouds_1_v2 | 16 × 16 | 0 | Defaults | U8, U16, F16 | U16 | — |
+| noise_clouds_1_v2 | 64 × 16 | 42 | disorder=0.03125, disorder_anisotropy=0.03125, disorder_anisotropy_angle=-0.21875, disorder_speed=0.03125, non_square_expansion=true, scale=2, tile_offset=[-0.3125, 0.37890625] | F32 | — | — |
+| noise_clouds_1_v2 | 16 × 32 | 0 | Defaults | F32 | — | — |
+| noise_clouds_1_v2 | 32 × 16 | 169477 | disorder=0.34375, disorder_anisotropy=0.171875, disorder_anisotropy_angle=-0.03125, disorder_speed=0.796875, scale=1, tile_offset=[0.0751953125, -0.12890625] | U8, U16, F16, F32 | F16 | — |
+| noise_clouds_2_v2 | 16 × 16 | 103050 | Defaults | F32 | — | — |
+| noise_clouds_2_v2 | 32 × 32 | 103052 | disorder=0.3125, disorder_anisotropy=0.25, disorder_anisotropy_angle=0.3125, disorder_speed=0.6875, non_square_expansion=false, scale=3, tile_offset=[0.125, -0.1875] | F16 | — | — |
+| noise_clouds_2_v2 | 16 × 16 | 0 | Defaults | U8, U16, F16 | U16 | — |
+| noise_clouds_2_v2 | 64 × 16 | 42 | disorder=0.03125, disorder_anisotropy=0.03125, disorder_anisotropy_angle=-0.21875, disorder_speed=0.03125, non_square_expansion=true, scale=2, tile_offset=[-0.3125, 0.37890625] | F32 | — | — |
+| noise_clouds_2_v2 | 16 × 32 | 0 | Defaults | F32 | — | — |
+| noise_clouds_2_v2 | 32 × 16 | 169551 | disorder=0.34375, disorder_anisotropy=0.171875, disorder_anisotropy_angle=-0.03125, disorder_speed=0.796875, scale=1, tile_offset=[0.0751953125, -0.12890625] | U8, U16, F16, F32 | F16 | — |
+| noise_dirt_5 | 16 × 16 | 105543 | Defaults | F32 | — | — |
+| noise_dirt_5 | 32 × 32 | 105544 | disorder=0.0, non_square_expansion=true, scale=1 | F32 | F32 | — |
+| noise_dirt_5 | 32 × 32 | 105545 | disorder=0.3125, non_square_expansion=false, scale=1 | U8, F16 | — | — |
+| noise_dirt_5 | 32 × 16 | 105549 | disorder=0.8125, non_square_expansion=true, scale=2 | F32 | F32 | F32 |
+| noise_dirt_5 | 16 × 32 | 105550 | disorder=0.8125, non_square_expansion=true, scale=2 | U16 | — | U16 |
+| noise_dirt_5 | 64 × 32 | 105551 | disorder=0.3125, non_square_expansion=false, scale=1 | F32 | — | — |
+| noise_dirt_5 | 16 × 32 | 0 | Defaults | U8, F16, F32 | — | — |
+| noise_dirt_5 | 32 × 16 | 42 | disorder=0.21875, non_square_expansion=true, scale=2 | U16, F32 | — | U16, F32 |
+
+</details>
+
+On one processor, median release process CPU time over three interleaved runs changed from 11.453 to 11.672 seconds for six fresh one-tree cooks, 14.109 to 14.078 seconds for four two-tree cooks, and 21.312 to 21.281 seconds for one default 16² gradient cook. These times include opening the package and reading the result. All 455 node and evaluator release tests passed, along with formatting, strict workspace Clippy, dependency layers and WebAssembly.
+
 ### Sixty whole renders after correcting the inner iterator
 
 The 60 settings for Noise Dirt Gradient v2 include the 12 fresh cases in the [isolated iterator measurements](#initial-branch-of-a-nested-pattern-iterator). The table counts stored pixels from successful cooks. The other settings reached the pattern graph traversal budget. Both whole and saved comparisons use the same material output. Integer maxima are in storage levels.
