@@ -651,6 +651,39 @@ For the 14 additional whole-root renders, generate source bytes at zero-based (x
 
 The packed-loop regression failed on the original renderer and passed after the change. All 442 release tests in the node and evaluator crates passed, along with formatting, strict workspace Clippy, dependency layers and WebAssembly.
 
+### Directional Scratches across scaled projection windows
+
+Both Directional Scratches packages match 2,571,520/2,571,520 pixels each in 86 distinct settings, on one and eight processors. Each has 64 MaterialCraft saves with 2,442,240/2,442,240 exact pixels on reopening in both applications and comparing across them. Maximum stored error is zero across all four formats.
+
+| Root and comparison | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|
+| Directional Scratches, one or eight processors | 432,896/432,896 · 0 | 874,752/874,752 · 0 | 434,944/434,944 · 0 | 828,928/828,928 · 0 |
+| Directional Scratches, saved files | 429,824/429,824 · 0 | 766,208/766,208 · 0 | 427,264/427,264 · 0 | 818,944/818,944 · 0 |
+| Directional Scratches v2, one or eight processors | 482,048/482,048 · 0 | 825,600/825,600 · 0 | 434,944/434,944 · 0 | 828,928/828,928 · 0 |
+| Directional Scratches v2, saved files | 380,672/380,672 · 0 | 815,360/815,360 · 0 | 427,264/427,264 · 0 | 818,944/818,944 · 0 |
+
+Render the 74 archived settings, including the two thirty-case series. Their fresh one-processor captures reproduce all 2,556,160 original pixels per root. The following independent release comparisons locate the earlier differences at the change that projects stamp vertices relative to pixel centers in scaled windows. The rectangular stamp regression measures that displacement directly. [Archived scratch and Gaussian settings](#scaled-scratch-and-gaussian-noise-and-spot-generators) · [Pixel-center controls](#projecting-stamp-vertices-relative-to-pixel-centers-in-scaled-windows) · [Rectangular regression](#fur-1-across-scaled-windows-and-saved-files)
+
+| Root | Size | Seed | Format | Previous exact / total · max | Corrected exact / total · max |
+|---|---|---:|---|---:|---:|
+| Directional Scratches | 64 × 64 | 411725 | U16 | 4,087/4,096 · 1 | 4,096/4,096 · 0 |
+| Directional Scratches v2 | 64 × 64 | 411732 | U16 | 4,081/4,096 · 1 | 4,096/4,096 · 0 |
+
+Directional Scratches at seed 411725 uses scale 3, angle 0.09375, angle random 0.34375, disorder 0.34375, pattern amount 0.34375, pattern size (0.6328125, 8.96875), pattern size random (0.296875, 0.49609375), non-square expansion on. Directional Scratches v2 at seed 411732 uses scale 3, disorder 0.34375, disorder speed 0.34375, disorder anisotropy 0.34375, disorder anisotropy angle 0.09375, angle 0.09375, angle random 0.34375, pattern amount 0.34375, pattern size (0.6328125, 8.96875), pattern size random (0.296875, 0.49609375), tile offset (0.0, 0.10546875), non-square expansion on.
+
+Add the following original procedural settings. Render U16 and F32 at each size and add U8 and F16 at 32 × 16 and 64 × 32. Save the settings from both thirty-case series that contributed a distinct entry after the original default, seed and precision sweeps. Also save every fifth distinct archived setting from the first, and the new F32, U8, U16 and F16, and F32 controls in size order. Count each setting once.
+
+| Root | Output size and seed | Exposed settings |
+|---|---|---|
+| Directional Scratches | 16 × 32 at 238576 | defaults |
+| Directional Scratches | 32 × 16 at 235370, 64 × 32 at 235416 | angle 0.15625, angle random 0.21875, disorder 0.3125, non-square expansion off, pattern amount 0.5625, pattern size (0.6875, 3.25), pattern size random (0.0625, 0.21875), scale 1 |
+| Directional Scratches | 32 × 64 at 235438 | angle 0.375, angle random 0.03125, disorder 0.125, non-square expansion off, pattern amount 0.375, pattern size (0.375, 1.75), pattern size random (0.03125, 0.09375), scale 3 |
+| Directional Scratches v2 | 16 × 32 at 238577 | defaults |
+| Directional Scratches v2 | 32 × 16 at 235371, 64 × 32 at 235417 | angle 0.15625, angle random 0.21875, disorder 0.3125, disorder anisotropy 0.25, disorder anisotropy angle 0.3125, disorder speed 0.6875, non-square expansion off, pattern amount 0.5625, pattern size (0.6875, 3.25), pattern size random (0.0625, 0.21875), scale 1, tile offset (0.125, -0.1875) |
+| Directional Scratches v2 | 32 × 64 at 235439 | angle 0.375, angle random 0.03125, disorder 0.125, disorder anisotropy 0.125, disorder anisotropy angle 0.15625, disorder speed 0.875, non-square expansion off, pattern amount 0.375, pattern size (0.375, 1.75), pattern size random (0.03125, 0.09375), scale 3, tile offset (-0.0625, 0.125) |
+
+All 442 release tests in the node and evaluator crates passed, along with formatting, strict workspace Clippy, dependency layers and WebAssembly.
+
 ## 2026-11-21 root comparisons
 
 ### Connected quadrant depth and amplified spot patterns
