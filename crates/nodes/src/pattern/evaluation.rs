@@ -122,6 +122,7 @@ pub fn cook_with_base_level_inputs(context: &CookContext, base_level_only: &[boo
     let mut remaining = MAX_VISITS;
     let mut discard_allowance = MAX_VISITS;
     let grayscale = !context.b("color_mode");
+    let mut repeated_roots = None;
     let mut seven_level_runs = (grayscale && opacity_depth == 7).then(SevenLevelRuns::default);
     let mut sparse_runs = if grayscale && opacity_depth == 8 { super::tile_runs::SparseQuadrantRuns::new(context) } else { None };
     let mut mixed_depth_runs = if grayscale && matches!(opacity_depth, 8 | 9) { MixedDepthRuns::new(context, opacity_depth) } else { None };
@@ -241,6 +242,12 @@ pub fn cook_with_base_level_inputs(context: &CookContext, base_level_only: &[boo
         match node.kind {
             PatternNodeKind::Dot => {}
             PatternNodeKind::Quadrant => {
+                if visit.depth == 0
+                    && let Some(active) = &mut repeated_roots
+                {
+                    // A switch on the repeated branch may omit an entire quadrant tree.
+                    *active += 1;
+                }
                 let offset = vector("branchoffset");
                 visit.center = [visit.center[0] + offset[0], visit.center[1] + offset[1]];
                 if image_pattern {
@@ -336,6 +343,13 @@ pub fn cook_with_base_level_inputs(context: &CookContext, base_level_only: &[boo
             PatternNodeKind::Iterate => {
                 let count = u32::try_from(integer("numberadded")).map_err(|_| "iteration count cannot be negative")?;
 
+                if grayscale
+                    && Some(node.id) == graph.root
+                    && node.children.first() == Some(&None)
+                    && !graph.nodes.iter().any(|other| other.id != node.id && other.kind == PatternNodeKind::Iterate)
+                {
+                    repeated_roots = Some(0_usize);
+                }
                 if let Some(Some(child)) = node.children.first() {
                     let mut first = visit.clone();
                     first.node = *child;
@@ -399,6 +413,9 @@ pub fn cook_with_base_level_inputs(context: &CookContext, base_level_only: &[boo
         groups[0] = prefix;
     }
     let groups = groups.map(super::pattern_stamp::DrawRun::whole);
-    let mixed_groups = mixed_depth_runs.and_then(|runs| runs.finish(&stamps)).or_else(|| sparse_runs.and_then(|runs| runs.finish(&stamps)));
+    let mixed_groups = mixed_depth_runs
+        .and_then(|runs| runs.finish(&stamps))
+        .or_else(|| sparse_runs.and_then(|runs| runs.finish(&stamps)))
+        .or_else(|| repeated_roots.and_then(|repeats| super::repeated_quadrants::runs(context, &stamps, repeats, max_depth)));
     Ok(vec![raster::render(context, mixed_groups.as_deref().unwrap_or(&groups), opacities, nonfinite_gray_opacity, base_level_only, runtime_image_selector)?])
 }

@@ -3,6 +3,7 @@ use materialcraft_core::{FunctionGraph, PatternGraph, PatternNodeKind, Value};
 use std::collections::BTreeMap;
 
 mod paired_batches;
+mod repeated_quadrants;
 mod sparse_quadrants;
 
 fn coverage(shape: i32, x: f32, y: f32, variation: f32) -> f32 {

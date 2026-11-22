@@ -9,6 +9,7 @@ mod pattern_stamp;
 mod pattern_visit;
 mod raster;
 mod region;
+mod repeated_quadrants;
 mod shape;
 mod tile_runs;
 mod variables;

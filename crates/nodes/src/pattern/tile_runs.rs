@@ -20,7 +20,7 @@ const DEPTH_FOUR_PARENTS: usize = 64;
 const PAIRED_SUBTREE_PARENTS: usize = 2 * DEPTH_THREE_PARENTS;
 const FIRST_PAIR_END: usize = 48 * DEPTH_THREE_PARENTS + PAIRED_SUBTREE_PARENTS;
 // Paired interior squares change order when the preceding draws fill 5,460 tile copies.
-const COPIES_PER_BATCH: u32 = 5460;
+pub(super) const COPIES_PER_BATCH: u32 = 5460;
 
 pub(super) struct TileCopies {
     window: Region,
