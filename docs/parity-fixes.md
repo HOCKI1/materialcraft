@@ -2201,6 +2201,33 @@ All completed MaterialCraft reopens reproduced their own original buffers. The 3
 
 For the two cell generators isolate the stamp supplying the maximum at differing F32 pixels. Use a black grayscale background, maximum blending, zero roughness and unit global gain. Match the selected stamp's size, center, turns, scalar opacity and render and tiling windows. Across seven first-package settings the isolated reference stamp reproduced the complete generator at all 45 selected differing pixels. Across five second-package settings it reproduced all 33. At 32², seed 102975, render and tile both axes over [−1,2]. Draw shape 4, size (3,3), center (.5007324,−.7152839), zero turns, opacity one. Pixel (9,0) in the original and the isolated reference stores F32 bits 0x3f4f364f. MaterialCraft gives 0x3f4f3650. The isolated stamp still differs elsewhere in the image. Both cell roots remain in progress.
 
+### Untiled draw order for two and four children below depth seven
+
+Start with the [original paired-square controls](#tile-copies-and-the-draw-order-in-clouds-2). Each of the 64 depth-three subtrees has 256 depth-seven parents in Morton order. With two children per parent, the order can change after parent 28 inside a subtree. With four children it can change after parents 68 and 136. To resolve the four-child order, repeat the 63 pairing rounds on a white 256² F32 image. Offset the second member’s parent frame by (−1,+1)/128 and (0,−1)/128 in separate runs. Shift both members inward by one cell where the offset would leave the image. Compare the paired parent positions inside each 16 × 16 readout, keeping destination coordinates 2 through 13 on both axes. The three parent intervals give 18,144 relative orders between distinct subtrees. The renderer records the corresponding contiguous stretches of parent visits before empty pixel coverage is discarded. It uses their measured order for active, untiled, additive grayscale quadrant trees of this shape.
+
+Check each of the six ways to connect two child slots and a seventh graph cycling those pairs across the 64 subtrees. Use rounds 0, 7, 19, 31, 41 and 61, then exchange the two gains. Each graph reproduced all 393,216 upper-half F32 pixels of the two-child parent ordering, maximum error zero. An independent 16-grandchild control at 128² holds one grandchild at gain −1 and a second at 2⁻²⁵. With the remaining parents active in a separate part of the image the negative parent draws first on 284/1,024 paired samples with two children and 324/1,024 with four. Setting the other parent gains to zero changes those counts to 796 and zero. Those two-child zero-gain images still differ by up to 2⁻²⁵.
+
+For the full-image comparison use a white background and roughness zero. Draw depth-seven parents at size (1.125,1.25) and children at (1.875,1.125) with frame offset (.0009765625,−.001953125). Draw either squares at zero rotation or discs with parent rotation .0625 turns and child rotation −.1875 turns. Use slots 0 and 2 or all four. For rounds 3, 11, 31 and 56 use 128², 128 × 64, 64 × 128 and 256 × 128. For pair index h starting at zero set the first parent gain to −1, the second to .31250003 when h mod 3 = 1 and to 2⁻²⁵ otherwise. The first child gain is 2⁻²⁵ when h mod 3 = 0 and −.18750002 otherwise. The second child gain is .31250003 when h mod 3 = 2 and 2⁻²⁵ otherwise. Run both pair orientations with seed 157139 + 73j + 17s, where j is the zero-based round index and s is 0 or 1 for the orientation. Request U16 and F32 at every size, plus U8 and F16 at the second and fourth sizes. Use one logical processor.
+
+| Children and shape | Previous exact / total | Previous maximum normalized error | Current U8 exact / total | Current U16 exact / total | Current F16 exact / total | Current F32 exact / total |
+|---|---:|---:|---:|---:|---:|---:|
+| 2, squares | 385,984/425,984 | 6.10351562e-05 | 81,920/81,920 | 131,072/131,072 | 81,920/81,920 | 131,072/131,072 |
+| 2, discs | 393,324/425,984 | 6.10351562e-05 | 81,920/81,920 | 131,072/131,072 | 81,920/81,920 | 131,072/131,072 |
+| 4, squares | 390,640/425,984 | 0.000122070312 | 81,920/81,920 | 131,072/131,072 | 81,920/81,920 | 131,072/131,072 |
+| 4, discs | 390,624/425,984 | 6.10351562e-05 | 81,920/81,920 | 131,072/131,072 | 81,920/81,920 | 131,072/131,072 |
+
+All 1,703,936 pixels matched in the 96 original settings, maximum error zero in every format. Save each of the four graphs in MaterialCraft and reopen it on a different logical processor. Repeat the first orientation at 128 × 64 in all four formats and the exchanged orientation at 256 × 128 in U16 and F32. Each reopened graph matched 98,304/98,304 pixels across applications. Both applications also reproduced every pixel of their own original. A separate six-setting F32 reopen per graph matched 106,496/106,496 each.
+
+Wire the generator stage to the graph output and repeat with tiling disabled and both axes enabled. For Clouds 2 use default controls at (width, height, seed) of (32,16,42), (256,256,0) and (512,128,382479). For Dirt 1 and Dirt 6 use (256,256,0) at defaults, then (128,64,142327) and (256,128,142453) at disorder .53125 and .921875. Before changing the tiling, each reconnected reference output reproduced its original intermediate at every pixel. The following counts compare raw F32 pixels across applications.
+
+| Root generator | Previous untiled exact / total | Current untiled exact / total | Current tiled exact / total | Tiled maximum error |
+|---|---:|---:|---:|---:|
+| Clouds 2 (79) | 116,310/131,584 | 131,584/131,584 | 109,269/131,584 | 4.47034836e-08 |
+| Dirt 1 (128) | 106,495/106,496 | 106,496/106,496 | 105,345/106,496 | 1.1920929e-07 |
+| Dirt 6 (131) | 105,750/106,496 | 106,496/106,496 | 100,440/106,496 | 1.1920929e-07 |
+
+The untiled maximum error fell to zero in all nine settings. The ordinary tiled generators still differ. All three whole roots remain in progress. In six interleaved, single-processor release cooks per binary after warmup, median times at the last two sizes in the table changed from 483.0/488.0 to 490.2/489.3 ms for Clouds 2, 496.6/511.3 to 497.4/513.7 ms for Dirt 1, and 525.4/554.3 to 531.0/549.9 ms for Dirt 6.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color

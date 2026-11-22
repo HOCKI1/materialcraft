@@ -576,6 +576,47 @@ fn depth_six_stamps_and_their_four_leaves_draw_in_the_same_grandchild_run() {
 }
 
 #[test]
+fn untiled_depth_eight_parents_exchange_order_within_a_grandchild() {
+    let variables = BTreeMap::from([("$tiling".into(), Value::Int(0))]);
+    let tiny = f32::EPSILON * 0.25;
+    for child_count in [2, 4] {
+        let (mut graph, groups) = seven_level_tree();
+        let child = graph.add(PatternNodeKind::Quadrant).unwrap();
+        graph.nodes[(child - 1) as usize].parameters = additive_square(0.25, [0.0; 2], [0.0, 0.5]);
+        for (group, QuadrantProbeGroup { last_three: [_, _, parent], mut offset }) in groups.into_iter().enumerate() {
+            let weight = match group {
+                0 => tiny,
+                5 => -1.0,
+                _ => {
+                    // Keep the other parent draws active, outside the readout.
+                    offset[0] += 0.5;
+                    0.25
+                }
+            };
+            graph.nodes[parent].parameters = additive_square(weight, offset, [0.0; 2]);
+            for (slot, link) in graph.nodes[parent].children.iter_mut().enumerate() {
+                *link = (child_count == 4 || slot % 2 == 0).then_some(child);
+            }
+        }
+        let image = cook_in_regions(graph, &variables, 158729, [128; 2], [[0.0, 1.0, 0.0, 1.0]; 2], 1.0).unwrap().remove(0);
+        for y in 0..32 {
+            for x in 0..32 {
+                let mut parent = 0;
+                for bit in 0..5 {
+                    parent |= (((x >> bit) & 1) | (((y >> bit) & 1) << 1)) << (2 * bit);
+                }
+                let negative_first = match child_count {
+                    2 => parent < 284,
+                    _ => (580..648).contains(&parent) || parent >= 768,
+                };
+                let expected = if negative_first { tiny } else { 0.0 };
+                assert_eq!(image.get_gray(x, y, false).to_bits(), expected.to_bits(), "{child_count} children at ({x},{y})");
+            }
+        }
+    }
+}
+
+#[test]
 fn missing_slots_at_the_last_two_subdivisions_keep_the_grandchild_boundaries() {
     let tiny = f32::EPSILON * 0.25;
     for (subdivision, mask) in [(5, 0b1011), (6, 0b1000), (6, 0b1010)] {

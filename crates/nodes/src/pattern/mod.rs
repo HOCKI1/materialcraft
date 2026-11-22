@@ -9,6 +9,7 @@ mod pattern_visit;
 mod raster;
 mod region;
 mod shape;
+mod untiled_runs;
 mod variables;
 
 pub use catalog::{definition, definitions};

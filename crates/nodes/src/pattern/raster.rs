@@ -9,7 +9,7 @@ use crate::function::flush_subnormal;
 
 const MAX_SAMPLES: u64 = 256_000_000;
 const MAX_STAMP_COPIES: u64 = 1_048_576;
-const MIN_STAMP_SIZE: f32 = 1e-8;
+pub(super) const MIN_STAMP_SIZE: f32 = 1e-8;
 
 pub(super) fn render(
     context: &CookContext,
