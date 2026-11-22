@@ -6,7 +6,10 @@ use super::{
 use crate::CookContext;
 use std::ops::Range;
 
+mod paired_batches;
 mod two_children;
+
+use paired_batches::PairedBatches;
 
 const UNIT_WINDOW: [f32; 4] = [0.0, 1.0, 0.0, 1.0];
 const DEPTH_THREE_PARENTS: usize = 256;
@@ -23,6 +26,7 @@ pub(super) struct TileCopies {
     total: u32,
     subtree_ends: Vec<u32>,
     retained: Vec<Range<u32>>,
+    paired_batches: Option<PairedBatches>,
 }
 
 impl TileCopies {
@@ -38,6 +42,7 @@ impl TileCopies {
             total: 0,
             subtree_ends: Vec::new(),
             retained: Vec::new(),
+            paired_batches: None,
         })
     }
 
@@ -61,7 +66,10 @@ impl TileCopies {
                 let subtrees = PAIRED_SUBTREE_PARENTS / DEPTH_FOUR_PARENTS;
                 let start = self.subtree_ends.iter().rev().nth(subtrees - 1)?;
                 if end - start >= 2 * COPIES_PER_BATCH {
-                    return None;
+                    if self.axes != [true, false] || self.paired_batches.is_some() {
+                        return None;
+                    }
+                    self.paired_batches = Some(PairedBatches::ending_at(parents)?);
                 }
             }
             self.subtree_ends.push(end);
@@ -81,6 +89,10 @@ impl TileCopies {
         ranges.into_iter().map(|r| DrawRun::between(stamps, self.draw_position(r.start), self.draw_position(r.end))).collect()
     }
 
+    pub(super) fn layout(&self, ordinary: &'static [(usize, usize)]) -> &'static [(usize, usize)] {
+        self.paired_batches.map_or(ordinary, PairedBatches::layout)
+    }
+
     pub(super) fn boundaries(&self, layout: &[(usize, usize)], draws_per_parent: usize) -> Option<Vec<DrawPosition>> {
         let mut cuts = vec![None; layout.len() + 1];
         let mut order = vec![0; layout.len()];
@@ -88,7 +100,11 @@ impl TileCopies {
         for (run, &(parents, rank)) in layout.iter().enumerate() {
             *order.get_mut(rank)? = run;
             if parents % self.parents_per_subtree == 0 {
-                cuts[run + 1] = self.subtree_ends.get(parents / self.parents_per_subtree - 1).copied();
+                cuts[run + 1] = if layout.get(run + 1).is_some_and(|&(next, _)| next == parents) {
+                    Some(self.paired_batches?.prefix_end(parents, &self.subtree_ends)?)
+                } else {
+                    self.subtree_ends.get(parents / self.parents_per_subtree - 1).copied()
+                };
             }
         }
 

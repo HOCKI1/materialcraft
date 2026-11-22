@@ -213,6 +213,7 @@ impl MixedDepthRuns {
             if self.children_per_parent == 2 {
                 return copies.two_child_runs(stamps);
             }
+            self.layout = copies.layout(self.layout);
             self.starts = copies.boundaries(self.layout, self.draws_per_parent)?;
         }
         let mut groups = vec![DrawRun::whole(&[]); self.layout.len()];
