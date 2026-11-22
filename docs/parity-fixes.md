@@ -2045,6 +2045,29 @@ BNW Spots 1 matched **3,177,984/3,177,984** (previously 3,177,904 on these same 
 
 On the original eight-processor captures of the 125 BNW Spots 1 settings the new renderer matches 3,177,932/3,177,984 (previously 3,177,940). Maximum errors are 0 U8, 2 U16, .000244140625 F16 and 2.1636486053466797e-5 F32. On the 32 original cloud captures, Clouds 1 matches 707,570/707,584 (previously 707,562), maximum 4 U16 levels. Clouds 2 remains 707,572/707,584, maximum 2 U16 levels. The three roots retain their in-progress inventory status. BNW Spots 3 retains all 3,159,552 original pixels across 118 settings and all 2,399,232 across 40 reopened renders, maximum zero. The regression failed on the previous renderer. All 426 node and evaluator release tests passed, along with formatting, strict workspace Clippy, dependency layers and WebAssembly.
 
+### Downstream root captures after the aligned blur correction
+
+At revision `8ec728b`, repeat the archived source-graph settings for fourteen roots that use blur or share its sampling path. Use the original procedural fields, parameters, dimensions, seeds and storage formats from the linked comparisons. Count a pixel only when every channel has the same stored bits. The thirteen previously verified roots match 72,352,768/72,352,768 pixels across 662 distinct settings, maximum zero. [Aligned blur measurements](#accumulating-the-first-aligned-pair-in-a-sheared-blur)
+
+| Root | Distinct settings | Exact / total pixels | Earlier settings |
+|---|---:|---:|---|
+| `anisotropic_blur.sbs/anisotropic_blur` | 21 | 180,480/180,480 | [Settings](#integer-and-oblique-directional-blur) |
+| `anisotropic_blur.sbs/anisotropic_blur_grayscale` | 19 | 163,072/163,072 | [Settings](#integer-and-oblique-directional-blur) |
+| `fluid.sbs/fluid` | 121 | 25,969,920/25,969,920 | [Settings](#short-directional-blur-tap-order-on-rectangular-inputs) |
+| `height_to_normal_world_units.sbs/height_to_normal_world_units` | 8 | 131,072/131,072 | [Settings](#height-to-normal-in-world-units) |
+| `height_to_normal_world_units.sbs/height_to_normal_world_units_2` | 8 | 131,072/131,072 | [Settings](#height-to-normal-in-world-units) |
+| `make_it_tile_patch.sbs/make_it_tile_patch` | 141 | 22,284,288/22,284,288 | [Settings](#diagonal-blur-across-rectangular-tile-edges) |
+| `make_it_tile_patch_grayscale.sbs/make_it_tile_patch_grayscale` | 127 | 21,366,784/21,366,784 | [Settings](#diagonal-blur-across-rectangular-tile-edges) |
+| `noise_anisotropic_noise.sbs/anisotropic_noise` | 18 | 171,264/171,264 | [Settings](#quarter-turn-directional-blur) |
+| `noise_anisotropic_noise_v2.sbs/anisotropic_noise_v2` | 18 | 171,264/171,264 | [Settings](#high-pass-anisotropic-noise-and-triangle-grid-controls) |
+| `noise_fluid.sbs/fluid` | 53 | 1,041,220/1,041,664 | [Settings](#diagonal-blur-across-rectangular-tile-edges) |
+| `normal_sobel.sbs/normal_sobel` | 27 | 213,504/213,504 | [Settings](#sobel-normals-and-nadir-projection) |
+| `normal_sobel.sbs/normal_sobel_2` | 18 | 171,264/171,264 | [Settings](#segment-mapping-and-normal-graph-rechecks) |
+| `pattern_stripes.sbs/stripes` | 83 | 762,880/762,880 | [Settings](#pixel-ratio-in-rectangular-directional-filters) |
+| `stripes.sbs/stripes` | 53 | 635,904/635,904 | [Settings](#pixel-ratio-in-rectangular-directional-filters) |
+
+The remaining fluid-noise root has 95,744/95,744 U8 pixels, 495,343/495,616 U16, 95,744/95,744 F16 and 354,389/354,560 F32. Maximum errors in the same order are 0, 6 stored levels, 0 and .0000152587890625. This reproduces the earlier 53-setting result.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color
