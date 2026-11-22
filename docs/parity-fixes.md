@@ -286,6 +286,29 @@ All 86 distinct whole-root settings render. The one-processor result gains 57,86
 
 In eight interleaved single-processor release measurements, render the 32² scale-2 setting at seed 113, the 16 × 32 default and the 64² changed setting. Median total process CPU time for the three cooks, including package loading and readback, changed from 12.203 to 12.469 seconds. All 435 node and evaluator release tests passed together with formatting, strict workspace Clippy, dependency layers and WebAssembly.
 
+### Whole-root precision and saved comparisons for the three neighboring spot graphs
+
+These observations cover the other three Noise BNW Spots graphs before the [first-level draw-order correction](#first-level-draw-order-in-repeated-spot-quadrants). For Spots 1 v2, recapture 63 distinct earlier settings. For both Spots 3 graphs, recapture 38 each. Add the two four-size series described for Spots 1. In the first series, the starting seeds for Spots 1 v2, Spots 3 and Spots 3 v2 are 194426, 194457 and 194488 respectively. Add 47 for each following row. Use scale 3, 1 and 2 after the default row. For the v2 parameters, disorder speed and anisotropy equal disorder d, the anisotropy angle is d − .25 and tile offsets are (0,.10546875), (−.15625,.2421875) and (.1875,−.05859375). Apply roughness only in graphs that expose it. In the second series the changed-row seed is 153113 + 37i + 109j for graph index i = 237, 238 or 239 and size index j = 1, 2 or 3. Set exposed disorder speed to .625 + .5d, anisotropy to .5d, angle to d − .375 and tile offset to (.21875d,−.375d). These generators have no image inputs. [Earlier precision sweeps](#connected-quadrant-depth-and-amplified-spot-patterns) · [Earlier deep-region measurements](#deep-pattern-samples-in-custom-render-and-tiling-regions)
+
+| Comparison | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|
+| Spots 1 v2, one processor | 141,568/141,568 · 0 | 295,656/295,680 · 1 | 108,796/108,800 · 0.00048828125 | 285,486/296,704 · 1.1920929e−7 |
+| Spots 1 v2, eight processors | 141,568/141,568 · 0 | 295,652/295,680 · 1 | 108,799/108,800 · 0.000122070312 | 285,292/296,704 · 1.1920929e−7 |
+| Spots 3, one processor | 81,663/81,664 · 1 | 278,140/278,272 · 1 | 81,660/81,664 · 0.00048828125 | 229,989/230,144 · 1.53183937e−5 |
+| Spots 3, eight processors | 81,663/81,664 · 1 | 278,178/278,272 · 1 | 81,660/81,664 · 0.00048828125 | 230,025/230,144 · 1.53183937e−5 |
+| Spots 3 v2, one processor | 109,312/109,312 · 0 | 80,610/80,640 · 1 | 76,543/76,544 · 0.000122070312 | 73,521/80,640 · 1.78813934e−7 |
+| Spots 3 v2, eight processors | 109,312/109,312 · 0 | 80,621/80,640 · 1 | 76,543/76,544 · 0.000244140625 | 74,617/80,640 · 1.78813934e−7 |
+
+All 87 Spots 1 v2 settings render, with 831,506/842,752 exact pixels on one processor and 831,311/842,752 on eight. For Spots 3, 48 of 62 settings render and match 671,452/671,744 on one processor or 671,526/671,744 on eight. For Spots 3 v2, 30 of 62 settings render, matching 339,986/347,136 or 341,093/347,136 respectively. The remaining 14 and 32 settings exceed the pattern visit budget in MaterialCraft. Their reference outputs were captured and have no comparable local buffer. In the 32² F32 Spots 3 v2 setting with scale 2 and disorder .78125, a separate diagnostic traversal recorded 4,025,030 visits. Of its 4,003,160 draws, 3,985,551 missed the sample grid. Completing that traversal reproduced 889/1,024 reference pixels, maximum 1.49011612e−7. This diagnostic is outside the production-render totals.
+
+| Reopened settings | MaterialCraft completed / attempted | Cross-application exact / total | MaterialCraft versus original | Reference versus original · maximum error |
+|---|---:|---:|---:|---:|
+| Spots 1 v2 | 19/19 | 137,715/139,008 | 139,008/139,008 | 138,824/139,008 · 1.1920929e−7 |
+| Spots 3 | 10/14 | 99,552/99,584 | 99,584/99,584 | 123,129/123,136 · 1 |
+| Spots 3 v2 | 6/14 | 27,904/27,904 | 27,904/27,904 | 122,085/123,136 · 1 |
+
+MaterialCraft saves reopen in both applications. For Spots 1 v2, the cross-application saved maxima are zero in U8 and F16, one code in U16 and 1.19209290e−7 in F32. For Spots 3 they are zero in U8, one code in U16 and 1.06990337e−5 in F32. The six completed saved Spots 3 v2 comparisons are exact in U8 and U16. All three roots remain in progress.
+
 ## 2026-11-21 root comparisons
 
 ### Connected quadrant depth and amplified spot patterns
