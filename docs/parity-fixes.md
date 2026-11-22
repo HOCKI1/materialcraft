@@ -83,6 +83,50 @@ Route each of the two active pattern sources, the blend and the final levels nod
 
 The maximum U16 error is one code wherever a stage differs. At 64² and seed 42 the destination reads 34557 in MaterialCraft and 34556 in the reference at (32,6). The blend retains those codes. Levels returns .6257977485656738 and .6257197260856628. At 32 × 64 and seed 42 the destination matches throughout, while the source reads 4186 and 4187 at (31,21). Each active pattern source therefore accounts for a discrepancy at a different setting. The whole root remains in progress.
 
+### Three active quadrant levels in Dirt 5 and Dirt Gradient
+
+Dirt 5 and Dirt Gradient draw a parent at depth 7, its four children and their sixteen children. In a complete tree this gives 344,064 draws before tiling. Changing the addition order changes some F32 pixels even when all three levels draw the same shape. The clean-room renderer now counts physical tile copies when splitting these runs. The order was measured with original square graphs and checked on the two root generators.
+
+Start with a unit render and tiling region, roughness 1, a white background and a full four-child tree. Leave depths 0–6 empty. At depth 7 draw two squares at the same center with weights −1 and 2⁻²⁵. The two possible F32 results distinguish the draw order. Keep the deeper levels active and move their .25-weight squares away from the readout. Use a square width of .875 in both axes. On one reference processor, pair the 64 depth-three subtrees in 63 rounds so that each pair meets once. Reading the 256 corresponding parent centers in Morton order gives 516,096/516,096 matching comparisons. Shift the compared centers within the subtrees and test both polarities. All 818,406 eligible overlap reads across 684 frames agree with the reconstructed order. Split the 256 parent positions at 0, 4, 28, 64, 96, 128, 140, 164, 192 and 256, then bisect each interval. Comparing the midpoints of the 153 interval pairs in every subtree and both polarities gives another 19,584/19,584 exact reads. All three maxima are zero. These observations place the parents in 46 contiguous runs.
+
+To reproduce the tile-edge regression, divide the tree into 16 depth-two subtrees, subtract each subtree origin from its depth-seven branch offset and use 128² F32 at seed 188119. Set the frames of groups 9 and 11 to zero and their weights to −1 and 2⁻²⁵ respectively. Offset all other parent frames by (.5, 0) with weight .25. Offset the children by (0, .5) and the grandchildren by (−.5/512, .5). Read the top-left 32² pixels in Morton order. The tiny positive result occurs at parent indices [796, 932) with tiling off and [784, 919) with horizontal tiling. With vertical tiling and grandchild offset (.5, −.5/512), it occurs at [784, 922). All other readout pixels are zero. Moving a grandchild over a seam changes the order of the overlapping interior parents.
+
+For wider coverage, use shape selectors 2, 3, 4 and 6 with tiling off, horizontal, vertical and both. Keep child and grandchild base frame offsets at (0, .5). Apply the following eight changes, with seed 188119 + 37j for zero-based row j. The deltas are in unit coordinates.
+
+| Negative, positive group | Size | Width | Child frame delta | Grandchild frame delta |
+|---|---|---:|---|---|
+| 12, 0 | 128² | .875 | 0 | 0 |
+| 0, 14 | 128² | .875 | 0 | (−.5/512, 0) |
+| 4, 13 | 128 × 64 | .875 | (.5/256, 0) | 0 |
+| 10, 3 | 64 × 128 | .875 | 0 | (0, −.5/512) |
+| 9, 15 | 256 × 128 | .75 | 0 | (−.5/512, 0) |
+| 5, 11 | 128 × 256 | .9375 | 0 | (−.5/512, 0) |
+| 12, 0 | 128² | .875 | 0 | (−.5/512, 0) |
+| 12, 0 | 128² | .875 | 0 | (0, −.5/512) |
+
+The 128 full F32 frames matched 2,359,296/2,359,296 pixels. In the square graph repeat all four tiling modes with group pairs (9,11), (7,9), (5,11) and (5,7), moving the grandchild just over each seam in turn as in the regression. These 32 frames matched 524,288/524,288. Save and reopen rows 0, 3 and 6 for horizontal squares, both-axis shape 3 and untiled shape 6. Repeat with square edge settings 0, 3 and 6 under vertical tiling, visiting X then Y for each pair in the given order. Both applications preserved their originals and agreed on all 172,032/172,032 pixels across these 12 reopens. All maxima are zero.
+
+Test the copy threshold independently with square size .875, horizontal tiling and 128² F32. Leave the parent pairs overlapped. Each depth-three subtree has 5,376 draws. Move 0, 40, 80 or 83 grandchild squares to cross the left edge, dividing the extra copies equally among the four depth-four children and assigning remainders to the first children in Morton order. Use pairing rounds 0, 5, 17, 28, 41 and 62 in both polarities. All 48 frames match, 786,432/786,432 pixels with maximum zero. At 84 extra copies, a subtree fills a batch of 5,460 and the reference order can change. The three-level tiled implementation uses the measured order below that threshold when its splits remain in the measured subtree intervals.
+
+For the real generators, route the pattern node directly to the output. Request F32 at 256² seed 0, 128 × 64 seed 142327 and 256 × 128 seed 142453. Add 32², 32 × 64, 64 × 128, 128 × 64, 128² and 256 × 128 with seed 186377 + i + 71j, where i is the inventory index and j starts at zero. Dirt 5 matched all 175,104 pixels with tiling off and all 175,104 with both axes enabled. Dirt Gradient also matched 175,104/175,104 untiled, all maxima zero. With its original horizontal tiling it matched 60,028/175,104, maximum 1.19209290e−7. With both axes enabled it matched 42,464/175,104, maximum 1.34110451e−7.
+
+For each whole root, repeat the earlier 67 settings. Add 16 × 32, 128 × 64, 128² and 256 × 128 with seed 185771 + 43i + 73j. Then add 32 × 16, 64 × 128, 128 × 64, 128² and 256 × 128 at seeds 188101 + i, 142452, 142454, 188441 + i and 188711 + i respectively. In each series use U16 and F32 at the first and last sizes, and all four formats for the middle sizes, in U8, U16, F16, F32 order. These roots expose no input pins or adjustable parameters. Reopen the earlier 12 saved settings and every third setting of each new series, starting at the first. The reopened row compares the applications. [Earlier root settings and reopens](#single-processor-comparisons-for-clouds-2-and-five-dirt-fields)
+
+| Root | Reference processors | Settings | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---|---:|---:|---:|---:|---:|
+| Dirt 5 | 1 | 95 | 567,552/567,552 · 0 | 779,008/779,008 · 0 | 567,552/567,552 · 0 | 748,544/748,544 · 0 |
+| Dirt 5 | 8 | 95 | 567,548/567,552 · 1 | 778,585/779,008 · 4 | 567,396/567,552 · 0.000244140625 | 748,143/748,544 · 5.10364771e-05 |
+| Dirt 5 | 1, reopened | 22 | 28,672/28,672 · 0 | 70,656/70,656 · 0 | 16,384/16,384 · 0 | 238,848/238,848 · 0 |
+| Dirt Gradient | 1 | 95 | 567,552/567,552 · 0 | 778,701/779,008 · 2 | 567,524/567,552 · 0.00048828125 | 748,233/748,544 · 1.93715096e-05 |
+| Dirt Gradient | 8 | 95 | 567,552/567,552 · 0 | 778,737/779,008 · 2 | 567,533/567,552 · 0.000244140625 | 748,268/748,544 · 2.03251839e-05 |
+| Dirt Gradient | 1, reopened | 22 | 28,672/28,672 · 0 | 70,633/70,656 · 1 | 16,383/16,384 · 6.10351562e-05 | 238,767/238,848 · 1.93715096e-05 |
+
+Both applications reproduced their own whole-root originals on all 354,560/354,560 reopened pixels per root. Across the 95 whole-root settings, Dirt 5 matched 2,662,656/2,662,656 on one processor and 2,661,672/2,662,656 on eight. Dirt Gradient matched 2,662,010/2,662,656 on one and 2,662,090/2,662,656 on eight. Both roots remain in progress.
+
+Repeat 256 × 128 F32 at seed 142453, 128² U16 and F16 at seed 185917 + 43i, and 256 × 128 F32 at seed 185990 + 43i. Interleave three reads at each original seed with two reads at seed +3 and +5. All four repeated Dirt 5 settings were exact between single-processor reference reads. With eight processors, two reference reads of the first F32 setting agreed on 32,759/32,768 pixels, maximum 5.08725643e−5. For Dirt Gradient even two single-processor reference reads of the 128² F16 setting differed on 2/16,384 pixels, maximum .000244140625.
+
+The new square regression failed on the preceding implementation. After the fix, 432 release tests passed in the node and evaluation crates. Formatting, workspace Clippy for all targets, layer checks and the WebAssembly check passed. Seventy existing Clouds 2, Dirt 1 and Dirt 6 settings retained 1,711,872/1,711,872 exact pixels.
+
 ## 2026-11-21 root comparisons
 
 ### Connected quadrant depth and amplified spot patterns

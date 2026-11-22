@@ -626,6 +626,47 @@ fn depth_eight_parent_order_counts_children_that_cross_the_tile_edge() {
 }
 
 #[test]
+fn three_active_quadrant_levels_split_on_physical_tile_copies() {
+    let tiny = f32::EPSILON * 0.25;
+    for (tiling, negative, positive, leaf_frame, first, second) in [
+        (0, 12, 0, [0.0, 0.5], 64..128, 512..1024),
+        (0, 9, 11, [-0.5 / 512.0, 0.5], 796..932, 0..0),
+        (1, 9, 11, [-0.5 / 512.0, 0.5], 784..919, 0..0),
+        (2, 9, 11, [0.5, -0.5 / 512.0], 784..922, 0..0),
+    ] {
+        let (mut graph, groups) = seven_level_tree();
+        let middle = graph.add(PatternNodeKind::Quadrant).unwrap();
+        let leaf = graph.add(PatternNodeKind::Quadrant).unwrap();
+        graph.nodes[(middle - 1) as usize].parameters = additive_square(0.25, [0.0; 2], [0.0, 0.5]);
+        graph.nodes[(leaf - 1) as usize].parameters = additive_square(0.25, [0.0; 2], leaf_frame);
+        graph.nodes[(middle - 1) as usize].children.fill(Some(leaf));
+        for (group, QuadrantProbeGroup { last_three: [_, _, parent], offset }) in groups.into_iter().enumerate() {
+            let (gain, frame) = if group == negative {
+                (-1.0, [0.0; 2])
+            } else if group == positive {
+                (tiny, [0.0; 2])
+            } else {
+                (0.25, [0.5, 0.0])
+            };
+            graph.nodes[parent].parameters = additive_square(gain, offset, frame);
+            graph.nodes[parent].children.fill(Some(middle));
+        }
+        let variables = BTreeMap::from([("$tiling".into(), Value::Int(tiling))]);
+        let image = cook_in_regions(graph, &variables, 188119, [128; 2], [[0.0, 1.0, 0.0, 1.0]; 2], 1.0).unwrap().remove(0);
+        for y in 0..32 {
+            for x in 0..32 {
+                let mut parent = 0;
+                for bit in 0..5 {
+                    parent |= (((x >> bit) & 1) | (((y >> bit) & 1) << 1)) << (2 * bit);
+                }
+                let expected = if first.contains(&parent) || second.contains(&parent) { tiny } else { 0.0 };
+                assert_eq!(image.get_gray(x, y, false), expected, "tiling {tiling}, groups {negative} and {positive}, parent {parent}");
+            }
+        }
+    }
+}
+
+#[test]
 fn wrapped_copies_of_one_stamp_can_draw_on_opposite_sides_of_another_stamp() {
     fn square(gain: f32, center: [f32; 2], size: f32) -> BTreeMap<String, Value> {
         let mut frame = FunctionGraph::default();

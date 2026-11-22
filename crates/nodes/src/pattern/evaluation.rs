@@ -123,7 +123,7 @@ pub fn cook_with_base_level_inputs(context: &CookContext, base_level_only: &[boo
     let mut discard_allowance = MAX_VISITS;
     let grayscale = !context.b("color_mode");
     let mut seven_level_runs = (grayscale && opacity_depth == 7).then(SevenLevelRuns::default);
-    let mut mixed_depth_runs = if grayscale && opacity_depth == 8 { MixedDepthRuns::new(context) } else { None };
+    let mut mixed_depth_runs = if grayscale && matches!(opacity_depth, 8 | 9) { MixedDepthRuns::new(context, opacity_depth) } else { None };
     // A grayscale opacity expression can produce an infinity or NaN which participates in the blend.
     let opacity = context.value("opacity").and_then(Value::as_f32).unwrap_or(0.0);
     let nonfinite_gray_opacity = grayscale && !opacity.is_finite();

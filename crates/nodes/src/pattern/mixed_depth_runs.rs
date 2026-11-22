@@ -75,6 +75,57 @@ const FOUR_CHILDREN: &[(usize, usize)] = &[
     (16384, 16),
 ];
 
+// With four children and four grandchildren, the independent subtree boundaries
+// are 64 parents apart. Runs ending between them fill one or more physical batches.
+const FOUR_CHILDREN_AND_GRANDCHILDREN: &[(usize, usize)] = &[
+    (64, 15),
+    (192, 32),
+    (1956, 16),
+    (2048, 33),
+    (3868, 6),
+    (4096, 17),
+    (4160, 9),
+    (4288, 38),
+    (6052, 10),
+    (6144, 28),
+    (7964, 2),
+    (8192, 19),
+    (8256, 12),
+    (8384, 29),
+    (10148, 13),
+    (10240, 31),
+    (12060, 4),
+    (12288, 25),
+    (12352, 23),
+    (12416, 30),
+    (12480, 43),
+    (12684, 24),
+    (12800, 39),
+    (13060, 1),
+    (13312, 8),
+    (13376, 20),
+    (13440, 34),
+    (13504, 45),
+    (13732, 21),
+    (13824, 42),
+    (14084, 3),
+    (14336, 11),
+    (14400, 26),
+    (14464, 35),
+    (14528, 40),
+    (14756, 27),
+    (14848, 41),
+    (15108, 5),
+    (15360, 14),
+    (15620, 7),
+    (15680, 36),
+    (15712, 18),
+    (15808, 44),
+    (15872, 37),
+    (16132, 0),
+    (16384, 22),
+];
+
 #[derive(Default)]
 pub(super) struct MixedDepthRuns {
     layout: &'static [(usize, usize)],
@@ -82,22 +133,24 @@ pub(super) struct MixedDepthRuns {
     next_boundary: usize,
     parents: usize,
     children_per_parent: usize,
+    draws_per_parent: usize,
+    deepest: u32,
     draws: usize,
     shape: Option<i32>,
     copies: Option<TileCopies>,
 }
 
 impl MixedDepthRuns {
-    pub(super) fn new(context: &CookContext) -> Option<Self> {
+    pub(super) fn new(context: &CookContext, deepest: u32) -> Option<Self> {
         if context.b("cull_outside") {
             return None;
         }
         let copies = match context.tiling_axes() {
             [false, false] => None,
-            [true, true] => Some(TileCopies::new(context)?),
+            axes if axes == [true; 2] || deepest == 9 => Some(TileCopies::new(context, deepest)?),
             _ => return None,
         };
-        Some(Self { copies, ..Self::default() })
+        Some(Self { copies, deepest, ..Self::default() })
     }
 
     pub(super) fn visit(&mut self, node: &PatternNode, depth: u32, retained: usize) -> bool {
@@ -107,15 +160,17 @@ impl MixedDepthRuns {
         if depth != 7 {
             return match depth {
                 0..=6 => node.children.iter().flatten().count() == 4,
-                8 => node.children.iter().all(Option::is_none),
+                8 if self.deepest == 9 => node.children.iter().all(Option::is_some),
+                depth if depth == self.deepest => node.children.iter().all(Option::is_none),
                 _ => false,
             };
         }
         let children = node.children.iter().flatten().count();
         if self.layout.is_empty() {
-            self.layout = match children {
-                2 => TWO_CHILDREN,
-                4 => FOUR_CHILDREN,
+            (self.layout, self.draws_per_parent) = match (self.deepest, children) {
+                (8, 2) => (TWO_CHILDREN, 3),
+                (8, 4) => (FOUR_CHILDREN, 5),
+                (9, 4) => (FOUR_CHILDREN_AND_GRANDCHILDREN, 21),
                 _ => return false,
             };
             self.children_per_parent = children;
@@ -136,7 +191,7 @@ impl MixedDepthRuns {
     pub(super) fn draw(&mut self, stamp: &PatternStamp, opacities: &[f32], retained: bool) -> bool {
         let Some(weight) = opacities.get(stamp.depth as usize) else { return false };
         // Turning off unrelated draws changes the order even where those draws never overlap the readout.
-        if !(7..=8).contains(&stamp.depth)
+        if !(7..=self.deepest).contains(&stamp.depth)
             || stamp.blend != 0
             || !(2..=16).contains(&stamp.pattern)
             || *self.shape.get_or_insert(stamp.pattern) != stamp.pattern
@@ -146,11 +201,11 @@ impl MixedDepthRuns {
             return false;
         }
         self.draws += 1;
-        self.copies.as_mut().is_none_or(|copies| copies.record(stamp, retained, self.draws, 1 + self.children_per_parent).is_some())
+        self.copies.as_mut().is_none_or(|copies| copies.record(stamp, retained, self.draws, self.draws_per_parent).is_some())
     }
 
     pub(super) fn finish(mut self, stamps: &[PatternStamp]) -> Option<Vec<DrawRun<'_>>> {
-        if self.parents != 16384 || self.draws != self.parents * (1 + self.children_per_parent) || self.starts.len() != self.layout.len() {
+        if self.parents != 16384 || self.draws != self.parents * self.draws_per_parent || self.starts.len() != self.layout.len() {
             return None;
         }
         self.starts.push(DrawPosition { stamp: stamps.len(), copy: 0 });
@@ -158,7 +213,7 @@ impl MixedDepthRuns {
             if self.children_per_parent == 2 {
                 return copies.two_child_runs(stamps);
             }
-            self.starts = copies.boundaries(self.layout)?;
+            self.starts = copies.boundaries(self.layout, self.draws_per_parent)?;
         }
         let mut groups = vec![DrawRun::whole(&[]); self.layout.len()];
         for ((_, rank), bounds) in self.layout.iter().zip(self.starts.windows(2)) {
