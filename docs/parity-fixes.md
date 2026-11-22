@@ -59,6 +59,41 @@ The first pass classifies all 546 roots: 166 Parity and 380 Too hard. These meas
 
 ## 2026-11-22 root comparisons
 
+### Whole and saved outputs for Noise Clouds 2 v2 with equal-window batching
+
+Cook all 60 whole procedural settings and the 15 SBS reopens at revision `f59c45f`. Compare raw integer levels and floating-point bit patterns. Maxima are absolute differences in each stored format. The reference ran with one and eight processors. [Settings, output sizes, formats and seeds](#four-cloud-noise-generators-and-repeated-saved-file-comparisons)
+
+| Comparison | Rendered / requested | Exact settings | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|---:|---:|
+| One processor | 58/60 | 39 | 134,912/134,912 · 0 | 244,981/244,992 · 1 | 93,952/93,952 · 0 | 249,096/251,392 · 4.76837158e-07 |
+| Eight processors | 58/60 | 35 | 134,912/134,912 · 0 | 244,988/244,992 · 1 | 93,952/93,952 · 0 | 248,409/251,392 · 4.76837158e-07 |
+| Reference one versus eight | 60/60 | 35 | 134,912/134,912 · 0 | 247,029/247,040 · 1 | 93,952/93,952 · 0 | 249,630/253,440 · 4.76837158e-07 |
+| One-processor SBS reopen | 14/15 | 9 | 20,480/20,480 · 0 | 76,540/76,544 · 1 | 1,536/1,536 · 0 | 22,295/22,528 · 1.78813934e-07 |
+| Reference original versus reopened | 15/15 | 13 | 20,480/20,480 · 0 | 78,592/78,592 · 0 | 1,536/1,536 · 0 | 22,447/22,528 · 1.78813934e-07 |
+
+The following MaterialCraft requests reached the pattern execution budget. Each successfully reopened SBS produced the same raw output as its original MaterialCraft graph.
+
+| Size | Seed | Exposed controls | Format | Run |
+|---|---:|---|---|---|
+| 64 × 32 | 103056 | scale=5, disorder=0.8125, non_square_expansion=true, disorder_speed=1.4375, disorder_anisotropy=0.625, disorder_anisotropy_angle=-0.21875, tile_offset=[-0.3125, 0.4375] | F32 | Whole |
+| 32 × 64 | 103057 | scale=5, disorder=0.8125, non_square_expansion=true, disorder_speed=1.4375, disorder_anisotropy=0.625, disorder_anisotropy_angle=-0.21875, tile_offset=[-0.3125, 0.4375] | U16 | Whole |
+| 32 × 64 | 103057 | scale=5, disorder=0.8125, non_square_expansion=true, disorder_speed=1.4375, disorder_anisotropy=0.625, disorder_anisotropy_angle=-0.21875, tile_offset=[-0.3125, 0.4375] | U16 | Reopened |
+
+Disconnect the background input of the final pattern generator and set its background to opaque black. Expose that generator directly as F32. Keep its original iteration and switch controls. Cook the listed eight settings in order, then save and reopen settings 0, 3 and 6. [Connected-background final stage](#eight-level-two-child-drawing-across-equal-tile-and-render-windows)
+
+| Setting | Size | Seed | Exposed controls | One processor · F32 exact / total · max | Eight processors · F32 exact / total · max |
+|---:|---|---:|---|---:|---:|
+| 0 | 128 × 128 | 0 | Defaults | 16,384/16,384 · 0 | 13,245/16,384 · 4.47034836e-08 |
+| 1 | 128 × 128 | 17 | Defaults | 16,384/16,384 · 0 | 12,488/16,384 · 2.98023224e-08 |
+| 2 | 64 × 64 | 330251 | scale=1, disorder=0.21875, non_square_expansion=true | 4,096/4,096 · 0 | 3,238/4,096 · 4.47034836e-08 |
+| 3 | 128 × 128 | 330277 | scale=1, disorder=0.46875, non_square_expansion=false | 16,384/16,384 · 0 | 12,721/16,384 · 2.98023224e-08 |
+| 4 | 256 × 64 | 330307 | scale=1, disorder=0.71875, non_square_expansion=true | 13,278/16,384 · 4.47034836e-08 | 13,390/16,384 · 4.47034836e-08 |
+| 5 | 64 × 256 | 330353 | scale=1, disorder=0.28125, non_square_expansion=true | 13,351/16,384 · 2.98023224e-08 | 13,719/16,384 · 2.98023224e-08 |
+| 6 | 128 × 64 | 330371 | scale=2, disorder=0.9375, non_square_expansion=false | 6,916/8,192 · 2.98023224e-08 | 6,919/8,192 · 2.23517418e-08 |
+| 7 | 128 × 128 | 0 | Defaults | 16,384/16,384 · 0 | 13,655/16,384 · 4.47034836e-08 |
+
+Across the three disconnected-background reopens, 39,684 of 40,960 F32 pixels matched the reference. The maximum error was 2.98023224e-08. The reference reproduced all 40,960 pixels on reopen. For the whole graph, two of its 15 reference reopens differed from their original F32 renders at 81 pixels in total. The whole root remains in progress.
+
 ### Eight-level two-child drawing across equal tile and render windows
 
 A complete eight-level additive pattern can draw a parent followed by two leaves at each of its 16,384 terminal branches. The one-processor reference uses batches of 5,460 physical tile copies even when the render and tiling windows extend beyond the unit square. MaterialCraft now counts each stamp using the actual common window when both axes wrap. This changes how overlapping F32 contributions accumulate. The measured path requires a single emitted tree and the existing checks on shape, opacity, subdivisions and batch boundaries. [Two-child batch construction](../crates/nodes/src/pattern/tile_runs/two_children.rs)
