@@ -576,13 +576,13 @@ fn depth_six_stamps_and_their_four_leaves_draw_in_the_same_grandchild_run() {
 }
 
 #[test]
-fn untiled_depth_eight_parents_exchange_order_within_a_grandchild() {
-    let variables = BTreeMap::from([("$tiling".into(), Value::Int(0))]);
+fn depth_eight_parent_order_counts_children_that_cross_the_tile_edge() {
     let tiny = f32::EPSILON * 0.25;
-    for child_count in [2, 4] {
+    for (child_count, tiling, child_x, early) in [(2, 0, 0.0, 0..284), (4, 0, 0.0, 580..648), (4, 3, -1.0 / 512.0, 571..644), (4, 3, 0.4995, 574..623)] {
+        let variables = BTreeMap::from([("$tiling".into(), Value::Int(tiling))]);
         let (mut graph, groups) = seven_level_tree();
         let child = graph.add(PatternNodeKind::Quadrant).unwrap();
-        graph.nodes[(child - 1) as usize].parameters = additive_square(0.25, [0.0; 2], [0.0, 0.5]);
+        graph.nodes[(child - 1) as usize].parameters = additive_square(0.25, [0.0; 2], [child_x, 0.5]);
         for (group, QuadrantProbeGroup { last_three: [_, _, parent], mut offset }) in groups.into_iter().enumerate() {
             let weight = match group {
                 0 => tiny,
@@ -605,12 +605,9 @@ fn untiled_depth_eight_parents_exchange_order_within_a_grandchild() {
                 for bit in 0..5 {
                     parent |= (((x >> bit) & 1) | (((y >> bit) & 1) << 1)) << (2 * bit);
                 }
-                let negative_first = match child_count {
-                    2 => parent < 284,
-                    _ => (580..648).contains(&parent) || parent >= 768,
-                };
+                let negative_first = early.contains(&parent) || (child_count == 4 && parent >= 768);
                 let expected = if negative_first { tiny } else { 0.0 };
-                assert_eq!(image.get_gray(x, y, false).to_bits(), expected.to_bits(), "{child_count} children at ({x},{y})");
+                assert_eq!(image.get_gray(x, y, false).to_bits(), expected.to_bits(), "{child_count} children, X offset {child_x} at ({x},{y})");
             }
         }
     }

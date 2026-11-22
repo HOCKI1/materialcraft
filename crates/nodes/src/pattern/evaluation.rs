@@ -1,7 +1,7 @@
 use materialcraft_core::{PatternNode, PatternNodeKind, Value};
 use std::collections::{BTreeMap, BTreeSet};
 
-use super::untiled_runs::UntiledRuns;
+use super::mixed_depth_runs::MixedDepthRuns;
 use super::{catalog, footprint::SampleGrid, pattern_stamp::PatternStamp, pattern_visit::PatternVisit, raster, variables::PatternVariables};
 use crate::function::{EvaluationContext, EvaluationState, compile_with_literal_inputs};
 use crate::random::FunctionRandom;
@@ -123,8 +123,7 @@ pub fn cook_with_base_level_inputs(context: &CookContext, base_level_only: &[boo
     let mut discard_allowance = MAX_VISITS;
     let grayscale = !context.b("color_mode");
     let mut seven_level_runs = (grayscale && opacity_depth == 7).then(SevenLevelRuns::default);
-    // A repeated tile copy can change the order of stamps elsewhere in the image.
-    let mut untiled_runs = (grayscale && opacity_depth == 8 && context.tiling_axes() == [false; 2] && !context.b("cull_outside")).then(UntiledRuns::default);
+    let mut mixed_depth_runs = if grayscale && opacity_depth == 8 { MixedDepthRuns::new(context) } else { None };
     // A grayscale opacity expression can produce an infinity or NaN which participates in the blend.
     let opacity = context.value("opacity").and_then(Value::as_f32).unwrap_or(0.0);
     let nonfinite_gray_opacity = grayscale && !opacity.is_finite();
@@ -155,8 +154,8 @@ pub fn cook_with_base_level_inputs(context: &CookContext, base_level_only: &[boo
         if seven_level_runs.as_mut().is_some_and(|runs| !runs.visit(node, visit.depth, stamps.len())) {
             seven_level_runs = None;
         }
-        if untiled_runs.as_mut().is_some_and(|runs| !runs.visit(node, visit.depth, stamps.len())) {
-            untiled_runs = None;
+        if mixed_depth_runs.as_mut().is_some_and(|runs| !runs.visit(node, visit.depth, stamps.len())) {
+            mixed_depth_runs = None;
         }
         if node.kind == PatternNodeKind::Dot {
             if let Some(Some(child)) = node.children.first() {
@@ -288,12 +287,13 @@ pub fn cook_with_base_level_inputs(context: &CookContext, base_level_only: &[boo
                     if seven_level_runs.as_mut().is_some_and(|runs| !runs.draw(&stamp)) {
                         seven_level_runs = None;
                     }
-                    if untiled_runs.as_mut().is_some_and(|runs| !runs.draw(&stamp, opacities.as_deref().unwrap_or_default())) {
-                        untiled_runs = None;
-                    }
                     // Evaluate every property before discarding a stamp. Its assignments can reach
                     // later visits. Keep the first stamp so raster setup still validates depth weights.
-                    if !stamps.is_empty() && grid.as_ref().is_some_and(|grid| grid.misses(&stamp)) {
+                    let missed = !stamps.is_empty() && grid.as_ref().is_some_and(|grid| grid.misses(&stamp));
+                    if mixed_depth_runs.as_mut().is_some_and(|runs| !runs.draw(&stamp, opacities.as_deref().unwrap_or_default(), !missed)) {
+                        mixed_depth_runs = None;
+                    }
+                    if missed {
                         if discard_allowance > 0 {
                             discard_allowance -= 1;
                             remaining += 1;
@@ -391,6 +391,6 @@ pub fn cook_with_base_level_inputs(context: &CookContext, base_level_only: &[boo
         }
         groups[0] = prefix;
     }
-    let untiled_groups = untiled_runs.and_then(|runs| runs.finish(&stamps));
-    Ok(vec![raster::render(context, untiled_groups.as_deref().unwrap_or(&groups), opacities, nonfinite_gray_opacity, base_level_only, runtime_image_selector)?])
+    let mixed_groups = mixed_depth_runs.and_then(|runs| runs.finish(&stamps));
+    Ok(vec![raster::render(context, mixed_groups.as_deref().unwrap_or(&groups), opacities, nonfinite_gray_opacity, base_level_only, runtime_image_selector)?])
 }

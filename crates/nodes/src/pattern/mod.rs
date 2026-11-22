@@ -4,12 +4,13 @@ mod catalog;
 mod coordinates;
 mod evaluation;
 mod footprint;
+mod mixed_depth_runs;
 mod pattern_stamp;
 mod pattern_visit;
 mod raster;
 mod region;
 mod shape;
-mod untiled_runs;
+mod tile_runs;
 mod variables;
 
 pub use catalog::{definition, definitions};

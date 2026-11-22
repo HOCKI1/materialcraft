@@ -1,6 +1,7 @@
 use materialcraft_core::{PatternNode, PatternNodeKind};
 
-use super::{pattern_stamp::PatternStamp, raster::MIN_STAMP_SIZE};
+use super::{pattern_stamp::PatternStamp, raster::MIN_STAMP_SIZE, tile_runs::TileCopies};
+use crate::CookContext;
 
 // Each pair is the exclusive end in depth-seven parent visits and its compositing position.
 // The boundaries come from overlapping original squares. A prefix can end inside a grandchild.
@@ -71,7 +72,7 @@ const FOUR_CHILDREN: &[(usize, usize)] = &[
 ];
 
 #[derive(Default)]
-pub(super) struct UntiledRuns {
+pub(super) struct MixedDepthRuns {
     layout: &'static [(usize, usize)],
     starts: Vec<usize>,
     next_boundary: usize,
@@ -79,9 +80,22 @@ pub(super) struct UntiledRuns {
     children_per_parent: usize,
     draws: usize,
     shape: Option<i32>,
+    copies: Option<TileCopies>,
 }
 
-impl UntiledRuns {
+impl MixedDepthRuns {
+    pub(super) fn new(context: &CookContext) -> Option<Self> {
+        if context.b("cull_outside") {
+            return None;
+        }
+        let copies = match context.tiling_axes() {
+            [false, false] => None,
+            [true, true] => Some(TileCopies::new(context)?),
+            _ => return None,
+        };
+        Some(Self { copies, ..Self::default() })
+    }
+
     pub(super) fn visit(&mut self, node: &PatternNode, depth: u32, retained: usize) -> bool {
         if node.kind != PatternNodeKind::Quadrant {
             return false;
@@ -96,7 +110,7 @@ impl UntiledRuns {
         let children = node.children.iter().flatten().count();
         if self.layout.is_empty() {
             self.layout = match children {
-                2 => TWO_CHILDREN,
+                2 if self.copies.is_none() => TWO_CHILDREN,
                 4 => FOUR_CHILDREN,
                 _ => return false,
             };
@@ -115,7 +129,7 @@ impl UntiledRuns {
         true
     }
 
-    pub(super) fn draw(&mut self, stamp: &PatternStamp, opacities: &[f32]) -> bool {
+    pub(super) fn draw(&mut self, stamp: &PatternStamp, opacities: &[f32], retained: bool) -> bool {
         let Some(weight) = opacities.get(stamp.depth as usize) else { return false };
         // Turning off unrelated draws changes the order even where those draws never overlap the readout.
         if !(7..=8).contains(&stamp.depth)
@@ -128,7 +142,7 @@ impl UntiledRuns {
             return false;
         }
         self.draws += 1;
-        true
+        self.copies.as_mut().is_none_or(|copies| copies.record(stamp, retained).is_some())
     }
 
     pub(super) fn finish(mut self, stamps: &[PatternStamp]) -> Option<Vec<&[PatternStamp]>> {
@@ -136,6 +150,9 @@ impl UntiledRuns {
             return None;
         }
         self.starts.push(stamps.len());
+        if let Some(copies) = self.copies {
+            self.starts = copies.boundaries(self.layout)?;
+        }
         let mut groups = vec![&[][..]; self.layout.len()];
         for ((_, rank), bounds) in self.layout.iter().zip(self.starts.windows(2)) {
             *groups.get_mut(*rank)? = stamps.get(bounds[0]..bounds[1])?;
