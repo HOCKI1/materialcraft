@@ -64,6 +64,38 @@ fn hsl_offsets_clamp_in_normalized_lightness_and_restore_hdr_gain() {
 }
 
 #[test]
+fn hsl_rounds_the_channel_bias_before_computing_hue() {
+    for (source, rgb) in [
+        ([0x3eff_a001, 0x3eff_a001, 0x3eff_a001, 0x3f80_0000], [0x3f7f_a001, 0x38ff_a001, 0]),
+        ([0x3ee0_32ed, 0x3f10_f4b6, 0x3ede_1694, 0x3e8a_0000], [0x3d1d_60a0, 0x3f80_0000, 0]),
+        ([0x3eff_ffff, 0x3eff_ffff, 0x3eff_ffff, 0x3f80_0000], [0x3f7f_ffff, 0, 0x38ff_ffff]),
+        ([0x3eff_fffd, 0x3eff_fffd, 0x3eff_fffd, 0x3f80_0000], [0x3f7f_fffd, 0x38ff_fffd, 0]),
+        ([0x3eff_fffc, 0x3eff_ffff, 0x3f00_0001, 0x3ea8_0000], [0x3f7f_ffff, 0x3b1f_dfff, 0]),
+        ([0x3eff_fff9, 0x3eff_fff6, 0x3eff_fffb, 0x3ebc_0000], [0, 0x3f7f_fff8, 0x3abf_dffa]),
+        ([0x3eff_ffff, 0x3f00_0001, 0x3eff_fffc, 0x3f31_0000], [0x3b1f_dfff, 0, 0x3f7f_ffff]),
+    ] {
+        let inputs = [Some(Image::filled(64, 64, Kind::Color, source.map(f32::from_bits)))];
+        let image = cook("hsl", BTreeMap::from([("saturation".into(), Value::Float(1.0))]), &inputs);
+        assert_eq!(image.get(0, 0, false).map(f32::to_bits), [rgb[0], rgb[1], rgb[2], source[3]]);
+    }
+}
+
+#[test]
+fn hsl_expands_chroma_about_the_adjusted_lightness() {
+    for (source, [hue, saturation, lightness], rgb) in [
+        ([0x3dff_7fff, 0x3dff_7fff, 0x3dff_7fff, 0x3f80_0000], [0.5, 1.0, 0.5], [0x3e7f_8000, 0xb280_0000, 0x36ff_0001]),
+        ([0x3cff_53d5, 0x3cff_53d5, 0x3cff_53d5, 0x3e44_0000], [0.5625, 0.75, 0.5625], [0x3e6f_dfb9, 0x3e47_e56a, 0x3d9f_ea7a]),
+        ([0x3e3f_ea73, 0x3e3f_ea76, 0x3e3f_ea6c, 0x3f3f_0000], [0.390625, 0.6875, 0.46875], [0x3d9f_e508, 0x3e2f_e25e, 0x3e12_18d9]),
+    ] {
+        let inputs = [Some(Image::filled(64, 64, Kind::Color, source.map(f32::from_bits)))];
+        let values =
+            BTreeMap::from([("hue".into(), Value::Float(hue)), ("saturation".into(), Value::Float(saturation)), ("lightness".into(), Value::Float(lightness))]);
+        let image = cook("hsl", values, &inputs);
+        assert_eq!(image.get(0, 0, false).map(f32::to_bits), [rgb[0], rgb[1], rgb[2], source[3]]);
+    }
+}
+
+#[test]
 fn repeated_quadrants_have_distinct_reproducible_random_values() {
     let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
     let child = graph.add(PatternNodeKind::Quadrant).unwrap();

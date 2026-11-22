@@ -30,20 +30,23 @@ fn hsl(context: &CookContext) -> CookResult {
 
         // The nonzero divisors also affect ordinary colors at the slider midpoints.
         const EPSILON: f32 = 1.0 / 4096.0;
-        let saturation = if chroma == 0.0 { 0.0 } else { pixel_divide(chroma, 1.0 - (2.0 * lightness - 1.0).abs() + EPSILON) };
+        let chroma_range = |lightness: f32| 1.0 - (2.0 * lightness - 1.0).abs();
+        let saturation = if chroma == 0.0 { 0.0 } else { pixel_divide(chroma, chroma_range(lightness) + EPSILON) };
         let s = (saturation + saturation_shift).clamp(0.0, 1.0);
         let l = (lightness + lightness_shift).clamp(0.0, 1.0);
 
-        // Express hue in the third of a turn selected by the lowest channel.
-        let (difference, offset) = if low == r {
-            (b - g, 0.0)
+        let (left, right, sector) = if low == r {
+            (b, g, 3.0)
         } else if low == g {
-            (r - b, 1.0 / 3.0)
+            (r, b, 5.0)
         } else {
-            (g - r, -1.0 / 3.0)
+            (g, r, 1.0)
         };
-        let hue = (3.0_f32.mul_add(chroma, difference) / (6.0 * (chroma + EPSILON)) + offset) + hue_shift;
-        let upper = s.mul_add(l.min(1.0 - l), l);
+        // Round the bias with the subtracted channel. Raising saturation makes
+        // this rounding visible even when all three input channels are equal.
+        let slope = pixel_divide(left - (right + 3.0 * EPSILON), chroma + EPSILON);
+        let hue = (slope + sector) * (1.0 / 6.0) + hue_shift;
+        let upper = s.mul_add(0.5 * chroma_range(l), l);
         let lower = 2.0 * l - upper;
         let channel = |phase: f32| {
             let wrapped = phase - phase.floor();

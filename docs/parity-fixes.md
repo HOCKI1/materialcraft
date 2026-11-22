@@ -852,6 +852,37 @@ For each root add the four rows below. Add the root index to the seed column. Us
 
 Save every fifth distinct archived setting from the first and each additional setting contributed by the ten-row series. In the four new rows save F32, U8, U16 and F16, and F32 in row order. All 443 node and evaluator release tests passed, along with formatting, strict workspace Clippy, dependency layers and WebAssembly.
 
+### Hue and chroma rounding near equal RGB channels
+
+The reference retains a hue difference at equal-channel grays immediately below powers of two when saturation is raised. At hue .5, saturation 1 and lightness .5, render five 256² F32 ramps. For pixel index i from zero to 65,535, subtract i + 1 from the positive F32 bit pattern for .125, .25, .5, .75 or 1, use that value for all RGB channels and set alpha to 1. Use seeds 243109 through 243113. Below .25, .5 and 1 the last visible differences occur 49,151, 24,575 and 12,287 representable values from the center. Each is one representable step inside a distance of 3/4096. The .125 ramp reaches its final odd offset, while the .75 ramp has no visible hue difference.
+
+At each pixel, choose the first minimum channel in R, G, B order. For a red, green or blue minimum use the channel pair (B,G), (R,B) or (G,R) and a sector of 3, 5 or 1 respectively. Adding 3/4096 to the second channel before subtraction reproduces the measured boundary. Divide that difference by chroma + 1/4096 with the pixel reciprocal, add the sector, convert sixths to turns and apply the slider displacement. For adjusted lightness L the available chroma range is 1 − |2L − 1|. Computing half that range before the multiply-add with saturation preserves the measured endpoints of dark colors. The .125 ramp now matches all 65,536 pixels.
+
+| Comparison | Settings | Exact before | Exact after | Maximum before U8 / U16 / F16 / F32 | Maximum after U8 / U16 / F16 / F32 |
+|---|---:|---:|---:|---|---|
+| Palette and coordinate fields | 90 | 35,732/42,240 | 36,841/42,240 | 0 / 1 / 0.000122070312 / 1.54972076e−6 | 0 / 1 / 0.000122070312 / 1.54972076e−6 |
+| Independent colors and HDR | 72 | 52,896/79,872 | 55,399/79,872 | 0 / 1 / 0.001953125 / 0.000122368336 | 0 / 1 / 0.001953125 / 1.47819519e−5 |
+| 26-step gray hue sweep | 26 | 5,387/13,312 | 5,736/13,312 | — / — / — / 0.000122845173 | — / — / — / 7.15255737e−7 |
+| Gray and near-gray slider controls | 8 | 9,370/16,384 | 10,784/16,384 | — / — / — / 0.000122308731 | — / — / — / 4.17232513e−7 |
+| Channel offsets near four gray values | 10 | 12,604/20,480 | 16,402/20,480 | 1 / 6 / 0.00048828125 / 0.000122308731 | 0 / 1 / 0.000122070312 / 1.01327896e−6 |
+| Five gray ramps | 5 | 227,840/327,680 | 315,380/327,680 | — / — / — / 0.000122070305 | — / — / — / 1.78813934e−7 |
+| Three independent six-sector color fields | 3 | 7,270/24,576 | 8,922/24,576 | — / — / — / 1.07288361e−6 | — / — / — / 1.07288361e−6 |
+| Four shifted lightness settings | 7 | 10,124/14,336 | 11,645/14,336 | 0 / 3 / 0.000244140625 / 0.000122242374 | 0 / 0 / 0 / 3.57627869e−7 |
+| Whole root, one or eight processors | 31 | 148,378/157,952 | 148,752/157,952 | 1 / 1 / 0.000244140625 / 1.07288361e−6 | 1 / 1 / 0.000244140625 / 9.983778e−7 |
+| Saved whole root | 9 | 27,297/29,184 | 27,366/29,184 | 0 / 1 / 0 / 6.2584877e−7 | 0 / 1 / 0 / 3.57627869e−7 |
+
+For the first three rows, repeat the [linear inputs, controller values and seed schedules](#hue-saturation-lightness-and-replace-color). For the gray slider controls use 64 × 32 F32. Each four-row band starts at one of .00390625, .25, .4990234375, .5, .501953125, .75, .875 and 1. Add x − 32 to the input word. Keep RGB equal on the first field. On the second, add one step to channel c when (c+y) modulo 3 is 1 and y modulo 4 is nonzero, or subtract one when (c+y) modulo 3 and y modulo 4 both equal 2. Alpha is 1. Use hue .5, .625, .375 and .75 with saturation 1, lightness .5 and seeds 241183 + 17j.
+
+For the four-center offset field select .125, .25, .5 or 1 by the 16-pixel column band. Add the cyclic word offsets −8193, −8192, −8191, −4097, −4096, −4095, −2049, −2048, −2047, −11, −7, −5, −3, −2, −1 and 0. Across each 16-row block add the six permutations of (−3,0,2), the three unique permutations of (−1,0,0) and (0,0,1) each in first-appearance order, then (0,0,0), (0,−17,23), (11,−5,−3) and (−19,31,−31). Alpha is ((13x+31y) mod 257)/256. Render (hue,saturation,lightness) at (.5,1,.5), (.59375,.875,.5), (.37109375,.9375,.453125) and (.875,.71875,.625) with seeds 242211 + 37j. Add U8, U16 and F16 on the middle two rows.
+
+For the six-sector field use 128 × 64 and PCG64 seed 243751. Fill low from [0,.49) and round to F32, set high = 1 − low, then round low + (high − low)u to F32 using the next uniform field u. Permute (low,middle,high) by lexicographic permutation (3x+y) modulo 6. Alpha is ((19x+37y+71) mod 257)/256. Render F32 at (.5,1,.5), (.609375,1,.5) and (.359375,.8125,.5), seeds 243791 through 243793.
+
+The shifted-lightness field uses 64 × 32 and PCG64 seed 245173. Select a center by (x+3y) modulo 8 from .03125, .0625, .125, .1875, .25, .375, .5 and .75. Subtract a uniform signed 32-bit integer from 1 through 49,152 from its F32 word. When (x+y) modulo 3 is nonzero, add ((x(3+c)+y(7−c)+c) mod 13) − 6 to each channel word. Alpha is ((23x+41y+43) mod 257)/256. Render (.5,1,.5), (.5625,.75,.5625), (.390625,.6875,.46875) and (.78125,.53125,.75) in F32, with seeds 245177 + 19j. Also render the third setting in U8, U16 and F16. Four saved direct graphs reproduce each application's original in all 10 comparisons. Their cross-application score is 17,556/20,480 · 1.
+
+For the whole root, repeat the original 19 settings, then add 16 × 32, 32 × 16, 64 × 32 and 32 × 64 at seeds 242283, 235553, 235599 and 235621. Render U16 and F32 at each size, adding U8 and F16 on the middle rows. For rows j = 0 and 2 set channel c to ((x(7+2c)+y(19−3c)+5xy+31c+47j) mod 263)/256, using 2.5v − .5 on row 2. For rows 1 and 3 select the F32 word for .125, .25, .5 or 1 by (x+3y) modulo 4 and subtract 1 + ((3x+5y) mod 31). Add or subtract (x+3y) mod 5 where (x+y+c) mod 3 equals zero or one. Alpha is ((11x+17y+3xy+37j) mod 257)/256 throughout. Keep default source and target colors on row 0. On row 1 use the F32 value immediately below .5 in each source channel and target (.125,.75,.5625). Use (.1875,.375,.6875) and (.84375,.21875,.40625) on row 2, then (.375,.5,.625) and (.75,.5625,.25) on row 3.
+
+All 19 fresh reference captures reproduced the 142,592 archived pixels. The one- and eight-processor reference outputs also matched each other on all 157,952 pixels. Save every fifth archived case starting with the first, then the new F32, U8, U16 and F16, and F32 settings on the four additional rows respectively. All nine saved whole-root cases reproduced their original in each application, totaling 29,184 pixels. Cross-application differences remain. Both new regression tests failed before their respective corrections and passed afterwards. All 445 node and evaluator release tests, formatting, strict workspace Clippy, dependency layers and WebAssembly passed.
+
 ## 2026-11-21 root comparisons
 
 ### Connected quadrant depth and amplified spot patterns
