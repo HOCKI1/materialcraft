@@ -715,6 +715,30 @@ Add the following original procedural settings. Render U16 and F32 at each size 
 
 All 442 release tests in the node and evaluator crates passed, along with formatting, strict workspace Clippy, dependency layers and WebAssembly.
 
+### Sphere displacement on rectangular height fields
+
+Sphere Displace matches 157,952/157,952 RGBA pixels in 31 distinct settings on one and eight processors. Nine MaterialCraft saves reproduce 29,184/29,184 pixels when reopened in both applications and compared across applications. The maximum stored-channel error is zero for each output format.
+
+| Root and comparison | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|
+| One or eight processors | 7,680/7,680 · 0 | 125,440/125,440 · 0 | 9,728/9,728 · 0 | 15,104/15,104 · 0 |
+| Saved files | 4,608/4,608 · 0 | 18,432/18,432 · 0 | 2,048/2,048 · 0 | 4,096/4,096 · 0 |
+
+Repeat the 19 earlier settings with the original procedural height fields. The fresh one-processor capture reproduces all 142,592 archived pixels. At 32², seed 113, use the independent gray field, size .7, displacement .2, UV offset (.125,.25) and eight samples. The release before the pixel-subtraction and singular-coordinate corrections matched 1,022/1,024 F32 pixels, maximum 1.52587891e-05. The following release matched 1,024/1,024. With all other settings held at seed 113, replacing only the 32² input with constant gray bytes 0, 63 or 191 gives 3,072/3,072 exact pixels in both releases. Restoring the varying field reproduces both differences in the earlier release. The eight other constant-field settings below also match 8,704/8,704 pixels in both releases. The separate selected-product and texture-coordinate regressions cover the two changes in this release. [Earlier whole-root and stage comparisons](#tile-weave-splatter-and-fiber-stage-comparisons) · [Arithmetic and sampler controls](#pixel-subtraction-and-texture-coordinates-at-the-panorama-equator)
+
+For the constant controls keep the 32² independent settings above and use (width, height, gray byte, samples) of (32,32,0,8), (32,32,0,3), (32,16,0,5), (16,32,0,7), (32,32,63,3), (16,32,131,7), (64,32,0,9) and (64,32,191,9). Use seed 240283 plus 17 times the zero-based row number. Render RGBA F32.
+
+For the additional whole-root settings, generate one grayscale byte per texel as `(13x + 29y + 5xy + 31j) mod 256` at the output dimensions in row j. Render U16 and F32 for every row and add U8 and F16 for rows 1 and 2.
+
+| Row | Size | Seed | Sphere size | Displacement | UV scale | UV offset | Tilt | Samples |
+|---:|---|---:|---:|---:|---|---|---|---:|
+| 0 | 16 × 32 | 238011 | Default | Default | Default | Default | Default | Default |
+| 1 | 32 × 16 | 235527 | 0.875 | 0.125 | (1.25, 0.75) | (0.125, -0.25) | On | 3 |
+| 2 | 64 × 32 | 235573 | 0.6875 | 0.375 | (0.75, 1.625) | (-0.1875, 0.3125) | Off | 7 |
+| 3 | 32 × 64 | 235595 | 1.0 | 0.0 | (1.0, 1.0) | (0.0, 0.0) | On | 2 |
+
+Save the first, sixth, eleventh and sixteenth retained settings and the new F32, U8, U16 and F16, and F32 cases in row order. All 442 release tests in the node and evaluator crates passed, along with formatting, strict workspace Clippy, dependency layers and WebAssembly.
+
 ## 2026-11-21 root comparisons
 
 ### Connected quadrant depth and amplified spot patterns
