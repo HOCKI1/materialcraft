@@ -586,6 +586,30 @@ Repeat the 19 earlier settings using the original procedural paths and backgroun
 
 For the additional settings, start with the five-point path, its 16² background, default controls, 16 × 32 output and seed zero. Use the seven-point path and 64² background with corners and vertices enabled and thickness 1.625 for 32 × 16 at seed 235461 and 64 × 32 at seed 235507. Finish with the five-point path and 32² background, corners and vertices disabled and thickness .25, at 32 × 64 and seed 235529. Render U16 and F32 in every row, adding U8 and F16 on the two middle rows. Save the first, sixth, eleventh and sixteenth retained settings, then F32, U8, U16 and F16, and F32 on the four additional rows respectively.
 
+### Brick pattern generators across square and rectangular outputs
+
+The Brick 1 and Brick 2 roots in the pattern packages each match all 1,237,248 pixels across 96 distinct settings at one and eight processors. Each set of 47 MaterialCraft saves reproduces all 920,064 pixels within each application and across applications. The maximum stored error is zero throughout. Both roots generate the bricks procedurally.
+
+| Root and comparison | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|
+| Brick 1, one or eight processors | 52,736/52,736 · 0 | 584,192/584,192 · 0 | 54,784/54,784 · 0 | 545,536/545,536 · 0 |
+| Brick 2, one or eight processors | 52,736/52,736 · 0 | 584,192/584,192 · 0 | 54,784/54,784 · 0 | 545,536/545,536 · 0 |
+| Brick 1 saves | 20,992/20,992 · 0 | 448,512/448,512 · 0 | 18,432/18,432 · 0 | 432,128/432,128 · 0 |
+| Brick 2 saves | 20,992/20,992 · 0 | 448,512/448,512 · 0 | 18,432/18,432 · 0 | 432,128/432,128 · 0 |
+
+Repeat the 84 archived settings for each pattern package, including the 34-case variation of tiling, smoothness and interstice width, and the 31-case fractional edge sweep. The new single-processor captures reproduce all 1,221,888 original pixels per root. MaterialCraft previously matched 1,121,408 of those pixels in Brick 1 and 1,087,172 in Brick 2. [Original pattern settings](#paper-brick-fiber-mesh-polygon-and-shape-roots) · [Rectangular settings and fractional edges](#fractional-edges-of-axis-aligned-pattern-stamps)
+
+The same change to pixel-center projection resolves the following F32 controls. For Brick 1 use 32 × 128 at seed 201826, scale 3, smoothness 625/1021 and interstice width .0625. The preceding renderer matched 3,511/4,096 pixels, maximum 2.4959445e−6. For Brick 2 use 32 × 16 at seed 109605, scale 5, smoothness .546875, interstice width .0625 and non-square expansion. The preceding renderer matched 457/512 pixels, maximum 1.22189522e−6. The first release with the pixel-center change matches all 4,096 and 512 pixels respectively. The rectangular gradient regression isolates the displacement at the stamp vertex. [Pixel-center projection](#projecting-stamp-vertices-relative-to-pixel-centers-in-scaled-windows) · [Independent rectangular regression settings](#fur-1-across-scaled-windows-and-saved-files)
+
+Add the following settings. Render U16 and F32 at each size, and add U8 and F16 on the two middle rows. For saved files take all 31 fractional-edge settings, every fifth distinct archived setting starting with the first, and F32, U8, U16 and F16, and F32 on the four new rows respectively. Count overlapping settings once. All 442 release tests in the node and evaluator crates and the workspace checks passed.
+
+| Output | Brick 1 seed | Brick 2 seed | Scale | Edge smoothness | Interstice width |
+|---|---:|---:|---|---|---|
+| 16 × 32 | 237536 | 237537 | Default | Default | Default |
+| 32 × 16 | 235466 | 235467 | 3 | .34375 | .078125 |
+| 64 × 32 | 235512 | 235513 | 5 | .8125 | .1875 |
+| 32 × 64 | 235534 | 235535 | 2 | .15625 | .046875 |
+
 ## 2026-11-21 root comparisons
 
 ### Connected quadrant depth and amplified spot patterns
