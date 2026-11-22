@@ -6029,6 +6029,138 @@ Where there are downstream stages, replace the source patterns with the same ori
 | noise_perlin_noise | 10,496/10,496 | 0 / 0 / 0 / 0 |
 | noise_plasma | 10,496/10,496 | 0 / 0 / 0 / 0 |
 
+### Sixty whole settings for three directional and dirt noise packages
+
+Each package has 60 distinct settings. The first 48 combine the earlier default, seed, control and format captures with the larger size sweep. Twelve additional settings exercise four fresh seeds and square and rectangular sizes. The table compares the same raw output against one- and eight-processor captures. Each saved package went through MaterialCraft’s SBS writer and reopened in both applications. The 12 settings per package include defaults and changed controls. Counts exclude replacement outputs from failed cooks. [Earlier directional stages](#directional-noise-and-scratch-pattern-sources) · [Earlier dirt stages](#dirt-noise-sources-and-downstream-stages)
+
+| Package · comparison | Rendered / attempted | Exact settings | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|---:|---:|
+| noise_directional_noise_1_v2 · one processor | 56/60 | 18 | 135,421/135,424 · 1 | 249,291/249,600 · 1 | 88,312/88,320 · 0.00048828125 | 145,946/252,928 · 4.17232513e-07 |
+| noise_directional_noise_1_v2 · eight processors | 56/60 | 22 | 135,424/135,424 · 0 | 249,343/249,600 · 1 | 88,309/88,320 · 0.00048828125 | 152,607/252,928 · 4.17232513e-07 |
+| noise_directional_noise_1_v2 · reference one versus eight | 60/60 | 21 | 137,469/137,472 · 1 | 251,327/251,648 · 1 | 90,357/90,368 · 0.00048828125 | 141,410/254,976 · 4.17232513e-07 |
+| noise_directional_noise_1_v2 · one processor after reopening | 11/12 | 3 | 28,671/28,672 · 1 | 6,389/6,400 · 1 | 1,024/1,024 · 0 | 45,629/84,992 · 4.17232513e-07 |
+| noise_directional_noise_1_v2 · reference original versus reopened | 12/12 | 10 | 30,720/30,720 · 0 | 6,400/6,400 · 0 | 1,024/1,024 · 0 | 83,408/84,992 · 2.38418579e-07 |
+| noise_dirt_5 · one processor | 48/60 | 21 | 97,792/97,792 · 0 | 298,925/299,008 · 4 | 99,828/99,840 · 0.000244140625 | 205,006/205,056 · 5.0842762e-05 |
+| noise_dirt_5 · eight processors | 48/60 | 26 | 97,792/97,792 · 0 | 298,939/299,008 · 4 | 99,832/99,840 · 0.000122070312 | 205,009/205,056 · 5.08725643e-05 |
+| noise_dirt_5 · reference one versus eight | 60/60 | 26 | 99,840/99,840 · 0 | 338,835/338,944 · 4 | 101,869/101,888 · 0.000244140625 | 244,918/244,992 · 5.08725643e-05 |
+| noise_dirt_5 · one processor after reopening | 9/12 | 6 | 26,624/26,624 · 0 | 49,653/49,664 · 4 | — | 66,543/66,560 · 5.0842762e-05 |
+| noise_dirt_5 · reference original versus reopened | 12/12 | 11 | 26,624/26,624 · 0 | 51,712/51,712 · 0 | — | 71,167/71,168 · 5.0842762e-05 |
+| noise_dirt_gradient · one processor | 58/60 | 38 | 99,840/99,840 · 0 | 273,090/273,408 · 1 | 101,885/101,888 · 0.00048828125 | 178,797/179,456 · 1.52587891e-05 |
+| noise_dirt_gradient · eight processors | 58/60 | 34 | 99,840/99,840 · 0 | 273,101/273,408 · 1 | 101,885/101,888 · 0.00048828125 | 178,795/179,456 · 1.52587891e-05 |
+| noise_dirt_gradient · reference one versus eight | 60/60 | 32 | 99,840/99,840 · 0 | 338,795/338,944 · 1 | 101,884/101,888 · 0.00048828125 | 244,883/244,992 · 1.52587891e-05 |
+| noise_dirt_gradient · one processor after reopening | 12/12 | 8 | 26,624/26,624 · 0 | 51,576/51,712 · 1 | — | 71,136/71,168 · 1.52587891e-05 |
+| noise_dirt_gradient · reference original versus reopened | 12/12 | 12 | 26,624/26,624 · 0 | 51,712/51,712 · 0 | — | 71,168/71,168 · 0 |
+
+All comparable MaterialCraft reopens reproduce their original local buffers. The settings marked in the last two columns reached the pattern graph execution budget. The directional measurements used revision `e1e3c1e` and the two dirt measurements used `c7a1a37`.
+
+<details>
+<summary>noise_directional_noise_1_v2 · settings and saved comparisons</summary>
+
+Use `angle`, `angle_random`, `disorder`, `disorder_anisotropy`, `disorder_anisotropy_angle`, `disorder_speed`, `non_square_expansion`, `scale`, `tile_offset` in the listed control order. An omitted control uses the graph default.
+
+| Size | Seed | Controls | Formats | Reopened | Whole budget reached | Reopen budget reached |
+|---|---:|---|---|---|---|---|
+| 128 × 128 | 0 | Defaults | U8 | U8 | — | — |
+| 256 × 256 | 0 | Defaults | U8, U16, F16, F32 | — | — | — |
+| 128 × 128 | 42 | Defaults | U8 | — | — | — |
+| 128 × 128 | 0 | 0.125, 0.2, 0.37, 0.3, 0.125, 0.6, default, 2, 0.17, 0.29 | U8 | — | — | — |
+| 32 × 32 | 113 | 0.125, 0.2, 0.37, 0.3, 0.125, 0.6, default, 2, 0.17, 0.29 | F32 | — | — | — |
+| 64 × 64 | 42 | 0.125, 0.2, 0.37, 0.3, 0.125, 0.6, default, 2, 0.17, 0.29 | U8, U16, F16, F32 | U8 | — | — |
+| 16 × 16 | 103813 | Defaults | F32 | — | — | — |
+| 32 × 32 | 103814 | 0, 0, 0, 0, 0, 1, on, 1, 0.0, 0.0 | F32 | F32 | — | — |
+| 32 × 32 | 103815 | 0.15625, 0.21875, 0.3125, 0.25, 0.3125, 0.6875, off, 1, 0.125, -0.1875 | U8, U16, F16, F32 | — | — | — |
+| 64 × 32 | 103819 | -0.21875, 0.40625, 0.6875, 0.625, -0.21875, 1.4375, on, 2, -0.3125, 0.4375 | F32 | F32 | — | — |
+| 32 × 64 | 103820 | 0.15625, 0.21875, 0.3125, 0.25, 0.3125, 0.6875, off, 1, 0.125, -0.1875 | U16 | — | — | — |
+| 32 × 32 | 103821 | 0.375, 0.03125, 0.125, 0.125, 0.15625, 0.875, off, 3, -0.0625, 0.125 | F32 | — | — | — |
+| 64 × 32 | 103822 | 0, 0, 0, 0, 0, 1, on, 1, 0.0, 0.0 | F16 | — | — | — |
+| 16 × 16 | 0 | Defaults | U8, U16, F16, F32 | U16 | — | — |
+| 64 × 16 | 42 | -0.21875, 0.03125, 0.03125, 0.03125, -0.21875, 0.03125, on, 2, -0.3125, 0.37890625 | U8, U16, F16, F32 | F16 | — | — |
+| 16 × 64 | 411615 | 0.625, 0.875, 0.875, 0.875, 0.625, 0.875, off, 1, 0.53125, -0.359375 | U16, F32 | — | — | — |
+| 64 × 64 | 411676 | 0.09375, 0.34375, 0.34375, 0.34375, 0.09375, 0.34375, on, 3, 0.0, 0.10546875 | U8, U16, F16, F32 | U16 | — | — |
+| 128 × 64 | 411737 | 0.71875, 0.96875, 0.96875, 0.96875, 0.71875, 0.96875, off, 2, 0.625, -0.44140625 | U16, F32 | — | — | — |
+| 64 × 128 | 411798 | -0.0625, 0.1875, 0.1875, 0.1875, -0.0625, 0.1875, on, 1, -0.15625, 0.2421875 | U8, U16, F16, F32 | U8 | — | — |
+| 128 × 128 | 411859 | 0.40625, 0.65625, 0.65625, 0.65625, 0.40625, 0.65625, off, 3, 0.3125, -0.16796875 | U16, F32 | F32 | — | — |
+| 128 × 512 | 411981 | 0.28125, 0.53125, 0.53125, 0.53125, 0.28125, 0.53125, off, 2, 0.1875, -0.05859375 | U16, F32 | F32 | — | — |
+| 512 × 128 | 412042 | -0.15625, 0.09375, 0.09375, 0.09375, -0.15625, 0.09375, on, 1, -0.25, 0.32421875 | U16, F32 | — | — | — |
+| 16 × 32 | 194891 | Defaults | U16, F32 | — | — | — |
+| 64 × 32 | 194938 | 0.09375, 0.34375, 0.34375, 0.34375, 0.09375, 0.34375, on, 3, 0.0, 0.10546875 | U8, U16, F16, F32 | U8 | U8, U16, F16, F32 | U8 |
+| 32 × 64 | 194985 | -0.0625, 0.1875, 0.1875, 0.1875, -0.0625, 0.1875, on, 1, -0.15625, 0.2421875 | U8, U16, F16, F32 | U16 | — | — |
+| 64 × 64 | 195032 | 0.28125, 0.53125, 0.53125, 0.53125, 0.28125, 0.53125, off, 2, 0.1875, -0.05859375 | U16, F32 | — | — | — |
+
+</details>
+
+<details>
+<summary>noise_dirt_5 · settings and saved comparisons</summary>
+
+Use `scale`, `disorder`, `non_square_expansion` in the listed control order. An omitted control uses the graph default.
+
+| Size | Seed | Controls | Formats | Reopened | Whole budget reached | Reopen budget reached |
+|---|---:|---|---|---|---|---|
+| 128 × 128 | 0 | Defaults | U16, U8, F16, F32 | U16, U8 | — | — |
+| 256 × 256 | 0 | Defaults | U16 | — | — | — |
+| 128 × 128 | 42 | Defaults | U16 | — | — | — |
+| 128 × 128 | 0 | 2, 0.37, default | U16 | — | — | — |
+| 32 × 32 | 113 | 2, 0.37, default | F32 | — | — | — |
+| 64 × 64 | 42 | 2, 0.37, default | U8, U16, F16, F32 | U8 | — | — |
+| 16 × 16 | 105543 | Defaults | F32 | — | — | — |
+| 32 × 32 | 105544 | 1, 0, on | F32 | F32 | — | — |
+| 32 × 32 | 105545 | 1, 0.3125, off | U8, U16, F16, F32 | — | — | — |
+| 32 × 16 | 105549 | 2, 0.8125, on | F32 | F32 | F32 | F32 |
+| 16 × 32 | 105550 | 2, 0.8125, on | U16 | — | U16 | — |
+| 64 × 32 | 105551 | 1, 0.3125, off | F32 | — | — | — |
+| 32 × 64 | 105552 | 1, 0, on | F16 | — | — | — |
+| 16 × 32 | 0 | Defaults | U8, U16, F16, F32 | U16 | — | — |
+| 32 × 16 | 42 | 2, 0.21875, on | U16, F32 | — | U16, F32 | — |
+| 64 × 64 | 433571 | 1, 0.9375, off | U8, U16, F16, F32 | U8 | — | — |
+| 128 × 32 | 433608 | 3, 0.046875, on | U16, F32 | F32 | U16, F32 | F32 |
+| 32 × 128 | 433645 | 2, 0.5625, off | U8, U16, F16, F32 | — | — | — |
+| 256 × 128 | 433719 | 3, 0.328125, off | U16, F32 | — | U16, F32 | — |
+| 128 × 256 | 433756 | 1, 0.8125, on | U16, F32 | U16 | — | — |
+| 256 × 256 | 42 | Defaults | U8, U16, F16, F32 | F32 | — | — |
+| 512 × 128 | 433830 | 1, 0.671875, on | U16, F32 | — | — | — |
+| 16 × 32 | 281667 | Defaults | U16, F32 | — | — | — |
+| 64 × 32 | 281734 | 1, 0, on | U8, U16, F16, F32 | U8 | — | — |
+| 32 × 64 | 281801 | 2, 0.8125, on | U8, U16, F16, F32 | U16 | U8, U16, F16, F32 | U16 |
+| 64 × 64 | 281868 | 2, 0.21875, on | U16, F32 | — | — | — |
+
+</details>
+
+<details>
+<summary>noise_dirt_gradient · settings and saved comparisons</summary>
+
+Use `disorder`, `non_square_expansion` in the listed control order. An omitted control uses the graph default.
+
+| Size | Seed | Controls | Formats | Reopened | Whole budget reached | Reopen budget reached |
+|---|---:|---|---|---|---|---|
+| 128 × 128 | 0 | Defaults | U16, U8, F16, F32 | U16, U8 | — | — |
+| 256 × 256 | 0 | Defaults | U16 | — | — | — |
+| 128 × 128 | 42 | Defaults | U16 | — | — | — |
+| 128 × 128 | 0 | 0.37, default | U16 | — | — | — |
+| 32 × 32 | 113 | 0.37, default | F32 | — | — | — |
+| 64 × 64 | 42 | 0.37, default | U8, U16, F16, F32 | U8 | — | — |
+| 16 × 16 | 105577 | Defaults | F32 | — | — | — |
+| 32 × 32 | 105578 | 0, on | F32 | F32 | — | — |
+| 32 × 32 | 105579 | 0.3125, off | U8, U16, F16, F32 | — | — | — |
+| 32 × 16 | 105583 | 0.8125, on | F32 | F32 | — | — |
+| 16 × 32 | 105584 | 0.8125, on | U16 | — | — | — |
+| 64 × 32 | 105585 | 0.3125, off | F32 | — | — | — |
+| 32 × 64 | 105586 | 0, on | F16 | — | — | — |
+| 16 × 32 | 0 | Defaults | U8, U16, F16, F32 | U16 | — | — |
+| 32 × 16 | 42 | 0.21875, on | U16, F32 | — | — | — |
+| 64 × 64 | 433597 | 0.9375, off | U8, U16, F16, F32 | U8 | — | — |
+| 128 × 32 | 433634 | 0.046875, on | U16, F32 | F32 | — | — |
+| 32 × 128 | 433671 | 0.5625, off | U8, U16, F16, F32 | — | — | — |
+| 256 × 128 | 433745 | 0.328125, off | U16, F32 | — | — | — |
+| 128 × 256 | 433782 | 0.8125, on | U16, F32 | U16 | — | — |
+| 256 × 256 | 42 | Defaults | U8, U16, F16, F32 | F32 | — | — |
+| 512 × 128 | 433856 | 0.671875, on | U16, F32 | — | U16, F32 | — |
+| 16 × 32 | 281741 | Defaults | U16, F32 | — | — | — |
+| 64 × 32 | 281808 | 0, on | U8, U16, F16, F32 | U8 | — | — |
+| 32 × 64 | 281875 | 0.8125, on | U8, U16, F16, F32 | U16 | — | — |
+| 64 × 64 | 281942 | 0.21875, on | U16, F32 | — | — | — |
+
+</details>
+
 ### Dirt noise sources and downstream stages
 
 The eleven dirt-noise roots produced **116/209 comparable whole outputs** and **1,045,373/1,067,264 exact pixels**. MaterialCraft reached its pattern execution limit in 93 cases, including every whole-graph case for both Dirt 4 packages. The counts below exclude replacement images emitted after a cook error. Integer errors are storage levels.
