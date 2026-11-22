@@ -485,6 +485,23 @@ Seven weighted settings, the forward marker input from one fixture and the rever
 
 The one-processor whole-root comparison now differs on 31 pixels and the eight-processor comparison on 696. The reference modes differ on 707 pixels for the same 111 settings. Three extra one-processor captures of each of the earlier 20 nonexact settings repeat all 2,927,616 stored pixels. Of the remaining 31 differences, 21 match the eight-processor capture and 10 fall outside all retained reference values. Four seed-and-size combinations remain open, including a final horizontal pair with three deferred copies. Both added regressions failed before the change. All 440 node and evaluator release tests passed, together with formatting, strict workspace Clippy, dependency layers and WebAssembly. Across four interleaved release runs per implementation, the three horizontal generator settings used a median 20.281 seconds of process CPU time before the change and 20.312 seconds after it, including loading and readback.
 
+### Final horizontal pair with a short receiver in Dirt Gradient
+
+Dirt Gradient matches 105 of 111 whole settings on one processor. All 16,384 pixels now match at 128 × 128, seed 188573, in U16, F16 and F32. This corrects six, one and six pixels respectively. The other 108 one-processor settings retain their previous counts. On eight processors 45 settings are exact, up from 44, and 703 pixels differ, up from 696. Both applications reproduce all 430,336 of their own pixels in the 28 saved-file controls. The table gives stored integer levels and absolute floating-point errors. [Whole-root inputs and settings](#middle-and-penultimate-horizontal-subtree-pairs-in-dirt-gradient)
+
+| Comparison | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|
+| One processor | 600,320/600,320 · 0 | 846,583/846,592 · 1 | 600,320/600,320 · 0 | 816,119/816,128 · 1.75833702e−5 |
+| Eight processors | 600,320/600,320 · 0 | 846,261/846,592 · 2 | 600,296/600,320 · 0.00048828125 | 815,780/816,128 · 2.03251839e−5 |
+| Reference one versus eight | 600,320/600,320 · 0 | 846,260/846,592 · 2 | 600,296/600,320 · 0.00048828125 | 815,777/816,128 · 2.03251839e−5 |
+| Saved files on one processor | 36,864/36,864 · 0 | 80,887/80,896 · 1 | 32,768/32,768 · 0 | 279,808/279,808 · 0 |
+
+Use horizontal tile copies of overlapping squares on a complete quadrant tree with active levels 7, 8 and 9. Groups 62 and 63 submit two batches of 5,460 copies. The 128-square field puts 100 and 71 extra copies in these groups, leaving three deferred copies. The signed draw-order probes locate all three after the two-batch prefix. When their count plus group 48 is less than 5,460, the next run fills the batch inside the first depth-four subtree of group 49. A later run finishes that subtree. The direct F32 generator improves from 8,256/16,384 to 16,384/16,384 pixels, maximum zero. [Procedural square, copy and opacity construction](#horizontal-pattern-batches-ending-in-the-preceding-subtree)
+
+For the signed controls, start with 32 extra copies in each group. Set groups (48, 60, 62, 63) to (80, 32, 100, 71), (81, 32, 75, 96), (82, 32, 71, 100) and (50, 91, 110, 67). Use seeds 228901, 228932, 228963 and 228994 and reverse the two marker opacities. All 128 order comparisons and 131,072/131,072 compiled F32 pixels agree, maximum zero. For the weighted fields use 0, 1, 3, 9, 18 or 61 deferred copies. Set the combined receiving total to 5,456, 5,459, 5,460 or 5,461 copies. Test uniform and independently varied group counts plus the occupancy from seed 188573. All 25 short-receiver fields agree on 204,800/204,800 pixels. Including full receivers gives 41/49 exact fields and 393,661/401,408 pixels, maximum 3.57627869e-06. Five weighted controls and two signed controls reproduce every application's 73,728 original pixels after saving. Across applications they match on 72,759/73,728 pixels, maximum 3.57627869e-06.
+
+The reference processor modes differ on 707 whole-root pixels. Three additional one-processor captures of 20 settings repeat all 2,927,616 pixels. Of the 18 remaining one-processor differences, 11 agree with the eight-processor reference and seven fall outside all observed reference values. The three open one-processor seed and size combinations are 191520 at 128 × 64, 142326 at 64 × 128 and 188233 at 32 × 16. The new regression failed before the change. All 441 node and evaluator release tests passed along with formatting, strict workspace Clippy, the dependency layer check and WebAssembly.
+
 ## 2026-11-21 root comparisons
 
 ### Connected quadrant depth and amplified spot patterns

@@ -175,6 +175,23 @@ impl TileCopies {
         Some(Self::shift_horizontal_boundaries(layout, None, full_prefix))
     }
 
+    fn final_pair_layout(&self) -> Option<Cow<'static, [(usize, usize)]>> {
+        let ordinary = PairedBatches::Final.layout();
+        let deferred = self.group_copies(62..64)?.checked_sub(2 * COPIES_PER_BATCH)?;
+        if self.group_copies(48..49)?.checked_add(deferred)? >= COPIES_PER_BATCH {
+            return Some(Cow::Borrowed(ordinary));
+        }
+        let full_prefix = self.group_copies(60..61)? >= COPIES_PER_BATCH;
+        let mut layout = Self::shift_horizontal_boundaries(ordinary, None, full_prefix);
+        // The last pair's deferred copies leave room after group 48. Its first run
+        // fills the batch inside the next subtree and its second run finishes that subtree.
+        let group_end = 49 * DEPTH_THREE_PARENTS;
+        let mut ends = layout.to_mut().iter_mut().filter(|(parents, _)| *parents == group_end);
+        ends.next()?.0 += 1;
+        ends.next()?.0 += DEPTH_FOUR_PARENTS;
+        Some(layout)
+    }
+
     pub(super) fn layout(&self, ordinary: &'static [(usize, usize)]) -> Option<Cow<'static, [(usize, usize)]>> {
         if self.full_pairs == u8::MAX && self.axes[0] {
             return Some(Cow::Borrowed(paired_batches::ALL_FULL_PAIRS));
@@ -187,6 +204,7 @@ impl TileCopies {
                 // including when both pairs contain two full batches.
                 0 | 0b100 | 0b10000 | 0b10100 => return self.horizontal_layout(ordinary, None),
                 0b1000000 => return self.penultimate_layout(ordinary),
+                0b10000000 => return self.final_pair_layout(),
                 0b10 => return self.horizontal_layout(ordinary, Some((50, 16))),
                 0b1000 => return self.horizontal_layout(ordinary, Some((54, 32))),
                 _ => {}
