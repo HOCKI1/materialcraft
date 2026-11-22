@@ -7,7 +7,6 @@ use crate::CookContext;
 use std::ops::Range;
 
 const UNIT_WINDOW: [f32; 4] = [0.0, 1.0, 0.0, 1.0];
-const DRAWS_PER_PARENT: usize = 5;
 const PARENTS_PER_SUBTREE: usize = 256;
 // Paired interior squares change order when the preceding draws fill 5,460 tile copies.
 const COPIES_PER_BATCH: u32 = 5460;
@@ -27,7 +26,7 @@ impl TileCopies {
         Some(Self { window: Region::new(UNIT_WINDOW).ok()?, total: 0, subtree_ends: Vec::new(), retained: Vec::new() })
     }
 
-    pub(super) fn record(&mut self, stamp: &PatternStamp, retained: bool, draws: usize) -> Option<()> {
+    pub(super) fn record(&mut self, stamp: &PatternStamp, retained: bool, draws: usize, draws_per_parent: usize) -> Option<()> {
         let footprint = Footprint::new(stamp).ok()?;
         let center = self.window.copy_origin(stamp.center, [true; 2]);
         let [x, y] = self.window.repeats(&self.window, center, footprint.radius, [true; 2]).ok()?;
@@ -39,13 +38,13 @@ impl TileCopies {
             self.retained.push(self.total..end);
         }
         self.total = end;
-        if draws.is_multiple_of(DRAWS_PER_PARENT * PARENTS_PER_SUBTREE) {
+        if draws.is_multiple_of(draws_per_parent * PARENTS_PER_SUBTREE) {
             self.subtree_ends.push(end);
         }
         Some(())
     }
 
-    pub(super) fn boundaries(&self, layout: &[(usize, usize)]) -> Option<Vec<DrawPosition>> {
+    pub(super) fn boundaries(&self, layout: &[(usize, usize)], leading_paired_subtrees: usize) -> Option<Vec<DrawPosition>> {
         let mut cuts = vec![None; layout.len() + 1];
         let mut order = vec![0; layout.len()];
         cuts[0] = Some(0_u32);
@@ -63,8 +62,11 @@ impl TileCopies {
                 Some(end) => end,
                 None => {
                     let end = start.checked_add(COPIES_PER_BATCH - drawn % COPIES_PER_BATCH)?;
-                    // Crossing a depth-three subtree can change the order of the later runs.
-                    if self.subtree_ends.partition_point(|boundary| *boundary <= end) != layout[run].0 / PARENTS_PER_SUBTREE {
+                    // Crossing the measured subtree interval can change the order of the later runs.
+                    let (parents, rank) = layout[run];
+                    let first = parents / PARENTS_PER_SUBTREE;
+                    let last = first + usize::from(rank < leading_paired_subtrees);
+                    if !(first..=last).contains(&self.subtree_ends.partition_point(|boundary| *boundary <= end)) {
                         return None;
                     }
                     cuts[run + 1] = Some(end);

@@ -2325,6 +2325,45 @@ The reference source and saved images agreed on every pixel in all 15 settings f
 
 In the spot generator’s [32², scale-two case](#moisture-spot-and-cell-fields-across-processors-and-saved-packages), use seed 162174, disorder .78125, speed 1.015625, anisotropy .390625, angle .40625 and tile offset (.1708984375,−.29296875). Its first two U8 stages match 64/64 and 256/256, maximum zero. A bounded diagnostic run allowed 4,194,304 visits in the final stage. It counted 4,025,030 graph visits, 4,003,160 draws and 3,985,551 draws dropped before rasterization, leaving 17,609. The resulting F32 output matched 889/1,024 pixels, maximum 1.49011612e−7. The three-stage release diagnostic took 132,269 ms on one processor. The production visit bound still stops this setting. All five roots remain in progress.
 
+### Wrapped draw order for two children below depth seven
+
+Use the [original paired-square tree](#untiled-draw-order-for-two-and-four-children-below-depth-seven), with 64 subtrees, 256 depth-seven parents per subtree and two depth-eight children per parent. Enable both tiling axes in the unit window. Each parent draws an interior square with gain −1 or 2⁻²⁵ on a white F32 background. Align pairs of subtrees in 32 separate areas of the upper half of the image. Draw the children lower down with gain .25. Use a child width of 2.25 and height .875 in its own cell. Place both children on the horizontal seam for parents with index modulo 16 equal to zero, zero or one, or seven in three separate graphs. Center the other children horizontally. Render all 63 pairing rounds at 256² with seed 137143 + 17r for zero-based round r.
+
+The reference changes the parent ordering at indices 211, 144 and 212 respectively within a divided subtree. Each graph has two parent ranges. Displacing the competing interior squares by opposing one-cell offsets distinguished 8,064 cross-subtree relations per graph. All three give the same sequence of 29 contiguous draw ranges when their split points are expressed in physical tile copies. Splits occur every 5,460 copies drawn in composite order. The first three divided prefixes may finish in either of the last two subtrees before their continuations end. Later cuts can change the order of entire subtrees. MaterialCraft checks those boundaries before using either measured sequence.
+
+Six separately constructed graphs varied which parents put children on the seam. Use every 32nd parent, every 64th, every 16th in even subtrees, every 32nd shifted by three times the subtree index, every 16th except every 64th in subtrees 16–23, or every 16th in the first two of every four subtrees and every 32nd in the other two. Each selected sequence predicted 516,096/516,096 same-parent pair comparisons, maximum zero. The 26-range sequence applied to the every-64th case. A separate set used every 16th parent at the seam. Test each of the six two-slot combinations, then cycle through all six across the 64 subtrees. For rounds 3, 11, 24, 35, 43 and 58 render each gain orientation. In these seven graphs the complete F32 output improved from 4,391,856/5,505,024 to 5,505,024/5,505,024 pixels, maximum zero.
+
+A smaller original has 16 top-level groups of 1,024 parents. Pair groups zero and five with opposite gains and reverse them. Try child widths .875, 2.625, 4.75 and 8.875 at height .875, and X offsets 0, −1/512, .4995, .5 − 1/256, .375, .4375, −.125 and −.25 at Y offset .5. At 128², width .875 and offset −1/512 the tiny value occupies the first 274 parents in interleaved X/Y bit order. At offset .4995 it occupies the first 220 for width 4.75 and the first 188 for width 8.875, where four boundaries split a repeated stamp. The regression failed on the preceding revision at pixel (0,0). Across all 64 settings the complete F32 counts by width follow.
+
+| Child width | Previous exact / total | Current exact / total | Maximum absolute error |
+|---:|---:|---:|---:|
+| 0.875 | 257,684/262,144 | 261,640/262,144 | 2.98023224e-08 |
+| 2.625 | 257,900/262,144 | 260,128/262,144 | 2.98023224e-08 |
+| 4.75 | 258,200/262,144 | 261,076/262,144 | 2.98023224e-08 |
+| 8.875 | 258,650/262,144 | 260,026/262,144 | 2.98023224e-08 |
+
+For the Clouds 2 root (79), repeat the [67 single-processor settings](#single-processor-comparisons-for-clouds-2-and-five-dirt-fields). Add 32 × 16, 64 × 256, 128² and 512 × 128 with seeds 175129 + 137j, zero-based in this order. Use U16 and F32 throughout and add U8 and F16 at the middle two sizes. This root has no exposed numeric control. Reuse the same MaterialCraft output for the two independently captured reference processor counts. Save the root in MaterialCraft, reopen it in both applications and render every fifth setting starting at the first.
+
+| Reference processors | Previous exact / total | Current exact / total | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|---:|---:|
+| 1 | 1,439,952/1,440,000 | 1,439,994/1,440,000 | 235,008/235,008 · 0 | 500,220/500,224 · 2 | 235,008/235,008 · 0 | 469,758/469,760 · 2.29179859e-05 |
+| 8 | 1,439,981/1,440,000 | 1,439,951/1,440,000 | 235,008/235,008 · 0 | 500,201/500,224 · 2 | 235,006/235,008 · 0.00048828125 | 469,736/469,760 · 2.29477882e-05 |
+
+The 12 added settings matched 263,168/263,168 pixels on one processor and 263,158/263,168 on eight. The 16 single-processor saved-file comparisons matched 285,184/285,184 across applications and reproduced each application's source outputs. The six single-processor differences come from 128², seed 42, in the original U16 storage and 128 × 256, seed 139711, in U16 and F32. The eight-processor total changed from 19 to 49 unequal pixels. Clouds 2 remains in progress.
+
+Expose the complete 49,152-draw generator as F32, preserving its two tiling axes. Of the three [earlier sizes](#tile-copies-and-the-draw-order-in-clouds-2), the 256² and 512 × 128 stages now match 65,536/65,536 each. The 32 × 16 stage matches 449/512, maximum 1.49011612e−8. For ten additional stages use 16 × 32, 32 × 64, 128 × 64, 64 × 128, 128², 256 × 128, 128 × 256, 256², 512 × 128 and 128 × 512. Use seed 175219 + 83j in this order. The completed counts improved from 250,310 to 275,369 of 297,472 pixels, maximum 3.72529030e−8. Five stages matched exactly. The other five still take the ordinary draw order because their split points cross an unmeasured subtree boundary.
+
+Repeat the [independently authored square and rotated-disc controls](#untiled-draw-order-for-two-and-four-children-below-depth-seven) with both tiling axes enabled, two terminal children, each gain orientation and all four storage formats. Each graph has 24 complete settings and six single-processor saved comparisons. Both applications reproduced their respective saved settings. U8 and U16 maxima below are stored levels. Floating maxima are absolute.
+
+| Original graph | Complete settings | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|---:|
+| Square, source | 24 | 81,920/81,920 · 0 | 131,072/131,072 · 0 | 65,407/81,920 · 0.00048828125 | 106,918/131,072 · 1.1920929e-07 |
+| Square, saved | 6 | 8,192/8,192 · 0 | 40,960/40,960 · 0 | 8,190/8,192 · 0.00048828125 | 32,702/40,960 · 1.1920929e-07 |
+| Rotated disc, source | 24 | 81,920/81,920 · 0 | 131,072/131,072 · 0 | 73,591/81,920 · 6.10351562e-05 | 106,028/131,072 · 5.96046448e-08 |
+| Rotated disc, saved | 6 | 8,192/8,192 · 0 | 40,960/40,960 · 0 | 8,192/8,192 · 0 | 32,631/40,960 · 5.96046448e-08 |
+
+The earlier four-child Dirt 1 and Dirt 6 F32 controls still matched 246,784/246,784 pixels across 12 settings. After the [individual-copy change](#individual-tile-copies-across-a-pattern-draw-boundary), the prior 17-root verified set also matched all 3,139,328 pixels across its 167 root settings. Six interleaved single-processor release timings per binary after warmup gave medians of 765→780 ms at 256² and 753→770 ms at 512 × 128 for the Clouds 2 generator. The 430 release tests for the node and evaluation crates passed, along with formatting, workspace Clippy, layering and the WebAssembly check.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color

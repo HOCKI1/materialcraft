@@ -578,11 +578,20 @@ fn depth_six_stamps_and_their_four_leaves_draw_in_the_same_grandchild_run() {
 #[test]
 fn depth_eight_parent_order_counts_children_that_cross_the_tile_edge() {
     let tiny = f32::EPSILON * 0.25;
-    for (child_count, tiling, child_x, early) in [(2, 0, 0.0, 0..284), (4, 0, 0.0, 580..648), (4, 3, -1.0 / 512.0, 571..644), (4, 3, 0.4995, 574..623)] {
+    for (child_count, tiling, child_x, width, early) in [
+        (2, 0, 0.0, 0.875, 0..284),
+        (2, 3, -1.0 / 512.0, 0.875, 0..274),
+        (2, 3, 0.4995, 4.75, 0..220),
+        (2, 3, 0.4995, 8.875, 0..188),
+        (4, 0, 0.0, 0.875, 580..648),
+        (4, 3, -1.0 / 512.0, 0.875, 571..644),
+        (4, 3, 0.4995, 0.875, 574..623),
+    ] {
         let variables = BTreeMap::from([("$tiling".into(), Value::Int(tiling))]);
         let (mut graph, groups) = seven_level_tree();
         let child = graph.add(PatternNodeKind::Quadrant).unwrap();
         graph.nodes[(child - 1) as usize].parameters = additive_square(0.25, [0.0; 2], [child_x, 0.5]);
+        graph.nodes[(child - 1) as usize].parameters.insert("patternsize".into(), Value::Float2([width, 0.875]));
         for (group, QuadrantProbeGroup { last_three: [_, _, parent], mut offset }) in groups.into_iter().enumerate() {
             let weight = match group {
                 0 => tiny,
