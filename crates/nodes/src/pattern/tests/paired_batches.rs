@@ -550,3 +550,64 @@ fn eight_middle_group_batches_carry_into_the_first_subtrees() {
         check_batch_markers(&group_counts, seed, 1, &markers);
     }
 }
+
+#[test]
+fn ten_batches_split_the_later_horizontal_subtrees() {
+    for (head, following, middle, pair_start, later, end, last, seed, markers) in [
+        (
+            120,
+            86,
+            55,
+            84,
+            54,
+            72,
+            78,
+            261084,
+            [(303743, 213233, true), (303763, 342691, false), (303726, 212560, true), (303705, 3691, true), (259584, 327565, false), (260714, 281791, false)],
+        ),
+        (
+            109,
+            86,
+            62,
+            89,
+            73,
+            79,
+            62,
+            261115,
+            [(303743, 261223, true), (303763, 326473, false), (303726, 213819, true), (303705, 2845, true), (259584, 286937, false), (260714, 281276, false)],
+        ),
+        (
+            121,
+            86,
+            76,
+            82,
+            62,
+            82,
+            81,
+            261146,
+            [(303743, 268210, true), (303763, 319251, false), (303726, 260297, true), (303705, 1829, true), (259584, 1908, true), (260714, 302967, false)],
+        ),
+        (
+            121,
+            89,
+            58,
+            93,
+            77,
+            77,
+            64,
+            261177,
+            [(303743, 288302, true), (303763, 339410, false), (303726, 305649, false), (303705, 1704, true), (259584, 335480, false), (260714, 281475, false)],
+        ),
+    ] {
+        let mut groups = [61; 64];
+        groups[0] = head;
+        groups[1..8].fill(following);
+        groups[52] = middle;
+        groups[54] = pair_start;
+        groups[56] = later;
+        groups[58..60].copy_from_slice(&[80, 70]);
+        groups[60] = end;
+        groups[62] = last;
+        check_batch_markers(&groups, seed, 1, &markers);
+    }
+}

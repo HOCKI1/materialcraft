@@ -123,7 +123,7 @@ pub fn cook_with_base_level_inputs(context: &CookContext, base_level_only: &[boo
     let mut discard_allowance = MAX_VISITS;
     let grayscale = !context.b("color_mode");
     let mut repeated_roots = None;
-    let mut terminal_quadrants = if grayscale && opacity_depth == 8 { super::terminal_quadrants::TerminalQuadrants::new(context) } else { None };
+    let mut terminal_quadrants = (grayscale && opacity_depth == 8 && !context.b("cull_outside")).then(super::terminal_quadrants::TerminalQuadrants::default);
     let mut seven_level_runs = (grayscale && opacity_depth == 7).then(SevenLevelRuns::default);
     let mut sparse_runs = if grayscale && opacity_depth == 8 { super::tile_runs::SparseQuadrantRuns::new(context) } else { None };
     let mut mixed_depth_runs = if grayscale && matches!(opacity_depth, 8 | 9) { MixedDepthRuns::new(context, opacity_depth) } else { None };
@@ -311,7 +311,7 @@ pub fn cook_with_base_level_inputs(context: &CookContext, base_level_only: &[boo
                     if mixed_depth_runs.as_mut().is_some_and(|runs| !runs.draw(&stamp, opacities.as_deref().unwrap_or_default(), !missed)) {
                         mixed_depth_runs = None;
                     }
-                    if terminal_quadrants.as_mut().is_some_and(|runs| !runs.draw(&stamp, opacities.as_deref().unwrap_or_default())) {
+                    if terminal_quadrants.as_mut().is_some_and(|runs| !runs.draw(&stamp, opacities.as_deref().unwrap_or_default(), grid.as_ref())) {
                         terminal_quadrants = None;
                     }
                     if missed {

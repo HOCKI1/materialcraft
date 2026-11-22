@@ -23,8 +23,7 @@ fn location(draw: u32) -> (u32, u32) {
     (column + x, iteration * 256 + y)
 }
 
-#[test]
-fn three_terminal_levels_interleave_repeated_quadrant_trees() {
+fn check_terminal_levels(expanded: bool) {
     // In a white pixel a tiny positive value survives only when the negative square draws first.
     let tiny = f32::EPSILON * 0.25;
     for (count, markers) in [
@@ -65,9 +64,11 @@ fn three_terminal_levels_interleave_repeated_quadrant_trees() {
                 ("roughness".into(), Value::Float(0.0)),
                 ("color_mode".into(), Value::Bool(false)),
                 ("background".into(), Value::Color([1.0; 4])),
+                ("tiling_region".into(), Value::Float4(if expanded { [-0.5, 1.5, -0.5, 1.5] } else { [0.0, 1.0, 0.0, 1.0] })),
             ]),
         );
-        let variables = BTreeMap::from([("$tiling".into(), Value::Int(0))]);
+        let axes = if expanded { count - 1 } else { 0 };
+        let variables = BTreeMap::from([("$tiling".into(), Value::Int(axes))]);
         let mut field = BTreeMap::new();
         for (j, &(negative, positive, _)) in markers.iter().enumerate() {
             let x = (8.5 + j as f32) / 128.0;
@@ -81,7 +82,7 @@ fn three_terminal_levels_interleave_repeated_quadrant_trees() {
             h: 128,
             seed: 257831 + 19 * count as u32,
             format: OutputFormat::F32,
-            tile: false,
+            tile: true,
             inputs: &inputs,
             input_formats: &[OutputFormat::F32; 2],
             params: &params,
@@ -93,4 +94,14 @@ fn three_terminal_levels_interleave_repeated_quadrant_trees() {
             assert_eq!(image.get_gray(8 + j as i64, 12, false), if negative_first { tiny } else { 0.0 }, "{count} trees, marker {j}");
         }
     }
+}
+
+#[test]
+fn three_terminal_levels_interleave_repeated_quadrant_trees() {
+    check_terminal_levels(false);
+}
+
+#[test]
+fn single_copy_terminal_trees_use_the_same_order_in_wide_tiling_regions() {
+    check_terminal_levels(true);
 }

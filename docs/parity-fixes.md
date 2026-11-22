@@ -912,6 +912,39 @@ The 22 variations of the original quotas match 180,224/180,224 · 0. Eight indep
 
 Remaining single-processor root differences are n1u16 (2 pixels), n1f32 (2 pixels). At 64 × 128, seed 142326, the isolated horizontal source still matches 2,713/8,192 F32 pixels, maximum 5.96046448e−8. The new signed regression failed before the correction. All 446 node and evaluator release tests, formatting, strict workspace Clippy, dependency layers and WebAssembly passed.
 
+### Ten batches in the horizontal Dirt Gradient source
+
+On one processor all **127 earlier whole settings match pixel for pixel**, including the six previously differing values at 64 × 128, seed 254179. Their isolated horizontal pattern improves from 3,314/8,192 F32 pixels (maximum 5.96046448e−8) to 8,192/8,192 (zero). All 34 earlier saved settings also match in both applications. A further 16 whole settings extend the comparison to **139/143 settings and 3,272,949/3,272,960 pixels**. The four differing settings share seed 254181. [Earlier settings and saved results](#eight-middle-batches-in-the-horizontal-dirt-gradient-source)
+
+| Whole-output comparison | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|
+| Earlier 127, one processor | 616,704/616,704 · 0 | 895,744/895,744 · 0 | 616,704/616,704 · 0 | 865,280/865,280 · 0 |
+| Earlier 127, eight processors | 616,704/616,704 · 0 | 895,391/895,744 · 2 | 616,679/616,704 · 0.00048828125 | 864,910/865,280 · 2.03251839e-05 |
+| Earlier 34 reopens, one processor | 36,864/36,864 · 0 | 105,472/105,472 · 0 | 40,960/40,960 · 0 | 296,192/296,192 · 0 |
+| New 16, one processor | 40,959/40,960 · 1 | 98,300/98,304 · 1 | 40,959/40,960 · 0.000244140625 | 98,299/98,304 · 1.64806843e-05 |
+| New 16, eight processors | 40,959/40,960 · 1 | 98,268/98,304 · 2 | 40,959/40,960 · 0.000244140625 | 98,265/98,304 · 2.02655792e-05 |
+| New 16, reference one versus eight | 40,960/40,960 · 0 | 98,266/98,304 · 2 | 40,960/40,960 · 0 | 98,262/98,304 · 2.02655792e-05 |
+| New six reopens, one processor | — | 24,572/24,576 · 1 | 32,768/32,768 · 0 | 40,960/40,960 · 0 |
+| New six, reference original versus reopened | — | 24,576/24,576 · 0 | 32,768/32,768 · 0 | 40,960/40,960 · 0 |
+
+For the 16 new settings leave the controls at their defaults. Use 64 × 128 at seeds 254177 and 254181, 128 × 64 at 191523 and 142329, 128 × 256 at 263113 and 256 × 128 at 263147. Use U16 then F32 everywhere, with U8, U16, F16 and F32 in that order for the second and fifth seeds. Save in MaterialCraft and reopen zero-based settings 0, 3, 6, 9, 12 and 15 in each application. All 40 local saved outputs retain their original pixels.
+
+In a horizontal depth-nine tree, number the 256 depth-four subtrees in traversal order. Each contains 1,344 draws before wrapping. Each group contains four such subtrees. The measured split occurs with short final pairs, a short group 60, a short eight-group stream at groups 24–31, and room left after combining group 60 with the first and last subtrees of group 61 and the two middle subtrees of group 16. Count the copies in subtree 0, subtrees 3–31, the second subtrees of groups 52 and 56, and groups 58–59. At 54,600 copies these portions fill ten batches. Surplus copies split the second subtree of group 56. Its remainder draws later. The first nine-batch cut can fall on either side of the start of subtree 30. Both cuts use physical copies, including copies of a square that misses all sampled pixels.
+
+Use the [signed overlapping-square procedure](#three-consecutive-full-pairs-in-the-final-dirt-gradient-quadrant) at 128², seed and quotas below. Start every group with 61 extra copies, set groups 58 and 59 to 80 and 70, then apply the table. Split each group evenly among its four subtrees, rotating the remainder by group index. The committed regression contains six independently measured pairs per qualifying field. In the full 16-pair comparison with gains exchanged, the last four fields improve from 130,944/131,072 (maximum 2.98023224e-08) to 131,072/131,072 (zero). The one-copy-short control gives 32,736/32,768 (maximum 2.98023224e−8) before and after. [Regression and field construction](../crates/nodes/src/pattern/tests/paired_batches.rs)
+
+| Group 0 | Each of 1–7 | Group 52 | Group 54 | Group 56 | Group 60 | Group 62 | Copies above ten batches | Seed |
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 113 | 86 | 53 | 78 | 66 | 70 | 75 | -1 | 261053 |
+| 120 | 86 | 55 | 84 | 54 | 72 | 78 | 0 | 261084 |
+| 109 | 86 | 62 | 89 | 73 | 79 | 62 | 1 | 261115 |
+| 121 | 86 | 76 | 82 | 62 | 82 | 81 | 8 | 261146 |
+| 121 | 89 | 58 | 93 | 77 | 77 | 64 | 28 | 261177 |
+
+Independent weighted fields use the [128 × 64 square-field construction](#paired-subtree-capacity-in-horizontally-tiled-dirt-gradient). Start with the 256 per-subtree extra-copy counts from the horizontal stage at seed 254179. Use the original counts for row 0. In rows 1–61, split the 64 group totals with independent four-way equal-probability multinomial draws using PCG64 seed 258137. For rows 2–9 add (−18,−6,−2,−1,0,1,2,4) to group 54. In rows 10–17 adjust group 7 so that groups 0–7 sum to 672+(−32,−8,−2,−1,0,1,2,12). In rows 18–25 adjust group 31 so that groups 24–31 sum to 672+(−20,−6,−2,−1,0,1,2,8). In rows 26–33 set group 60 to (72,80,82,83,84,85,86,95) and cap group 61 at 167 minus group 60. In rows 34–41 use (53,74,82,83,84,85,91,110) for group 0. For the final 20 rows perturb each group by an integer from [−8,8], cap every odd member of the final eight pairs at 167 minus its neighbor, then set group 54 to (81,83,84,85,87)[row mod 5] and cap group 55 again. Paint the field with seed 258047+31 × row. The 38 qualifying fields match **311,296/311,296** F32 pixels (zero). All 62 together give 498,226/507,904 (maximum 5.48362732e-06).
+
+At seed 254181 the local horizontal stage matches 2,495/8,192 F32 pixels (maximum 8.94069672e−8). Three one-processor captures agree pixel for pixel. Comparing the one- and eight-processor captures gives 2,444/8,192 (maximum 8.94069672e−8). Groups 24–31 fill eight batches and groups 62–63 exceed two batches by 12 copies in this setting. The inventory retains this root in progress.
+
 ### Eight middle batches in the horizontal Dirt Gradient source
 
 Dirt Gradient matches all **2,863,360 pixels across the earlier 111 settings** on one reference processor, including all 28 saved settings. At 64 × 128, seed 142326, the horizontal pattern source improves from 2,713/8,192 F32 pixels (maximum 5.96046448e−8) to 8,192/8,192 (maximum zero). All 14 other isolated settings retain their scores. All 707 differing pixels in the eight-processor comparison also differ between the two reference captures, with identical counts and maximum error in every setting. [Earlier whole-root settings](#individual-tile-copies-after-two-full-horizontal-batches)
@@ -6031,6 +6064,14 @@ Supply identical original fields to the downstream graph by replacing its source
 | noise_dirt_gradient | Source stages | 10/10 | 10,496/10,496 | 0 / 0 / 0 / 0 |
 | noise_dirt_gradient_v2 | Source stages | 3/10 | 1,617/3,328 | — / — / 0.122558594 / 0.0274509192 |
 | noise_dirt_gradient_v2 | Inputs of final pattern | 3/10 | 2,167/3,328 | — / — / 0 / 9.53674316e-07 |
+
+### Terminal quadrant order across sampling windows
+
+For the last three additive levels in a complete depth-eight tree, the same submission order applies if each visited stamp emits exactly one physical copy. Count copies from the actual render and tiling windows and the rotated stamp footprint before discarding draws outside sampled pixels. Eleven F32 stage renders improve from **19,534/27,136** (maximum 2.98023224e-07) to **27,136/27,136** (zero). Seven renders that generate additional copies give 7,286/14,336 (maximum 2.98023224e-07). Those cases still need different submission boundaries. The 60 whole Directional Noise 1 settings and 12 saved settings retain the counts in the earlier table. [Whole settings, controls and per-format results](#final-three-quadrant-levels-in-directional-noise-1)
+
+Use the original directional graph's third pattern stage with the iteration count fixed at two and its repeated branch active. Compare 64², seed 42, scale 2, disorder .37, angle .125 and angle random .2, and 16 × 32, seed 194860 at defaults. Measure both in each of nine configurations. Start with the graph's original windows and tiling. Disable wrapping for the second configuration. For the third, also set the tiling window to the unit square. For the fourth, disable wrapping and set only the render window to the unit square. For the fifth, render (.1,.8,.2,.65) with a unit tiling window and wrapping off. For the sixth, render (−.2,.46,.05,.83) in the tiling window (.1,.9,−.3,1.2), wrapping off. Finally use unit windows with horizontal, vertical and two-axis wrapping. Coordinates are left, right, top, bottom.
+
+As an independent control, use the earlier 16 pairs for one, two and four trees at 128², then change the tiling window to (−.5,1.5,−.5,1.5) with no wrapping, horizontal wrapping and both axes respectively. Both gain assignments in both sets of three windows give 196,608/196,608 F32 pixels (maximum zero). Both new normal-cook regressions failed before the fixes. The node and evaluator release suites passed all 450 tests, together with formatting, strict workspace Clippy, crate layers and the WebAssembly checks. [Signed square regression](../crates/nodes/src/pattern/tests/terminal_quadrants.rs)
 
 ### Final three quadrant levels in Directional Noise 1
 

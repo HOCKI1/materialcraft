@@ -14,7 +14,7 @@ pub(super) use sparse_quadrants::SparseQuadrantRuns;
 
 use paired_batches::PairedBatches;
 
-pub(super) const UNIT_WINDOW: [f32; 4] = [0.0, 1.0, 0.0, 1.0];
+const UNIT_WINDOW: [f32; 4] = [0.0, 1.0, 0.0, 1.0];
 const DEPTH_THREE_PARENTS: usize = 256;
 const DEPTH_FOUR_PARENTS: usize = 64;
 const PAIRED_SUBTREE_PARENTS: usize = 2 * DEPTH_THREE_PARENTS;
@@ -113,6 +113,11 @@ impl TileCopies {
         let full_prefix = prefix >= COPIES_PER_BATCH;
         let fallback = || pair.is_none().then_some(Cow::Borrowed(ordinary));
         if !full_prefix && pair.is_none() {
+            if self.full_pairs == 0
+                && let Some(layout) = self.first_quadrant_tail(ordinary, prefix)
+            {
+                return Some(Cow::Owned(layout));
+            }
             return fallback();
         }
         if let Some((group, head)) = pair {
@@ -149,6 +154,48 @@ impl TileCopies {
         let end = *self.subtree_ends.get(subtree)?;
         let first = subtree * self.parents_per_subtree;
         Some(first + if end == cut { self.parents_per_subtree } else { 1 })
+    }
+
+    fn first_quadrant_tail(&self, ordinary: &[(usize, usize)], prefix: u32) -> Option<Vec<(usize, usize)>> {
+        if self.group_copies(24..32)? >= 8 * COPIES_PER_BATCH || self.penultimate_batch_fills(prefix)? {
+            return None;
+        }
+        // After nine batches, the two middle subtrees of group 0 are still pending.
+        // Groups 58 and 59 have already submitted their copies to this stream.
+        let first = self.subtree_copies(0..1)?.checked_add(self.subtree_copies(3..30)?)?.checked_add(self.group_copies(58..60)?)?;
+        let head_cut = self.subtree_ends.get(29)?.checked_add(9 * COPIES_PER_BATCH)?.checked_sub(first)?;
+        if head_cut <= *self.subtree_ends.get(28)? || head_cut > *self.subtree_ends.get(30)? {
+            return None;
+        }
+        // The end of the first eight groups and one subtree each from groups
+        // 52 and 56 now fill a tenth batch. Split the latter at the physical copy.
+        let combined =
+            first.checked_add(self.subtree_copies(30..32)?)?.checked_add(self.subtree_copies(209..210)?)?.checked_add(self.subtree_copies(225..226)?)?;
+        let extra = combined.checked_sub(10 * COPIES_PER_BATCH)?;
+        if extra >= self.subtree_copies(225..226)? {
+            return None;
+        }
+        let split = self.parent_at_cut(self.subtree_ends.get(225)?.checked_sub(extra)?)?;
+        let head = self.parent_at_cut(head_cut)?;
+        let pair = self.parent_at_cut(self.subtree_ends.get(215)?.checked_add(COPIES_PER_BATCH)?)?;
+        let mut layout: Vec<_> = ordinary
+            .iter()
+            .filter(|(_, rank)| *rank < 30)
+            .map(|&(end, rank)| {
+                (
+                    match rank {
+                        3 => pair,
+                        16 => head,
+                        _ => end,
+                    },
+                    rank,
+                )
+            })
+            .collect();
+        let tail = [12361, 2048, 13440, split, 12416, 10240, 192, 14464, 15680, 15872, 4288, 12800, 14528, 14848, 13824, 12480, 15808, 13504];
+        layout.extend(tail.into_iter().enumerate().map(|(rank, end)| (end, rank + 30)));
+        layout.sort_unstable();
+        Some(layout)
     }
 
     fn eight_middle_groups(&self) -> Option<Vec<(usize, usize)>> {

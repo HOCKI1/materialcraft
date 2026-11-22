@@ -1,9 +1,8 @@
 use super::{
+    footprint::SampleGrid,
     pattern_stamp::{DrawRun, PatternStamp},
     raster::MIN_STAMP_SIZE,
-    tile_runs::UNIT_WINDOW,
 };
-use crate::CookContext;
 use materialcraft_core::{PatternNode, PatternNodeKind};
 
 // With draws on the last three levels, 21 consecutive stamps belong to each
@@ -184,14 +183,6 @@ pub(super) struct TerminalQuadrants {
 }
 
 impl TerminalQuadrants {
-    pub(super) fn new(context: &CookContext) -> Option<Self> {
-        (context.tiling_axes() == [false; 2]
-            && !context.b("cull_outside")
-            && context.v4("render_region") == UNIT_WINDOW
-            && context.v4("tiling_region") == UNIT_WINDOW)
-            .then(Self::default)
-    }
-
     pub(super) fn visit(&mut self, node: &PatternNode, depth: u32, retained: usize, at_root: bool) -> bool {
         match node.kind {
             PatternNodeKind::Iterate => at_root && node.children.first() == Some(&None),
@@ -211,7 +202,7 @@ impl TerminalQuadrants {
         }
     }
 
-    pub(super) fn draw(&mut self, stamp: &PatternStamp, weights: &[f32]) -> bool {
+    pub(super) fn draw(&mut self, stamp: &PatternStamp, weights: &[f32], grid: Option<&SampleGrid>) -> bool {
         let Some(weight) = weights.get(stamp.depth as usize) else { return false };
         if !(6..=8).contains(&stamp.depth)
             || stamp.blend != 0
@@ -223,7 +214,8 @@ impl TerminalQuadrants {
             return false;
         }
         self.draws += 1;
-        true
+        // Tiling changes these boundaries only when it actually emits a different number of copies.
+        grid.is_some_and(|grid| grid.single_copy(stamp))
     }
 
     pub(super) fn finish(mut self, stamps: &[PatternStamp], repeats: usize) -> Option<Vec<DrawRun<'_>>> {

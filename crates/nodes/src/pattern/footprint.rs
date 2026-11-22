@@ -1,4 +1,8 @@
-use super::{coordinates::PixelPlanes, pattern_stamp::PatternStamp, region::Region};
+use super::{
+    coordinates::PixelPlanes,
+    pattern_stamp::PatternStamp,
+    region::{Copies, Region},
+};
 use crate::CookContext;
 
 pub(super) struct Footprint {
@@ -75,6 +79,15 @@ impl SampleGrid {
         Some(Self { render, tiling, dimensions: [width, height], axes, cull_outside })
     }
 
+    fn repeats(&self, stamp: &PatternStamp, frame: &Footprint) -> Result<[Copies; 2], String> {
+        let center = self.tiling.copy_origin(stamp.center, self.axes);
+        self.tiling.repeats(&self.render, center, frame.radius, self.axes)
+    }
+
+    pub fn single_copy(&self, stamp: &PatternStamp) -> bool {
+        self.axes == [false; 2] || Footprint::new(stamp).and_then(|frame| self.repeats(stamp, &frame)).is_ok_and(|axes| axes.iter().all(|axis| axis.count == 1))
+    }
+
     pub fn misses(&self, stamp: &PatternStamp) -> bool {
         if !(2..=18).contains(&stamp.pattern)
             || !(0..=2).contains(&stamp.blend)
@@ -90,8 +103,7 @@ impl SampleGrid {
         if (0..2).any(|i| frame.radius[i] * self.dimensions[i] as f32 > 0.5 * self.render.period()[i]) {
             return false;
         }
-        let center = self.tiling.copy_origin(stamp.center, self.axes);
-        let Ok(repeats) = self.tiling.repeats(&self.render, center, frame.radius, self.axes) else { return false };
+        let Ok(repeats) = self.repeats(stamp, &frame) else { return false };
         let copies = repeats[0].count.saturating_mul(repeats[1].count);
         if copies == 0 {
             return true;
