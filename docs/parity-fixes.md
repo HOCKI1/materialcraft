@@ -802,6 +802,56 @@ The differing weighted setting reduces each group from 8 through 15 to 32 extra 
 
 Across the whole-root matrix, 16 single-processor differences remain at 128 × 64, seed 191520 and 64 × 128, seed 142326. The eight-processor comparison differs at 705 pixels. The two reference processor settings differ at 707. The new regression failed on the previous renderer. All 443 node and evaluator release tests passed, along with formatting, strict workspace Clippy, dependency layers and WebAssembly.
 
+### Noise-library Messy Fibers and Microscope View
+
+All seven roots match 775,424/775,424 pixels apiece in 60 distinct settings on one and eight processors. For each root, 38 MaterialCraft saves reproduce the original in both applications and match 646,656/646,656 pixels across applications. Maximum stored-channel error is zero in each format. Each graph generates its inputs procedurally.
+
+| Root and comparison | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|
+| Messy Fibers 1, Messy Fibers 2, Messy Fibers 3, Microscope View · one or eight processors | 98,304/98,304 · 0 | 335,360/335,360 · 0 | 100,352/100,352 · 0 | 241,408/241,408 · 0 |
+| Messy Fibers 1 v2, Messy Fibers 2 v2, Messy Fibers 3 v2 · one or eight processors | 196,608/196,608 · 0 | 237,056/237,056 · 0 | 100,352/100,352 · 0 | 241,408/241,408 · 0 |
+| Messy Fibers 1, Messy Fibers 1 v2, Messy Fibers 2, Messy Fibers 2 v2, Messy Fibers 3, Messy Fibers 3 v2, Microscope View · saved files | 95,232/95,232 · 0 | 228,352/228,352 · 0 | 92,672/92,672 · 0 | 230,400/230,400 · 0 |
+
+The following comparisons replay the same F32 setting in builds immediately before and after the indicated changes. The linked single-stamp measurements and regressions isolate the frequency, interpolation or origin calculation. For the first three roots, the measured frequency is six times the variation plus 1.5 with one F32 rounding. [Original 19 whole-root settings and public controls](#liquid-fiber-and-related-noise-sources)
+
+| Root | Size | Seed | Earlier exact / total · max | Corrected exact / total · max | Primitive comparison |
+|---|---|---:|---:|---:|---|
+| Messy Fibers 1 | 16 × 16 | 106907 | 79/256 · 2.98023224e−7 | 256/256 · 0 | [Wave frequency](#wave-frequency-and-phase-in-directional-noise) |
+| Messy Fibers 1 v2 | 16 × 16 | 106924 | 97/256 · 2.68220901e−7 | 256/256 · 0 | [Wave frequency](#wave-frequency-and-phase-in-directional-noise) |
+| Messy Fibers 2 | 32 × 16 | 106947 | 104/512 · 2.38418579e−7 | 512/512 · 0 | [Wave frequency](#wave-frequency-and-phase-in-directional-noise) |
+| Messy Fibers 2 v2 | 32 × 16 | 106964 | 511/512 · 2.98023224e−8 | 512/512 · 0 | [Narrow stamp origin](#starting-coordinates-of-narrow-rotated-stamps) |
+| Messy Fibers 3 | 32 × 32 | 113 | 982/1,024 · 3.27825546e−7 | 1,024/1,024 · 0 | [Paired interpolation](#interpolation-across-pairs-of-pixels-in-cells-1) |
+| Messy Fibers 3 v2 | 32 × 32 | 113 | 1,023/1,024 · 2.38418579e−7 | 1,024/1,024 · 0 | [Near-vertex origin](#pixel-center-rounding-at-the-near-stamp-vertex) |
+| Microscope View | 32 × 32 | 113 | 1,007/1,024 · 4.57838178e−5 | 1,024/1,024 · 0 | [Fractional stamp edges](#fractional-edges-of-axis-aligned-pattern-stamps) |
+
+Repeat the 19 original settings and the series below. Use the inventory indices 288 through 294 in the table order above. Use seed zero on rows 0 and 5, seed 42 on rows 1 and 8, and 430013 + 13 times the root index + 37 times the row elsewhere. Use U16 and F32 throughout and also U8 and F16 on rows 0, 2, 4, 5 and 8. One 128² default already occurs in the first series. The fresh one-processor renders reproduce 760,064/760,064 archived pixels per root across all 48 distinct settings.
+
+| Row | Output size | Variation d | Fiber scale | Microscope scale |
+|---:|---|---:|---:|---:|
+| 0 | 16 × 32 | Defaults | Default | Default |
+| 1 | 32 × 16 | .21875 | 2 | 16 |
+| 2 | 64 × 64 | .9375 | 1 | 5 |
+| 3 | 128 × 32 | .046875 | 3 | 11 |
+| 4 | 32 × 128 | .5625 | 2 | 27 |
+| 5 | 128 × 128 | Defaults | Default | Default |
+| 6 | 256 × 128 | .328125 | 3 | 19 |
+| 7 | 128 × 256 | .8125 | 1 | 32 |
+| 8 | 256 × 256 | Defaults | Default | Default |
+| 9 | 512 × 128 | .671875 | 1 | 12 |
+
+On changed rows set disorder, angle randomness, color or luminance randomness, disorder speed, anisotropy and warp intensity to d wherever the root exposes that control. Set angle and anisotropy angle to d − .25, lines to 4 + 37d, links to 9 + 22d and tile offset to (d − .34375, .40625 − .875d). Enable non-square expansion on odd rows.
+
+For each root add the four rows below. Add the root index to the seed column. Use U16 and F32 for each row, adding U8 and F16 on the middle two. For v2 the changed rows also set disorder speed (.625,1.25,.4375), anisotropy (.375,.6875,.1875), anisotropy angle (.1875,−.125,.3125) and offset ((.1875,−.3125),(−.28125,.21875),(.09375,.125)) in row order. Use the root's exposed lines or links control. Color and luminance randomness belong to the third fiber pair.
+
+| Size | Seed base | Fiber / microscope scale | Disorder | Angle / randomness | Lines / links | Color or luminance randomness | Warp intensity | Non-square expansion |
+|---|---:|---|---:|---|---|---:|---:|---|
+| 16 × 32 | 242049 | Defaults | Default | Default | Default | Default | Default | Default |
+| 32 × 16 | 235111 | 2 / 11 | .3125 | −.09375 / .375 | 9.25 / 12.5 | .25 | .28125 | Off |
+| 64 × 32 | 235157 | 3 / 23 | .796875 | .21875 / .6875 | 21.375 / 27.25 | .8125 | .6875 | On |
+| 32 × 64 | 235179 | 1 / 9 | .15625 | −.34375 / .15625 | 7.75 / 6.875 | .4375 | .84375 | Off |
+
+Save every fifth distinct archived setting from the first and each additional setting contributed by the ten-row series. In the four new rows save F32, U8, U16 and F16, and F32 in row order. All 443 node and evaluator release tests passed, along with formatting, strict workspace Clippy, dependency layers and WebAssembly.
+
 ## 2026-11-21 root comparisons
 
 ### Connected quadrant depth and amplified spot patterns
