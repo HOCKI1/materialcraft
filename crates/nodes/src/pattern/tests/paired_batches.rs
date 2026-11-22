@@ -74,8 +74,7 @@ fn stamp_field(group_counts: &[u32; 64], markers: &[(u32, u32, bool)]) -> Image 
     })
 }
 
-#[test]
-fn full_pairs_defer_individual_copies_after_two_batches() {
+fn check_batch_markers(group_counts: &[u32; 64], seed: u32, axes: i32, markers: &[(u32, u32, bool)]) {
     let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
     let mut parent = graph.root.unwrap();
     for depth in 1..=9 {
@@ -105,6 +104,29 @@ fn full_pairs_defer_individual_copies_after_two_batches() {
             ("background".into(), Value::Color([1.0; 4])),
         ]),
     );
+    let variables = BTreeMap::from([("$tiling".into(), Value::Int(axes))]);
+    let inputs = [None, Some(stamp_field(group_counts, markers))];
+    let context = CookContext {
+        w: 128,
+        h: 128,
+        seed,
+        format: OutputFormat::F32,
+        tile: true,
+        inputs: &inputs,
+        input_formats: &[OutputFormat::F32; 2],
+        params: &params,
+        resource: &|_| None,
+        vars: &variables,
+    };
+    let image = (definition.cook)(&context).unwrap().remove(0);
+    for (j, &(_, _, negative_first)) in markers.iter().enumerate() {
+        let expected = if negative_first { f32::EPSILON * 0.25 } else { 0.0 };
+        assert_eq!(image.get_gray(16 + 2 * j as i64, 24, false), expected, "seed {seed}, marker {j}");
+    }
+}
+
+#[test]
+fn full_pairs_defer_individual_copies_after_two_batches() {
     // Each pair of numbered stamps overlaps at one pixel. The final bit is set when the negative stamp draws first.
     let pair58 = [(322546, 46225, true), (322547, 1168, true), (322548, 2154, true), (322559, 818, true), (5359, 322551, false), (10731, 11628, false)];
     let pair60 = [
@@ -228,24 +250,47 @@ fn full_pairs_defer_individual_copies_after_two_batches() {
         (penultimate_prefix, 220472, 1, penultimate_prefix_markers.as_slice()),
         (combined_prefixes, 220525, 1, combined_prefixes_markers.as_slice()),
     ] {
-        let variables = BTreeMap::from([("$tiling".into(), Value::Int(axes))]);
-        let inputs = [None, Some(stamp_field(&group_counts, markers))];
-        let context = CookContext {
-            w: 128,
-            h: 128,
-            seed,
-            format: OutputFormat::F32,
-            tile: true,
-            inputs: &inputs,
-            input_formats: &[OutputFormat::F32; 2],
-            params: &params,
-            resource: &|_| None,
-            vars: &variables,
-        };
-        let image = (definition.cook)(&context).unwrap().remove(0);
-        for (j, &(_, _, negative_first)) in markers.iter().enumerate() {
-            let expected = if negative_first { f32::EPSILON * 0.25 } else { 0.0 };
-            assert_eq!(image.get_gray(16 + 2 * j as i64, 24, false), expected, "seed {seed}, marker {j}");
-        }
+        check_batch_markers(&group_counts, seed, axes, markers);
     }
+}
+
+#[test]
+fn seven_batches_can_end_in_the_preceding_quadrant() {
+    for (first, seed, markers) in [
+        (8, 225641, [(80617, 251488, false), (80618, 313557, false), (80619, 2103, true), (80620, 208828, false), (80639, 321776, false), (80761, 2703, true)]),
+        (
+            24,
+            225664,
+            [(166633, 271610, false), (166634, 336460, false), (166635, 127058, true), (166636, 321100, false), (166655, 3532, true), (166777, 3002, true)],
+        ),
+        (
+            40,
+            225687,
+            [(252649, 290337, false), (252650, 74284, true), (252651, 214430, true), (252652, 2247, true), (252671, 87708, true), (252793, 343869, false)],
+        ),
+    ] {
+        let mut group_counts = [32; 64];
+        group_counts[first..first + 7].fill(87);
+        check_batch_markers(&group_counts, seed, 1, &markers);
+    }
+}
+
+#[test]
+fn deferred_copies_can_fill_the_receiving_quadrant() {
+    let mut group_counts = [32; 64];
+    group_counts[32] = 116;
+    group_counts[54] = 90;
+    group_counts[55] = 80;
+    let markers = [
+        (301065, 265134, true),
+        (301220, 181946, true),
+        (177441, 189607, false),
+        (182783, 207671, false),
+        (182817, 319146, false),
+        (185471, 208185, false),
+        (209663, 185762, true),
+        (306431, 308842, false),
+        (306465, 185374, true),
+    ];
+    check_batch_markers(&group_counts, 225301, 1, &markers);
 }

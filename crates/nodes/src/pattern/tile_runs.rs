@@ -118,6 +118,9 @@ impl TileCopies {
             // batch in the receiving subtree changes the order of the remaining draws.
             let deferred = self.group_copies(group..group + 2)?.checked_sub(2 * COPIES_PER_BATCH)?;
             if self.group_copies(head..head + 1)?.checked_add(deferred)? >= COPIES_PER_BATCH {
+                if group == 54 && !full_prefix {
+                    return Some(Cow::Borrowed(paired_batches::FULL_RECEIVING_QUADRANT));
+                }
                 return fallback();
             }
         }
@@ -176,15 +179,21 @@ impl TileCopies {
             return self.subtree_ends.partition_point(|&end| end < cut) + 1 == subtree;
         }
         let group = parents / DEPTH_THREE_PARENTS;
-        if self.parents_per_subtree == DEPTH_FOUR_PARENTS
-            && self.axes == [true, false]
-            && matches!(group, 51 | 55 | 59 | 63)
-            && parents % DEPTH_THREE_PARENTS < DEPTH_FOUR_PARENTS
-            && self.full_pairs & (1 << ((group - 49) / 2)) == 0
-        {
-            // In these four short pairs the prefix can finish one subtree earlier.
-            // Other crossings and pairs with two full batches can reorder later draws.
-            return self.subtree_ends.get(subtree - 2).zip(self.subtree_ends.get(subtree)).is_some_and(|(&lower, &upper)| lower < cut && cut < upper);
+        if self.parents_per_subtree == DEPTH_FOUR_PARENTS && self.axes == [true, false] && parents % DEPTH_THREE_PARENTS < DEPTH_FOUR_PARENTS {
+            let previous = match group {
+                // When the seventh batch ends early, the remaining copies join the
+                // following quadrant. Filling that batch changes the later draw order.
+                15 | 31 | 47 => {
+                    let group_end = subtree + DEPTH_THREE_PARENTS / DEPTH_FOUR_PARENTS - 1;
+                    self.subtree_ends.get(group_end).and_then(|end| end.checked_sub(cut)).is_some_and(|remaining| remaining < COPIES_PER_BATCH)
+                }
+                // These four short pairs can also end one subtree early.
+                51 | 55 | 59 | 63 => self.full_pairs & (1 << ((group - 49) / 2)) == 0,
+                _ => false,
+            };
+            if previous {
+                return self.subtree_ends.get(subtree - 2).zip(self.subtree_ends.get(subtree)).is_some_and(|(&lower, &upper)| lower < cut && cut < upper);
+            }
         }
         self.subtree_ends.partition_point(|&end| end <= cut) == subtree
             && (self.parents_per_subtree != DEPTH_FOUR_PARENTS
