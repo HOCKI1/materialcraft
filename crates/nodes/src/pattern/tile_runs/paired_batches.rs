@@ -1,8 +1,9 @@
-use super::{COPIES_PER_BATCH, DEPTH_FOUR_PARENTS, DEPTH_THREE_PARENTS};
+use super::DEPTH_THREE_PARENTS;
 
 #[derive(Clone, Copy)]
 pub(super) enum PairedBatches {
     ThirdFromEnd,
+    Penultimate,
     Final,
 }
 
@@ -10,6 +11,7 @@ impl PairedBatches {
     pub(super) fn ending_at(parents: usize) -> Option<Self> {
         match parents / DEPTH_THREE_PARENTS {
             60 => Some(Self::ThirdFromEnd),
+            62 => Some(Self::Penultimate),
             64 => Some(Self::Final),
             _ => None,
         }
@@ -18,29 +20,9 @@ impl PairedBatches {
     pub(super) fn layout(self) -> &'static [(usize, usize)] {
         match self {
             Self::ThirdFromEnd => THIRD_PAIR_FROM_END,
+            Self::Penultimate => PENULTIMATE_PAIR,
             Self::Final => FINAL_PAIR,
         }
-    }
-
-    // A repeated endpoint separates a filled prefix from its later continuation.
-    // The last pair can also leave enough copies to fill a batch inside group 48.
-    pub(super) fn prefix_end(self, parents: usize, subtree_ends: &[u32]) -> Option<u32> {
-        let end_of_group = |completed: usize| subtree_ends.get(completed * (DEPTH_THREE_PARENTS / DEPTH_FOUR_PARENTS) - 1).copied();
-        let groups = parents / DEPTH_THREE_PARENTS;
-        let cut = match (self, groups) {
-            (Self::ThirdFromEnd, 60) | (Self::Final, 64) => end_of_group(groups - 2)?.checked_add(2 * COPIES_PER_BATCH)?,
-            (Self::Final, 49) => {
-                let final_pair = end_of_group(64)?.checked_sub(end_of_group(62)?)?;
-                let continuation = final_pair.checked_sub(2 * COPIES_PER_BATCH)?;
-                end_of_group(48)?.checked_add(COPIES_PER_BATCH.checked_sub(continuation)?)?
-            }
-            _ => return None,
-        };
-        // A prefix ending in a different depth-four subtree can change the remaining order.
-        let subtree = parents / DEPTH_FOUR_PARENTS;
-        let lower = *subtree_ends.get(subtree.checked_sub(2)?)?;
-        let upper = *subtree_ends.get(subtree.checked_sub(1)?)?;
-        (lower < cut && cut <= upper).then_some(cut)
     }
 }
 
@@ -99,6 +81,57 @@ const THIRD_PAIR_FROM_END: &[(usize, usize)] = &[
     (15687, 18),
     (15808, 52),
     (15872, 36),
+    (16129, 0),
+    (16384, 22),
+];
+
+const PENULTIMATE_PAIR: &[(usize, usize)] = &[
+    (64, 15),
+    (192, 36),
+    (1927, 16),
+    (2048, 37),
+    (3844, 6),
+    (4096, 17),
+    (4160, 9),
+    (4288, 33),
+    (4288, 40),
+    (6022, 10),
+    (6144, 28),
+    (7942, 2),
+    (8192, 19),
+    (8256, 12),
+    (8384, 29),
+    (10118, 13),
+    (10240, 35),
+    (12034, 4),
+    (12288, 25),
+    (12352, 23),
+    (12359, 30),
+    (12416, 34),
+    (12480, 45),
+    (12673, 24),
+    (12800, 41),
+    (13058, 1),
+    (13312, 8),
+    (13376, 20),
+    (13440, 38),
+    (13504, 47),
+    (13703, 21),
+    (13824, 44),
+    (14081, 3),
+    (14336, 11),
+    (14400, 26),
+    (14464, 39),
+    (14528, 42),
+    (14724, 27),
+    (14848, 43),
+    (15105, 5),
+    (15360, 14),
+    (15617, 7),
+    (15680, 31),
+    (15684, 18),
+    (15808, 46),
+    (15872, 32),
     (16129, 0),
     (16384, 22),
 ];

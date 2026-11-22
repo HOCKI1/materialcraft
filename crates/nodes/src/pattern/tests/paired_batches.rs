@@ -51,10 +51,14 @@ fn stamp_field(pair: u32, markers: &[(u32, u32, bool)]) -> Image {
         }
         let subtree = draw / 1344;
         let group = subtree / 4;
-        let extras = match group {
-            g if g == pair => 75,
-            g if g == pair + 1 => 106,
-            0..48 => 27 + (30 * group + 64) % 67,
+        let extras = match (pair, group) {
+            (60, 60) => 81,
+            (60, 61) => 100,
+            (60, 0..48) => 40 + (26 * group + 63) % 83,
+            (60, _) => 45 + (9 * group + 8) % 37,
+            (_, g) if g == pair => 75,
+            (_, g) if g == pair + 1 => 106,
+            (_, 0..48) => 27 + (30 * group + 64) % 67,
             _ => 45 + (15 * group + 11) % 37,
         };
         let quota = extras / 4 + u32::from((subtree % 4 + group) % 4 < extras % 4);
@@ -97,6 +101,17 @@ fn a_full_pair_defers_individual_copies_after_two_batches() {
     let variables = BTreeMap::from([("$tiling".into(), Value::Int(1))]);
     // Each pair of numbered stamps overlaps at one pixel. The final bit is set when the negative stamp draws first.
     let pair58 = [(322546, 46225, true), (322547, 1168, true), (322548, 2154, true), (322559, 818, true), (5359, 322551, false), (10731, 11628, false)];
+    let pair60 = [
+        (90032, 332682, false),
+        (90033, 281378, false),
+        (90034, 302451, false),
+        (90047, 303240, false),
+        (90046, 303080, false),
+        (90045, 303435, false),
+        (90044, 302501, false),
+        (333311, 212967, true),
+        (333298, 89032, true),
+    ];
     let pair62 = [
         (344050, 272241, true),
         (344051, 258965, true),
@@ -107,12 +122,12 @@ fn a_full_pair_defers_individual_copies_after_two_batches() {
         (263407, 257852, true),
         (268779, 333188, false),
     ];
-    for (group, markers) in [(58, pair58.as_slice()), (62, pair62.as_slice())] {
+    for (group, seed, markers) in [(58, 653180, pair58.as_slice()), (60, 1763066, pair60.as_slice()), (62, 653180, pair62.as_slice())] {
         let inputs = [None, Some(stamp_field(group, markers))];
         let context = CookContext {
             w: 128,
             h: 128,
-            seed: 653180,
+            seed,
             format: OutputFormat::F32,
             tile: true,
             inputs: &inputs,

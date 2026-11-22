@@ -104,18 +104,27 @@ impl TileCopies {
         self.paired_batches.map_or(ordinary, PairedBatches::layout)
     }
 
+    fn split_fits_subtree(&self, parents: usize, cut: u32) -> bool {
+        let subtree = parents / self.parents_per_subtree;
+        if parents.is_multiple_of(self.parents_per_subtree) {
+            // The first part of a repeated endpoint may fill its final subtree exactly.
+            return self.subtree_ends.partition_point(|&end| end < cut) + 1 == subtree;
+        }
+        self.subtree_ends.partition_point(|&end| end <= cut) == subtree
+            && (self.parents_per_subtree != DEPTH_FOUR_PARENTS
+                || subtree.checked_sub(1).and_then(|i| self.subtree_ends.get(i)).is_some_and(|&lower| cut > lower))
+    }
+
     pub(super) fn boundaries(&self, layout: &[(usize, usize)], draws_per_parent: usize) -> Option<Vec<DrawPosition>> {
         let mut cuts = vec![None; layout.len() + 1];
         let mut order = vec![0; layout.len()];
         cuts[0] = Some(0_u32);
         for (run, &(parents, rank)) in layout.iter().enumerate() {
             *order.get_mut(rank)? = run;
-            if parents % self.parents_per_subtree == 0 {
-                cuts[run + 1] = if layout.get(run + 1).is_some_and(|&(next, _)| next == parents) {
-                    Some(self.paired_batches?.prefix_end(parents, &self.subtree_ends)?)
-                } else {
-                    self.subtree_ends.get(parents / self.parents_per_subtree - 1).copied()
-                };
+            // A repeated endpoint leaves the first part for the active batch to size.
+            let split = layout.get(run + 1).is_some_and(|&(next, _)| next == parents);
+            if !split && parents.is_multiple_of(self.parents_per_subtree) {
+                cuts[run + 1] = self.subtree_ends.get((parents / self.parents_per_subtree).checked_sub(1)?).copied();
             }
         }
 
@@ -133,11 +142,7 @@ impl TileCopies {
                     let capacity = length.div_ceil(COPIES_PER_BATCH).checked_mul(COPIES_PER_BATCH)?;
                     let end = start.checked_add(capacity - drawn % COPIES_PER_BATCH)?;
                     // Crossing the measured subtree interval can change the order of the later runs.
-                    let subtree = self.subtree_ends.partition_point(|boundary| *boundary <= end);
-                    if subtree != parents / self.parents_per_subtree {
-                        return None;
-                    }
-                    if self.parents_per_subtree == DEPTH_FOUR_PARENTS && self.subtree_ends.get(subtree.checked_sub(1)?) == Some(&end) {
+                    if !self.split_fits_subtree(parents, end) {
                         return None;
                     }
                     cuts[run + 1] = Some(end);
