@@ -628,18 +628,27 @@ fn depth_eight_parent_order_counts_children_that_cross_the_tile_edge() {
 #[test]
 fn three_active_quadrant_levels_split_on_physical_tile_copies() {
     let tiny = f32::EPSILON * 0.25;
-    for (tiling, negative, positive, leaf_frame, first, second) in [
-        (0, 12, 0, [0.0, 0.5], 64..128, 512..1024),
-        (0, 9, 11, [-0.5 / 512.0, 0.5], 796..932, 0..0),
-        (1, 9, 11, [-0.5 / 512.0, 0.5], 784..919, 0..0),
-        (2, 9, 11, [0.5, -0.5 / 512.0], 784..922, 0..0),
+    let interior = [0.25, 0.5];
+    let horizontal_seam = [[-0.5 / 256.0, 0.5], [-0.5 / 512.0, 0.5]];
+    for (tiling, negative, positive, frames, first_group_frames, first, second) in [
+        (0, 12, 0, [[0.0, 0.5]; 2], None, 64..128, 512..1024),
+        (0, 9, 11, [[0.0, 0.5], horizontal_seam[1]], None, 796..932, 0..0),
+        (1, 9, 11, [[0.0, 0.5], horizontal_seam[1]], None, 784..919, 0..0),
+        (2, 9, 11, [[0.0, 0.5], [0.5, -0.5 / 512.0]], None, 784..922, 0..0),
+        // Two levels cross the seam in the first grandchild, filling a batch in an early subtree.
+        (1, 12, 0, [interior; 2], Some(horizontal_seam), 64..128, 512..1024),
     ] {
         let (mut graph, groups) = seven_level_tree();
-        let middle = graph.add(PatternNodeKind::Quadrant).unwrap();
-        let leaf = graph.add(PatternNodeKind::Quadrant).unwrap();
-        graph.nodes[(middle - 1) as usize].parameters = additive_square(0.25, [0.0; 2], [0.0, 0.5]);
-        graph.nodes[(leaf - 1) as usize].parameters = additive_square(0.25, [0.0; 2], leaf_frame);
-        graph.nodes[(middle - 1) as usize].children.fill(Some(leaf));
+        let mut add_descendants = |[child_frame, leaf_frame]: [[f32; 2]; 2]| {
+            let middle = graph.add(PatternNodeKind::Quadrant).unwrap();
+            let leaf = graph.add(PatternNodeKind::Quadrant).unwrap();
+            graph.nodes[(middle - 1) as usize].parameters = additive_square(0.25, [0.0; 2], child_frame);
+            graph.nodes[(leaf - 1) as usize].parameters = additive_square(0.25, [0.0; 2], leaf_frame);
+            graph.nodes[(middle - 1) as usize].children.fill(Some(leaf));
+            middle
+        };
+        let middle = add_descendants(frames);
+        let first_middle = first_group_frames.map_or(middle, add_descendants);
         for (group, QuadrantProbeGroup { last_three: [_, _, parent], offset }) in groups.into_iter().enumerate() {
             let (gain, frame) = if group == negative {
                 (-1.0, [0.0; 2])
@@ -649,7 +658,7 @@ fn three_active_quadrant_levels_split_on_physical_tile_copies() {
                 (0.25, [0.5, 0.0])
             };
             graph.nodes[parent].parameters = additive_square(gain, offset, frame);
-            graph.nodes[parent].children.fill(Some(middle));
+            graph.nodes[parent].children.fill(Some(if group == 0 { first_middle } else { middle }));
         }
         let variables = BTreeMap::from([("$tiling".into(), Value::Int(tiling))]);
         let image = cook_in_regions(graph, &variables, 188119, [128; 2], [[0.0, 1.0, 0.0, 1.0]; 2], 1.0).unwrap().remove(0);
