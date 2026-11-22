@@ -309,6 +309,31 @@ All 87 Spots 1 v2 settings render, with 831,506/842,752 exact pixels on one proc
 
 MaterialCraft saves reopen in both applications. For Spots 1 v2, the cross-application saved maxima are zero in U8 and F16, one code in U16 and 1.19209290e−7 in F32. For Spots 3 they are zero in U8, one code in U16 and 1.06990337e−5 in F32. The six completed saved Spots 3 v2 comparisons are exact in U8 and U16. All three roots remain in progress.
 
+### Late and underfilled draw batches in Moisture Noise
+
+In the [sparse quadrant tree](#sparse-quadrant-parents-and-leaves-in-moisture-noise), pair groups 58–59 with 0–7, 50–51 with 16–23, and 54–55 with 32–39. Each pair submits a prefix of 5,460 nonzero tile copies. A split inside the seventh group leaves only its remainder and the final group. The other two pairs can then submit their next whole group earlier. A short block of groups 8–15 ordinarily finishes later. When all three paired prefixes split in their fifth group, copies from group 38 fill the short block immediately after the prefixes. The unused part of group 38 follows later. Underfilled leading blocks at groups 24 and 40 remain open.
+
+For a compact reproduction, draw all 16 depth-two parents and 64 depth-three groups. Within each depth-four subtree give the first q cells of its 16² depth-eight grid luminosity .25 and the rest zero. Set q for groups 0–7, 16–23, 32–39 and 8–15 respectively to (145,95,66,96), (66,145,95,85), or (145,145,145,85). Use q = 96 elsewhere. Pair depth-seven squares on white, one at −1 and one at 2⁻²⁵, and swap the gains. Compare group 5 with 38, 6 with 4, 38 with 6, 7 with 37, and 38 with 20 at the starts and interiors of the groups. All 170 signed readouts and all 98,304 pixels in their six 128² F32 images match. For the parent regression select parent 0 and groups 8, 11, 27 and 38. Set q = 96 everywhere except groups 0–7 at 66, then repeat with only groups 8–15 at 85. The previous renderer gave 2⁻²⁵ at (0,0) in the group 11 late-split probe. The reference and corrected renderer give zero. Both gains across the 16 full images match 262,144/262,144.
+
+For the broader sweep vary each paired split independently between its fifth, sixth and seventh group. Nineteen occupancy fields exercise every combination containing a seventh-group split. Twelve more fields make groups 8–15 contain 5,460 copies or fall short by 1, 37 or 53. For the 19 fields use PCG64 seed 199511 and enumerate zero-based cut triples from (4,4,4) to (6,6,6) lexicographically, skipping triples without a 6. Draw 256 integer quotas uniformly from 87 through 98. Keep each of 16 parents when a uniform draw exceeds .15, then each of 64 groups when a new draw exceeds .25. For the three eight-group regions in order 0, 16, 32, replace their 32 quotas with base 145, 98 or 67 for a cut of 4, 5 or 6, adding independent integer offsets −6 through 6. Accept draws that land in the requested groups. For the 12 short fields use PCG64 seed 200753 and cut triples 555, 656, 565, 456, 666, 544, 645, 444. Use deficits 1, 37 and 0 for the first two triples and 53 elsewhere. Start with quotas 90 through 105, parent and group thresholds .10 and .13, and regional bases 143, 95 and 66 with offsets −5 through 5. Divide the required active leaf count for groups 8–15 equally among their 32 quotas, giving the remainder to distinct uniformly sampled positions. Select rounds 0, 5, 17, 28, 41 and 62 from the [64-group pair comparison](#sparse-quadrant-parents-and-leaves-in-moisture-noise), using both gains. The 276 full F32 renders match 4,521,984/4,521,984, maximum zero. The earlier 150 fields also match 2,457,600/2,457,600. Four independent marker orderings each passed all 32,766 adjacent signed comparisons. Saving and reopening seven new settings and six existing controls reproduced both applications’ originals and matched 212,992/212,992 across applications.
+
+Repeat both generators at the [five isolated settings](#two-independent-pattern-sources-in-moisture-noise), with their original U16 precision, original tiling in F32, and tiling disabled in F32. Thirteen of the 20 F32 renders now match every pixel, up from three.
+
+| Isolated output | Destination exact / total · max | Source exact / total · max |
+|---|---:|---:|
+| U16, original tiling | 26,624/26,624 · 0 | 26,624/26,624 · 0 |
+| F32, original tiling | 26,593/26,624 · 5.96046448e−8 | 26,624/26,624 · 0 |
+| F32, tiling off | 26,455/26,624 · 1.1920929e−7 | 26,390/26,624 · 7.4505806e−9 |
+
+Repeat the 110 whole-root settings and 18 saved selections listed in the [earlier comparison](#sparse-quadrant-parents-and-leaves-in-moisture-noise). The one-processor result gained 143 exact pixels, including all 110,592 pixels in the 16 additional settings. The eight-processor comparison lost 47 exact pixels. Each application reproduced all 487,424 of its own pixels after reopening the saved files. Across applications the reopened comparison matched 487,396/487,424, with a maximum F32 error of 7.80522823e-05.
+
+| Comparison | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|
+| Whole root, one processor | 760,064/760,064 · 0 | 1,413,827/1,413,888 · 6 | 760,052/760,064 · 0.00048828125 | 1,338,317/1,338,368 · 7.80820847e−5 |
+| Whole root, eight processors | 760,060/760,064 · 1 | 1,413,659/1,413,888 · 6 | 760,034/760,064 · 0.00048828125 | 1,338,156/1,338,368 · 7.83205032e−5 |
+
+The shared two-child draw path retained 1,792,256/1,792,256 pixels in the 97 one-processor Clouds 2 settings and 1,792,196/1,792,256 on eight. The median process CPU time for the [three release benchmark settings](#sparse-quadrant-parents-and-leaves-in-moisture-noise) was 12.227 seconds before and 12.133 after, with four runs per version on one processor. All 436 node and evaluator release tests passed, together with formatting, strict workspace Clippy, dependency layers and WebAssembly.
+
 ## 2026-11-21 root comparisons
 
 ### Connected quadrant depth and amplified spot patterns
