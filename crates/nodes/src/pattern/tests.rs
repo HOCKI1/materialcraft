@@ -473,7 +473,9 @@ fn six_quadrant_levels_composite_overlapping_subtrees_in_reverse_slot_order() {
 #[test]
 fn seven_quadrant_levels_order_leaf_runs_before_discarding_missed_stamps() {
     let tiny = f32::EPSILON * 0.25;
-    for (negative, positive, miss_other_stamps, expected) in [(12, 0, false, tiny), (12, 0, true, tiny), (0, 14, true, 0.0)] {
+    for (negative, positive, miss_other_stamps, missing_slot, expected) in
+        [(12, 0, false, None, tiny), (12, 0, true, None, tiny), (0, 14, true, None, 0.0), (12, 0, false, Some(2), tiny), (0, 14, true, Some(2), 0.0)]
+    {
         let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
         for slot in 0..4 {
             let parent = graph.add(PatternNodeKind::Quadrant).unwrap();
@@ -482,9 +484,14 @@ fn seven_quadrant_levels_order_leaf_runs_before_discarding_missed_stamps() {
                 let group = slot * 4 + child_slot;
                 let mut leaf = graph.add(PatternNodeKind::Quadrant).unwrap();
                 graph.nodes[(parent - 1) as usize].children[child_slot] = Some(leaf);
-                for _ in 2..7 {
+                for depth in 2..7 {
                     let child = graph.add(PatternNodeKind::Quadrant).unwrap();
                     graph.nodes[(leaf - 1) as usize].children.fill(Some(child));
+                    if depth == 6
+                        && let Some(slot) = missing_slot
+                    {
+                        graph.nodes[(leaf - 1) as usize].children[slot] = None;
+                    }
                     leaf = child;
                 }
                 let offset = [(slot & 1) * 2 + (child_slot & 1), (slot >> 1) * 2 + (child_slot >> 1)].map(|quarter| -0.25 * quarter as f32);
@@ -507,11 +514,21 @@ fn seven_quadrant_levels_order_leaf_runs_before_discarding_missed_stamps() {
                 ]);
             }
         }
-        let image = cook_in_regions(graph, &BTreeMap::new(), 136404, [128; 2], [[0.0, 1.0, 0.0, 1.0]; 2], 1.0).unwrap().remove(0);
-        for y in 0..128 {
-            for x in 0..128 {
-                let value = if x < 32 && y < 32 { expected } else { 1.0 };
-                assert_eq!(image.get_gray(x, y, false).to_bits(), value.to_bits(), "groups {negative} and {positive} at ({x},{y})");
+        for detached_dot in [false, true] {
+            if detached_dot {
+                graph.add(PatternNodeKind::Dot).unwrap();
+            }
+            let image = cook_in_regions(graph.clone(), &BTreeMap::new(), 136404, [128; 2], [[0.0, 1.0, 0.0, 1.0]; 2], 1.0).unwrap().remove(0);
+            for y in 0..128 {
+                for x in 0..128 {
+                    let slot = ((x & 1) + 2 * (y & 1)) as usize;
+                    let value = if x < 32 && y < 32 && missing_slot != Some(slot) { expected } else { 1.0 };
+                    assert_eq!(
+                        image.get_gray(x, y, false).to_bits(),
+                        value.to_bits(),
+                        "groups {negative} and {positive} at ({x},{y}), missing {missing_slot:?}, detached {detached_dot}"
+                    );
+                }
             }
         }
     }

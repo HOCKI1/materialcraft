@@ -10,9 +10,9 @@ use crate::{CookContext, CookResult};
 // up to this same limit again. Retained stamps, raster copies and pixel work stay bounded.
 const MAX_VISITS: usize = 1_048_576;
 
-// A complete seven-level tree has sixteen grandchildren with 4^5 leaves each.
-// Pairwise overlapping squares establish this compositing order in single-worker renders.
-const LEAVES_PER_RUN: usize = 1024;
+// Each grandchild of a regular seven-level tree contains 4^4 terminal quadrants.
+// Overlapping squares establish the same run order with three or four leaves per terminal quadrant.
+const TERMINAL_QUADRANTS_PER_RUN: usize = 256;
 const SEVEN_LEVEL_RUN_ORDER: [usize; 16] = [12, 13, 8, 9, 14, 0, 1, 15, 2, 11, 6, 7, 10, 3, 4, 5];
 
 pub(crate) fn cook(context: &CookContext) -> CookResult {
@@ -68,7 +68,8 @@ pub fn cook_with_base_level_inputs(context: &CookContext, base_level_only: &[boo
     let mut remaining = MAX_VISITS;
     let mut discard_allowance = MAX_VISITS;
     let grayscale = !context.b("color_mode");
-    let mut leaf_count = (grayscale && opacity_depth == 7 && graph.nodes.iter().all(|node| node.kind == PatternNodeKind::Quadrant)).then_some(0_usize);
+    let mut leaf_count = (grayscale && opacity_depth == 7).then_some(0_usize);
+    let mut leaves_per_run = 0;
     let mut run_starts = [0; SEVEN_LEVEL_RUN_ORDER.len() + 1];
     // A grayscale opacity expression can produce an infinity or NaN which participates in the blend.
     let opacity = context.value("opacity").and_then(Value::as_f32).unwrap_or(0.0);
@@ -97,6 +98,19 @@ pub fn cook_with_base_level_inputs(context: &CookContext, base_level_only: &[boo
             pending.push((next, repeats_left - 1));
         }
         let &(node, literal_geometry) = nodes.get(&visit.node).ok_or("missing pattern node")?;
+        if leaf_count.is_some() {
+            if node.kind != PatternNodeKind::Quadrant {
+                leaf_count = None;
+            } else if visit.depth == 6 {
+                let child_count = node.children.iter().flatten().count();
+                let length = TERMINAL_QUADRANTS_PER_RUN * child_count;
+                if (3..=4).contains(&child_count) && (leaves_per_run == 0 || leaves_per_run == length) {
+                    leaves_per_run = length;
+                } else {
+                    leaf_count = None;
+                }
+            }
+        }
         if node.kind == PatternNodeKind::Dot {
             if let Some(Some(child)) = node.children.first() {
                 visit.node = *child;
@@ -224,10 +238,10 @@ pub fn cook_with_base_level_inputs(context: &CookContext, base_level_only: &[boo
                         premultiplied: field("imagepremul").and_then(Value::as_bool).unwrap_or(false),
                     };
                     if let Some(count) = leaf_count.as_mut() {
-                        if stamp.depth == 7 && (1..256).contains(&stamp.pattern) && stamp.blend == 0 {
+                        if stamp.depth == 7 && leaves_per_run != 0 && (1..256).contains(&stamp.pattern) && stamp.blend == 0 {
                             // A leaf that misses the sample grid still occupies its place in the tree.
-                            if count.is_multiple_of(LEAVES_PER_RUN)
-                                && let Some(start) = run_starts.get_mut(*count / LEAVES_PER_RUN)
+                            if count.is_multiple_of(leaves_per_run)
+                                && let Some(start) = run_starts.get_mut(*count / leaves_per_run)
                             {
                                 *start = stamps.len();
                             }
@@ -319,7 +333,7 @@ pub fn cook_with_base_level_inputs(context: &CookContext, base_level_only: &[boo
     }
 
     let mut groups = [&[][..]; SEVEN_LEVEL_RUN_ORDER.len()];
-    if leaf_count == Some(LEAVES_PER_RUN * groups.len()) {
+    if leaves_per_run != 0 && leaf_count == Some(leaves_per_run * groups.len()) {
         run_starts[groups.len()] = stamps.len();
         for (group, run) in groups.iter_mut().zip(SEVEN_LEVEL_RUN_ORDER) {
             *group = stamps.get(run_starts[run]..run_starts[run + 1]).ok_or("invalid pattern draw range")?;

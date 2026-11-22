@@ -2098,6 +2098,24 @@ Each application reproduced every pixel of its own original output on these reop
 
 In rounds 0, 19 and 41, moving the parent frames right and down by half a texel changed 5, 10 and 10 of the 8,192 upper-half odd-coordinate samples. The sampled pixels distinguish which parent draws first. With tiling disabled, all 24,576 samples reproduced the original order. Reducing the shifted squares to size (.375,.375) also reproduced all 24,576. A fixed order derived on the unshifted squares left 1,592 differences among 65,536 F32 texels in the 256-square Clouds 2 generator at seed 0 and defaults. This leaves the mixed-depth accumulation order open.
 
+### Three terminal children in seven-level quadrant trees
+
+Dirt 3 draws 12,288 additive leaves at depth seven. Each depth-six quadrant has children in slots 0, 1 and 3. The previous renderer ordered the complete four-child case and visited the three-child case in sequence. On a white F32 background, repeat the [seven-level square experiment](#compositing-complete-seven-level-additive-quadrant-trees), disconnecting slot 2 from every depth-six quadrant. The 120 pair comparisons at 128² improved from 1,910,016/1,966,080 exact pixels to **1,966,080/1,966,080**, maximum F32 error from 2⁻²⁵ to zero. Separately omitting each of slots 0, 1, 2 and 3 produced the same ordering in all 92,160 overlapping samples per omission. An unconnected routing dot on the complete four-child graph also retained that order. Across its 120 renders MaterialCraft improved from 1,891,328/1,966,080 to **1,966,080/1,966,080**, maximum error zero.
+
+An independent comparison labelled all 64 subtrees reached after the third subdivision. Pair them in 63 round-robin rounds with the same white background, −1 and 2⁻²⁵ square opacities and zero roughness. Translate each pair into one of 32 upper-half tiles of the 8 × 8 grid. Across all 2,016 comparisons the four consecutive subtrees of each grandchild stayed together. The sixteen groups of 768 leaves followed the order measured in the four-child case. MaterialCraft uses the connected terminal child count to find group boundaries before dropping stamps that miss the sample grid. It checks the node kinds that the renderer actually visits.
+
+For the Dirt 3 generator itself, read F32 at (width, height, seed, disorder) of (128,512,398765,.984375), (128,64,142327,.53125) and (256,128,142453,.921875). Compare the original generator directly, its output from the package saved in MaterialCraft, and a diagnostic output connected directly to that generator. The reference reproduced every generator pixel after reopening. The group order reduced the maximum F32 error from 5.96046448e-8 to zero. The comparison ran against the normal MaterialCraft renderer as well as the independently reordered contributions.
+
+| Dirt 3 capture | Renders | Earlier exact / total | Current exact / total | Current maximum by storage |
+|---|---:|---:|---:|---|
+| Generator, single processor | 3 | 105,609/106,496 | 106,496/106,496 | F32 0 |
+| Whole root, single processor | 68 | 2,316,511/2,316,544 | 2,316,544/2,316,544 | U8 0, U16 0, F16 0, F32 0 |
+| Saved whole root, single processor | 12 | 461,041/461,056 | 461,056/461,056 | U8 0, U16 0, F16 0, F32 0 |
+| Whole root, eight processors | 68 | 2,316,521/2,316,544 | 2,316,526/2,316,544 | U8 0, U16 1, F16 0.00048828125, F32 1.52587891e-05 |
+| Second capture, eight processors | 12 | 461,048/461,056 | 461,047/461,056 | U8 0, U16 1, F16 0, F32 0 |
+
+Use the [68 dirt settings and twelve reopens](#single-processor-comparisons-for-clouds-2-and-five-dirt-fields). Both applications preserved every original pixel on their own single-processor reopens. With eight processors the reference reproduced 461,056/461,056 of its own pixels on the twelve repeated settings, with maximum differences of U8 0, U16 0, F16 0, F32 0. Dirt 3 remains in progress for this configuration. The regression exercises three- and four-child trees, culled neutral squares and a disconnected dot. All 426 node and evaluator release tests passed, along with formatting, strict workspace Clippy, dependency layers and WebAssembly.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color
