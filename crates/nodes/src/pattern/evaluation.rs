@@ -132,6 +132,7 @@ pub fn cook_with_base_level_inputs(context: &CookContext, base_level_only: &[boo
     let mut discard_allowance = MAX_VISITS;
     let grayscale = !context.b("color_mode");
     let mut repeated_roots = None;
+    let mut repeated_six_level: Option<super::repeated_six_level::RepeatedSixLevelRuns> = None;
     let mut terminal_quadrants = (grayscale && opacity_depth == 8 && !context.b("cull_outside")).then(super::terminal_quadrants::TerminalQuadrants::default);
     let mut seven_level_runs = (grayscale && opacity_depth == 7).then(SevenLevelRuns::default);
     let mut sparse_runs = if grayscale && opacity_depth == 8 { super::tile_runs::SparseQuadrantRuns::new(context) } else { None };
@@ -324,6 +325,12 @@ pub fn cook_with_base_level_inputs(context: &CookContext, base_level_only: &[boo
                     if mixed_depth_runs.as_mut().is_some_and(|runs| !runs.draw(&stamp, opacities.as_deref().unwrap_or_default(), !missed)) {
                         mixed_depth_runs = None;
                     }
+                    if repeated_six_level
+                        .as_mut()
+                        .is_some_and(|runs| runs.record(&stamp, opacities.as_deref().unwrap_or_default(), grid.as_ref(), !missed).is_none())
+                    {
+                        repeated_six_level = None;
+                    }
                     if terminal_quadrants.as_mut().is_some_and(|runs| !runs.draw(&stamp, opacities.as_deref().unwrap_or_default(), grid.as_ref(), !missed)) {
                         terminal_quadrants = None;
                     }
@@ -369,6 +376,9 @@ pub fn cook_with_base_level_inputs(context: &CookContext, base_level_only: &[boo
                     && !graph.nodes.iter().any(|other| other.id != node.id && other.kind == PatternNodeKind::Iterate)
                 {
                     repeated_roots = Some(0_usize);
+                    if opacity_depth == 6 && count > 1 && !context.b("cull_outside") {
+                        repeated_six_level = Some(super::repeated_six_level::RepeatedSixLevelRuns::default());
+                    }
                 }
                 if let Some(Some(child)) = node.children.first() {
                     // The initial branch keeps the enclosing iteration's number and seed.
@@ -448,6 +458,7 @@ pub fn cook_with_base_level_inputs(context: &CookContext, base_level_only: &[boo
         .and_then(|runs| runs.finish(&stamps))
         .or_else(|| terminal_quadrants.and_then(|runs| runs.finish(&stamps, repeated_roots.unwrap_or(1))))
         .or_else(|| sparse_runs.and_then(|runs| runs.finish(&stamps)))
+        .or_else(|| repeated_six_level.and_then(|runs| runs.finish(&stamps, repeated_roots.unwrap_or_default())))
         .or_else(|| repeated_roots.and_then(|repeats| super::repeated_quadrants::runs(context, &stamps, repeats, max_depth)));
     Ok(vec![raster::render(context, mixed_groups.as_deref().unwrap_or(&groups), opacities, nonfinite_gray_opacity, base_level_only, runtime_image_selector)?])
 }

@@ -10,6 +10,7 @@ mod pattern_visit;
 mod raster;
 mod region;
 mod repeated_quadrants;
+mod repeated_six_level;
 mod shape;
 mod terminal_quadrants;
 mod tile_runs;

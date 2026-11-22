@@ -59,6 +59,86 @@ The first pass classifies all 546 roots: 166 Parity and 380 Too hard. These meas
 
 ## 2026-11-22 root comparisons
 
+### Tile-copy batches across repeated six-level quadrant trees
+
+Several six-level trees can contribute to the same pixel in a grayscale pattern. With all 1,024 depth-five parents and their four terminal children drawing, each first-level quadrant submits 1,280 stamps per tree. The four quadrants keep separate batches across repetitions. Within each tree, full batches of 5,460 physical tile copies are submitted in slot order 3, 0, 1, 2. At the end, partial batches composite in order 3, 2, 1, 0. A repeated tile can fill a batch before its other copy draws. MaterialCraft now records these boundaries before discarding stamps that miss the sample grid. The measured path covers complete trees of nonzero additive squares or analytic shape 8, with one outer repetition controller and center culling disabled. [Single-tree controls](#six-level-quadrant-draw-order-after-an-iteration-or-switch) · [Repeated-tree regression](../crates/nodes/src/pattern/tests/repeated_quadrants.rs)
+
+Build an original white F32 graph with roughness zero. Repeat a complete quadtree, with a square on every depth-five parent and depth-six leaf. Place neutral stamps at (.875,.90625) with gain .25. Center two marked squares on the same readout texel, each .875 readout pixels wide and high. Draw −1 first and the texel retains 2⁻²⁵. Draw 2⁻²⁵ first and the addition rounds back to white before the subtraction leaves zero. Repeat each marked pair with the gains exchanged. Keep unrelated stamps active. The Rust regression on the earlier cook returned 2⁻²⁵ at (0,0) for two trees where the measured order gives zero.
+
+With tiling off, enumerate a tree first by child slot and then recursively in child order, drawing each parent immediately before its four leaves. Pairwise strip crossings identified contiguous runs for one, two, three, four, five, eight and nine trees. With two and four trees, overlapping point markers independently confirmed all 10,239 and 20,479 neighboring stamp pairs in those runs. Each pair was read with both gain assignments. Five trees put 5,460 copies from each quadrant into its first batch. Nine trees fill two batches per quadrant. Thirteen trees gave the predicted result in all 302 additional marker pairs, including boundaries in a third full batch.
+
+To reproduce the output comparisons, number each leaf within its first-level slot from 0 to 1,023 in recursive child order. Use two, five or nine trees. Mark leaf 0 of slot 0 in the first tree against leaf 0 of slot 3 in the second. Mark leaves 0, 1, 63, 270, 271, 272, 273, 511, 888 and 1,023 in slot 0 of the last tree against the same leaves in slot 1 of the first. Finally compare leaves 0, 275, 300 and 900 of slots 2 and 3 in the last tree. Scan the pairs in that order and take the first set that shares no stamps. For pair j put both marks at normalized position ((8 + j mod 85 + .5)/128, (12 + floor(j/85) + .5)/128), with size .875/128. Exchange the gains for the second field. Request 128², 128 × 64, 64 × 128 and 256², using seed 319463 + 17 × tree count + 31 × size index + polarity (indices start at zero). Request F32 at each size and U8, U16 and F16 at 128 × 64. Reopen every third setting in both applications, starting with the first, in size, polarity and U8/U16/F16/F32 order.
+
+| Tree count · comparison | Earlier exact / total · max | Corrected exact / total · max |
+|---|---:|---:|
+| 2 · one processor | 245,720/245,760 · 2.98023224e-08 | 245,760/245,760 · 0 |
+| 2 · eight processors | 245,720/245,760 · 2.98023224e-08 | 245,760/245,760 · 0 |
+| 2 · one-processor SBS reopen | 106,476/106,496 · 2.98023224e-08 | 106,496/106,496 · 0 |
+| 5 · one processor | 245,660/245,760 · 2.98023224e-08 | 245,760/245,760 · 0 |
+| 5 · eight processors | 245,705/245,760 · 2.98023224e-08 | 245,715/245,760 · 2.98023224e-08 |
+| 5 · one-processor SBS reopen | 106,446/106,496 · 2.98023224e-08 | 106,496/106,496 · 0 |
+| 9 · one processor | 245,710/245,760 · 2.98023224e-08 | 245,760/245,760 · 0 |
+| 9 · eight processors | 245,710/245,760 · 2.98023224e-08 | 245,760/245,760 · 0 |
+| 9 · one-processor SBS reopen | 106,471/106,496 · 2.98023224e-08 | 106,496/106,496 · 0 |
+
+The five-tree field still differs from the eight-processor reference at 45 pixels, maximum 2⁻²⁵. All 15 one-processor reopens match.
+
+For a horizontal wrapping check, use four trees and move selected neutral leaves to x = 0, preserving their y coordinate. This adds one copy for each selected leaf. With q extra copies in a tree and slot, select the leaves at indices floor(768j/q), j from 0 to q−1, in the list of the last three children of each of its 256 parents. Counts per slot below include all four trees. In the first two profiles use the same per-tree counts as the corresponding cloud source. The remaining profiles distribute extras e across the four trees as floor((e + t)/4) for t = 0…3. Verify parent order and place signed point markers on either side of batch boundaries.
+
+| Profile | Aggregate copies in slots 0, 1, 2, 3 | Parent positions matched | Neighboring marker pairs matched |
+|---|---|---:|---:|
+| Clouds 1 | 5,495, 5,517, 5,525, 5,510 | 4,096/4,096 | 209/209 |
+| Clouds 2 | 5,451, 5,518, 5,483, 5,715 | 4,096/4,096 | 198/198 |
+| Slot 0 fills | 5,462, 5,457, 5,455, 5,452 | 4,096/4,096 | 172/172 |
+| All four exactly full | 5,460, 5,460, 5,460, 5,460 | 4,096/4,096 | 165/165 |
+| All four one copy short | 5,459, 5,459, 5,459, 5,459 | 4,096/4,096 | 165/165 |
+| Slots 0 and 2 fill | 5,462, 5,455, 5,465, 5,450 | 4,096/4,096 | 177/177 |
+
+For the first two profiles the extra copies in each tree and slot are listed below. At 5,459 total copies in each slot the final order is 3, 2, 1, 0. At 5,460 in each slot the observed order is 3, 0, 1, 2.
+
+| Tree index | First cloud profile · extra copies by slot | Second cloud profile · extra copies by slot |
+|---:|---|---|
+| 0 | 0, 0, 0, 0 | 0, 0, 0, 0 |
+| 1 | 134, 91, 103, 83 | 78, 95, 122, 178 |
+| 2 | 165, 212, 210, 199 | 203, 196, 129, 246 |
+| 3 | 76, 94, 92, 108 | 50, 107, 112, 171 |
+
+Two asymmetric profiles fill selected slots in the third tree and the others in the fourth. To reproduce their per-tree extras, use (90,616,97,72), (100,622,80,94), (100,630,95,95), (121,160,102,110) for the first and (130,99,623,625), (105,90,641,620), (100,117,634,670), (83,113,43,152) for the second. Point markers confirmed 260/260 comparisons in each profile. Grouping the full batches by round irrespective of the tree that filled each one gave 80/260 in each. One strip comparison in the first profile gave inconsistent rankings across its two gain assignments. The 520 point comparisons use separate captures.
+
+A square centered on the wrapping seam can itself straddle the 5,460th copy. In the first profile use draw 20,433 (zero-based in traversal order), with controls 0 and 19,138. In the second use draw 19,178 with controls 20,255 and 20,479. Place the marked square at x = 0, y = 23.5/128, width 2.75/128 and height .875/128. Center the control squares on columns 0 and 127 of row 23. Exchange the gains, then transpose centers and sizes and enable vertical wrapping alone. With negative gain on the split square the two readouts are zero and 2⁻²⁵. Swapping gains exchanges the readouts. Across all eight 128² images exact pixels improved from 131,064/131,072 · 2.98023224e-08 to 131,072/131,072 · 0.
+
+Expose the six-level generator of the two original cloud packages as F32. The stage renders at half the graph dimensions. Use the original controls and windows at the 128 × 64 request, then disable wrapping. For forced two- and four-tree runs use unit windows and wrapping off, hold the switch on its tree arm, and repeat the 16², 128² and 128 × 64 settings, then the 128² setting with seed 312923 + 37i. Here i is 244 or 246. [Graph settings and intermediate readback](#six-level-quadrant-draw-order-after-an-iteration-or-switch)
+
+| Six-level stage | Earlier F32 exact / total · max | Corrected F32 exact / total · max |
+|---|---:|---:|
+| Clouds 1 · original wrapping | 1,924/2,048 · 1.49011612e-07 | 2,048/2,048 · 0 |
+| Clouds 1 · wrapping off | 1,959/2,048 · 1.1920929e-07 | 2,048/2,048 · 0 |
+| Clouds 1 · two trees, unit windows | 8,640/10,304 · 2.68220901e-07 | 10,304/10,304 · 0 |
+| Clouds 1 · four trees, unit windows | 5,973/10,304 · 2.98023224e-07 | 10,304/10,304 · 0 |
+| Clouds 2 · original wrapping | 1,480/2,048 · 4.47034836e-08 | 2,048/2,048 · 0 |
+| Clouds 2 · wrapping off | 1,678/2,048 · 4.47034836e-08 | 2,048/2,048 · 0 |
+| Clouds 2 · two trees, unit windows | 7,390/10,304 · 8.94069672e-08 | 10,304/10,304 · 0 |
+| Clouds 2 · four trees, unit windows | 6,341/10,304 · 1.49011612e-07 | 10,304/10,304 · 0 |
+
+The whole-graph comparisons use the original settings and saved SBS packages. Integer maxima use stored levels and floating maxima use absolute error. [Whole-cloud settings and saved files](#four-cloud-noise-generators-and-repeated-saved-file-comparisons)
+
+| Whole package · comparison | Rendered / requested | Exact settings | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|---:|---:|
+| noise_clouds_1 · one processor | 58/60 | 39 | 85,760/85,760 · 0 | 294,043/294,144 · 1 | 93,952/93,952 · 0 | 251,314/251,392 · 1.52587891e-05 |
+| noise_clouds_1 · eight processors | 58/60 | 37 | 85,760/85,760 · 0 | 294,045/294,144 · 1 | 93,950/93,952 · 0.00048828125 | 251,286/251,392 · 1.52587891e-05 |
+| noise_clouds_1 · reference one versus eight | 60/60 | 35 | 85,760/85,760 · 0 | 296,060/296,192 · 1 | 93,950/93,952 · 0.00048828125 | 253,328/253,440 · 1.52587891e-05 |
+| noise_clouds_1 · one-processor SBS reopen | 14/15 | 8 | 4,096/4,096 · 0 | 92,900/92,928 · 1 | 1,536/1,536 · 0 | 22,522/22,528 · 1.52587891e-05 |
+| noise_clouds_1 · reference original versus reopened | 15/15 | 15 | 4,096/4,096 · 0 | 94,976/94,976 · 0 | 1,536/1,536 · 0 | 22,528/22,528 · 0 |
+| noise_clouds_2 · one processor | 60/60 | 57 | 85,760/85,760 · 0 | 296,190/296,192 · 1 | 93,952/93,952 · 0 | 253,439/253,440 · 2.28285789e-05 |
+| noise_clouds_2 · eight processors | 60/60 | 53 | 85,760/85,760 · 0 | 296,182/296,192 · 2 | 93,952/93,952 · 0 | 253,430/253,440 · 2.29477882e-05 |
+| noise_clouds_2 · reference one versus eight | 60/60 | 50 | 85,760/85,760 · 0 | 296,180/296,192 · 2 | 93,952/93,952 · 0 | 253,429/253,440 · 2.29477882e-05 |
+| noise_clouds_2 · one-processor SBS reopen | 15/15 | 15 | 4,096/4,096 · 0 | 94,976/94,976 · 0 | 1,536/1,536 · 0 | 22,528/22,528 · 0 |
+| noise_clouds_2 · reference original versus reopened | 15/15 | 15 | 4,096/4,096 · 0 | 94,976/94,976 · 0 | 1,536/1,536 · 0 | 22,528/22,528 · 0 |
+
+Clouds 1 gained 116 exact whole pixels against the one-processor reference. Two settings still exhaust the execution budget. Clouds 2 gained 22 and matched all 123,136 pixels across its 15 saved settings. Three single-processor whole pixels still differ. At 128², scale 2, disorder .37 and seed zero, one U16 pixel differs by one level. At 512 × 128, scale 1, disorder .09375, nonsquare expansion on and seed 412000, one U16 pixel differs by one level and one F32 pixel differs by 2.28285789e−5. The eight-processor captures also retain differences. All successful local saves reproduce the original MaterialCraft output.
+
+Only these two inventory roots combine the required outer controller, full six levels and parent/leaf shape in the reachability scan. In alternating release runs on one processor, median process CPU time including loading and raw output readback changed from 3.547 to 3.719 seconds for three single-tree square fields, 5.469 to 5.500 seconds for three four-tree cloud fields, 5.109 to 5.031 seconds for three whole Clouds 2 renders. All 456 release node and evaluator tests, formatting, strict workspace Clippy, dependency layers and WebAssembly passed.
+
 ### Compositing a single seven-level tree through pattern controls
 
 A switch, routing dot or single repetition between quadrants can pass the same seven-level tree to the renderer. MaterialCraft now recognizes its sixteen grandchildren through these controls. It counts the quadrant trees actually submitted. A second tree or an inner iteration with multiple submitted branches uses the existing traversal. [Measured grandchild order and eligible layouts](#compositing-complete-seven-level-additive-quadrant-trees)

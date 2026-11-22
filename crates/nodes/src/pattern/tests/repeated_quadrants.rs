@@ -105,3 +105,56 @@ fn deep_repeated_quadrants_submit_first_level_shapes_by_slot_then_iteration() {
         }
     }
 }
+
+#[test]
+fn repeated_six_level_trees_share_quadrant_batches() {
+    let tiny = f32::EPSILON * 0.25;
+    for (repetitions, negative, positive, first_leaves) in [(2, (0, 0), (3, 1), 0), (5, (0, 4), (1, 0), 272)] {
+        let mut graph = PatternGraph::with_root(PatternNodeKind::Iterate);
+        let root = graph.add(PatternNodeKind::Quadrant).unwrap();
+        graph.nodes[0].children[1] = Some(root);
+        graph.nodes[0].parameters.insert("numberadded".into(), Value::Int(repetitions));
+        for slot in 0..4 {
+            let mut node = graph.add(PatternNodeKind::Quadrant).unwrap();
+            graph.nodes[(root - 1) as usize].children[slot] = Some(node);
+            for _ in 1..5 {
+                let child = graph.add(PatternNodeKind::Quadrant).unwrap();
+                graph.nodes[(node - 1) as usize].children.fill(Some(child));
+                node = child;
+            }
+            let leaf = graph.add(PatternNodeKind::Quadrant).unwrap();
+            graph.nodes[(node - 1) as usize].children.fill(Some(leaf));
+            let left = -0.5 * (slot & 1) as f32;
+            let top = -0.5 * (slot >> 1) as f32;
+            let neutral = [left, top + 0.5];
+            graph.nodes[(node - 1) as usize].parameters = additive_square(0.25, [0.0; 2], neutral);
+            let mut params = additive_square(0.25, [0.0; 2], neutral);
+            let marker = [(negative, -1.0), (positive, tiny)].into_iter().find(|((quadrant, _), _)| *quadrant == slot);
+            if let Some(((_, repetition), gain)) = marker {
+                // Only these two leaves overlap in the upper-left quarter. Other draws still fill the batches.
+                for (name, yes, no) in
+                    [("frameoffset", Value::Float2([left, top]), Value::Float2(neutral)), ("opacity", Value::Float(gain), Value::Float(0.25))]
+                {
+                    let mut field = FunctionGraph::default();
+                    let number = field.add("get_float1", &[], Some(Value::Text("$number".into())));
+                    let which = field.add_constant(Value::Float(repetition as f32));
+                    let active = field.add("eq", &[number, which], None);
+                    let yes = field.add_constant(yes);
+                    let no = field.add_constant(no);
+                    field.output = Some(field.add("ifelse", &[active, yes, no], None));
+                    params.insert(name.into(), Value::Function(Box::new(field)));
+                }
+            }
+            graph.nodes[(leaf - 1) as usize].parameters = params;
+        }
+        let variables = BTreeMap::from([("$tiling".into(), Value::Int(0))]);
+        let image = cook_in_regions(graph, &variables, 310373, [64; 2], [[0.0, 1.0, 0.0, 1.0]; 2], 1.0).unwrap().remove(0);
+        for y in 0..32 {
+            for x in 0..32 {
+                let leaf = (0..5).fold(0, |index, bit| index | ((x >> bit) & 1) << (2 * bit) | ((y >> bit) & 1) << (2 * bit + 1));
+                let expected = if leaf < first_leaves { tiny } else { 0.0 };
+                assert_eq!(image.get_gray(x, y, false).to_bits(), expected.to_bits(), "{repetitions} trees at ({x},{y})");
+            }
+        }
+    }
+}
