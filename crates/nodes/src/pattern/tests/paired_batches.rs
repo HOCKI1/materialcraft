@@ -3,13 +3,23 @@ use craft_texture::{Image, Kind};
 use materialcraft_core::OutputFormat;
 
 // Three disjoint portions of a procedural input address the active quadrant levels.
-fn field_property(depth: u32, offset: [f32; 2], frame: bool) -> Value {
+pub(super) fn field_property(depth: u32, offset: [f32; 2], frame: bool, repeated: bool) -> Value {
     let mut graph = FunctionGraph::default();
     let pos = graph.add("get_float2", &[], Some(Value::Text("$pos".into())));
     let scale = graph.add_constant(Value::Float2([(1 << depth) as f32 / 1024.0; 2]));
     let scaled = graph.add("mul", &[pos, scale], None);
     let origin = graph.add_constant(Value::Float2(offset));
     let uv = graph.add("add", &[scaled, origin], None);
+    let uv = if repeated {
+        let number = graph.add("get_float1", &[], Some(Value::Text("$number".into())));
+        let quarter = graph.add_constant(Value::Float(0.25));
+        let row = graph.add("mul", &[number, quarter], None);
+        let zero = graph.add_constant(Value::Float(0.0));
+        let bank = graph.add("vector2", &[zero, row], None);
+        graph.add("add", &[uv, bank], None)
+    } else {
+        uv
+    };
     let sample = graph.add("samplecol", &[uv], Some(Value::Int2([0, 0])));
     let result = if frame {
         let center = graph.add("swizzle2", &[sample], Some(Value::Int2([0, 1])));
@@ -87,8 +97,8 @@ fn check_batch_markers(group_counts: &[u32; 64], seed: u32, axes: i32, markers: 
                 _ => [0.0; 2],
             };
             let mut params = additive_square(0.25, [0.0; 2], [0.0; 2]);
-            params.insert("frameoffset".into(), field_property(depth, offset, true));
-            params.insert("opacity".into(), field_property(depth, offset, false));
+            params.insert("frameoffset".into(), field_property(depth, offset, true, false));
+            params.insert("opacity".into(), field_property(depth, offset, false, false));
             graph.nodes[(child - 1) as usize].parameters = params;
         }
         parent = child;

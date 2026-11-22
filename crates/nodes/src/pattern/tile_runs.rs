@@ -14,7 +14,7 @@ pub(super) use sparse_quadrants::SparseQuadrantRuns;
 
 use paired_batches::PairedBatches;
 
-const UNIT_WINDOW: [f32; 4] = [0.0, 1.0, 0.0, 1.0];
+pub(super) const UNIT_WINDOW: [f32; 4] = [0.0, 1.0, 0.0, 1.0];
 const DEPTH_THREE_PARENTS: usize = 256;
 const DEPTH_FOUR_PARENTS: usize = 64;
 const PAIRED_SUBTREE_PARENTS: usize = 2 * DEPTH_THREE_PARENTS;

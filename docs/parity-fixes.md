@@ -6032,6 +6032,63 @@ Supply identical original fields to the downstream graph by replacing its source
 | noise_dirt_gradient_v2 | Source stages | 3/10 | 1,617/3,328 | — / — / 0.122558594 / 0.0274509192 |
 | noise_dirt_gradient_v2 | Inputs of final pattern | 3/10 | 2,167/3,328 | — / — / 0 / 9.53674316e-07 |
 
+### Final three quadrant levels in Directional Noise 1
+
+The third pattern stage is the first differing stage in this directional generator. Its two earlier pattern stages and their first blend match all 16,896 pixels each in eight settings. At the third stage the original window and tiling give 16,884/16,896 U16 pixels (maximum 1) and 10,505/16,896 F32 pixels (maximum 1.78813934e-07). The root remains in progress. [Earlier root measurements](#directional-noise-and-scratch-pattern-sources)
+
+With unit render and tiling windows, wrapping disabled, and a single additive shape drawn at depths six through eight, each depth-six parent supplies 21 draws. A complete depth-eight tree has 4,096 such parents. One, two and four active trees submit 35, 68 and 139 contiguous parent ranges respectively. The boundaries refer to every visited draw, including squares that miss all pixel centers. For 21 F32 stage renders, using the measured order improves **27,536/46,080 · 4.76837158e-07** to **46,080/46,080 · 0**. This covers a direct tree, a forced one-, two- or four-iteration tree and the graph's own iteration switch. The latter also selects 18 trees in one of the original window settings.
+
+To measure the order independently, connect all four children at every subdivision through depth eight. Use additive squares at the last three levels, size 0.875, zero roughness, a white F32 background and one processor. Put pale squares at the same distant point with weight 0.25. For each numbered pair move both centers to the same pixel and assign −1 and 2⁻²⁵. A surviving 2⁻²⁵ identifies which square drew first. Repeat with the gains exchanged. Horizontal and vertical strips allow multiple comparisons per image. Bisect parent indices around changes in the observed ordering. Sixteen independent pairs at each tree count, repeated with both gain assignments, agreed in all 96 comparisons. The normal cook regression failed before the correction. [Signed square fixture](../crates/nodes/src/pattern/tests/terminal_quadrants.rs)
+
+| Comparison | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|
+| Whole graph, 60 settings, one processor | 88,319/88,320 · 1 | 300,641/300,800 · 1 | 90,367/90,368 · 0.000244140625 | 254,791/254,976 · 1.14738941e-05 |
+| Whole graph, 60 settings, eight processors | 88,319/88,320 · 1 | 300,639/300,800 · 1 | 90,366/90,368 · 0.000244140625 | 254,816/254,976 · 1.14738941e-05 |
+| Same reference renders, one versus eight | 88,318/88,320 · 1 | 300,652/300,800 · 1 | 90,367/90,368 · 0.000244140625 | 254,783/254,976 · 1.14440918e-05 |
+| Whole graph, 12 saved settings, one processor | 14,336/14,336 · 0 | 22,769/22,784 · 1 | 1,024/1,024 · 0 | 84,952/84,992 · 1.14440918e-05 |
+| Reference original versus saved whole graph | 14,336/14,336 · 0 | 22,784/22,784 · 0 | 1,024/1,024 · 0 | 84,992/84,992 · 0 |
+| Isolated stage, 24 new settings, one processor | 2,048/2,048 · 0 | 2,048/2,048 · 0 | 2,048/2,048 · 0 | 20,480/20,480 · 0 |
+| Isolated stage, 24 new settings, eight processors | 2,048/2,048 · 0 | 2,044/2,048 · 1 | 2,048/2,048 · 0 | 11,044/20,480 · 3.57627869e-07 |
+| Isolated stage, 12 saved settings, one processor | — | 2,048/2,048 · 0 | 2,048/2,048 · 0 | 2,048/2,048 · 0 |
+
+For the 24 new stage settings, use the direct tree, two forced iterations, four forced iterations and the original switch. In each configuration use the following width, height, seed, scale, angle, angle random, disorder and nonsquare expansion. At 16 × 32 use 260153, 2, 0.09375, 0.125, 0.3125, off. At 32 × 16 use 260171, 1, −0.046875, 0.21875, 0.5625, on. At 64 × 64 use 260183, 2, 0.15625, 0.09375, 0.28125, off. Use F32 everywhere and all four formats at 32 × 16. Save in MaterialCraft and reopen in both applications for the first F32 and the middle U16 and F16 cases.
+
+All 60 original whole-graph buffers and all 12 reopened buffers retain their previous MaterialCraft pixels. Reproduce the whole settings below using the same grayscale output and defaults for omitted controls. Integer errors are stored levels. The full root still differs in its original sampling windows.
+
+<details>
+<summary>Whole-graph controls and stored formats</summary>
+
+| Size | Seed | Scale, disorder, angle, angle random, expand nonsquare | Formats | Reopened |
+|---|---:|---|---|---|
+| 128 × 128 | 0 | Defaults | U16 | U16 |
+| 256 × 256 | 0 | Defaults | U16, U8, F16, F32 | — |
+| 128 × 128 | 42 | Defaults | U16 | — |
+| 128 × 128 | 0 | 2, 0.37, 0.125, 0.2, default | U16 | — |
+| 32 × 32 | 113 | 2, 0.37, 0.125, 0.2, default | F32 | — |
+| 64 × 64 | 42 | 2, 0.37, 0.125, 0.2, default | U8, U16, F16, F32 | U8 |
+| 16 × 16 | 103800 | Defaults | F32 | — |
+| 32 × 32 | 103801 | 1, 0, 0, 0, on | F32 | F32 |
+| 32 × 32 | 103802 | 1, 0.3125, 0.15625, 0.21875, off | U8, U16, F16, F32 | — |
+| 64 × 32 | 103806 | 2, 0.6875, -0.21875, 0.40625, on | F32 | F32 |
+| 32 × 64 | 103807 | 1, 0.3125, 0.15625, 0.21875, off | U16 | — |
+| 32 × 32 | 103808 | 3, 0.125, 0.375, 0.03125, off | F32 | — |
+| 64 × 32 | 103809 | 1, 0, 0, 0, on | F16 | — |
+| 16 × 16 | 0 | Defaults | U8, U16, F16, F32 | U16 |
+| 64 × 16 | 42 | 2, 0.03125, -0.21875, 0.03125, on | U8, U16, F16, F32 | F16 |
+| 16 × 64 | 411608 | 1, 0.875, 0.625, 0.875, off | U16, F32 | — |
+| 64 × 64 | 411669 | 3, 0.34375, 0.09375, 0.34375, on | U8, U16, F16, F32 | U16 |
+| 128 × 64 | 411730 | 2, 0.96875, 0.71875, 0.96875, off | U16, F32 | — |
+| 64 × 128 | 411791 | 1, 0.1875, -0.0625, 0.1875, on | U8, U16, F16, F32 | U8 |
+| 128 × 128 | 411852 | 3, 0.65625, 0.40625, 0.65625, off | U16, F32 | F32 |
+| 128 × 512 | 411974 | 2, 0.53125, 0.28125, 0.53125, off | U16, F32 | F32 |
+| 512 × 128 | 412035 | 1, 0.09375, -0.15625, 0.09375, on | U16, F32 | — |
+| 16 × 32 | 194860 | Defaults | U16, F32 | — |
+| 64 × 32 | 194907 | 3, 0.34375, 0.09375, 0.34375, on | U8, U16, F16, F32 | U8 |
+| 32 × 64 | 194954 | 1, 0.1875, -0.0625, 0.1875, on | U8, U16, F16, F32 | U16 |
+| 64 × 64 | 195001 | 2, 0.53125, 0.28125, 0.53125, off | U16, F32 | — |
+
+</details>
+
 ### Directional noise and scratch pattern sources
 
 The ten directional generators produced **135 comparable whole outputs across 190 cases**. The reference produced all 190. The other 55 local evaluations reached the pattern execution limit. Integer errors below are stored levels. A missing error value indicates an unavailable image.

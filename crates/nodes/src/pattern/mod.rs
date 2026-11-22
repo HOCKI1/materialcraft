@@ -11,6 +11,7 @@ mod raster;
 mod region;
 mod repeated_quadrants;
 mod shape;
+mod terminal_quadrants;
 mod tile_runs;
 mod variables;
 
