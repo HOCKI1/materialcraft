@@ -464,6 +464,27 @@ The one-processor whole-root difference falls from 328 pixels to 45. The eight-p
 
 Remaining single-processor differences occur at six seed-and-size combinations. Further full-pair continuations and the late splits around groups 50, 54, 58, 60 and 62 remain under measurement. Both regression tests failed before the change. All 438 release tests in the node and evaluator crates passed, along with formatting, strict workspace Clippy, dependency layers and WebAssembly checks.
 
+### Middle and penultimate horizontal subtree pairs in Dirt Gradient
+
+Dirt Gradient matches 102 of 111 whole settings on one processor, up from 96. Six additional U16, F16 and F32 renders are exact at 128², seed 191593, and 128 × 64, seed 142328. The other 105 settings retain their previous counts. Against eight processors 44 settings match in full. On the 28 saved-file controls each application reproduces every one of its own 430,336 pixels. Integers in the table use stored codes and floating-point maxima are absolute channel errors. [Whole-root inputs, settings and preceding measurements](#full-receiving-quadrants-and-seven-batch-prefixes-in-dirt-gradient)
+
+| Comparison | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|
+| One processor | 600,320/600,320 · 0 | 846,577/846,592 · 1 | 600,319/600,320 · 6.10351562e−5 | 816,113/816,128 · 1.75833702e−5 |
+| Eight processors | 600,320/600,320 · 0 | 846,265/846,592 · 2 | 600,295/600,320 · 0.00048828125 | 815,784/816,128 · 2.03251839e−5 |
+| Reference one versus eight | 600,320/600,320 · 0 | 846,260/846,592 · 2 | 600,296/600,320 · 0.00048828125 | 815,777/816,128 · 2.03251839e−5 |
+| Saved files on one processor | 36,864/36,864 · 0 | 80,887/80,896 · 1 | 32,767/32,768 · 6.10351562e−5 | 279,808/279,808 · 0 |
+
+Use a complete quadrant tree with active levels 7, 8 and 9, horizontal tiling and groups numbered from zero in traversal order. Groups 52–53 and 56–57 submit their subtrees separately even when either pair contains two 5,460-copy batches. This covers the two pairs together and a full first pair in groups 48–49. For the penultimate pair, start with the copies in group 60. Add the two middle depth-four subtrees of group 16 and the last subtree of group 61. When group 60 is short of one batch, add the first subtree of group 61. When group 60 fills a batch, add the third subtree instead. Reaching 10,920 copies separates the later runs. A full group 60 also advances the three affected boundaries by one depth-four subtree.
+
+For the middle pairs, start at 32 extra copies per group and set groups 52–53 to 101 and 90, or 56–57 to 78 and 101, or both with groups 48–49 set to 88 and 90. Use seeds 226537, 226568 and 226599. For the last four controls set groups 60–61 to (79,91), (85,97), (101,128) and (79,150), starting at seed 227173 and adding 31 each time. Reversing the two marker opacities agrees on all 208 draw-order comparisons. The compiled renderer matches 229,376/229,376 F32 pixels across the 14 signed controls. [Procedural square and copy construction](#horizontal-pattern-batches-ending-in-the-preceding-subtree)
+
+Fifty-four earlier weighted fields and 70 independent threshold settings give 1,015,808/1,015,808 F32 pixels in the draw-order replay. For the latter, vary group 60's extra copies over 40, 65, 79, 83, 84, 85 and 96. Across two different fields for each value, move the four selected subtree counts to give combined totals of 10,918, 10,919, 10,920, 10,921 and 10,923. The compiled renderer matches all 573,440/573,440 pixels, maximum zero. The two affected direct F32 generator settings improve from 6,661/16,384 and 3,257/8,192 to 24,576/24,576 combined, maximum zero. An additional 84 weighted settings cover mixed group occupancies and four copy-count fields from whole renders. The compiled result is 677,519/688,128 · 3.4570694e−6.
+
+Seven weighted settings, the forward marker input from one fixture and the reversed input from another give nine additional saves. Each MaterialCraft reopen reproduces its original. All nine source renders match across applications. In the first reference reopen series the saved files differ from the reference originals on 6,771 pixels, giving 83,341/90,112 · 3.33786011e−6 across applications. Two fresh comparisons of each source and each saved file in a new reference session reproduce the originals on 360,448/360,448 pixels with zero error.
+
+The one-processor whole-root comparison now differs on 31 pixels and the eight-processor comparison on 696. The reference modes differ on 707 pixels for the same 111 settings. Three extra one-processor captures of each of the earlier 20 nonexact settings repeat all 2,927,616 stored pixels. Of the remaining 31 differences, 21 match the eight-processor capture and 10 fall outside all retained reference values. Four seed-and-size combinations remain open, including a final horizontal pair with three deferred copies. Both added regressions failed before the change. All 440 node and evaluator release tests passed, together with formatting, strict workspace Clippy, dependency layers and WebAssembly. Across four interleaved release runs per implementation, the three horizontal generator settings used a median 20.281 seconds of process CPU time before the change and 20.312 seconds after it, including loading and readback.
+
 ## 2026-11-21 root comparisons
 
 ### Connected quadrant depth and amplified spot patterns

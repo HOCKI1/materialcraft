@@ -98,12 +98,14 @@ impl TileCopies {
         ranges.into_iter().map(|r| DrawRun::between(stamps, self.draw_position(r.start), self.draw_position(r.end))).collect()
     }
 
+    fn subtree_copies(&self, subtrees: Range<usize>) -> Option<u32> {
+        let start = self.subtree_ends.get(subtrees.start.checked_sub(1)?)?;
+        self.subtree_ends.get(subtrees.end.checked_sub(1)?)?.checked_sub(*start)
+    }
+
     fn group_copies(&self, groups: Range<usize>) -> Option<u32> {
-        let boundary = |group: usize| {
-            let subtrees = group * (DEPTH_THREE_PARENTS / self.parents_per_subtree);
-            self.subtree_ends.get(subtrees.checked_sub(1)?).copied()
-        };
-        boundary(groups.end)?.checked_sub(boundary(groups.start)?)
+        let subtrees = DEPTH_THREE_PARENTS / self.parents_per_subtree;
+        self.subtree_copies(groups.start * subtrees..groups.end * subtrees)
     }
 
     fn horizontal_layout(&self, ordinary: &'static [(usize, usize)], pair: Option<(usize, usize)>) -> Option<Cow<'static, [(usize, usize)]>> {
@@ -129,6 +131,13 @@ impl TileCopies {
             return fallback();
         }
 
+        Some(Self::shift_horizontal_boundaries(ordinary, pair, full_prefix))
+    }
+
+    fn shift_horizontal_boundaries(ordinary: &'static [(usize, usize)], pair: Option<(usize, usize)>, full_prefix: bool) -> Cow<'static, [(usize, usize)]> {
+        if pair.is_none() && !full_prefix {
+            return Cow::Borrowed(ordinary);
+        }
         let mut layout = ordinary.to_vec();
         for (end, _) in &mut layout {
             if let Some((group, head)) = pair {
@@ -145,7 +154,25 @@ impl TileCopies {
                 *end = (*end - DEPTH_FOUR_PARENTS).max(last);
             }
         }
-        Some(Cow::Owned(layout))
+        Cow::Owned(layout)
+    }
+
+    fn penultimate_layout(&self, ordinary: &'static [(usize, usize)]) -> Option<Cow<'static, [(usize, usize)]>> {
+        let prefix = self.group_copies(60..61)?;
+        let full_prefix = prefix >= COPIES_PER_BATCH;
+        let subtrees = DEPTH_THREE_PARENTS / DEPTH_FOUR_PARENTS;
+        let receiver = 16 * subtrees;
+        let following = 61 * subtrees;
+        let first = if full_prefix { following + 2 } else { following };
+        // After the first batch, the first remaining part of group 61 and its
+        // final subtree join the two middle subtrees of group 16. Only a full
+        // batch at that point separates the later runs.
+        let mut copies = prefix;
+        for range in [first..first + 1, following + 3..following + 4, receiver + 1..receiver + 3] {
+            copies = copies.checked_add(self.subtree_copies(range)?)?;
+        }
+        let layout = if copies >= 2 * COPIES_PER_BATCH { PairedBatches::Penultimate.layout() } else { ordinary };
+        Some(Self::shift_horizontal_boundaries(layout, None, full_prefix))
     }
 
     pub(super) fn layout(&self, ordinary: &'static [(usize, usize)]) -> Option<Cow<'static, [(usize, usize)]>> {
@@ -156,7 +183,10 @@ impl TileCopies {
         let later = self.full_pairs & !1;
         if self.parents_per_subtree == DEPTH_FOUR_PARENTS && self.axes == [true, false] {
             match later {
-                0 => return self.horizontal_layout(ordinary, None),
+                // Groups 52–53 and 56–57 submit their subtrees separately,
+                // including when both pairs contain two full batches.
+                0 | 0b100 | 0b10000 | 0b10100 => return self.horizontal_layout(ordinary, None),
+                0b1000000 => return self.penultimate_layout(ordinary),
                 0b10 => return self.horizontal_layout(ordinary, Some((50, 16))),
                 0b1000 => return self.horizontal_layout(ordinary, Some((54, 32))),
                 _ => {}
