@@ -59,6 +59,107 @@ The first pass classifies all 546 roots: 166 Parity and 380 Too hard. These meas
 
 ## 2026-11-22 root comparisons
 
+### Eight-level two-child drawing across equal tile and render windows
+
+A complete eight-level additive pattern can draw a parent followed by two leaves at each of its 16,384 terminal branches. The one-processor reference uses batches of 5,460 physical tile copies even when the render and tiling windows extend beyond the unit square. MaterialCraft now counts each stamp using the actual common window when both axes wrap. This changes how overlapping F32 contributions accumulate. The measured path requires a single emitted tree and the existing checks on shape, opacity, subdivisions and batch boundaries. [Two-child batch construction](../crates/nodes/src/pattern/tile_runs/two_children.rs)
+
+For the regression, start with a white grayscale F32 field. Place additive squares on all depth-seven parents and on their two leaves in slots 0 and 2. Superimpose the parent squares from second-level groups 0 and 5, assigning gains 2⁻²⁵ and −1 respectively. Keep all remaining draws active at gain .25. Use seed 158729, leaf width and height .875 in local coordinates, and leaf Y offset .5. Number the parents in a 32² readout in recursive child order. For each texel, interleave its five column and row bits, starting with the low column bit. [Regression geometry and readout](../crates/nodes/src/pattern/tests.rs)
+
+| Render and tiling windows (X then Y) | Output | Readout origin | Leaf X offset | Parents returning 2⁻²⁵ | Parents returning zero |
+|---|---|---|---:|---:|---:|
+| (−.5,1.5), (−.5,1.5) | 256² | (64,64) | 0 | 284 | 740 |
+| (0,1), (−.5,1.5) | 128 × 256 | (0,64) | −1/512 | 274 | 750 |
+| (0,1), (−.5,1.5) | 128 × 256 | (0,64) | .4995 | 252 | 772 |
+
+Each readout has one transition. The earlier renderer fails the first expanded-window readout at (0,0) relative to its origin.
+
+For an independent comparison, number the 64 depth-three subtrees in recursive slot order. Pair the first with the last, the second with the penultimate and so on. Hold the first subtree fixed and rotate the other 63 one position to the right each round. Place pair j in cell (j mod 8, floor(j/8)) of an eight-column grid within the unit window. Both parent streams draw at that cell, with gains −1 and 2⁻²⁵. Use leaf gain .25 and frame offset (0,.5). Reverse the two parent gains for the second polarity. For size index j = 0…3 use 256², 128 × 64, 64 × 128 and 128² and rounds 0, 17, 41 and 61. Use seed 322817 + 53j + polarity. Request F32 at all sizes and U8, U16 and F16 at 128 × 64. Save every third setting starting at the first, in size, polarity and U8/U16/F16/F32 order. Open the saved SBS in both applications.
+
+| Render window · tiling window | Reference | Earlier exact / total · max | Corrected exact / total · max |
+|---|---|---:|---:|
+| (−.5,1.5) on both axes, same tiling | one processor | 240,184/245,760 · 2.98023224e-08 | 245,760/245,760 · 0 |
+| (−.5,1.5) on both axes, same tiling | eight processors | 238,992/245,760 · 2.98023224e-08 | 236,376/245,760 · 2.98023224e-08 |
+| (−.5,1.5) on both axes, same tiling | one-processor reopen | 103,708/106,496 · 2.98023224e-08 | 106,496/106,496 · 0 |
+| (−1.5,2.5) × (0,1), same tiling | one processor | 245,760/245,760 · 0 | 245,760/245,760 · 0 |
+| (−1.5,2.5) × (0,1), same tiling | eight processors | 245,760/245,760 · 0 | 245,760/245,760 · 0 |
+| (−1.5,2.5) × (0,1), same tiling | one-processor reopen | 106,496/106,496 · 0 | 106,496/106,496 · 0 |
+| (.125,1.125) × (−.375,1.625), same tiling | one processor | 234,608/245,760 · 2.98023224e-08 | 245,760/245,760 · 0 |
+| (.125,1.125) × (−.375,1.625), same tiling | eight processors | 230,912/245,760 · 2.98023224e-08 | 227,616/245,760 · 2.98023224e-08 |
+| (.125,1.125) × (−.375,1.625), same tiling | one-processor reopen | 100,920/106,496 · 2.98023224e-08 | 106,496/106,496 · 0 |
+| unit square, tiling (−.5,1.5) on both axes | one processor | 219,928/245,760 · 2.98023224e-08 | 219,928/245,760 · 2.98023224e-08 |
+| unit square, tiling (−.5,1.5) on both axes | eight processors | 201,844/245,760 · 2.98023224e-08 | 201,844/245,760 · 2.98023224e-08 |
+| unit square, tiling (−.5,1.5) on both axes | one-processor reopen | 93,580/106,496 · 2.98023224e-08 | 93,580/106,496 · 2.98023224e-08 |
+
+All 42 equal-window settings and all 15 corresponding reopens match on one processor. The shifted and square windows retain differences on eight processors. The unequal-window control retains its earlier buffers. The differences in this table occur in F32.
+
+Expose the final pattern generator of Noise Clouds 2 as F32. Keep both wrap axes enabled. Run each setting below at its listed seed, at seed + 17, then back at the listed seed. The parent and leaf counts are 16,384 and 32,768 per render. Replay each original F32 contribution at its measured texel. For the last setting, count the vertical copies before dividing into batches.
+
+| Size | Seed | Exposed controls | Common X and Y windows | Extra copies at seed / seed + 17 |
+|---|---:|---|---|---:|
+| 128 × 128 | 0 | scale=2, disorder=0.37 | (-0.5,1.5), (-0.5,1.5) | 0 / 0 |
+| 128 × 64 | 411695 | scale=2, disorder=0.96875, non_square_expansion=false | (-0.5,1.5), (-0.5,1.5) | 0 / 0 |
+| 512 × 128 | 412000 | scale=1, disorder=0.09375, non_square_expansion=true | (-1.5,2.5), (0,1) | 1,187 / 1,139 |
+
+The six replays match 180,224/180,224 F32 samples with maximum error zero. The unwrapped final-stage controls match every sample at the three original seeds. Turning off just the parent or just the leaf draws changes the compositing order. Their remaining differences are listed below.
+
+| Noise Clouds 2 stage or output | Exact / total · max |
+|---|---:|
+| Final F32 stage, one processor | 270,336/270,336 · 0 |
+| Final F32 stage, eight processors | 260,928/270,336 · 2.98023224e-08 |
+| Final F32 stage, wrapping off | 90,112/90,112 · 0 |
+| Final F32 stage, unit windows and wrapping off | 90,112/90,112 · 0 |
+| Parents alone | 88,196/90,112 · 1.49011612e-08 |
+| Leaves alone | 89,305/90,112 · 3.7252903e-09 |
+| Whole output, one processor | 270,336/270,336 · 0 |
+| Whole output, eight processors | 270,334/270,336 · 1 |
+| Whole output reopened, one processor | 270,336/270,336 · 0 |
+| Whole output reopened, eight processors | 270,333/270,336 · 2 |
+
+Before the change, 261,034/270,336 isolated F32 samples matched on one processor, with maximum error 2.98023224e-08. When the eight-processor reference returned to the original seed, 86,460/90,112 samples matched its first render, with maximum error 2.23517418e-08. The one-processor reference reproduced all three starting buffers. The two U16 cases use stored levels for error, and the F32 case uses absolute error.
+
+Repeat the final-stage readout with the v2 graph. Use the following six settings in their listed order. Keep its background connected, then repeat with wrapping off. Save and reopen the first, third and fifth settings.
+
+| Size | Seed | Exposed controls |
+|---|---:|---|
+| 128 × 128 | 0 | Defaults |
+| 128 × 128 | 0 | scale=2, disorder=0.37, disorder_speed=0.6, disorder_anisotropy=0.3, disorder_anisotropy_angle=0.125, tile_offset=[0.17, 0.29] |
+| 128 × 64 | 411702 | scale=2, disorder=0.96875, disorder_speed=0.96875, disorder_anisotropy=0.96875, disorder_anisotropy_angle=0.71875, tile_offset=[0.625, -0.44140625], non_square_expansion=false |
+| 512 × 128 | 412007 | scale=1, disorder=0.09375, disorder_speed=0.09375, disorder_anisotropy=0.09375, disorder_anisotropy_angle=-0.15625, tile_offset=[-0.25, 0.32421875], non_square_expansion=true |
+| 256 × 64 | 325439 | scale=1, disorder=0.34375, disorder_speed=0.96875, disorder_anisotropy=0.96875, disorder_anisotropy_angle=0.71875, tile_offset=[0.625, -0.44140625], non_square_expansion=false |
+| 64 × 128 | 325477 | scale=1, disorder=0.71875, disorder_speed=0.09375, disorder_anisotropy=0.09375, disorder_anisotropy_angle=-0.15625, tile_offset=[-0.25, 0.32421875], non_square_expansion=true |
+
+| v2 F32 final stage | Earlier exact / total · max | Corrected exact / total · max |
+|---|---:|---:|
+| One processor | 129,319/131,072 · 4.76837158e-07 | 129,319/131,072 · 4.76837158e-07 |
+| Eight processors | 129,208/131,072 · 3.57627869e-07 | 129,208/131,072 · 3.57627869e-07 |
+| Wrapping off | 16,260/16,384 · 1.1920929e-07 | 16,260/16,384 · 1.1920929e-07 |
+| Reopened on one processor | 40,460/40,960 · 2.38418579e-07 | 40,460/40,960 · 2.38418579e-07 |
+
+The v2 stage retained all its earlier buffers across the six original settings and three reopens. With wrapping off, only the 128² default request rendered. The other five settings reached the execution budget.
+
+The following whole-graph comparisons read the requested storage format directly. Integer maxima are measured in stored levels and floating maxima in absolute error. All 60 settings and 15 reopens rendered. [Whole-cloud settings and original SBS saves](#four-cloud-noise-generators-and-repeated-saved-file-comparisons)
+
+| Package · reference | Rendered / requested | Exact settings | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|---:|---:|
+| noise_clouds_2 · one processor | 60/60 | 60 | 85,760/85,760 · 0 | 296,192/296,192 · 0 | 93,952/93,952 · 0 | 253,440/253,440 · 0 |
+| noise_clouds_2 · eight processors | 60/60 | 50 | 85,760/85,760 · 0 | 296,180/296,192 · 2 | 93,952/93,952 · 0 | 253,429/253,440 · 2.29477882e-05 |
+| noise_clouds_2 · reference one versus eight | 60/60 | 50 | 85,760/85,760 · 0 | 296,180/296,192 · 2 | 93,952/93,952 · 0 | 253,429/253,440 · 2.29477882e-05 |
+| noise_clouds_2 · one-processor SBS reopen | 15/15 | 15 | 4,096/4,096 · 0 | 94,976/94,976 · 0 | 1,536/1,536 · 0 | 22,528/22,528 · 0 |
+| noise_clouds_2 · reference original versus reopened | 15/15 | 15 | 4,096/4,096 · 0 | 94,976/94,976 · 0 | 1,536/1,536 · 0 | 22,528/22,528 · 0 |
+
+Four whole v2 settings were checked both with a fresh session and with the ordinary cook cache. The raw buffers agreed between the two execution paths.
+
+| Size | Format | Seed | Exposed controls | One processor · exact / total · max | Eight processors · exact / total · max |
+|---|---|---:|---|---:|---:|
+| 16 × 16 | U8 | 0 | Defaults | 256/256 · 0 | 256/256 · 0 |
+| 16 × 16 | U16 | 0 | Defaults | 256/256 · 0 | 256/256 · 0 |
+| 32 × 16 | F16 | 169551 | scale=1, disorder=0.34375, disorder_speed=0.796875, disorder_anisotropy=0.171875, disorder_anisotropy_angle=-0.03125, tile_offset=[0.0751953125, -0.12890625] | 512/512 · 0 | 512/512 · 0 |
+| 32 × 16 | F32 | 169551 | scale=1, disorder=0.34375, disorder_speed=0.796875, disorder_anisotropy=0.171875, disorder_anisotropy_angle=-0.03125, tile_offset=[0.0751953125, -0.12890625] | 507/512 · 5.96046448e-08 | 505/512 · 5.96046448e-08 |
+
+Noise Clouds 2 gained its last three differing pixels on one processor. All 15 saved settings also match. On eight processors 23 whole pixels differ across ten settings, compared with 20 across seven before the change. The reference itself varies with processor count and between repeated eight-processor renders at a fixed seed. All successful MaterialCraft reopens reproduce their original raw buffers. Both roots remain in progress.
+
+Only the two Noise Clouds 2 packages have both the required terminal structure and potentially non-unit windows in the 546-root inventory. Median process CPU time in alternating one-processor release runs, three per version, changed from 5.531 to 5.609 seconds for three final-stage cloud fields, 4.328 to 4.359 seconds for three square probe fields, 5.500 to 5.562 seconds for three whole Clouds 2 renders. All 456 release node and evaluator tests, formatting, strict workspace Clippy, dependency layers and WebAssembly passed.
+
 ### Tile-copy batches across repeated six-level quadrant trees
 
 Several six-level trees can contribute to the same pixel in a grayscale pattern. With all 1,024 depth-five parents and their four terminal children drawing, each first-level quadrant submits 1,280 stamps per tree. The four quadrants keep separate batches across repetitions. Within each tree, full batches of 5,460 physical tile copies are submitted in slot order 3, 0, 1, 2. At the end, partial batches composite in order 3, 2, 1, 0. A repeated tile can fill a batch before its other copy draws. MaterialCraft now records these boundaries before discarding stamps that miss the sample grid. The measured path covers complete trees of nonzero additive squares or analytic shape 8, with one outer repetition controller and center culling disabled. [Single-tree controls](#six-level-quadrant-draw-order-after-an-iteration-or-switch) · [Repeated-tree regression](../crates/nodes/src/pattern/tests/repeated_quadrants.rs)

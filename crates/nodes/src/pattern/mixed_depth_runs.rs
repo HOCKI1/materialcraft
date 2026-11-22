@@ -5,7 +5,7 @@ use materialcraft_core::{PatternNode, PatternNodeKind};
 use super::{
     pattern_stamp::{DrawPosition, DrawRun, PatternStamp},
     raster::MIN_STAMP_SIZE,
-    tile_runs::TileCopies,
+    tile_runs::{TileCopies, UNIT_WINDOW},
 };
 use crate::CookContext;
 
@@ -141,6 +141,7 @@ pub(super) struct MixedDepthRuns {
     draws: usize,
     shape: Option<i32>,
     copies: Option<TileCopies>,
+    two_child_window: bool,
 }
 
 impl MixedDepthRuns {
@@ -148,12 +149,15 @@ impl MixedDepthRuns {
         if context.b("cull_outside") {
             return None;
         }
-        let copies = match context.tiling_axes() {
+        let axes = context.tiling_axes();
+        // The two-child batch boundaries also hold when both axes wrap in equal, non-unit windows.
+        let window = if deepest == 8 && axes == [true; 2] { context.v4("render_region") } else { UNIT_WINDOW };
+        let copies = match axes {
             [false, false] => None,
-            axes if axes == [true; 2] || deepest == 9 => Some(TileCopies::new(context, deepest)?),
+            axes if axes == [true; 2] || deepest == 9 => Some(TileCopies::new(context, deepest, window)?),
             _ => return None,
         };
-        Some(Self { copies, deepest, ..Self::default() })
+        Some(Self { copies, deepest, two_child_window: window != UNIT_WINDOW, ..Self::default() })
     }
 
     pub(super) fn visit(&mut self, node: &PatternNode, depth: u32, retained: usize) -> bool {
@@ -179,7 +183,7 @@ impl MixedDepthRuns {
         if self.layout.is_empty() {
             (self.layout, self.draws_per_parent) = match (self.deepest, children) {
                 (8, 2) => (TWO_CHILDREN, 3),
-                (8, 4) => (FOUR_CHILDREN, 5),
+                (8, 4) if !self.two_child_window => (FOUR_CHILDREN, 5),
                 (9, 4) => (FOUR_CHILDREN_AND_GRANDCHILDREN, 21),
                 _ => return false,
             };

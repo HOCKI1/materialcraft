@@ -634,17 +634,21 @@ fn single_branch_controls_keep_the_order_of_a_complete_nine_level_tree() {
 #[test]
 fn depth_eight_parent_order_counts_children_that_cross_the_tile_edge() {
     let tiny = f32::EPSILON * 0.25;
-    for (child_count, tiling, child_x, width, early) in [
-        (2, 0, 0.0, 0.875, 0..284),
-        (2, 3, -1.0 / 512.0, 0.875, 0..274),
-        (2, 3, 0.4995, 0.875, 0..252),
-        (2, 3, -0.125, 4.75, 0..271),
-        (2, 3, 0.4995, 4.75, 0..220),
-        (2, 3, -1.0 / 512.0, 8.875, 0..252),
-        (2, 3, 0.4995, 8.875, 0..188),
-        (4, 0, 0.0, 0.875, 580..648),
-        (4, 3, -1.0 / 512.0, 0.875, 571..644),
-        (4, 3, 0.4995, 0.875, 574..623),
+    let unit = [0.0, 1.0, 0.0, 1.0];
+    for (child_count, tiling, child_x, width, early, extent, window, origin) in [
+        (2, 0, 0.0, 0.875, 0..284, [128; 2], unit, [0; 2]),
+        (2, 3, -1.0 / 512.0, 0.875, 0..274, [128; 2], unit, [0; 2]),
+        (2, 3, 0.4995, 0.875, 0..252, [128; 2], unit, [0; 2]),
+        (2, 3, -0.125, 4.75, 0..271, [128; 2], unit, [0; 2]),
+        (2, 3, 0.4995, 4.75, 0..220, [128; 2], unit, [0; 2]),
+        (2, 3, -1.0 / 512.0, 8.875, 0..252, [128; 2], unit, [0; 2]),
+        (2, 3, 0.4995, 8.875, 0..188, [128; 2], unit, [0; 2]),
+        (4, 0, 0.0, 0.875, 580..648, [128; 2], unit, [0; 2]),
+        (4, 3, -1.0 / 512.0, 0.875, 571..644, [128; 2], unit, [0; 2]),
+        (4, 3, 0.4995, 0.875, 574..623, [128; 2], unit, [0; 2]),
+        (2, 3, 0.0, 0.875, 0..284, [256; 2], [-0.5, 1.5, -0.5, 1.5], [64; 2]),
+        (2, 3, -1.0 / 512.0, 0.875, 0..274, [128, 256], [0.0, 1.0, -0.5, 1.5], [0, 64]),
+        (2, 3, 0.4995, 0.875, 0..252, [128, 256], [0.0, 1.0, -0.5, 1.5], [0, 64]),
     ] {
         let variables = BTreeMap::from([("$tiling".into(), Value::Int(tiling))]);
         let (mut graph, groups) = seven_level_tree();
@@ -666,7 +670,7 @@ fn depth_eight_parent_order_counts_children_that_cross_the_tile_edge() {
                 *link = (child_count == 4 || slot % 2 == 0).then_some(child);
             }
         }
-        let image = cook_in_regions(graph, &variables, 158729, [128; 2], [[0.0, 1.0, 0.0, 1.0]; 2], 1.0).unwrap().remove(0);
+        let image = cook_in_regions(graph, &variables, 158729, extent, [window; 2], 1.0).unwrap().remove(0);
         for y in 0..32 {
             for x in 0..32 {
                 let mut parent = 0;
@@ -675,7 +679,11 @@ fn depth_eight_parent_order_counts_children_that_cross_the_tile_edge() {
                 }
                 let negative_first = early.contains(&parent) || (child_count == 4 && parent >= 768);
                 let expected = if negative_first { tiny } else { 0.0 };
-                assert_eq!(image.get_gray(x, y, false).to_bits(), expected.to_bits(), "{child_count} children, X offset {child_x} at ({x},{y})");
+                assert_eq!(
+                    image.get_gray(origin[0] + x, origin[1] + y, false).to_bits(),
+                    expected.to_bits(),
+                    "{child_count} children, X offset {child_x}, window {window:?} at ({x},{y})"
+                );
             }
         }
     }

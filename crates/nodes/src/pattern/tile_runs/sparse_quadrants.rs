@@ -22,7 +22,7 @@ impl SparseQuadrantRuns {
         if context.b("cull_outside") || !matches!(context.tiling_axes(), [false, false] | [true, true]) {
             return None;
         }
-        Some(Self { copies: TileCopies::new(context, 8)?, parents: Vec::new(), groups: Vec::new(), draws: 0, shape: None, saw_zero: false })
+        Some(Self { copies: TileCopies::new(context, 8, super::UNIT_WINDOW)?, parents: Vec::new(), groups: Vec::new(), draws: 0, shape: None, saw_zero: false })
     }
 
     pub(in crate::pattern) fn visit(&self, node: &PatternNode, depth: u32) -> bool {
