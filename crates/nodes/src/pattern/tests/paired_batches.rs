@@ -478,3 +478,65 @@ fn three_final_pairs_share_the_penultimate_batch_with_middle_subtrees() {
         check_batch_markers(&group_counts, seed, 1, &markers);
     }
 }
+
+#[test]
+fn eight_middle_group_batches_carry_into_the_first_subtrees() {
+    for (head, eighth, receiver, middle, next, pair, last, seed, markers) in [
+        (
+            107,
+            84,
+            83,
+            82,
+            83,
+            [79, 89],
+            84,
+            249179,
+            [(4031, 302217, false), (4010, 192880, false), (40445, 66669, false), (259454, 316884, false), (260735, 298594, false), (212350, 87587, true)],
+        ),
+        (
+            111,
+            89,
+            79,
+            82,
+            77,
+            [84, 87],
+            86,
+            249210,
+            [(4031, 284859, false), (4010, 245490, false), (40445, 243861, false), (259454, 312946, false), (260735, 321439, false), (212350, 30837, true)],
+        ),
+        (
+            111,
+            98,
+            64,
+            83,
+            63,
+            [91, 90],
+            92,
+            249241,
+            [(4031, 159042, false), (4010, 208901, false), (40445, 199211, false), (259454, 343227, false), (260735, 315060, false), (212350, 335049, false)],
+        ),
+        (
+            107,
+            118,
+            52,
+            85,
+            39,
+            [99, 90],
+            101,
+            249272,
+            [(4031, 169499, false), (4010, 175761, false), (40445, 226717, false), (259454, 312824, false), (260735, 340420, false), (212350, 24792, true)],
+        ),
+    ] {
+        let mut group_counts = [32; 64];
+        group_counts[0] = head;
+        group_counts[24..31].fill(84);
+        group_counts[31] = eighth;
+        group_counts[32] = receiver;
+        group_counts[33..40].fill(middle);
+        group_counts[52] = next;
+        group_counts[54..56].copy_from_slice(&pair);
+        group_counts[60..62].copy_from_slice(&[84, 57]);
+        group_counts[62] = last;
+        check_batch_markers(&group_counts, seed, 1, &markers);
+    }
+}

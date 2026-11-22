@@ -134,7 +134,44 @@ impl TileCopies {
             return fallback();
         }
 
+        if self.full_pairs == 0b1000
+            && prefix == COPIES_PER_BATCH
+            && let Some(layout) = self.eight_middle_groups()
+        {
+            return Some(Cow::Owned(layout));
+        }
         Some(Self::shift_horizontal_boundaries(ordinary, pair, full_prefix))
+    }
+
+    // Interior cuts use a marker in the containing subtree. The batch supplies the exact copy.
+    fn parent_at_cut(&self, cut: u32) -> Option<usize> {
+        let subtree = self.subtree_ends.partition_point(|&end| end < cut);
+        let end = *self.subtree_ends.get(subtree)?;
+        let first = subtree * self.parents_per_subtree;
+        Some(first + if end == cut { self.parents_per_subtree } else { 1 })
+    }
+
+    fn eight_middle_groups(&self) -> Option<Vec<(usize, usize)>> {
+        let middle_tail = self.group_copies(24..32)?.checked_sub(8 * COPIES_PER_BATCH)?;
+        if self.group_copies(52..53)?.checked_add(middle_tail)? >= COPIES_PER_BATCH
+            || self.group_copies(62..63)? < COPIES_PER_BATCH
+            || self.group_copies(50..51)? >= COPIES_PER_BATCH
+            || self.group_copies(58..59)? >= COPIES_PER_BATCH
+        {
+            return None;
+        }
+        let subtrees = DEPTH_THREE_PARENTS / self.parents_per_subtree;
+        let first = 32 * subtrees;
+        let end = 40 * subtrees;
+        // The deferred copies of the full pair lead the first five subtrees.
+        // The two skipped subtrees are submitted later, after the next split.
+        let deferred = self.group_copies(54..56)?.checked_sub(2 * COPIES_PER_BATCH)?;
+        let copies = deferred.checked_add(self.subtree_copies(first..first + 5)?)?.checked_add(self.subtree_copies(first + 7..end)?)?;
+        let remainder = copies % COPIES_PER_BATCH;
+        let middle_cut = self.parent_at_cut(self.subtree_ends.get(end - 1)?.checked_sub(remainder)?)?;
+        let last_cut = self.parent_at_cut(self.subtree_ends.get(62 * subtrees - 1)?.checked_add(COPIES_PER_BATCH)?)?;
+        let filled = remainder.checked_add(self.subtree_copies(1..3)?)? >= COPIES_PER_BATCH;
+        Some(paired_batches::eight_middle_groups(last_cut, middle_cut, filled))
     }
 
     fn shift_horizontal_boundaries(ordinary: &'static [(usize, usize)], pair: Option<(usize, usize)>, full_prefix: bool) -> Cow<'static, [(usize, usize)]> {

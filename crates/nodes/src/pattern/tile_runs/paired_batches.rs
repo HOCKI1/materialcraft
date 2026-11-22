@@ -39,7 +39,23 @@ pub(super) fn three_final_pairs(filled: bool) -> Vec<(usize, usize)> {
         [10240, 392, 15616, 15872, 4288, 641, 12672, 576, 512, 768, 13440, 14464, 640]
     };
     let suffix = [704, 12608, 12800, 14528, 14848, 13824, 12736, 15744, 13504];
-    let mut layout: Vec<_> = prefix.into_iter().chain(middle).chain(suffix).enumerate().map(|(rank, end)| (end, rank)).collect();
+    ranked_ends(prefix.into_iter().chain(middle).chain(suffix))
+}
+
+// With eight batches in groups 24–31, the tail of groups 32–39 can
+// fill a later batch with the two middle subtrees of group 0.
+pub(super) fn eight_middle_groups(last_cut: usize, middle_cut: usize, filled: bool) -> Vec<(usize, usize)> {
+    let prefix = [
+        last_cut, 13057, 8192, 14336, 12039, 15105, 3844, 15616, 13312, 4160, 6027, 14336, 8512, middle_cut, 15360, 64, 1926, 4096, 15620, 8192, 13569, 16384,
+        12352, 12674, 12288, 14400, 14727, 6144, 8640,
+    ];
+    let middle: &[usize] = if filled { &[12364, 10240, 192, 12416, 192] } else { &[12416, 10240, 192] };
+    let suffix = [2048, 13696, 14464, 15872, 4288, 12800, 14528, 14848, 13632, 13824, 12480, 15744, 13760];
+    ranked_ends(prefix.into_iter().chain(middle.iter().copied()).chain(suffix))
+}
+
+fn ranked_ends(ends: impl Iterator<Item = usize>) -> Vec<(usize, usize)> {
+    let mut layout: Vec<_> = ends.enumerate().map(|(rank, end)| (end, rank)).collect();
     // Natural parent order locates each span. Equal endpoints split at a physical batch boundary.
     layout.sort_unstable();
     layout

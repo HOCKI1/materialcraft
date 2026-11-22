@@ -912,6 +912,38 @@ The 22 variations of the original quotas match 180,224/180,224 · 0. Eight indep
 
 Remaining single-processor root differences are n1u16 (2 pixels), n1f32 (2 pixels). At 64 × 128, seed 142326, the isolated horizontal source still matches 2,713/8,192 F32 pixels, maximum 5.96046448e−8. The new signed regression failed before the correction. All 446 node and evaluator release tests, formatting, strict workspace Clippy, dependency layers and WebAssembly passed.
 
+### Eight middle batches in the horizontal Dirt Gradient source
+
+Dirt Gradient matches all **2,863,360 pixels across the earlier 111 settings** on one reference processor, including all 28 saved settings. At 64 × 128, seed 142326, the horizontal pattern source improves from 2,713/8,192 F32 pixels (maximum 5.96046448e−8) to 8,192/8,192 (maximum zero). All 14 other isolated settings retain their scores. All 707 differing pixels in the eight-processor comparison also differ between the two reference captures, with identical counts and maximum error in every setting. [Earlier whole-root settings](#individual-tile-copies-after-two-full-horizontal-batches)
+
+| Comparison | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|
+| Earlier 111, one processor | 600,320/600,320 · 0 | 846,592/846,592 · 0 | 600,320/600,320 · 0 | 816,128/816,128 · 0 |
+| Earlier 111, eight processors | 600,320/600,320 · 0 | 846,260/846,592 · 2 | 600,296/600,320 · 0.00048828125 | 815,777/816,128 · 2.03251839e−5 |
+| Earlier 28 reopens, one processor | 36,864/36,864 · 0 | 80,896/80,896 · 0 | 32,768/32,768 · 0 | 279,808/279,808 · 0 |
+| New 16, one processor | 16,384/16,384 · 0 | 49,149/49,152 · 1 | 16,384/16,384 · 0 | 49,149/49,152 · 1.69277191e−5 |
+| New 16, eight processors | 16,384/16,384 · 0 | 49,130/49,152 · 2 | 16,383/16,384 · 0.000244140625 | 49,134/49,152 · 1.88946724e−5 |
+| New six reopens, one processor | — | 24,576/24,576 · 0 | 8,192/8,192 · 0 | 16,384/16,384 · 0 |
+
+For the new 16 settings leave the graph controls at their defaults. Use 64 × 128 at seeds 142325 and 142327, 128 × 64 at 191519 and 191521, 64 × 128 at 254179, and 128 × 64 at 254183. Use U16 and F32 everywhere and add U8 and F16 at seeds 142327 and 254179. Save in MaterialCraft and reopen settings 0, 3, 6, 9, 12 and 15 in both applications, numbering from zero in the order given and using U8, U16, F16, F32 within a size. Both applications reproduce their own six original buffers. At seed 254179 three U16 pixels still differ by one code and three F32 pixels differ by up to 1.69277191e−5. The 16 settings have identical MaterialCraft pixels before and after this fix. Across all 127 settings, 125 are exact on one processor.
+
+The full pair at groups 54–55 passes its extra copies to group 32, leaving that receiving batch short. Group 60 fills exactly one 5,460-copy batch. Groups 24–31 fill at least eight batches. Their excess plus group 52 leaves the next batch short. Group 62 fills a batch while groups 50 and 58 fall short. In the next quadrant, add the pair’s extra copies to depth-four subtrees 128–132 and 135–159 inclusive. The remainder after dividing by 5,460 gives the number of copies from the split to the end of group 39. When that remainder plus subtrees 1 and 2 reaches 5,460, two runs move relative to the next partial subtree. The physical copy counts locate both interior cuts.
+
+For four independent signed fields set all 64 group quotas to 32 extra copies. Give groups 24–30 a quota of 84, groups 60 and 61 quotas of 84 and 57, and use the other values below. Use the [even split and signed overlap procedure](#three-consecutive-full-pairs-in-the-final-dirt-gradient-quadrant). Sixteen draw pairs per field, each with both gain assignments, give 128 observed order comparisons. Eight F32 buffers improve from 130,944/131,072 · 2.98023224e−8 to 131,072/131,072 · 0. The new regression failed before the correction.
+
+| Group 0 | Group 31 | Group 32 | Each of 33–39 | Group 52 | Groups 54, 55 | Group 62 | Later batch relative to capacity | Seed |
+|---:|---:|---:|---:|---:|---|---:|---:|---:|
+| 107 | 84 | 83 | 82 | 83 | 79, 89 | 84 | -1 | 249179 |
+| 111 | 89 | 79 | 82 | 77 | 84, 87 | 86 | +0 | 249210 |
+| 111 | 98 | 64 | 83 | 63 | 91, 90 | 92 | +1 | 249241 |
+| 107 | 118 | 52 | 85 | 39 | 99, 90 | 101 | +8 | 249272 |
+
+For an independent weighted series, use the [original 128 × 64 weighted square field](#paired-subtree-capacity-in-horizontally-tiled-dirt-gradient). Generate 56 rows j with PCG64 seed 248367. Draw 64 integer group quotas from [24,83). Let E=(0,1,4,12,23,35,53)[j mod 7]. Draw group 54 from [73,105) and set group 55 to 168+E minus group 54. Set group 32 to max(1,84−E−(1,2,7,14)[j mod 4]). Use 84 in group 60, (34,64,80,83)[j mod 4] in group 61 and (84,85,89,106)[floor(j/3) mod 4] in group 62. Limit group 63 to 167 minus group 62. Draw groups 24–30 from [73,98). Set group 31 so that the sum in groups 24–31 is 672+(0,1,5,14,34,67,−1)[floor(j/2) mod 7]. For even j, start groups 33–39 at 71, 85, 95, 72, 98, 92, 85 and add independent integers from [−8,9). Use equal-probability four-way multinomial splits. After those draws, replace every third row starting at row 0 with the even split above. From row 21 onward adjust randomly selected subtrees 136–159 by one copy, keeping quotas in [0,160], until the later batch falls (−8,−2,−1,0,1,2,8)[j mod 7] copies from capacity. Seed the weighted image with 248431+23j.
+
+The 11 earlier split fields within those conditions match 90,112/90,112 · 0. The 33 qualifying new fields match 269,363/270,336 · 2.02655792e−6. Row 5 differs at 973 pixels in its first reference capture. Three additional one-processor captures each match every pixel in rows 5 and 7, or 49,152/49,152 in total. The same two fields on eight processors match 14,451/16,384 · 2.38418579e−6. Row 8 crosses the group-52 boundary and still differs on each one-processor repeat (7,222/8,192 exact, maximum 2.74181366e−6). After saving three signed fields and weighted rows 5, 30 and 31 in MaterialCraft, both applications agree on 73,728/73,728 · 0. MaterialCraft reproduces each original. The first reference original of row 5 differs from its first saved capture at 973 pixels. Three further reference readbacks of each file all reproduce the first saved buffer, 49,152/49,152 pixels, maximum zero.
+
+In the six additional whole-root settings rendered separately at F32, four isolated horizontal generators are exact. Seed 191519 matches 2,875/8,192 source pixels, maximum 8.94069672e−8, even though the whole-root output is exact. Seed 254179 matches 3,314/8,192 source pixels, maximum 5.96046448e−8. Two further single-processor captures at seed 254179 reproduce all 8,192 reference pixels each. All 447 node and evaluator release tests, formatting, strict workspace Clippy, dependency layers and WebAssembly passed.
+
 ## 2026-11-21 root comparisons
 
 ### Connected quadrant depth and amplified spot patterns
