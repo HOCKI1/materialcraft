@@ -470,49 +470,68 @@ fn six_quadrant_levels_composite_overlapping_subtrees_in_reverse_slot_order() {
     }
 }
 
+struct QuadrantProbeGroup {
+    last_three: [usize; 3],
+    offset: [f32; 2],
+}
+
+fn seven_level_tree() -> (PatternGraph, Vec<QuadrantProbeGroup>) {
+    let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
+    let mut groups = Vec::new();
+    for slot in 0..4 {
+        let parent = graph.add(PatternNodeKind::Quadrant).unwrap();
+        graph.nodes[0].children[slot] = Some(parent);
+        for child_slot in 0..4 {
+            let mut ancestor = graph.add(PatternNodeKind::Quadrant).unwrap();
+            graph.nodes[(parent - 1) as usize].children[child_slot] = Some(ancestor);
+            for _ in 2..5 {
+                let child = graph.add(PatternNodeKind::Quadrant).unwrap();
+                graph.nodes[(ancestor - 1) as usize].children.fill(Some(child));
+                ancestor = child;
+            }
+            let terminal = graph.add(PatternNodeKind::Quadrant).unwrap();
+            graph.nodes[(ancestor - 1) as usize].children.fill(Some(terminal));
+            let leaf = graph.add(PatternNodeKind::Quadrant).unwrap();
+            graph.nodes[(terminal - 1) as usize].children.fill(Some(leaf));
+            let offset = [(slot & 1) * 2 + (child_slot & 1), (slot >> 1) * 2 + (child_slot >> 1)].map(|quarter| -0.25 * quarter as f32);
+            groups.push(QuadrantProbeGroup { last_three: [ancestor, terminal, leaf].map(|id| (id - 1) as usize), offset });
+        }
+    }
+    (graph, groups)
+}
+
+fn additive_square(weight: f32, offset: [f32; 2], frame: [f32; 2]) -> BTreeMap<String, Value> {
+    BTreeMap::from([
+        ("patterntype".into(), Value::Int(2)),
+        ("patternsize".into(), Value::Float2([0.875; 2])),
+        ("branchoffset".into(), Value::Float2(offset)),
+        ("frameoffset".into(), Value::Float2(frame)),
+        ("opacity".into(), Value::Float(weight)),
+        ("blendingmode".into(), Value::Int(0)),
+    ])
+}
+
 #[test]
 fn seven_quadrant_levels_order_leaf_runs_before_discarding_missed_stamps() {
     let tiny = f32::EPSILON * 0.25;
     for (negative, positive, miss_other_stamps, missing_slot, expected) in
         [(12, 0, false, None, tiny), (12, 0, true, None, tiny), (0, 14, true, None, 0.0), (12, 0, false, Some(2), tiny), (0, 14, true, Some(2), 0.0)]
     {
-        let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
-        for slot in 0..4 {
-            let parent = graph.add(PatternNodeKind::Quadrant).unwrap();
-            graph.nodes[0].children[slot] = Some(parent);
-            for child_slot in 0..4 {
-                let group = slot * 4 + child_slot;
-                let mut leaf = graph.add(PatternNodeKind::Quadrant).unwrap();
-                graph.nodes[(parent - 1) as usize].children[child_slot] = Some(leaf);
-                for depth in 2..7 {
-                    let child = graph.add(PatternNodeKind::Quadrant).unwrap();
-                    graph.nodes[(leaf - 1) as usize].children.fill(Some(child));
-                    if depth == 6
-                        && let Some(slot) = missing_slot
-                    {
-                        graph.nodes[(leaf - 1) as usize].children[slot] = None;
-                    }
-                    leaf = child;
-                }
-                let offset = [(slot & 1) * 2 + (child_slot & 1), (slot >> 1) * 2 + (child_slot >> 1)].map(|quarter| -0.25 * quarter as f32);
-                let weight = if group == negative {
-                    -1.0
-                } else if group == positive {
-                    tiny
-                } else {
-                    0.0
-                };
-                // Move neutral leaves halfway between samples to exercise geometric culling.
-                let shift = if miss_other_stamps && weight == 0.0 { 0.5 / 128.0 } else { 0.0 };
-                graph.nodes[(leaf - 1) as usize].parameters = BTreeMap::from([
-                    ("patterntype".into(), Value::Int(2)),
-                    ("patternsize".into(), Value::Float2([0.875; 2])),
-                    ("branchoffset".into(), Value::Float2(offset)),
-                    ("frameoffset".into(), Value::Float2([shift; 2])),
-                    ("opacity".into(), Value::Float(weight)),
-                    ("blendingmode".into(), Value::Int(0)),
-                ]);
+        let (mut graph, groups) = seven_level_tree();
+        for (group, QuadrantProbeGroup { last_three: [_, terminal, leaf], offset }) in groups.into_iter().enumerate() {
+            if let Some(slot) = missing_slot {
+                graph.nodes[terminal].children[slot] = None;
             }
+            let weight = if group == negative {
+                -1.0
+            } else if group == positive {
+                tiny
+            } else {
+                0.0
+            };
+            // Move neutral leaves halfway between samples to exercise geometric culling.
+            let shift = if miss_other_stamps && weight == 0.0 { 0.5 / 128.0 } else { 0.0 };
+            graph.nodes[leaf].parameters = additive_square(weight, offset, [shift; 2]);
         }
         for detached_dot in [false, true] {
             if detached_dot {
@@ -529,6 +548,58 @@ fn seven_quadrant_levels_order_leaf_runs_before_discarding_missed_stamps() {
                         "groups {negative} and {positive} at ({x},{y}), missing {missing_slot:?}, detached {detached_dot}"
                     );
                 }
+            }
+        }
+    }
+}
+
+#[test]
+fn depth_six_stamps_and_their_four_leaves_draw_in_the_same_grandchild_run() {
+    let tiny = f32::EPSILON * 0.25;
+    let (mut graph, groups) = seven_level_tree();
+    for (group, QuadrantProbeGroup { last_three: [_, terminal, leaf], offset }) in groups.into_iter().enumerate() {
+        let weight = match group {
+            12 => -1.0,
+            0 => tiny,
+            _ => 0.0,
+        };
+        graph.nodes[terminal].parameters = additive_square(weight, offset, [0.0; 2]);
+        graph.nodes[leaf].parameters = additive_square(0.25, [0.0; 2], [0.0, 0.5]);
+    }
+    let image = cook_in_regions(graph, &BTreeMap::new(), 137143, [128; 2], [[0.0, 1.0, 0.0, 1.0]; 2], 1.0).unwrap().remove(0);
+    for y in 0..32 {
+        for x in 0..32 {
+            assert_eq!(image.get_gray(x, y, false).to_bits(), tiny.to_bits(), "overlapping parents at ({x},{y})");
+            assert_eq!(image.get_gray(x, y + 64, false), 5.0, "overlapping leaves at ({x},{y})");
+        }
+    }
+}
+
+#[test]
+fn missing_slots_at_the_last_two_subdivisions_keep_the_grandchild_boundaries() {
+    let tiny = f32::EPSILON * 0.25;
+    for (subdivision, mask) in [(5, 0b1011), (6, 0b1000), (6, 0b1010)] {
+        let (mut graph, groups) = seven_level_tree();
+        for (group, QuadrantProbeGroup { last_three, offset }) in groups.into_iter().enumerate() {
+            for (slot, child) in graph.nodes[last_three[subdivision - 5]].children.iter_mut().enumerate() {
+                if mask & (1 << slot) == 0 {
+                    *child = None;
+                }
+            }
+            let weight = match group {
+                12 => -1.0,
+                0 => tiny,
+                _ => 0.0,
+            };
+            graph.nodes[last_three[2]].parameters = additive_square(weight, offset, [0.0; 2]);
+        }
+        let image = cook_in_regions(graph, &BTreeMap::new(), 136404, [128; 2], [[0.0, 1.0, 0.0, 1.0]; 2], 1.0).unwrap().remove(0);
+        for y in 0..128 {
+            for x in 0..128 {
+                let place = 6 - subdivision;
+                let slot = ((x >> place) & 1) + 2 * ((y >> place) & 1);
+                let expected = if x < 32 && y < 32 && mask & (1 << slot) != 0 { tiny } else { 1.0 };
+                assert_eq!(image.get_gray(x, y, false).to_bits(), expected.to_bits(), "subdivision {subdivision}, mask {mask} at ({x},{y})");
             }
         }
     }

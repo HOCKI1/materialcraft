@@ -1,4 +1,4 @@
-use materialcraft_core::{PatternNodeKind, Value};
+use materialcraft_core::{PatternNode, PatternNodeKind, Value};
 use std::collections::{BTreeMap, BTreeSet};
 
 use super::{catalog, footprint::SampleGrid, pattern_stamp::PatternStamp, pattern_visit::PatternVisit, raster, variables::PatternVariables};
@@ -10,10 +10,63 @@ use crate::{CookContext, CookResult};
 // up to this same limit again. Retained stamps, raster copies and pixel work stay bounded.
 const MAX_VISITS: usize = 1_048_576;
 
-// Each grandchild of a regular seven-level tree contains 4^4 terminal quadrants.
-// Overlapping squares establish the same run order with three or four leaves per terminal quadrant.
-const TERMINAL_QUADRANTS_PER_RUN: usize = 256;
+// Overlapping squares establish the order of the sixteen grandchildren in a regular seven-level tree.
 const SEVEN_LEVEL_RUN_ORDER: [usize; 16] = [12, 13, 8, 9, 14, 0, 1, 15, 2, 11, 6, 7, 10, 3, 4, 5];
+
+#[derive(Default)]
+struct SevenLevelRuns {
+    starts: [usize; 17],
+    grandchildren: usize,
+    child_counts: [Option<usize>; 2],
+    parents_drawn: usize,
+    leaves_drawn: usize,
+}
+
+impl SevenLevelRuns {
+    fn visit(&mut self, node: &PatternNode, depth: u32, retained: usize) -> bool {
+        if node.kind != PatternNodeKind::Quadrant {
+            return false;
+        }
+        if depth == 2 {
+            let Some(start) = self.starts.get_mut(self.grandchildren) else { return false };
+            *start = retained;
+            self.grandchildren += 1;
+        }
+        match depth {
+            0..=4 => !node.children.contains(&None),
+            5 | 6 => {
+                let count = node.children.iter().flatten().count();
+                count > 0 && *self.child_counts[(depth - 5) as usize].get_or_insert(count) == count
+            }
+            _ => true,
+        }
+    }
+
+    fn draw(&mut self, stamp: &PatternStamp) -> bool {
+        if stamp.blend != 0 || !(2..=18).contains(&stamp.pattern) {
+            return false;
+        }
+        match stamp.depth {
+            6 => self.parents_drawn += 1,
+            7 => self.leaves_drawn += 1,
+            _ => return false,
+        }
+        true
+    }
+
+    fn finish(mut self, retained: usize) -> Option<[usize; 17]> {
+        let [Some(penultimate), Some(terminal)] = self.child_counts else { return None };
+        // The first five full subdivisions give 1,024 parents of the penultimate level.
+        let leaves = 1024 * penultimate * terminal;
+        let measured =
+            (self.parents_drawn == 0 && (penultimate == 4 || (penultimate == 3 && terminal == 4))) || (self.parents_drawn == 4096 && leaves == 16384);
+        if self.grandchildren != SEVEN_LEVEL_RUN_ORDER.len() || self.leaves_drawn != leaves || !measured {
+            return None;
+        }
+        self.starts[SEVEN_LEVEL_RUN_ORDER.len()] = retained;
+        Some(self.starts)
+    }
+}
 
 pub(crate) fn cook(context: &CookContext) -> CookResult {
     cook_with_base_level_inputs(context, &[])
@@ -68,9 +121,7 @@ pub fn cook_with_base_level_inputs(context: &CookContext, base_level_only: &[boo
     let mut remaining = MAX_VISITS;
     let mut discard_allowance = MAX_VISITS;
     let grayscale = !context.b("color_mode");
-    let mut leaf_count = (grayscale && opacity_depth == 7).then_some(0_usize);
-    let mut leaves_per_run = 0;
-    let mut run_starts = [0; SEVEN_LEVEL_RUN_ORDER.len() + 1];
+    let mut seven_level_runs = (grayscale && opacity_depth == 7).then(SevenLevelRuns::default);
     // A grayscale opacity expression can produce an infinity or NaN which participates in the blend.
     let opacity = context.value("opacity").and_then(Value::as_f32).unwrap_or(0.0);
     let nonfinite_gray_opacity = grayscale && !opacity.is_finite();
@@ -98,18 +149,8 @@ pub fn cook_with_base_level_inputs(context: &CookContext, base_level_only: &[boo
             pending.push((next, repeats_left - 1));
         }
         let &(node, literal_geometry) = nodes.get(&visit.node).ok_or("missing pattern node")?;
-        if leaf_count.is_some() {
-            if node.kind != PatternNodeKind::Quadrant {
-                leaf_count = None;
-            } else if visit.depth == 6 {
-                let child_count = node.children.iter().flatten().count();
-                let length = TERMINAL_QUADRANTS_PER_RUN * child_count;
-                if (3..=4).contains(&child_count) && (leaves_per_run == 0 || leaves_per_run == length) {
-                    leaves_per_run = length;
-                } else {
-                    leaf_count = None;
-                }
-            }
+        if seven_level_runs.as_mut().is_some_and(|runs| !runs.visit(node, visit.depth, stamps.len())) {
+            seven_level_runs = None;
         }
         if node.kind == PatternNodeKind::Dot {
             if let Some(Some(child)) = node.children.first() {
@@ -237,18 +278,9 @@ pub fn cook_with_base_level_inputs(context: &CookContext, base_level_only: &[boo
                         filtering: integer("imagefiltering"),
                         premultiplied: field("imagepremul").and_then(Value::as_bool).unwrap_or(false),
                     };
-                    if let Some(count) = leaf_count.as_mut() {
-                        if stamp.depth == 7 && leaves_per_run != 0 && (1..256).contains(&stamp.pattern) && stamp.blend == 0 {
-                            // A leaf that misses the sample grid still occupies its place in the tree.
-                            if count.is_multiple_of(leaves_per_run)
-                                && let Some(start) = run_starts.get_mut(*count / leaves_per_run)
-                            {
-                                *start = stamps.len();
-                            }
-                            *count += 1;
-                        } else {
-                            leaf_count = None;
-                        }
+                    // A draw that misses the sample grid still belongs to its grandchild's run.
+                    if seven_level_runs.as_mut().is_some_and(|runs| !runs.draw(&stamp)) {
+                        seven_level_runs = None;
                     }
                     // Evaluate every property before discarding a stamp. Its assignments can reach
                     // later visits. Keep the first stamp so raster setup still validates depth weights.
@@ -333,8 +365,7 @@ pub fn cook_with_base_level_inputs(context: &CookContext, base_level_only: &[boo
     }
 
     let mut groups = [&[][..]; SEVEN_LEVEL_RUN_ORDER.len()];
-    if leaves_per_run != 0 && leaf_count == Some(leaves_per_run * groups.len()) {
-        run_starts[groups.len()] = stamps.len();
+    if let Some(run_starts) = seven_level_runs.and_then(|runs| runs.finish(stamps.len())) {
         for (group, run) in groups.iter_mut().zip(SEVEN_LEVEL_RUN_ORDER) {
             *group = stamps.get(run_starts[run]..run_starts[run + 1]).ok_or("invalid pattern draw range")?;
         }
