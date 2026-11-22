@@ -362,6 +362,35 @@ At the eight distinct sizes and seeds from those settings, expose the third gene
 
 In four interleaved single-processor release runs per version, render the 256², 128 × 64 and second 128 × 64 both-axis generator settings at seeds 0, 142327 and 186722. Median process CPU time changed from 9.781 to 9.789 seconds. All 436 release tests for nodes and the evaluator passed, together with formatting, strict workspace Clippy, dependency layers and WebAssembly.
 
+### Completing short paired quadrant batches in Moisture Noise
+
+Start with the [sparse quadrant tree](#sparse-quadrant-parents-and-leaves-in-moisture-noise). A run of fewer than 5,460 submitted copies from groups 24–31 borrows the missing copies from group 52. Groups 40–47 borrow from group 56. When the paired prefix starting at 16 or 32 splits in its seventh group, its short block finishes immediately after that prefix. Other pending blocks finish after the prefix starting at 0. If that prefix splits in its seventh group, block 24 finishes first. Otherwise block 40 finishes first. The measured rule covers sixth- and seventh-group splits and borrowing strictly within the first partner group.
+
+For the regression, enable all 16 depth-two parents and all 64 depth-three groups. In each depth-four subtree set the first q cells of the 16² depth-eight grid to .25 and the rest to zero. For the six consecutive blocks starting at groups 0, 16, 32, 8, 24 and 40, respectively, use q = (95,66,95,96,84,83), (95,95,66,84,83,82) or (66,95,95,85,82,84), and use 96 elsewhere. Draw two coincident depth-seven squares on white with gains −1 and 2⁻²⁵, then swap the gains. Compare 48 pairs per profile, including groups 24, 40, 52 and 56 against each other and the three paired prefixes. All 288 signed marker values and all 98,304 pixels in the six 128² F32 images match. The previous range calculation declined all three profiles. An independently reconstructed ordering also matches all 32,766 signed adjacent comparisons on the isolated generator's fifth setting with tiling disabled.
+
+For the broader sweep, use PCG64 seed 205173. Enumerate sixth- and seventh-group splits independently for the three paired prefixes. For each combination test short blocks at (24), (40), (24,40), (24,8), (40,8) and (24,40,8). Keep parents when uniform draws exceed .12 and groups when they exceed .19. Start with integer q in [92,103]. Use 93 or 66 for the paired subtrees plus an independent integer in [−8,8]. Target 5,460 minus 84–176 copies for short blocks, or plus 79–160 for full blocks. Subtract retained parents, groups and the 85 interior cells per subtree. Distribute the remaining leaves across the 32 subtrees with neighboring quotas offset by opposite integers in [−6,6]. Twelve additional fields at seed 208611 include exact fills and deficits of 1, 26, 53, 97 and 511. Across these 60 fields, all 13,440 signed prefix comparisons agree. Their 120 complete marker images match 1,966,080/1,966,080. Compare independent weighted group pairs in rounds 5 and 28, or 17, 41 and 62 when all three blocks are short. The 256 F32 images match 4,194,304/4,194,304. Another 448 earlier renders match 7,340,032/7,340,032. Saving and reopening 12 new controls reproduced both applications’ original pixels and matched 196,608/196,608 across applications. Thirteen earlier saved controls matched 212,992/212,992.
+
+Both generators now match all five [isolated settings](#two-independent-pattern-sources-in-moisture-noise) in U16, F32 with original tiling and F32 with tiling disabled. All 30 outputs match 159,744/159,744, including all 20 floating-point outputs. Repeat at 128² with width 44.21875, height 177.90625 and disorder .09375, at default 512², and at 256 × 1024 with seed 57669, width 105.90625, height 121.46875 and disorder .53125. Include 128² seed 1, 128 × 64 seed 0 and 256 × 128 seed 0 using the first controls. At seven whole-root settings, the four reconnected stored stages agree with their original outputs and with MaterialCraft on 2,457,600/2,457,600 pixels. The two generators' 12 independent F32 outputs match 1,196,032/1,196,032.
+
+The [110 whole-root settings](#two-independent-pattern-sources-in-moisture-noise) now match every pixel on one processor, gaining 124. The eight-processor comparison loses 34 exact pixels and differs at 509. All 18 one-processor saved settings reproduce both applications' original outputs and match across applications.
+
+| Comparison | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|
+| One processor | 760,064/760,064 · 0 | 1,413,888/1,413,888 · 0 | 760,064/760,064 · 0 | 1,338,368/1,338,368 · 0 |
+| Eight processors | 760,060/760,064 · 1 | 1,413,642/1,413,888 · 6 | 760,028/760,064 · 0.00048828125 | 1,338,145/1,338,368 · 7.83205032e−5 |
+| Reopened, one processor | 28,672/28,672 · 0 | 24,576/24,576 · 0 | 8,192/8,192 · 0 | 425,984/425,984 · 0 |
+
+To check repeatability, use the 128² and default 512² settings above at seed 0 in U16 and F32. Include default 256² at seed 42 in U8 and the 256 × 1024 setting above at seed 57669 in U16, F16 and F32. Alternate offsets 0, 7, 0, 13, 0 from each input seed. On one processor all three original-seed passes reproduce the earlier capture, 4,227,072/4,227,072 pixels. On eight processors, the original graph differed from itself at 540 of 4,227,072 compared pixels across the three pairwise comparisons. The reopened graph differed from itself at 498. Across all five seed passes, original and reopened eight-processor outputs agreed on 7,044,256/7,045,120 pixels.
+
+| Comparison | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|
+| One processor, repeated original seed | 196,608/196,608 · 0 | 1,622,016/1,622,016 · 0 | 786,432/786,432 · 0 | 1,622,016/1,622,016 · 0 |
+| Eight processors, repeated original seed | 196,606/196,608 · 1 | 1,621,752/1,622,016 · 6 | 786,384/786,432 · 0.00048828125 | 1,621,790/1,622,016 · 7.83205032e−5 |
+| Eight processors, repeated reopened seed | 196,608/196,608 · 0 | 1,621,818/1,622,016 · 6 | 786,384/786,432 · 0.00048828125 | 1,621,764/1,622,016 · 7.83205032e−5 |
+| Eight processors, original versus reopened | 327,678/327,680 · 1 | 2,702,936/2,703,360 · 6 | 1,310,643/1,310,720 · 0.00048828125 | 2,702,999/2,703,360 · 7.83205032e−5 |
+
+The shared draw path retained 1,792,256/1,792,256 exact pixels on one processor and 1,792,196/1,792,256 on eight across 97 Clouds 2 settings. Four interleaved runs per version at the [three release benchmark settings](#sparse-quadrant-parents-and-leaves-in-moisture-noise) gave median process CPU times of 5.820 seconds before and 5.758 after. All 436 node and evaluator release tests passed, together with formatting, strict workspace Clippy, dependency layers and WebAssembly.
+
 ## 2026-11-21 root comparisons
 
 ### Connected quadrant depth and amplified spot patterns
