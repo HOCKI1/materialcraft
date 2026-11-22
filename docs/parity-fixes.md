@@ -912,6 +912,32 @@ The 22 variations of the original quotas match 180,224/180,224 · 0. Eight indep
 
 Remaining single-processor root differences are n1u16 (2 pixels), n1f32 (2 pixels). At 64 × 128, seed 142326, the isolated horizontal source still matches 2,713/8,192 F32 pixels, maximum 5.96046448e−8. The new signed regression failed before the correction. All 446 node and evaluator release tests, formatting, strict workspace Clippy, dependency layers and WebAssembly passed.
 
+### Final-pair and middle-batch copies in Dirt Gradient
+
+Dirt Gradient matches all **143 whole-graph settings on one processor**, including the four formats at 64 × 128, seed 254181. All **40 saved settings** reopen with identical pixels in both applications. On eight processors, 50/143 settings and 3,272,132/3,272,960 pixels match. Comparing the reference application's own one- and eight-processor captures gives the same per-setting counts and maxima. [Whole-graph settings, seeds, output formats and save order](#ten-batches-in-the-horizontal-dirt-gradient-source)
+
+| Comparison | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|
+| 143 whole settings, one processor | 657,664/657,664 · 0 | 994,048/994,048 · 0 | 657,664/657,664 · 0 | 963,584/963,584 · 0 |
+| 143 whole settings, eight processors | 657,664/657,664 · 0 | 993,657/994,048 · 2 | 657,639/657,664 · 0.00048828125 | 963,172/963,584 · 2.03251839e-05 |
+| Reference one versus eight processors | 657,664/657,664 · 0 | 993,657/994,048 · 2 | 657,639/657,664 · 0.00048828125 | 963,172/963,584 · 2.03251839e-05 |
+| 40 reopens across applications, one processor | 36,864/36,864 · 0 | 130,048/130,048 · 0 | 73,728/73,728 · 0 | 337,152/337,152 · 0 |
+
+Isolate the depth-nine horizontal additive pattern at 64 × 128, seed 254181. Number its depth-four subtrees in traversal order, with four subtrees per group. Groups 24–31 fill eight batches of 5,460 copies. Groups 62–63 exceed two batches by 12 copies. Those 12 lead group 48. Whenever the middle groups have a remainder, it leads group 52. Group 60 and the first and last subtrees of group 61 share a two-batch stream with the middle subtrees of group 16. Count even those wrapped copies that miss all pixels. The isolated output improves from 2,495/8,192 (maximum 8.94069672e−8) to **8,192/8,192 F32 pixels** (zero).
+
+For the [signed square probe](#three-consecutive-full-pairs-in-the-final-dirt-gradient-quadrant), set every group to 61 extra copies and groups 24–31 to 84, then apply the table. Distribute the extras among the four subtrees as in the [normal-cook regression](../crates/nodes/src/pattern/tests/paired_batches.rs). At 128² exchange the negative and positive gains. Across eight buffers the check improves from 130,944/131,072 (maximum 2.98023224e-08) to 131,072/131,072 (zero).
+
+| Group 16 | 31 | 48 | 49 | 52 | 60 | 62 | 63 | Seed |
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 134 | 84 | 84 | 85 | 83 | 70 | 58 | 110 | 269119 |
+| 114 | 85 | 86 | 83 | 80 | 81 | 83 | 86 | 269156 |
+| 118 | 87 | 79 | 90 | 75 | 82 | 84 | 96 | 269193 |
+| 131 | 100 | 70 | 99 | 58 | 83 | 101 | 93 | 269230 |
+
+At 128 × 64, use the same four rows of quotas with the [weighted square field](#paired-subtree-capacity-in-horizontally-tiled-dirt-gradient). For row j starting at zero, use seeds 273097 + 31j and 273600 + 31j. Save and reopen the first seed in each row. Across eight originals, 65,536/65,536 F32 pixels match, maximum 0. The four cross-application reopens match 32,768/32,768, maximum 0. All four local buffers repeat their whole originals.
+
+A further 16 weighted fields derived from the stage's copy counts match 131,072/131,072, maximum 0. Ten independently distributed quota fields match 79,251/81,920, maximum 2.50339508e-06. Three fields account for that difference. Recapture those three and two exact controls on the same single processor. The successive five-buffer results are 40,070/40,960 (maximum 1.78813934e-06), 40,960/40,960 (zero), and 40,960/40,960 (zero). The inventory retains the eight-processor whole-graph differences. All 451 node and evaluator release tests, formatting, strict workspace Clippy, crate layers and WebAssembly passed.
+
 ### Ten batches in the horizontal Dirt Gradient source
 
 On one processor all **127 earlier whole settings match pixel for pixel**, including the six previously differing values at 64 × 128, seed 254179. Their isolated horizontal pattern improves from 3,314/8,192 F32 pixels (maximum 5.96046448e−8) to 8,192/8,192 (zero). All 34 earlier saved settings also match in both applications. A further 16 whole settings extend the comparison to **139/143 settings and 3,272,949/3,272,960 pixels**. The four differing settings share seed 254181. [Earlier settings and saved results](#eight-middle-batches-in-the-horizontal-dirt-gradient-source)

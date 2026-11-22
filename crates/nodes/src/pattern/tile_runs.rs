@@ -156,17 +156,25 @@ impl TileCopies {
         Some(first + if end == cut { self.parents_per_subtree } else { 1 })
     }
 
+    fn first_quadrant_copies(&self) -> Option<u32> {
+        // The two middle subtrees of group 0 are pending when groups 58 and 59 join the first stream.
+        self.subtree_copies(0..1)?.checked_add(self.subtree_copies(3..30)?)?.checked_add(self.group_copies(58..60)?)
+    }
+
+    fn first_quadrant_cut(&self, first: u32) -> Option<usize> {
+        let cut = self.subtree_ends.get(29)?.checked_add(9 * COPIES_PER_BATCH)?.checked_sub(first)?;
+        if cut <= *self.subtree_ends.get(28)? || cut > *self.subtree_ends.get(30)? {
+            return None;
+        }
+        self.parent_at_cut(cut)
+    }
+
     fn first_quadrant_tail(&self, ordinary: &[(usize, usize)], prefix: u32) -> Option<Vec<(usize, usize)>> {
-        if self.group_copies(24..32)? >= 8 * COPIES_PER_BATCH || self.penultimate_batch_fills(prefix)? {
+        if self.group_copies(24..32)? >= 8 * COPIES_PER_BATCH || self.penultimate_copies(prefix)? >= 2 * COPIES_PER_BATCH {
             return None;
         }
-        // After nine batches, the two middle subtrees of group 0 are still pending.
-        // Groups 58 and 59 have already submitted their copies to this stream.
-        let first = self.subtree_copies(0..1)?.checked_add(self.subtree_copies(3..30)?)?.checked_add(self.group_copies(58..60)?)?;
-        let head_cut = self.subtree_ends.get(29)?.checked_add(9 * COPIES_PER_BATCH)?.checked_sub(first)?;
-        if head_cut <= *self.subtree_ends.get(28)? || head_cut > *self.subtree_ends.get(30)? {
-            return None;
-        }
+        let first = self.first_quadrant_copies()?;
+        let head = self.first_quadrant_cut(first)?;
         // The end of the first eight groups and one subtree each from groups
         // 52 and 56 now fill a tenth batch. Split the latter at the physical copy.
         let combined =
@@ -176,7 +184,6 @@ impl TileCopies {
             return None;
         }
         let split = self.parent_at_cut(self.subtree_ends.get(225)?.checked_sub(extra)?)?;
-        let head = self.parent_at_cut(head_cut)?;
         let pair = self.parent_at_cut(self.subtree_ends.get(215)?.checked_add(COPIES_PER_BATCH)?)?;
         let mut layout: Vec<_> = ordinary
             .iter()
@@ -257,7 +264,7 @@ impl TileCopies {
         Some(layout)
     }
 
-    fn penultimate_batch_fills(&self, prefix: u32) -> Option<bool> {
+    fn penultimate_copies(&self, prefix: u32) -> Option<u32> {
         let subtrees = DEPTH_THREE_PARENTS / DEPTH_FOUR_PARENTS;
         let receiver = 16 * subtrees;
         let following = 61 * subtrees;
@@ -269,13 +276,13 @@ impl TileCopies {
         for range in [first..first + 1, following + 3..following + 4, receiver + 1..receiver + 3] {
             copies = copies.checked_add(self.subtree_copies(range)?)?;
         }
-        Some(copies >= 2 * COPIES_PER_BATCH)
+        Some(copies)
     }
 
     fn penultimate_layout(&self, ordinary: &'static [(usize, usize)]) -> Option<Cow<'static, [(usize, usize)]>> {
         let prefix = self.group_copies(60..61)?;
         let full_prefix = prefix >= COPIES_PER_BATCH;
-        let layout = if self.penultimate_batch_fills(prefix)? { PairedBatches::Penultimate.layout() } else { ordinary };
+        let layout = if self.penultimate_copies(prefix)? >= 2 * COPIES_PER_BATCH { PairedBatches::Penultimate.layout() } else { ordinary };
         Some(Self::shift_horizontal_boundaries(layout, None, full_prefix))
     }
 
@@ -291,13 +298,97 @@ impl TileCopies {
         if self.group_copies(0..1)?.checked_add(first_tail)? < COPIES_PER_BATCH || self.group_copies(48..49)?.checked_add(last_tail)? >= COPIES_PER_BATCH {
             return None;
         }
-        Some(Cow::Owned(paired_batches::three_final_pairs(self.penultimate_batch_fills(penultimate)?)))
+        Some(Cow::Owned(paired_batches::three_final_pairs(self.penultimate_copies(penultimate)? >= 2 * COPIES_PER_BATCH)))
+    }
+
+    fn middle_and_final_pair(&self, ordinary: &[(usize, usize)], final_tail: u32) -> Option<Vec<(usize, usize)>> {
+        let prefix = self.group_copies(60..61)?;
+        let middle_tail = self.group_copies(24..32)?.checked_sub(8 * COPIES_PER_BATCH)?;
+        if prefix >= COPIES_PER_BATCH || self.group_copies(52..53)?.checked_add(middle_tail)? >= COPIES_PER_BATCH {
+            return None;
+        }
+        let penultimate_tail = self.penultimate_copies(prefix)?.checked_sub(2 * COPIES_PER_BATCH)?;
+        let cut_after = |subtrees: usize, copies| self.parent_at_cut(self.subtree_ends.get(subtrees.checked_sub(1)?)?.checked_add(copies)?);
+        let first = self.first_quadrant_cut(self.first_quadrant_copies()?)?;
+        let last_pair = cut_after(248, 2 * COPIES_PER_BATCH)?;
+        let middle = cut_after(96, 8 * COPIES_PER_BATCH)?;
+        let pair = cut_after(216, COPIES_PER_BATCH)?;
+        let after_eight = cut_after(245, (8 * COPIES_PER_BATCH).checked_sub(self.group_copies(8..16)?)?)?;
+        let mut layout: Vec<_> = ordinary
+            .iter()
+            .filter(|(_, rank)| *rank < 19)
+            .map(|&(end, rank)| {
+                (
+                    match rank {
+                        0 => last_pair,
+                        2 => middle,
+                        3 => pair,
+                        16 => first,
+                        18 => after_eight,
+                        _ => end,
+                    },
+                    rank,
+                )
+            })
+            .collect();
+        // Any remainder after eight middle batches leads group 52. The final pair's remainder leads group 48.
+        if middle_tail > 0 {
+            layout.push((32 * DEPTH_THREE_PARENTS, layout.len()));
+        }
+        let next = cut_after(208, COPIES_PER_BATCH.checked_sub(middle_tail)?)?;
+        let receiver = cut_after(192, COPIES_PER_BATCH.checked_sub(final_tail)?)?;
+        // The middle two subtrees of group 16 draw later. The middle two of group 32
+        // and both groups 50 and 51 have already contributed to the ten-batch stream.
+        let preceding = self
+            .subtree_copies(64..65)?
+            .checked_add(self.subtree_copies(67..96)?)?
+            .checked_add(self.subtree_copies(129..131)?)?
+            .checked_add(self.group_copies(50..52)?)?;
+        let later = cut_after(196, (10 * COPIES_PER_BATCH).checked_sub(preceding)?)?;
+        let penultimate = self.parent_at_cut(self.subtree_ends.get(66)?.checked_sub(penultimate_tail)?)?;
+        let tail = [
+            next,
+            16384,
+            receiver,
+            12288,
+            14400,
+            14727,
+            6144,
+            8384,
+            later,
+            15680,
+            15872,
+            penultimate,
+            12672,
+            10240,
+            192,
+            2048,
+            13696,
+            14464,
+            4288,
+            12544,
+            12800,
+            14528,
+            14848,
+            13632,
+            13824,
+            12736,
+            15808,
+            13760,
+        ];
+        let first_rank = layout.len();
+        layout.extend(tail.into_iter().enumerate().map(|(rank, end)| (end, first_rank + rank)));
+        layout.sort_unstable();
+        Some(layout)
     }
 
     fn final_pair_layout(&self) -> Option<Cow<'static, [(usize, usize)]>> {
         let ordinary = PairedBatches::Final.layout();
         let deferred = self.group_copies(62..64)?.checked_sub(2 * COPIES_PER_BATCH)?;
         if self.group_copies(48..49)?.checked_add(deferred)? >= COPIES_PER_BATCH {
+            if let Some(layout) = self.middle_and_final_pair(ordinary, deferred) {
+                return Some(Cow::Owned(layout));
+            }
             return Some(Cow::Borrowed(ordinary));
         }
         let full_prefix = self.group_copies(60..61)? >= COPIES_PER_BATCH;

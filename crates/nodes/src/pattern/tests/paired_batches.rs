@@ -611,3 +611,67 @@ fn ten_batches_split_the_later_horizontal_subtrees() {
         check_batch_markers(&groups, seed, 1, &markers);
     }
 }
+
+#[test]
+fn middle_batches_share_the_tail_of_the_final_horizontal_pair() {
+    for (receiver, middle_tail, first, first_end, following, penultimate, last, last_end, seed, markers) in [
+        (
+            134,
+            0,
+            84,
+            85,
+            83,
+            70,
+            58,
+            110,
+            269119,
+            [(172031, 56696, true), (284927, 174951, true), (344046, 315870, true), (90047, 2990, true), (40339, 171460, false), (263570, 282032, false)],
+        ),
+        (
+            114,
+            1,
+            86,
+            83,
+            80,
+            81,
+            83,
+            86,
+            269156,
+            [(172031, 188653, false), (284927, 342769, false), (344046, 6790, true), (90047, 282513, false), (40339, 170078, false), (263570, 281121, false)],
+        ),
+        (
+            118,
+            3,
+            79,
+            90,
+            75,
+            82,
+            84,
+            96,
+            269193,
+            [(172031, 202722, false), (284927, 262240, true), (344046, 28604, true), (90047, 282568, false), (40339, 171613, false), (263570, 281461, false)],
+        ),
+        (
+            131,
+            16,
+            70,
+            99,
+            58,
+            83,
+            101,
+            93,
+            269230,
+            [(172031, 320872, false), (284927, 333904, false), (344046, 285274, true), (90047, 283471, false), (40339, 170463, false), (258067, 283047, false)],
+        ),
+    ] {
+        let mut groups = [61; 64];
+        groups[16] = receiver;
+        groups[24..32].fill(84);
+        groups[31] += middle_tail;
+        groups[48..50].copy_from_slice(&[first, first_end]);
+        groups[52] = following;
+        groups[60] = penultimate;
+        groups[62..64].copy_from_slice(&[last, last_end]);
+        check_batch_markers(&groups, seed, 1, &markers);
+    }
+}
