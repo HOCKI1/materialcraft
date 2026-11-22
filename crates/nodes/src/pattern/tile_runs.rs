@@ -29,7 +29,7 @@ pub(super) struct TileCopies {
     total: u32,
     subtree_ends: Vec<u32>,
     retained: Vec<Range<u32>>,
-    paired_batches: Option<PairedBatches>,
+    full_pairs: u8,
 }
 
 impl TileCopies {
@@ -45,7 +45,7 @@ impl TileCopies {
             total: 0,
             subtree_ends: Vec::new(),
             retained: Vec::new(),
-            paired_batches: None,
+            full_pairs: 0,
         })
     }
 
@@ -71,16 +71,14 @@ impl TileCopies {
         let end = self.count_stamp(Some(stamp), retained)?.end;
         if draws.is_multiple_of(draws_per_parent * self.parents_per_subtree) {
             let parents = draws / draws_per_parent;
-            // The first pair of the final quadrant submits its parts separately.
-            // In later pairs, filling two batches can reorder other subtrees.
-            if self.parents_per_subtree == DEPTH_FOUR_PARENTS && parents > FIRST_PAIR_END && parents.is_multiple_of(PAIRED_SUBTREE_PARENTS) {
+            // Count the eight pairs in the final quadrant. Their combined occupancy determines
+            // whether to continue a single overflowing pair or all eight in submission order.
+            if self.parents_per_subtree == DEPTH_FOUR_PARENTS && parents >= FIRST_PAIR_END && parents.is_multiple_of(PAIRED_SUBTREE_PARENTS) {
                 let subtrees = PAIRED_SUBTREE_PARENTS / DEPTH_FOUR_PARENTS;
                 let start = self.subtree_ends.iter().rev().nth(subtrees - 1)?;
                 if end - start >= 2 * COPIES_PER_BATCH {
-                    if self.axes != [true, false] || self.paired_batches.is_some() {
-                        return None;
-                    }
-                    self.paired_batches = Some(PairedBatches::ending_at(parents)?);
+                    let pair = (parents - FIRST_PAIR_END) / PAIRED_SUBTREE_PARENTS;
+                    self.full_pairs |= 1_u8.checked_shl(u32::try_from(pair).ok()?)?;
                 }
             }
             self.subtree_ends.push(end);
@@ -100,8 +98,20 @@ impl TileCopies {
         ranges.into_iter().map(|r| DrawRun::between(stamps, self.draw_position(r.start), self.draw_position(r.end))).collect()
     }
 
-    pub(super) fn layout(&self, ordinary: &'static [(usize, usize)]) -> &'static [(usize, usize)] {
-        self.paired_batches.map_or(ordinary, PairedBatches::layout)
+    pub(super) fn layout(&self, ordinary: &'static [(usize, usize)]) -> Option<&'static [(usize, usize)]> {
+        if self.full_pairs == u8::MAX && self.axes[0] {
+            return Some(paired_batches::ALL_FULL_PAIRS);
+        }
+        // The first pair also submits its parts separately in the ordinary layout.
+        let later = self.full_pairs & !1;
+        if later == 0 {
+            return Some(ordinary);
+        }
+        if self.axes != [true, false] || !later.is_power_of_two() {
+            return None;
+        }
+        let end = FIRST_PAIR_END + later.trailing_zeros() as usize * PAIRED_SUBTREE_PARENTS;
+        Some(PairedBatches::ending_at(end)?.layout())
     }
 
     fn split_fits_subtree(&self, parents: usize, cut: u32) -> bool {

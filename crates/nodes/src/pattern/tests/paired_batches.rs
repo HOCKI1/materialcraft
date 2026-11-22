@@ -21,7 +21,7 @@ fn field_property(depth: u32, offset: [f32; 2], frame: bool) -> Value {
     Value::Function(Box::new(graph))
 }
 
-fn stamp_field(pair: u32, markers: &[(u32, u32, bool)]) -> Image {
+fn stamp_field(single_pair: Option<u32>, markers: &[(u32, u32, bool)]) -> Image {
     let tiny = f32::EPSILON * 0.25;
     let mut selected = BTreeMap::new();
     for (j, &(negative, positive, _)) in markers.iter().enumerate() {
@@ -51,13 +51,14 @@ fn stamp_field(pair: u32, markers: &[(u32, u32, bool)]) -> Image {
         }
         let subtree = draw / 1344;
         let group = subtree / 4;
-        let extras = match (pair, group) {
-            (60, 60) => 81,
-            (60, 61) => 100,
-            (60, 0..48) => 40 + (26 * group + 63) % 83,
-            (60, _) => 45 + (9 * group + 8) % 37,
-            (_, g) if g == pair => 75,
-            (_, g) if g == pair + 1 => 106,
+        let extras = match (single_pair, group) {
+            (None, _) => 96,
+            (Some(60), 60) => 81,
+            (Some(60), 61) => 100,
+            (Some(60), 0..48) => 40 + (26 * group + 63) % 83,
+            (Some(60), _) => 45 + (9 * group + 8) % 37,
+            (Some(pair), g) if g == pair => 75,
+            (Some(pair), g) if g == pair + 1 => 106,
             (_, 0..48) => 27 + (30 * group + 64) % 67,
             _ => 45 + (15 * group + 11) % 37,
         };
@@ -68,7 +69,7 @@ fn stamp_field(pair: u32, markers: &[(u32, u32, bool)]) -> Image {
 }
 
 #[test]
-fn a_full_pair_defers_individual_copies_after_two_batches() {
+fn full_pairs_defer_individual_copies_after_two_batches() {
     let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
     let mut parent = graph.root.unwrap();
     for depth in 1..=9 {
@@ -98,7 +99,6 @@ fn a_full_pair_defers_individual_copies_after_two_batches() {
             ("background".into(), Value::Color([1.0; 4])),
         ]),
     );
-    let variables = BTreeMap::from([("$tiling".into(), Value::Int(1))]);
     // Each pair of numbered stamps overlaps at one pixel. The final bit is set when the negative stamp draws first.
     let pair58 = [(322546, 46225, true), (322547, 1168, true), (322548, 2154, true), (322559, 818, true), (5359, 322551, false), (10731, 11628, false)];
     let pair60 = [
@@ -122,7 +122,26 @@ fn a_full_pair_defers_individual_copies_after_two_batches() {
         (263407, 257852, true),
         (268779, 333188, false),
     ];
-    for (group, seed, markers) in [(58, 653180, pair58.as_slice()), (60, 1763066, pair60.as_slice()), (62, 653180, pair62.as_slice())] {
+    // With 96 extra copies in every group, the last twelve copies of group 60 draw later.
+    let all_pairs = [
+        (327923, 88021, true),
+        (327924, 91851, true),
+        (327925, 91651, true),
+        (327935, 93255, true),
+        (344042, 259673, true),
+        (279529, 324712, false),
+        (85920, 267859, false),
+        (42912, 267222, false),
+        (10643, 214976, false),
+        (10644, 91692, false),
+    ];
+    for (group, seed, axes, markers) in [
+        (Some(58), 653180, 1, pair58.as_slice()),
+        (Some(60), 1763066, 1, pair60.as_slice()),
+        (Some(62), 653180, 1, pair62.as_slice()),
+        (None, 206407, 3, all_pairs.as_slice()),
+    ] {
+        let variables = BTreeMap::from([("$tiling".into(), Value::Int(axes))]);
         let inputs = [None, Some(stamp_field(group, markers))];
         let context = CookContext {
             w: 128,
@@ -139,7 +158,7 @@ fn a_full_pair_defers_individual_copies_after_two_batches() {
         let image = (definition.cook)(&context).unwrap().remove(0);
         for (j, &(_, _, negative_first)) in markers.iter().enumerate() {
             let expected = if negative_first { f32::EPSILON * 0.25 } else { 0.0 };
-            assert_eq!(image.get_gray(16 + 2 * j as i64, 24, false), expected, "group {group}, marker {j}");
+            assert_eq!(image.get_gray(16 + 2 * j as i64, 24, false), expected, "single pair {group:?}, marker {j}");
         }
     }
 }
