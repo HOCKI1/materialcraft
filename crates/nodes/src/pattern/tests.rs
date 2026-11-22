@@ -463,9 +463,9 @@ fn draw_on_fourth_repetition(graph: &mut PatternGraph) {
 }
 
 #[test]
-fn six_quadrant_levels_composite_overlapping_subtrees_in_reverse_slot_order() {
+fn a_single_quadrant_tree_retains_its_compositing_order_through_a_gated_repetition() {
     let small = f32::EPSILON * 0.5;
-    for (depth, expected) in [(5, 0.0_f32), (6, small)] {
+    for (depth, expected) in [(5, 0.0_f32), (6, small), (7, small)] {
         let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
         for (slot, weight) in [1.0, small, -1.0, 0.0].into_iter().enumerate() {
             let mut leaf = graph.add(PatternNodeKind::Quadrant).unwrap();

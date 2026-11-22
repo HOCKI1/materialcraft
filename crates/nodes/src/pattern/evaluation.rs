@@ -16,6 +16,7 @@ const SEVEN_LEVEL_RUN_ORDER: [usize; 16] = [12, 13, 8, 9, 14, 0, 1, 15, 2, 11, 6
 
 #[derive(Default)]
 struct SevenLevelRuns {
+    seen_root: bool,
     starts: [usize; 17],
     grandchildren: usize,
     child_counts: [Option<usize>; 2],
@@ -26,7 +27,14 @@ struct SevenLevelRuns {
 impl SevenLevelRuns {
     fn visit(&mut self, node: &PatternNode, depth: u32, retained: usize) -> bool {
         if node.kind != PatternNodeKind::Quadrant {
-            return false;
+            return true;
+        }
+        if depth == 0 {
+            // A second quadrant tree interleaves its draws with the first tree's grandchildren.
+            if self.seen_root {
+                return false;
+            }
+            self.seen_root = true;
         }
         if depth == 2 {
             let Some(start) = self.starts.get_mut(self.grandchildren) else { return false };
@@ -372,6 +380,7 @@ pub fn cook_with_base_level_inputs(context: &CookContext, base_level_only: &[boo
                 {
                     // An inner iterator that submits multiple branches breaks the complete quadrant layout.
                     if visit.depth > 0 && (repeats_left != 0 || !children.is_empty()) {
+                        seven_level_runs = None;
                         mixed_depth_runs = None;
                     }
                     // Each connected visit costs at least one unit, even if its stamp is discarded.

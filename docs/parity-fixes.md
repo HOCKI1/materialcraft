@@ -59,6 +59,98 @@ The first pass classifies all 546 roots: 166 Parity and 380 Too hard. These meas
 
 ## 2026-11-22 root comparisons
 
+### Compositing a single seven-level tree through pattern controls
+
+A switch, routing dot or single repetition between quadrants can pass the same seven-level tree to the renderer. MaterialCraft now recognizes its sixteen grandchildren through these controls. It counts the quadrant trees actually submitted. A second tree or an inner iteration with multiple submitted branches uses the existing traversal. [Measured grandchild order and eligible layouts](#compositing-complete-seven-level-additive-quadrant-trees)
+
+Construct the [four overlapping analytic leaves](#six-level-quadrant-draw-order-after-an-iteration-or-switch) at depth seven. Use the same eight gain tuples and index j, with seed 309511 + 53j. Repeat the third and fourth tuples at 64 × 32 and 32 × 64 with seeds 309949 and 309971. Compare the F32 bit patterns. The Rust regression at (15,15) previously returned zero through the fourth-of-nine switch for gains (1,2⁻²⁴,−1,0). Both the direct graph and the switch now return the observed 2⁻²⁴. [Regression fixture](../crates/nodes/src/pattern/tests.rs)
+
+| F32 comparisons | Earlier exact / total · max | Corrected exact / total · max |
+|---|---:|---:|
+| Direct tree | 12,288/12,288 · 0 | 12,288/12,288 · 0 |
+| One active tree through five control configurations | 52,480/61,440 · 1.1920929e-07 | 61,440/61,440 · 0 |
+| Two active trees, direct repetition or two of nine | 20,264/24,576 · 2.38418579e-07 | 20,264/24,576 · 2.38418579e-07 |
+| Three saved fourth-of-nine settings | 2,496/3,072 · 1.1920929e-07 | 3,072/3,072 · 0 |
+
+The five configurations use one repeated branch, the initial branch alone, a constant switch, the fourth of nine repetitions, and one inner repetition at each outgoing edge of depth two. All 50 reference buffers equal their direct-tree counterparts. Save the fourth-of-nine graph in MaterialCraft and reopen it in both applications at j = 1, 13 and 48. The multiple-tree controls retained every previous local output bit.
+
+Expose the first pattern generator in each package directly as F32. Repeat with its outer repeat forced to one and its switch forced to the tree, then with the outer repeat and switch bypassed. Leave the inner nodes and parameters intact. At index i use 16 × 32, 64 × 32, 32 × 64 and 64² with seed 288101 + 43i + 79j (j = 0…3), then 128² with defaults and seed zero. The source extent follows the graph. The four seeded requests use the exposed controls shown below.
+
+| Index · package | Defaults and changed controls in size order |
+|---|---|
+| 264 · noise_dirt_3 | defaults / non_square_expansion=on, disorder=0.0, scale=1 / non_square_expansion=on, disorder=0.8125, scale=2 / scale=2, disorder=0.21875, non_square_expansion=on |
+| 265 · noise_dirt_3_v2 | defaults / disorder=0.0, disorder_anisotropy=0, scale=1, non_square_expansion=on, tile_offset=[0.0, 0.0], disorder_anisotropy_angle=0, disorder_speed=1 / disorder=0.8125, disorder_anisotropy=0.625, scale=2, non_square_expansion=on, tile_offset=[-0.3125, 0.4375], disorder_anisotropy_angle=-0.21875, disorder_speed=1.4375 / scale=2, disorder=0.21875, disorder_speed=0.21875, disorder_anisotropy=0.21875, disorder_anisotropy_angle=-0.03125, tile_offset=[-0.125, 0.21484375], non_square_expansion=on |
+| 279 · noise_fur_2 | defaults / scale=1, waves_scale=0.0, waves_rotation=0.0, non_square_expansion=on / scale=3, waves_scale=0.25, waves_rotation=0.8125, non_square_expansion=on / scale=2, waves_scale=0.5625, waves_rotation=0.125, non_square_expansion=off |
+
+| Stage · five requests | Earlier F32 exact / total · max | Corrected F32 exact / total · max |
+|---|---:|---:|
+| noise_dirt_3 · original controls | 6,269/6,272 · 2.98023224e-08 | 6,271/6,272 · 2.98023224e-08 |
+| noise_dirt_3 · one tree | 6,270/6,272 · 2.98023224e-08 | 6,272/6,272 · 0 |
+| noise_dirt_3 · outer controls bypassed | 6,272/6,272 · 0 | 6,272/6,272 · 0 |
+| noise_dirt_3_v2 · original controls | 6,251/6,272 · 5.96046448e-08 | 6,262/6,272 · 2.98023224e-08 |
+| noise_dirt_3_v2 · one tree | 6,261/6,272 · 5.96046448e-08 | 6,272/6,272 · 0 |
+| noise_dirt_3_v2 · outer controls bypassed | 6,262/6,272 · 2.98023224e-08 | 6,271/6,272 · 1.49011612e-08 |
+| noise_fur_2 · original controls | 20,582/25,088 · 1.1920929e-07 | 23,716/25,088 · 1.1920929e-07 |
+| noise_fur_2 · one tree | 21,643/25,088 · 1.1920929e-07 | 25,088/25,088 · 0 |
+| noise_fur_2 · outer controls bypassed | 25,088/25,088 · 0 | 25,088/25,088 · 0 |
+
+The inner controls in the v2 dirt source are still present in the bypassed graph. One F32 pixel differs there. The fur source with one forced tree matches all 25,088 samples. At 128² with defaults, the original fur stage stores U16. Rounding the reference F32 probe to U16 reproduces 15,872/16,384 samples in that original stage, maximum one level. Whole comparisons below read the actual requested output format.
+
+| Whole package · comparison | Rendered / requested | Exact settings | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|---:|---:|
+| noise_dirt_3 · one processor | 58/60 | 35 | 99,840/99,840 · 0 | 334,838/334,848 · 1 | 101,888/101,888 · 0 | 239,325/240,896 · 1.52587891e-05 |
+| noise_dirt_3 · eight processors | 58/60 | 36 | 99,840/99,840 · 0 | 334,843/334,848 · 1 | 101,888/101,888 · 0 | 239,368/240,896 · 1.52587891e-05 |
+| noise_dirt_3 · reference one versus eight | 60/60 | 38 | 99,840/99,840 · 0 | 338,935/338,944 · 1 | 101,888/101,888 · 0 | 243,043/244,992 · 1.1920929e-07 |
+| noise_dirt_3 · SBS reopen on one processor | 11/12 | 7 | 26,624/26,624 · 0 | 51,705/51,712 · 1 | — | 66,682/67,072 · 5.96046448e-08 |
+| noise_dirt_3 · reference original versus reopened | 12/12 | 11 | 26,624/26,624 · 0 | 51,712/51,712 · 0 | — | 71,158/71,168 · 2.98023224e-08 |
+| noise_fur_2 · one processor | 62/62 | 37 | 99,840/99,840 · 0 | 348,639/348,672 · 1 | 99,840/99,840 · 0 | 246,085/273,152 · 2.38418579e-07 |
+| noise_fur_2 · eight processors | 62/62 | 23 | 99,839/99,840 · 1 | 348,617/348,672 · 1 | 99,839/99,840 · 0.000122070312 | 232,221/273,152 · 2.38418579e-07 |
+| noise_fur_2 · reference one versus eight | 62/62 | 23 | 99,839/99,840 · 1 | 348,608/348,672 · 1 | 99,839/99,840 · 0.000122070312 | 223,660/273,152 · 2.38418579e-07 |
+| noise_fur_2 · SBS reopen on one processor | 13/13 | 9 | 4,096/4,096 · 0 | 119,799/119,808 · 1 | 4,096/4,096 · 0 | 25,006/25,600 · 8.94069672e-08 |
+| noise_fur_2 · reference original versus reopened | 13/13 | 13 | 4,096/4,096 · 0 | 119,808/119,808 · 0 | 4,096/4,096 · 0 | 25,600/25,600 · 0 |
+
+Noise Fur 2 gained 19,867 exact whole pixels against the one-processor capture and 4,107 across its reopens. Its match against the eight-processor capture declined by 3,892 pixels. The original dirt package retained its whole and saved counts. The two processor settings produce different raw reference buffers in both roots. All successful local reopens reproduced the original MaterialCraft buffer. Execution-budget errors contribute no pixels. [Noise Dirt 3 settings and failed requests](#whole-outputs-and-saved-settings-for-noise-dirt-2-and-noise-dirt-3)
+
+<details>
+<summary>Noise Fur 2 procedural settings</summary>
+
+Controls appear in the order `non_square_expansion`, `scale`, `waves_rotation`, `waves_scale`.
+
+| Size | Seed | Controls | Formats | Reopened | Execution budget reached |
+|---|---:|---|---|---|---|
+| 128 × 128 | 0 | Defaults | U16, U8, F16, F32 | U16 | — |
+| 256 × 256 | 0 | Defaults | U16 | — | — |
+| 128 × 128 | 42 | Defaults | U16 | — | — |
+| 128 × 128 | 0 | default, 2, 0.2, 0.25 | U16 | — | — |
+| 32 × 32 | 113 | default, 2, 0.2, 0.25 | F32 | — | — |
+| 64 × 64 | 42 | default, 2, 0.2, 0.25 | U8, U16, F16, F32 | U8 | — |
+| 16 × 16 | 75892 | Defaults | F32 | — | — |
+| 32 × 32 | 75893 | on, 1, 0.0, 0.0 | F32 | F32 | — |
+| 32 × 32 | 75894 | off, 2, 0.125, 0.5625 | U8, U16, F16, F32 | — | — |
+| 64 × 32 | 75898 | on, 3, 0.8125, 0.25 | F32 | F32 | — |
+| 32 × 64 | 75899 | on, 3, 0.8125, 0.25 | U16 | — | — |
+| 64 × 64 | 75900 | off, 2, 0.125, 0.5625 | F32 | — | — |
+| 128 × 64 | 75901 | off, 2, 0.125, 0.5625 | F32 | — | — |
+| 64 × 128 | 75901 | off, 2, 0.125, 0.5625 | U16 | — | — |
+| 128 × 128 | 75903 | Defaults | F32 | F32 | — |
+| 16 × 32 | 0 | Defaults | U8, U16, F16, F32 | — | — |
+| 32 × 16 | 42 | on, 2, -0.28125, 0.21875 | U16, F32 | U16 | — |
+| 64 × 64 | 433714 | off, 1, 0.4375, 0.9375 | U8, U16, F16, F32 | F32 | — |
+| 128 × 32 | 433751 | on, 3, -0.453125, 0.046875 | U16, F32 | — | — |
+| 32 × 128 | 433788 | off, 2, 0.0625, 0.5625 | U8, U16, F16, F32 | F16 | — |
+| 256 × 128 | 433862 | off, 3, -0.171875, 0.328125 | U16, F32 | U16 | — |
+| 128 × 256 | 433899 | on, 1, 0.3125, 0.8125 | U16, F32 | — | — |
+| 256 × 256 | 42 | Defaults | U8, U16, F16, F32 | U16 | — |
+| 512 × 128 | 433973 | on, 1, 0.171875, 0.671875 | U16, F32 | — | — |
+| 16 × 32 | 300098 | Defaults | U16, F32 | U16 | — |
+| 64 × 32 | 300177 | on, 1, 0.0, 0.0 | U8, U16, F16, F32 | F32 | — |
+| 32 × 64 | 300256 | on, 3, 0.8125, 0.25 | U8, U16, F16, F32 | — | — |
+| 64 × 64 | 300335 | off, 2, 0.125, 0.5625 | U16, F32 | U16 | — |
+
+</details>
+
+Median process CPU time in alternating release runs, three per version, changed from 8.172 to 7.984 seconds for four single-tree renders, 8.688 to 8.953 seconds for four two-tree renders, 17.109 to 17.016 seconds for three Noise Dirt 3 renders. All 455 node and evaluator release tests, formatting, strict workspace Clippy, dependency layers and WebAssembly passed.
+
 ### Six-level quadrant draw order after an iteration or switch
 
 A single grayscale quadrant tree with six levels of subdivision draws the initial quadrant and then composites its four child streams in reverse slot order. Outer iterations can still be waiting on the evaluation stack while the only active tree runs. The renderer now records where the four children start relative to those waiting iterations. A second active tree invalidates these ranges. Parameter evaluation, seed inheritance and the order inside each child stream follow the original traversal. [Direct six-level probes](#draw-order-at-six-quadrant-subdivisions)
