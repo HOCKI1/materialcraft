@@ -120,6 +120,17 @@ impl TileCopies {
             // The first part of a repeated endpoint may fill its final subtree exactly.
             return self.subtree_ends.partition_point(|&end| end < cut) + 1 == subtree;
         }
+        let group = parents / DEPTH_THREE_PARENTS;
+        if self.parents_per_subtree == DEPTH_FOUR_PARENTS
+            && self.axes == [true, false]
+            && matches!(group, 51 | 55 | 59 | 63)
+            && parents % DEPTH_THREE_PARENTS < DEPTH_FOUR_PARENTS
+            && self.full_pairs & (1 << ((group - 49) / 2)) == 0
+        {
+            // In these four short pairs the prefix can finish one subtree earlier.
+            // Other crossings and pairs with two full batches can reorder later draws.
+            return self.subtree_ends.get(subtree - 2).zip(self.subtree_ends.get(subtree)).is_some_and(|(&lower, &upper)| lower < cut && cut < upper);
+        }
         self.subtree_ends.partition_point(|&end| end <= cut) == subtree
             && (self.parents_per_subtree != DEPTH_FOUR_PARENTS
                 || subtree.checked_sub(1).and_then(|i| self.subtree_ends.get(i)).is_some_and(|&lower| cut > lower))

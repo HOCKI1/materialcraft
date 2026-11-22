@@ -391,6 +391,40 @@ To check repeatability, use the 128² and default 512² settings above at seed 0
 
 The shared draw path retained 1,792,256/1,792,256 exact pixels on one processor and 1,792,196/1,792,256 on eight across 97 Clouds 2 settings. Four interleaved runs per version at the [three release benchmark settings](#sparse-quadrant-parents-and-leaves-in-moisture-noise) gave median process CPU times of 5.820 seconds before and 5.758 after. All 436 node and evaluator release tests passed, together with formatting, strict workspace Clippy, dependency layers and WebAssembly.
 
+### Horizontal pattern batches ending in the preceding subtree
+
+The third Dirt Gradient generator can finish a 5,460-copy batch in the last depth-four subtree of group 50, 54, 58 or 62. The remaining copies in that subtree draw later. The renderer now accepts that cut when horizontal tiling is active, the pair holds fewer than 10,920 physical copies and the cut stays strictly inside the two adjacent depth-four subtrees' outer bounds. The later draw order changes in other groups and full pairs.
+
+For the regression, use the [horizontal tree of additive squares](#eight-full-subtree-pairs-in-dirt-gradient). Give each depth-three group 32 extra horizontal copies, except groups 50, 54, 58 and 62 at 91, 96, 93 and 95 respectively. In group g with q extra copies, give each of its four depth-four subtrees floor(q/4) extras. Add one at slot s when (s + g) modulo 4 is below q modulo 4. Move the first stamps in depth-first order within each depth-four subtree to the left seam. At seed 214261 pair 16 depth-seven or descendant squares on white with gains −1 and 2⁻²⁵, then swap the gains. Before the fix all 32 signed sample values differed. The two corrected F32 images match 32,768/32,768.
+
+Use the [packed stamp grid](#individual-tile-copies-after-two-full-horizontal-batches) with weights generated from PCG64. Render at 128² and 128 × 64. In the boundary sweep initialize each depth-four extra count with a random integer from 5 through 13, using seed 211057. For each selected group distribute 83, 84, 85, 96 or 120 extras across its four subtrees with equal multinomial probabilities. Give its following group 32 extras. Advance the paint seed from 211519 by 43 per profile and 67 per size. These are the original single-processor captures. Each row covers ten F32 renders.
+
+| Group | Previous exact / total · max | Current exact / total · max |
+|---|---:|---:|
+| 50 | 115,158/122,880 · 3.4570694e−6 | 122,880/122,880 · 0 |
+| 54 | 115,151/122,880 · 2.98023224e−6 | 121,919/122,880 · 2.38418579e−6 |
+| 58 | 115,167/122,880 · 2.86102295e−6 | 121,934/122,880 · 1.90734863e−6 |
+| 60 | 115,175/122,880 · 2.86102295e−6 | 115,175/122,880 · 2.86102295e−6 |
+| 62 | 115,189/122,880 · 3.81469727e−6 | 122,880/122,880 · 0 |
+
+On two of the boundary profiles the reference produced different F32 values on different captures. Repeat both sizes, holding the input pixels fixed and using seed offsets 0, 1, 0. At 85 extras in group 54 and 84 in group 58, all six renders of each profile on each of processor indices 0 and 4 match the current draw order, 294,912/294,912 pixels. At index 6 the comparisons give 70,843/73,728 · 2.38418579e−6 for group 54 and 68,990/73,728 · 3.09944153e−6 for group 58. With eight processors the corresponding results are 67,899/73,728 · 3.33786011e−6 and 67,906/73,728 · 3.33786011e−6.
+
+In the second sweep, j = 0 uses the fixed regression distribution. For j greater than zero, generate each group's quota with seed 214153 + 37j. Start each at an integer in [28,64]. Select the even group of each of the four pairs from 66, 81, 83, 84, 85, 88, 91, 96, 101, 120, 143 or 163. Choose its neighbor from 2 through 165 minus that count. At j divisible by 3 set groups 48 and 49 to 85 and 89. For j modulo 4 equal to 1, 2 or 3, override groups 62–63, 58–59 or 60–61 with (70,101), (81,102) or (80,96), respectively. Distribute each quota as in the regression. Use paint seeds 214557 + 41j and 214654 + 41j. The twelve weighted images at j = 0, 4, 8, 9, 12 and 16 improved from 135,877/147,456 · 3.57627869e−6 to 147,456/147,456 · 0. Five profiles also cross an earlier subtree boundary. Those ten outputs are unchanged at 113,222/122,880 · 2.86102295e−6. Seven further distributions taken from actual generator settings match 168,145/172,032 · 3.4570694e−6 across fourteen weighted renders. The 150 earlier signed and weighted pair controls match 2,293,760/2,293,760, and another 92 earlier controls match 1,155,072/1,155,072. All 45 earlier generator controls match 875,520/875,520.
+
+Repeat the [eight horizontal F32 settings and their isolated stored stages](#eight-full-subtree-pairs-in-dirt-gradient). The horizontal generator improved from 71,865/151,552 to 126,056/151,552 · 7.4505806e−8. Six settings match every pixel. At 64² seed 42 the result is 1,661/4,096 · 5.96046448e−8, and at 128 × 256 seed 398693 it is 9,707/32,768 · 7.4505806e−8. The eight untiled and both-axis renders still match 90,112/90,112. All 88 reconnected stages reproduce the original reference buffers. Across applications the first two generators match 191,488/191,488 stored pixels. The third matches 163,824/163,840 with a maximum of 1 storage codes. At (36,46) in the 64² seed-42 case it still gives 8343 and 8342 in U16.
+
+Reopen both boundary sizes for group 50 at 84 extras, group 54 at 85, profiles 0 and 9 of the second sweep, the forward signed regression and the isolated generator at 64² seed 42, 128 × 32 seed 398611 and 128 × 512 seed 398816. MaterialCraft reproduces all twelve originals. The reference matches 187,455/188,416 · 2.38418579e−6 against its originals. The cross-application result is 185,981/188,416 · 5.96046448e−8.
+
+Repeat the [111 whole-root settings and 28 saved selections](#individual-tile-copies-after-two-full-horizontal-batches). All twelve changed single-processor settings now match every pixel. This gains 125 exact pixels, with 411 still different. Eight processors lose eleven exact pixels. Both applications reproduce their own original outputs at all 28 reopened settings.
+
+| Comparison | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|
+| Dirt Gradient, one processor | 600,320/600,320 · 0 | 846,398/846,592 · 2 | 600,301/600,320 · 0.00048828125 | 815,930/816,128 · 1.96099281e−5 |
+| Dirt Gradient, eight processors | 600,320/600,320 · 0 | 846,294/846,592 · 2 | 600,297/600,320 · 0.00048828125 | 815,809/816,128 · 2.03251839e−5 |
+| Reopened, one processor | 36,864/36,864 · 0 | 80,879/80,896 · 1 | 32,767/32,768 · 6.10351562e−5 | 279,777/279,808 · 1.87754631e−5 |
+
+Dirt 5 retains 2,662,656/2,662,656 exact pixels on one processor, 2,661,672/2,662,656 on eight and 354,560/354,560 across the 22 reopened settings. The median process CPU time for the 128 × 32 seed-398611, 64² seed-41 and 128 × 512 seed-398816 F32 generator renders was 9.594 seconds before and 9.633 seconds after the fix, using four interleaved runs per version on one processor. All 436 node and evaluator release tests passed, together with formatting, strict workspace Clippy, dependency layers and WebAssembly.
+
 ## 2026-11-21 root comparisons
 
 ### Connected quadrant depth and amplified spot patterns
