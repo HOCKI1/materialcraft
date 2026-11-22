@@ -774,6 +774,34 @@ Add the following original procedural settings. Render U16 and F32 at each size 
 
 All 442 release tests in the node and evaluator crates passed, along with formatting, strict workspace Clippy, dependency layers and WebAssembly.
 
+### Dirt Gradient when groups 50 and 51 fill the second quadrant
+
+Dirt Gradient matches 107/111 complete settings on one processor and 43/111 on eight. At 32 × 16, seed 188233, the remaining U16 and F32 pixels now agree, one newly exact pixel in each format. The other 109 one-processor results retain their previous counts and maxima. The table uses stored integer levels and absolute floating-point errors. All 28 saved files reproduce their original 430,336 pixels within each application. [Whole-root settings, input formulas and previous counts](#final-horizontal-pair-with-a-short-receiver-in-dirt-gradient)
+
+| Comparison | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|
+| One processor | 600,320/600,320 · 0 | 846,584/846,592 · 1 | 600,320/600,320 · 0 | 816,120/816,128 · 1.75833702e−5 |
+| Eight processors | 600,320/600,320 · 0 | 846,260/846,592 · 2 | 600,296/600,320 · 0.00048828125 | 815,779/816,128 · 2.03251839e−5 |
+| Reference one versus eight | 600,320/600,320 · 0 | 846,260/846,592 · 2 | 600,296/600,320 · 0.00048828125 | 815,777/816,128 · 2.03251839e−5 |
+| Saved files on one processor | 36,864/36,864 · 0 | 80,888/80,896 · 1 | 32,768/32,768 · 0 | 279,808/279,808 · 0 |
+
+The first two pattern generators already agreed at this seed. The third generator improved from 201/512 F32 pixels, maximum 4.47034836e-08, to 512/512 with zero error. The root now also matches after its final levels adjustment. In the original overlapping-square test, groups 50 and 51 have 92 and 77 extra tile copies. They fill two 5,460-copy batches and leave one copy for group 16. That group's 96 extra copies take the next batch past capacity. When group 60 is short, a further split depends on group 62. With 84 extra copies it fills exactly one batch. Fewer or more copies move that boundary into the following or preceding subtree. Measurements of signed overlaps gave 51 ordered ranges. Applying their physical copy counts reproduced all 512 pixels of the isolated third generator.
+
+Build a complete quadrant tree with horizontal tiling and active levels seven through nine. Give the 64 groups 32 extra copies each, then set the four groups below. Place two signed, overlapping markers at each of 16 positions and repeat with the opacities exchanged. The four settings cover a receiving total one copy short, exactly full, and one copy above capacity. The eight compiled 128² F32 images match 131,072/131,072 pixels, including all 128 marker comparisons. [Square construction and copy placement](#horizontal-pattern-batches-ending-in-the-preceding-subtree)
+
+| Seed | Group 16 | Group 50 | Group 51 | Group 62 |
+|---:|---:|---:|---:|---:|
+| 239183 | 80 | 91 | 81 | 66 |
+| 239214 | 84 | 82 | 87 | 84 |
+| 239245 | 72 | 92 | 89 | 97 |
+| 239276 | 67 | 94 | 90 | 73 |
+
+The 128 × 64 weighted controls use three independent series. Vary group 62 across 83, 84, 85 and 96 extra copies with group 60 below 84, using the original, uniform and PCG64-seeded group counts (seed 239015). All 42 settings match 344,064/344,064 pixels. In a separate series vary the pair's overflow across 1, 13 and 35 extra copies, with receiver totals on both sides of full and independently distributed child counts from PCG64 seed 234023. All 18 settings in this continuation match 147,456/147,456 pixels. Finally preserve the original receiving groups while lowering or redistributing the other groups (PCG64 seed 238531). Of 22 settings, 21 match exactly. The combined result is 179,308/180,224 pixels, maximum 2.50339508e−6.
+
+The differing weighted setting reduces each group from 8 through 15 to 32 extra copies while retaining the original receiving groups. Its first one-processor capture differs from MaterialCraft at 916/8,192 pixels. Three subsequent one-processor captures in different case orders each match MaterialCraft on all 8,192 pixels. An independent eight-processor capture matches 7,214/8,192, maximum 2.74181366e−6. Two saved signed fields and three saved weighted fields each reproduce their originals in both applications and match 57,344/57,344 pixels across applications.
+
+Across the whole-root matrix, 16 single-processor differences remain at 128 × 64, seed 191520 and 64 × 128, seed 142326. The eight-processor comparison differs at 705 pixels. The two reference processor settings differ at 707. The new regression failed on the previous renderer. All 443 node and evaluator release tests passed, along with formatting, strict workspace Clippy, dependency layers and WebAssembly.
+
 ## 2026-11-21 root comparisons
 
 ### Connected quadrant depth and amplified spot patterns

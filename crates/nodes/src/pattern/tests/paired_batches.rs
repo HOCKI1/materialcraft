@@ -391,3 +391,43 @@ fn final_pair_continues_into_the_next_subtree_when_the_receiver_is_short() {
         check_batch_markers(&group_counts, seed, 1, &markers);
     }
 }
+
+#[test]
+fn second_quadrant_fills_a_batch_with_the_first_overflowing_pair() {
+    for (head, pair, last_prefix, seed, markers) in [
+        (
+            80,
+            [91, 81],
+            66,
+            239183,
+            [(279544, 219111, true), (279545, 177140, true), (279547, 264248, true), (279550, 18082, true), (86047, 293310, false), (91385, 268863, false)],
+        ),
+        (
+            84,
+            [82, 87],
+            84,
+            239214,
+            [(279547, 337858, false), (279548, 238689, true), (279550, 188473, true), (86047, 33592, true), (88046, 272116, false), (91561, 332595, false)],
+        ),
+        (
+            72,
+            [92, 89],
+            97,
+            239245,
+            [(279535, 198075, true), (279536, 12379, true), (279538, 73395, true), (279541, 37478, true), (279544, 204365, true), (279549, 29131, true)],
+        ),
+        (
+            67,
+            [94, 90],
+            73,
+            239276,
+            [(279532, 122270, true), (279533, 151260, true), (279535, 65152, true), (279538, 35090, true), (279541, 198163, true), (279546, 258888, true)],
+        ),
+    ] {
+        let mut group_counts = [32; 64];
+        group_counts[16] = head;
+        group_counts[50..52].copy_from_slice(&pair);
+        group_counts[62] = last_prefix;
+        check_batch_markers(&group_counts, seed, 1, &markers);
+    }
+}

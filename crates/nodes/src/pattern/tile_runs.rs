@@ -120,6 +120,9 @@ impl TileCopies {
             // batch in the receiving subtree changes the order of the remaining draws.
             let deferred = self.group_copies(group..group + 2)?.checked_sub(2 * COPIES_PER_BATCH)?;
             if self.group_copies(head..head + 1)?.checked_add(deferred)? >= COPIES_PER_BATCH {
+                if group == 50 && !full_prefix {
+                    return self.full_second_quadrant();
+                }
                 if group == 54 && !full_prefix {
                     return Some(Cow::Borrowed(paired_batches::FULL_RECEIVING_QUADRANT));
                 }
@@ -155,6 +158,19 @@ impl TileCopies {
             }
         }
         Cow::Owned(layout)
+    }
+
+    fn full_second_quadrant(&self) -> Option<Cow<'static, [(usize, usize)]>> {
+        let mut layout = Cow::Borrowed(paired_batches::FULL_SECOND_QUADRANT);
+        let prefix = self.group_copies(62..63)?;
+        if prefix != COPIES_PER_BATCH {
+            // The first submission ends after one batch. It can fall on either side
+            // of group 63, which supplies the remaining draws later in the sequence.
+            let (end, _) = layout.to_mut().iter_mut().find(|(_, rank)| *rank == 0)?;
+            let boundary = 63 * DEPTH_THREE_PARENTS;
+            *end = if prefix < COPIES_PER_BATCH { boundary + 1 } else { boundary - 1 };
+        }
+        Some(layout)
     }
 
     fn penultimate_layout(&self, ordinary: &'static [(usize, usize)]) -> Option<Cow<'static, [(usize, usize)]>> {
