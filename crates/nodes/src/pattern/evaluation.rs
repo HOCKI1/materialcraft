@@ -10,6 +10,11 @@ use crate::{CookContext, CookResult};
 // up to this same limit again. Retained stamps, raster copies and pixel work stay bounded.
 const MAX_VISITS: usize = 1_048_576;
 
+// A complete seven-level tree has sixteen grandchildren with 4^5 leaves each.
+// Pairwise overlapping squares establish this compositing order in single-worker renders.
+const LEAVES_PER_RUN: usize = 1024;
+const SEVEN_LEVEL_RUN_ORDER: [usize; 16] = [12, 13, 8, 9, 14, 0, 1, 15, 2, 11, 6, 7, 10, 3, 4, 5];
+
 pub(crate) fn cook(context: &CookContext) -> CookResult {
     cook_with_base_level_inputs(context, &[])
 }
@@ -63,6 +68,8 @@ pub fn cook_with_base_level_inputs(context: &CookContext, base_level_only: &[boo
     let mut remaining = MAX_VISITS;
     let mut discard_allowance = MAX_VISITS;
     let grayscale = !context.b("color_mode");
+    let mut leaf_count = (grayscale && opacity_depth == 7 && graph.nodes.iter().all(|node| node.kind == PatternNodeKind::Quadrant)).then_some(0_usize);
+    let mut run_starts = [0; SEVEN_LEVEL_RUN_ORDER.len() + 1];
     // A grayscale opacity expression can produce an infinity or NaN which participates in the blend.
     let opacity = context.value("opacity").and_then(Value::as_f32).unwrap_or(0.0);
     let nonfinite_gray_opacity = grayscale && !opacity.is_finite();
@@ -216,6 +223,19 @@ pub fn cook_with_base_level_inputs(context: &CookContext, base_level_only: &[boo
                         filtering: integer("imagefiltering"),
                         premultiplied: field("imagepremul").and_then(Value::as_bool).unwrap_or(false),
                     };
+                    if let Some(count) = leaf_count.as_mut() {
+                        if stamp.depth == 7 && (1..256).contains(&stamp.pattern) && stamp.blend == 0 {
+                            // A leaf that misses the sample grid still occupies its place in the tree.
+                            if count.is_multiple_of(LEAVES_PER_RUN)
+                                && let Some(start) = run_starts.get_mut(*count / LEAVES_PER_RUN)
+                            {
+                                *start = stamps.len();
+                            }
+                            *count += 1;
+                        } else {
+                            leaf_count = None;
+                        }
+                    }
                     // Evaluate every property before discarding a stamp. Its assignments can reach
                     // later visits. Keep the first stamp so raster setup still validates depth weights.
                     if !stamps.is_empty() && grid.as_ref().is_some_and(|grid| grid.misses(&stamp)) {
@@ -298,17 +318,24 @@ pub fn cook_with_base_level_inputs(context: &CookContext, base_level_only: &[boo
         pending.extend(children.drain(..).rev().map(|visit| (visit, 0)));
     }
 
-    let mut groups = [&[][..]; 5];
-    let mut prefix = stamps.as_slice();
-    if max_depth == 6 {
-        // At six subdivisions the root draws first, then its child streams composite
-        // in reverse slot order. Within a stream the original draw order is retained.
-        for (group, start) in groups[1..].iter_mut().zip(branch_starts.into_iter().flatten()) {
-            let (earlier, branch) = prefix.split_at(start);
-            *group = branch;
-            prefix = earlier;
+    let mut groups = [&[][..]; SEVEN_LEVEL_RUN_ORDER.len()];
+    if leaf_count == Some(LEAVES_PER_RUN * groups.len()) {
+        run_starts[groups.len()] = stamps.len();
+        for (group, run) in groups.iter_mut().zip(SEVEN_LEVEL_RUN_ORDER) {
+            *group = stamps.get(run_starts[run]..run_starts[run + 1]).ok_or("invalid pattern draw range")?;
         }
+    } else {
+        let mut prefix = stamps.as_slice();
+        if max_depth == 6 {
+            // At six subdivisions the root draws first, then its child streams composite
+            // in reverse slot order. Within a stream the original draw order is retained.
+            for (group, start) in groups[1..].iter_mut().zip(branch_starts.into_iter().flatten()) {
+                let (earlier, branch) = prefix.split_at(start);
+                *group = branch;
+                prefix = earlier;
+            }
+        }
+        groups[0] = prefix;
     }
-    groups[0] = prefix;
-    Ok(vec![raster::render(context, groups, opacities, nonfinite_gray_opacity, base_level_only, runtime_image_selector)?])
+    Ok(vec![raster::render(context, &groups, opacities, nonfinite_gray_opacity, base_level_only, runtime_image_selector)?])
 }

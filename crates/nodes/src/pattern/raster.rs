@@ -13,7 +13,7 @@ const MIN_STAMP_SIZE: f32 = 1e-8;
 
 pub(super) fn render(
     context: &CookContext,
-    groups: [&[PatternStamp]; 5],
+    groups: &[&[PatternStamp]],
     opacities: Result<Vec<f32>, String>,
     nonfinite_gray_opacity: bool,
     base_level_only: &[bool],
@@ -53,7 +53,7 @@ pub(super) fn render(
     let tile_region = Region::tiling(context.v4("tiling_region"), axes, cull_outside)?;
     let mut mipmaps = bitmap::Mipmaps::new();
 
-    let mut traversal = groups.into_iter().flatten();
+    let mut traversal = groups.iter().copied().flatten();
     let mut ordered = Vec::new();
     // A runtime image selector reserves the wired slots in port order. Fixed slots acquire their ranks on first use.
     let mut bitmap_ranks = if runtime_image_selector { std::array::from_fn(|index| 256 + index as i32) } else { [0; crate::MAX_IMAGE_INPUTS] };

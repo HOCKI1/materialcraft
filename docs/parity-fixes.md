@@ -2015,6 +2015,36 @@ For three controls replace one input with a generated opaque black 128² F32 tex
 
 At (54,36) in root 396, the green component reaches F32 bits `be745fff` in the reference app and `be746000` in MaterialCraft. At (62,57) in root 408, blue reaches `3e81bfff` and `3e81c000`, respectively. Each pair straddles a half-precision truncation boundary. The black environment makes both the intermediate and the final image exact. The coordinate environment removes the final discrepancies while retaining F32 differences. The individual arithmetic operation in the environment-dependent calculation remains unresolved in both roots.
 
+### Compositing complete seven-level additive quadrant trees
+
+Changing only the addition order of MaterialCraft's F32 contributions reproduced the measured BNW Spots 1 generator images from a single reference processor. Repeated raw captures agreed across two different processor choices, a fresh application launch and reopened packages. With eight processors, repeated native captures of the same three 128² generators varied at 235, 243 and 272 positions. The graph settings were seed 0 at defaults, seed 42 at defaults, and seed 0 with disorder .35. [Earlier generator measurements](#variation-in-the-order-of-additions-in-the-basic-spots-generator)
+
+To measure the order directly, build an original full quadrant tree on a white F32 background. At depth two label each of the sixteen grandchildren by 4a+b, with child slots a and b in traversal order. Continue every branch to level seven. Draw one additive square of size (.875,.875) at each leaf with zero roughness. Translate each grandchild's leaves into the upper-left 32 × 32 region of a 128² image, subtracting ((2(a mod 2)+(b mod 2))/4, (2 floor(a/2)+floor(b/2))/4) from their positions. For each pair assign one group opacity −1, the other 2⁻²⁵, and all others zero. Each covered pixel reads 2⁻²⁵ if the negative group draws first and zero otherwise. The single-negative, white-background and exactly representable .25 controls verify the readout.
+
+All 120 pairs yielded a single order. Numbered from zero, the 1,024-leaf groups draw in **12, 13, 8, 9, 14, 0, 1, 15, 2, 11, 6, 7, 10, 3, 4, 5** order. The same order had independently predicted 22,938 held-out pixels of the three original generators. Six further 128² seed/disorder pairs (1/.1875, 135071/.640625, 113/.921875, 9157/0, 735553/1 and 135697/.34375) matched all 98,304 F32 pixels. It also predicted both disputed Clouds 1 generator texels, including U16 levels 1,759 at (35,174) and 1,912 at (126,211). [Earlier cloud captures](#repeated-cloud-renders-and-two-generator-texels)
+
+MaterialCraft now keeps the position of each group boundary before discarding leaves that miss the sample grid. At 128 × 64, BNW Spots 1 with seed 372177 and disorder 1 discards 11,968 of 16,384 leaves from its 64 × 32 generator. Ordering the surviving contributions by their original group matches all 2,048 F32 texels. The previous whole-root output missed the same eight coordinates in U16 and F32. The implementation applies to a complete, grayscale, seven-level tree that draws only additive procedural leaves. An eight-level control gives different orders across portions of the same grandchild.
+
+| Original control | Settings | Earlier exact / total | Current exact / total | Earlier maximum F32 error | Current maximum |
+|---|---:|---:|---:|---:|---:|
+| Six-level pair comparisons at 64² | 120 | 491,520/491,520 | 491,520/491,520 | 0 | 0 |
+| Seven-level pair comparisons at 128² | 120 | 1,891,328/1,966,080 | 1,966,080/1,966,080 | 2.9802322387695312e-8 | 0 |
+| Seven levels with displaced neutral squares | 10 | 143,360/151,552 | 151,552/151,552 | 2.9802322387695312e-8 | 0 |
+
+For the displaced controls, use pairs (12,0) and (0,14). Offset all neutral squares by half a 128² texel along both axes. Test both signs at 128², the original signs at 64 × 32 and 256 × 128, and the reversed signs at 128 × 64. The release regression exercises both ordinary and culled neutral leaves through the pattern node.
+
+Repeat the archived spots and cloud settings on one logical processor with raw U8, U16, F16 and F32 readback. For Clouds 1 the table includes 48 archived settings and 20 new ones. Use (width, height, seed, disorder) of (16,128,139144,.375), (128,16,139817,.921875), (128,256,139711,.4375), (256,128,139547,1), (256,256,139333,.140625), (128,64,139999,default) and (64,256,139181,.578125). Test U16 and F32 at all seven sizes, adding U8 and F16 at the second, fourth and sixth. Clouds 2 uses 32 published settings, 3 archive renders and 4 precision renders. [Archived whole-root settings](#pixel-center-rounding-at-the-near-stamp-vertex)
+
+| Root and capture set | Renders or distinct settings | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|---:|
+| BNW Spots 1, distinct | 125 | 649,984/649,984 · 0 | 949,504/949,504 · 0 | 649,984/649,984 · 0 | 928,512/928,512 · 0 |
+| Clouds 1, distinct | 68 | 202,240/202,240 · 0 | 417,792/417,792 · 0 | 202,240/202,240 · 0 | 370,944/370,944 · 0 |
+| Clouds 2, renders | 39 | 158,208/158,208 · 0 | 302,065/302,080 · 2.0 | 158,207/158,208 · 0.000244140625 | 203,766/203,776 · 2.2917985916137695e-05 |
+
+BNW Spots 1 matched **3,177,984/3,177,984** (previously 3,177,904 on these same single-processor captures). Clouds 1 matched **1,193,216/1,193,216**, including 405,504 pixels in the 20 new settings. Clouds 2 still differs at 26 of 822,272 pixels across its 39 renders. Save the packages in MaterialCraft and reopen them in both applications. The single-processor cross-application results were 580,608/580,608 from 24 BNW Spots 1 renders, 349,696/349,696 from 21 Clouds 1 renders and 186,879/186,880 from 11 Clouds 2 renders. The last maximum was .000244140625. Both applications reproduced every pixel of their own original outputs.
+
+On the original eight-processor captures of the 125 BNW Spots 1 settings the new renderer matches 3,177,932/3,177,984 (previously 3,177,940). Maximum errors are 0 U8, 2 U16, .000244140625 F16 and 2.1636486053466797e-5 F32. On the 32 original cloud captures, Clouds 1 matches 707,570/707,584 (previously 707,562), maximum 4 U16 levels. Clouds 2 remains 707,572/707,584, maximum 2 U16 levels. The three roots retain their in-progress inventory status. BNW Spots 3 retains all 3,159,552 original pixels across 118 settings and all 2,399,232 across 40 reopened renders, maximum zero. The regression failed on the previous renderer. All 426 node and evaluator release tests passed, along with formatting, strict workspace Clippy, dependency layers and WebAssembly.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color

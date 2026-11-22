@@ -471,6 +471,53 @@ fn six_quadrant_levels_composite_overlapping_subtrees_in_reverse_slot_order() {
 }
 
 #[test]
+fn seven_quadrant_levels_order_leaf_runs_before_discarding_missed_stamps() {
+    let tiny = f32::EPSILON * 0.25;
+    for (negative, positive, miss_other_stamps, expected) in [(12, 0, false, tiny), (12, 0, true, tiny), (0, 14, true, 0.0)] {
+        let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
+        for slot in 0..4 {
+            let parent = graph.add(PatternNodeKind::Quadrant).unwrap();
+            graph.nodes[0].children[slot] = Some(parent);
+            for child_slot in 0..4 {
+                let group = slot * 4 + child_slot;
+                let mut leaf = graph.add(PatternNodeKind::Quadrant).unwrap();
+                graph.nodes[(parent - 1) as usize].children[child_slot] = Some(leaf);
+                for _ in 2..7 {
+                    let child = graph.add(PatternNodeKind::Quadrant).unwrap();
+                    graph.nodes[(leaf - 1) as usize].children.fill(Some(child));
+                    leaf = child;
+                }
+                let offset = [(slot & 1) * 2 + (child_slot & 1), (slot >> 1) * 2 + (child_slot >> 1)].map(|quarter| -0.25 * quarter as f32);
+                let weight = if group == negative {
+                    -1.0
+                } else if group == positive {
+                    tiny
+                } else {
+                    0.0
+                };
+                // Move neutral leaves halfway between samples to exercise geometric culling.
+                let shift = if miss_other_stamps && weight == 0.0 { 0.5 / 128.0 } else { 0.0 };
+                graph.nodes[(leaf - 1) as usize].parameters = BTreeMap::from([
+                    ("patterntype".into(), Value::Int(2)),
+                    ("patternsize".into(), Value::Float2([0.875; 2])),
+                    ("branchoffset".into(), Value::Float2(offset)),
+                    ("frameoffset".into(), Value::Float2([shift; 2])),
+                    ("opacity".into(), Value::Float(weight)),
+                    ("blendingmode".into(), Value::Int(0)),
+                ]);
+            }
+        }
+        let image = cook_in_regions(graph, &BTreeMap::new(), 136404, [128; 2], [[0.0, 1.0, 0.0, 1.0]; 2], 1.0).unwrap().remove(0);
+        for y in 0..128 {
+            for x in 0..128 {
+                let value = if x < 32 && y < 32 { expected } else { 1.0 };
+                assert_eq!(image.get_gray(x, y, false).to_bits(), value.to_bits(), "groups {negative} and {positive} at ({x},{y})");
+            }
+        }
+    }
+}
+
+#[test]
 fn sparse_quadrant_streams_preserve_the_order_of_their_own_draws() {
     let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
     let weights = [-1.409_263_6, 0.452_831_5, f32::EPSILON * 0.5, 0.124_022_64];
