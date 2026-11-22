@@ -2472,6 +2472,30 @@ Save and reopen the previously differing settings and every third new setting, s
 
 The six interleaved one-processor release timings per revision after warmup gave Cells 1 medians of 39.6 to 39.4 ms and 26.3 to 26.3 ms. The two Clouds 2 medians were 747 to 754 ms and 716 to 759 ms. All 431 release tests for the node and evaluation crates, formatting, strict workspace Clippy, dependency layers and the WebAssembly check passed.
 
+### Creased and crystal noise sources on one and eight processors
+
+Repeat the earlier whole-graph comparisons for the three noise-library roots with the reference restricted to one processor and then to eight. The originals have no image pins. Compare raw output codes for U8 and U16 and stored bits for F16 and F32. The source graphs reproduce the archived reference frames on every one of their original 38, 48 and 48 distinct settings. These accounted for 696,320/696,320, 718,080/718,080 and 718,080/718,080 pixels respectively. [Earlier settings and measurements](#original-and-reopened-dirt-moisture-and-cellular-noise-fields)
+
+Add 16 settings per root using the five rows below. For zero-based row j and inventory index i, use seed 186119 + 97i + 37j. Keep the unlisted parameters at their defaults. For Creased set the warp intensity equal to the disorder at each changed setting.
+
+| j | Output | Scale for Creased / Crystal 1 / Crystal 2 | Disorder | Non-square expansion | Formats |
+|---:|---|---|---:|---|---|
+| 0 | 32 × 16 | defaults | default | default | U16, F32 |
+| 1 | 64 × 128 | 2 / 27 / 2 | .96875 | off | U8, U16, F16, F32 |
+| 2 | 128 × 64 | 3 / 19 / 3 | .65625 | off | U8, U16, F16, F32 |
+| 3 | 64² | 1 / 12 / 1 | .09375 | on | U8, U16, F16, F32 |
+| 4 | 128 × 32 | 1 / 5 / 1 | .875 | off | U16, F32 |
+
+The two processor configurations independently gave the counts below. Every maximum error was zero.
+
+| Root | Distinct settings | U8 exact / total | U16 exact / total | F16 exact / total | F32 exact / total | Reopened settings | Reopened exact / total |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Creased (248) | 54 | 103,680/103,680 | 314,112/314,112 | 103,680/103,680 | 265,984/265,984 | 14 | 198,912/198,912 |
+| Crystal 1 (249) | 64 | 104,704/104,704 | 317,184/317,184 | 112,896/112,896 | 274,432/274,432 | 16 | 198,400/198,400 |
+| Crystal 2 (250) | 64 | 104,704/104,704 | 317,184/317,184 | 112,896/112,896 | 274,432/274,432 | 16 | 198,400/198,400 |
+
+Save the graphs in MaterialCraft, reopen each in both applications, and render again. The historical reopen settings common to all three use 128² defaults in U16, 64² seed 42 in U8, 32² seed 113 in F32, then rows 0, 1, 3, 4, 5, 7 and 9 of the earlier ten-size series in F32, F32, U16, F32, F32, F16 and U16 respectively. For both crystal roots also reopen the earlier changed 32² U8 and 64 × 32 F32 controls, with seeds 103074 and 103078 for Crystal 1 and 103085 and 103089 for Crystal 2. From the new table reopen rows 1–3 in U8 and row 4 in U16 for Creased, and row 0 in U16 and rows 1–3 in F16 for both crystal roots. Both applications reproduced every pixel of their own source graphs as well. All three roots are marked Parity within these measured settings.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color
