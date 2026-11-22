@@ -502,6 +502,39 @@ For the signed controls, start with 32 extra copies in each group. Set groups (4
 
 The reference processor modes differ on 707 whole-root pixels. Three additional one-processor captures of 20 settings repeat all 2,927,616 pixels. Of the 18 remaining one-processor differences, 11 agree with the eight-processor reference and seven fall outside all observed reference values. The three open one-processor seed and size combinations are 191520 at 128 × 64, 142326 at 64 × 128 and 188233 at 32 × 16. The new regression failed before the change. All 441 node and evaluator release tests passed along with formatting, strict workspace Clippy, the dependency layer check and WebAssembly.
 
+### Fur 1 across scaled windows and saved files
+
+Fur 1 matches all 811,264 pixels across 62 distinct whole-root settings on both one and eight processors. The 15 MaterialCraft saves reproduce the original in each application and match across applications on 154,112/154,112 pixels. Maximum stored error is zero in all four formats. The root has no image inputs. All renders use its procedural generator.
+
+| Comparison | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|
+| Whole root, one processor | 98,304/98,304 · 0 | 345,088/345,088 · 0 | 98,304/98,304 · 0 | 269,568/269,568 · 0 |
+| Whole root, eight processors | 98,304/98,304 · 0 | 345,088/345,088 · 0 | 98,304/98,304 · 0 | 269,568/269,568 · 0 |
+| Saved packages, one processor | 4,608/4,608 · 0 | 117,248/117,248 · 0 | 6,144/6,144 · 0 | 26,112/26,112 · 0 |
+
+Repeat the 21 original default, seed, parameter and precision settings. The F32 case at 64 × 32, seed 75891, uses scale 3, disorder 0.6875 and non-square expansion. Before the change to stamp projection it matched 1,313/2,048 pixels, maximum 1.67191029e-05. The first release executable with the projection change matches all 2,048 pixels, maximum zero. The complete 21-render set now matches 178,432/178,432 pixels. [Original Fur settings](#fur-pattern-sources-and-downstream-filters) · [Stored-opacity comparison](#stored-opacity-across-pattern-depths) · [Pixel-center projection and its regression](#projecting-stamp-vertices-relative-to-pixel-centers-in-scaled-windows)
+
+Add the settings below. The 128-square, seed-zero U16 setting also appears in the original series and counts once. All 50 retained reference settings reproduced their original 795,904 pixels in the fresh single-processor capture. For saves, take every fifth distinct original setting starting with the first, then take F32 at seed 236449, U8 at 235389, U16 and F16 at 235435, and F32 at 235457.
+
+| Size | Seed | Scale | Disorder | Non-square expansion | Formats |
+|---|---:|---:|---:|---|---|
+| 16 × 32 | 0 | 2 | 0 | On | U8, U16, F16, F32 |
+| 32 × 16 | 42 | 2 | 0.21875 | On | U16, F32 |
+| 64 × 64 | 433701 | 1 | 0.9375 | Off | U8, U16, F16, F32 |
+| 128 × 32 | 433738 | 3 | 0.046875 | On | U16, F32 |
+| 32 × 128 | 433775 | 2 | 0.5625 | Off | U8, U16, F16, F32 |
+| 128 × 128 | 0 | 2 | 0 | On | U8, U16, F16, F32 |
+| 256 × 128 | 433849 | 3 | 0.328125 | Off | U16, F32 |
+| 128 × 256 | 433886 | 1 | 0.8125 | On | U16, F32 |
+| 256 × 256 | 42 | 2 | 0 | On | U8, U16, F16, F32 |
+| 512 × 128 | 433960 | 1 | 0.671875 | On | U16, F32 |
+| 16 × 32 | 236449 | 2 | 0 | On | U16, F32 |
+| 32 × 16 | 235389 | 0 | 0.3125 | On | U8, U16, F16, F32 |
+| 64 × 32 | 235435 | 3 | 0.84375 | Off | U8, U16, F16, F32 |
+| 32 × 64 | 235457 | 1 | 0.5625 | On | U16, F32 |
+
+To isolate the rectangular projection, render one untiled horizontal gradient stamp in a square window of span 3, 7 or 13. Center the stamp at half the span and give it the full window size on both axes. Use a signed gradient with opacity 2, rendering at 64 × 32 and 32 × 64 with seeds 75891 and 75892. All six F32 controls match 12,288/12,288 pixels with zero error. At span 7 the preceding renderer missed all 4,096 pixels, maximum 2.38418579e-07. The regression also checks the first and last pixel in both rectangular orientations. All 375 node release tests passed, along with formatting, strict workspace Clippy, dependency layers and WebAssembly. The inventory status covers the measured settings.
+
 ## 2026-11-21 root comparisons
 
 ### Connected quadrant depth and amplified spot patterns
