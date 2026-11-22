@@ -57,6 +57,32 @@ The first pass classifies all 546 roots: 166 Parity and 380 Too hard. These meas
 
 - **2026-11-13 - Unconnected output images:** Unconnected output bridges now produce transparent RGBA instead of grayscale. The importer separately retains each output's declared image type so saving an unconnected output preserves the graph interface. Both material templates match all 1,179,648 RGBA8 pixels across six recorded cases. All 2,560 direct grayscale/color declaration probe pixels also match, and both declared image types survive save/reload.
 
+## 2026-11-22 root comparisons
+
+### Two independent pattern sources in Moisture Noise
+
+Repeat the [94 Moisture Noise settings](#moisture-spot-and-cell-fields-across-processors-and-saved-packages) with one and eight reference processors. Add five size and parameter combinations. Use the default controls at 32 × 64. For 64 × 32, 64 × 128, 128 × 64 and 128², set disorder d to .375, .8125, .46875 and .1875 respectively. Set pattern width to 36 + 96d and height to 27 + 64(1 − d). Use seed 187403 + 73j for zero-based row j. Request U16 and F32 for all rows, plus U8 and F16 at the three middle sizes.
+
+| Reference processors | Distinct settings | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|---:|
+| 1 | 110 | 760,062/760,064 · 1 | 1,413,730/1,413,888 · 6 | 760,041/760,064 · 0.00048828125 | 1,338,221/1,338,368 · 7.80820847e-05 |
+| 8 | 110 | 760,062/760,064 · 1 | 1,413,686/1,413,888 · 6 | 760,037/760,064 · 0.00048828125 | 1,338,178/1,338,368 · 7.83205032e-05 |
+| 1, reopened | 18 | 28,671/28,672 · 1 | 24,571/24,576 · 5 | 8,192/8,192 · 0 | 425,941/425,984 · 7.80522823e-05 |
+
+Reopen the earlier 12 saved settings and every third new setting starting with the first. Both applications reproduced their original frames on all 18 settings, 487,424/487,424 pixels each. The reopened row compares the applications to each other.
+
+Route each of the two active pattern sources, the blend and the final levels node to the output of a separate saved graph. Compare the source node in the original graph, the reconnected output in the reference, and the reconnected output in MaterialCraft on one processor. The original and reconnected reference buffers match in all 20 comparisons. Keep the two pattern buffers and the blend at U16, and request F32 from levels. Coordinates below are zero-based.
+
+| Size, seed | Width, height, disorder | Destination pattern exact / total | Source pattern exact / total | Blend exact / total | Levels exact / total · max |
+|---|---|---:|---:|---:|---:|
+| 64 × 64, 42 | 60, 140, 0.3 | 4,095/4,096 | 4,096/4,096 | 4,095/4,096 | 4,095/4,096 · 7.802248e-05 |
+| 32 × 64, 42 | 61.84375, 161.78125, 0.21875 | 2,048/2,048 | 2,047/2,048 | 2,047/2,048 | 2,047/2,048 · 7.802248e-05 |
+| 64 × 32, 405833 | 145.5625, 85.1875, 0.8125 | 2,047/2,048 | 2,048/2,048 | 2,047/2,048 | 2,047/2,048 · 7.80820847e-05 |
+| 64 × 32, 187476 | 72, 67, 0.375 | 2,048/2,048 | 2,048/2,048 | 2,048/2,048 | 2,048/2,048 · 0 |
+| 128 × 128, 187695 | 54, 79, 0.1875 | 16,384/16,384 | 16,384/16,384 | 16,384/16,384 | 16,384/16,384 · 0 |
+
+The maximum U16 error is one code wherever a stage differs. At 64² and seed 42 the destination reads 34557 in MaterialCraft and 34556 in the reference at (32,6). The blend retains those codes. Levels returns .6257977485656738 and .6257197260856628. At 32 × 64 and seed 42 the destination matches throughout, while the source reads 4186 and 4187 at (31,21). Each active pattern source therefore accounts for a discrepancy at a different setting. The whole root remains in progress.
+
 ## 2026-11-21 root comparisons
 
 ### Connected quadrant depth and amplified spot patterns
