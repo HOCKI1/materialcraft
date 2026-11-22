@@ -2165,6 +2165,42 @@ For the root generator, save Clouds 2 in MaterialCraft and wire the middle of it
 
 The replay matched all 131,584 generator pixels with tiling disabled. With both axes enabled it left 3,536 differences across the same sizes. The mixed placement control also differs from both uniform placements. Clouds 2 remains in progress. Its [67 whole-root comparisons](#single-processor-comparisons-for-clouds-2-and-five-dirt-fields) used the production renderer.
 
+### Moisture, spot and cell fields across processors and saved packages
+
+MaterialCraft revision 7cc1893 matched 4,161,468 of 4,161,792 Moisture Noise pixels across 94 single-processor settings. Repeat the [82 archived settings](#original-and-reopened-dirt-moisture-and-cellular-noise-fields). Add (width, height, d) of (32,16,.75), (64,128,.28125), (256,64,.6875) and (128,256,.84375), with seed 148603 + 29 × 226 + 71j for zero-based setting j. Use default controls at j = 0. Otherwise set disorder to d, pattern width to 24 + 180d and height to 32 + 120(1 − d). Request U16 and F32 at all four sizes, plus U8 and F16 at the two middle sizes. The 12 added settings matched 164,859/164,864 pixels. Save in MaterialCraft and reopen every eighth setting starting with the first on another logical processor.
+
+| Whole root | Settings | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|---:|
+| Moisture Noise (226) | 94 | 741,630/741,632 · 1 | 1,376,869/1,377,024 · 6 | 741,609/741,632 · 0.00048828125 | 1,301,360/1,301,504 · 7.80820847e-05 |
+| BNW Spots 1 (236), new settings | 12 of 12 | 1,536/1,536 · 0 | 4,095/4,096 · 1 | 1,536/1,536 · 0 | 2,416/4,096 · 2.38418579e-07 |
+| BNW Spots 1 v2 (237), new settings | 12 of 12 | 1,536/1,536 · 0 | 4,095/4,096 · 1 | 1,536/1,536 · 0 | 3,982/4,096 · 1.1920929e-07 |
+| BNW Spots 3 (238), new settings | 12 of 12 | 1,536/1,536 · 0 | 4,093/4,096 · 1 | 1,536/1,536 · 0 | 4,093/4,096 · 1.06692314e-05 |
+| BNW Spots 3 v2 (239), new settings | 8 of 12 | 512/512 · 0 | 3,071/3,072 · 1 | 512/512 · 0 | 2,764/3,072 · 1.49011612e-07 |
+| Cells 1 (240), new settings | 12 of 12 | 1,536/1,536 · 0 | 4,096/4,096 · 0 | 1,536/1,536 · 0 | 4,096/4,096 · 0 |
+| Cells 1 v2 (241), new settings | 12 of 12 | 1,536/1,536 · 0 | 4,096/4,096 · 0 | 1,536/1,536 · 0 | 4,096/4,096 · 0 |
+| Cells 1 (240), full series, each processor setting | 60 | 85,760/85,760 · 0 | 296,146/296,192 · 1 | 93,952/93,952 · 0 | 241,918/253,440 · 8.34465027e-07 |
+| Cells 1 v2 (241), full series, each processor setting | 61 | 137,984/137,984 · 0 | 248,056/248,064 · 1 | 88,832/88,832 · 0 | 270,742/273,920 · 8.34465027e-07 |
+
+For roots 236–241 use (width, height, scale, disorder d) of (16,32,default,default), (32,16,1,.34375), (32,32,2,.78125) and (64,32,1,.5625). Use seed 0 and all defaults first, then seed 153113 + 37i + 109j for inventory index i and zero-based setting j. On changed settings set roughness to .25 + .625d, disorder speed to .625 + .5d, anisotropy to .5d, its angle to d − .375 and tile offset to (.21875d,−.375d) wherever exposed. For Cells 1 v2 select pattern 3, pattern size (.8,1.2), pattern scale .8, angle .125, angle randomness .2 and luminance randomness .25. Request U16 and F32 at the first and last settings. At the two middle settings request U8, U16, F16 and F32. Save each package in MaterialCraft and reopen the 16 × 32 U16, 32 × 16 U16, 32² U8 and 32² F32 cases. Use one processor and change its logical index for the reopens.
+
+The full Cells 1 series combines the archived defaults, seed and control changes, the [four-format controls](#four-format-inventory-comparison), the independent 32² setting, the [30 rectangular and square settings](#original-and-reopened-dirt-moisture-and-cellular-noise-fields), plus the 12 new settings. Include the [ten source comparisons](#bnw-spots-3-and-cells-1-pattern-sources) for the first package and the [additional cell controls](#paths-caustics-and-cell-fields-after-pattern-sampling) for the second. Deduplicate settings by seed, controls, dimensions, image inputs and storage. Repeat all settings at one and eight processors. Save and reopen every fourth setting starting with the first on one processor. Both processor counts gave the same exact counts and maxima on each complete series.
+
+| Reopened package | Comparable renders | Cross-application exact / total | Maximum U8 / U16 / F16 / F32 error |
+|---|---:|---:|---|
+| Moisture Noise | 12 | 442,322/442,368 | 1 / 5 / — / 7.80522823e-05 |
+| BNW Spots 1 | 4 | 2,703/3,072 | 0 / 1 / — / 2.38418579e-07 |
+| BNW Spots 1 v2 | 4 | 3,032/3,072 | 0 / 1 / — / 1.1920929e-07 |
+| BNW Spots 3 | 4 | 3,069/3,072 | 0 / 1 / — / 1.06692314e-05 |
+| BNW Spots 3 v2 | 2 | 1,024/1,024 | — / 0 / — / — |
+| Cells 1 | 4 | 3,072/3,072 | 0 / 0 / — / 0 |
+| Cells 1 v2 | 4 | 3,072/3,072 | 0 / 0 / — / 0 |
+| Cells 1, full series | 15 | 122,881/123,136 | 0 / 1 / 0 / 3.57627869e-07 |
+| Cells 1 v2, full series | 16 | 191,792/192,256 | 0 / 0 / 0 / 8.34465027e-07 |
+
+All completed MaterialCraft reopens reproduced their own original buffers. The 32² BNW Spots 3 v2 setting exceeded the pattern visit budget in all four formats. These missing renders account for 4,096 pixels. The two attempted reopens at this setting returned the same error. The initial reference reopen at 32² F32 matched 939/1,024 pixels against its original, maximum 1.78813934e-7. Alternately reopen the original and the saved package twice on the same logical processor, then once on a second processor. All U8 reads were identical. The original reproduced all F32 pixels on each repeat. One read from the saved package also matched all 1,024 original pixels. The other two matched 919 and 995. Their maximum errors against the original were 1.19209290e-7 and 8.94069672e-8. The other five roots in the new series and Moisture Noise reproduced all their reference pixels after reopening.
+
+For the two cell generators isolate the stamp supplying the maximum at differing F32 pixels. Use a black grayscale background, maximum blending, zero roughness and unit global gain. Match the selected stamp's size, center, turns, scalar opacity and render and tiling windows. Across seven first-package settings the isolated reference stamp reproduced the complete generator at all 45 selected differing pixels. Across five second-package settings it reproduced all 33. At 32², seed 102975, render and tile both axes over [−1,2]. Draw shape 4, size (3,3), center (.5007324,−.7152839), zero turns, opacity one. Pixel (9,0) in the original and the isolated reference stores F32 bits 0x3f4f364f. MaterialCraft gives 0x3f4f3650. The isolated stamp still differs elsewhere in the image. Both cell roots remain in progress.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color
