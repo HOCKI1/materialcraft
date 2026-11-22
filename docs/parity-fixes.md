@@ -535,6 +535,57 @@ Add the settings below. The 128-square, seed-zero U16 setting also appears in th
 
 To isolate the rectangular projection, render one untiled horizontal gradient stamp in a square window of span 3, 7 or 13. Center the stamp at half the span and give it the full window size on both axes. Use a signed gradient with opacity 2, rendering at 64 × 32 and 32 × 64 with seeds 75891 and 75892. All six F32 controls match 12,288/12,288 pixels with zero error. At span 7 the preceding renderer missed all 4,096 pixels, maximum 2.38418579e-07. The regression also checks the first and last pixel in both rectangular orientations. All 375 node release tests passed, along with formatting, strict workspace Clippy, dependency layers and WebAssembly. The inventory status covers the measured settings.
 
+### Perlin Noise and Plasma across rectangular projections
+
+Perlin Noise, Perlin Noise v2 and Plasma each match all 775,424 pixels in 60 distinct whole-root settings on one and eight processors. Each root also matches all 152,576 pixels from 15 MaterialCraft saves reopened in both applications. The maximum stored-channel error is zero in all four formats. These three roots generate their inputs procedurally.
+
+| Root and comparison | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|
+| Perlin Noise, one or eight processors | 98,304/98,304 · 0 | 335,360/335,360 · 0 | 100,352/100,352 · 0 | 241,408/241,408 · 0 |
+| Perlin Noise v2, one or eight processors | 196,608/196,608 · 0 | 237,056/237,056 · 0 | 100,352/100,352 · 0 | 241,408/241,408 · 0 |
+| Plasma, one or eight processors | 98,304/98,304 · 0 | 335,360/335,360 · 0 | 100,352/100,352 · 0 | 241,408/241,408 · 0 |
+| Saved packages, per root | 25,088/25,088 · 0 | 51,712/51,712 · 0 | 2,048/2,048 · 0 | 73,728/73,728 · 0 |
+
+The original 19 settings accounted for 142,592 pixels per root. A release immediately before the stored projection change still differed in the three cases below. Each uses scale 13, disorder .8125 and non-square expansion. The second package also uses disorder speed 1.4375 and tile offset (−.3125,.4375). The following release matches all three. [Original whole-root settings](#liquid-fiber-and-related-noise-sources) · [Stored projection and earlier regression](#inverting-the-stored-pixel-projection-in-scaled-stamp-regions)
+
+| Root | Size, format | Seed | Previous exact / total · max | Corrected exact / total · max |
+|---|---|---:|---:|---:|
+| Perlin Noise | 16 × 32, U16 | 107084 | 507/512 · 2 | 512/512 · 0 |
+| Perlin Noise v2 | 32 × 16, F32 | 107100 | 112/512 · 5.36441803e−7 | 512/512 · 0 |
+| Plasma | 16 × 32, U16 | 107118 | 509/512 · 1 | 512/512 · 0 |
+
+Repeat the following ten size and seed combinations. For v2 and Plasma, add 13 and 26 respectively to seeds above 42. The v2 disorder speed equals disorder where specified. The 128² seed-zero U16 setting in the first package and Plasma, and its U8 counterpart in v2, already occur in the original series. All 48 distinct retained settings reproduce the 760,064 pixels in their earlier captures.
+
+| Size | Seed in first package | Scale | Disorder | Expand | Tile offset in v2 | Formats |
+|---|---:|---:|---:|---|---|---|
+| 16 × 32 | 0 | Default | Default | Default | Default | U8, U16, F16, F32 |
+| 32 × 16 | 42 | 16 | 0.21875 | On | -0.125, 0.21484375 | U16, F32 |
+| 64 × 64 | 433961 | 5 | 0.9375 | Off | 0.59375, -0.4140625 | U8, U16, F16, F32 |
+| 128 × 32 | 433998 | 11 | 0.046875 | On | -0.296875, 0.365234375 | U16, F32 |
+| 32 × 128 | 434035 | 27 | 0.5625 | Off | 0.21875, -0.0859375 | U8, U16, F16, F32 |
+| 128 × 128 | 0 | Default | Default | Default | Default | U8, U16, F16, F32 |
+| 256 × 128 | 434109 | 19 | 0.328125 | Off | -0.015625, 0.119140625 | U16, F32 |
+| 128 × 256 | 434146 | 32 | 0.8125 | On | 0.46875, -0.3046875 | U16, F32 |
+| 256 × 256 | 42 | Default | Default | Default | Default | U8, U16, F16, F32 |
+| 512 × 128 | 434220 | 12 | 0.671875 | On | 0.328125, -0.181640625 | U16, F32 |
+
+For the first package, add 16 × 32 at seed 236469 with defaults, then 32 × 16, 64 × 32 and 32 × 64 at seeds 235409, 235455 and 235477. Render U16 and F32 at each size and add U8 and F16 at the two middle sizes. Use scale 5, disorder .3125 and disabled non-square expansion after the default row. For v2 add one to these four seeds, and set disorder speed .6875 and tile offset (.125,−.1875) on the changed rows. For Plasma add two to the four first-package seeds. Save every fifth distinct retained setting starting with the first. Also save F32 on the default row, U8 on the second, U16 and F16 on the third, and F32 on the fourth.
+
+The reduced regression uses a single signed horizontal gradient, tint 2, size (1,1) and center (.5,.5) with tiling disabled. Use a window from (0,0) to (S,1), for S = 13, 15, 51. For each span use 16 × 32, 64 × 16, 128 × 32 and 32 × 16. Starting at seed 237141, advance by seven within each size series and by 19 for the next span. These 12 F32 images improve from 18,336/18,432, maximum 1.1920929e−7, to 18,432/18,432, maximum zero. Both new 16 × 32 regression rows distinguish the stored projection inverse at the first pixel. All 442 node and evaluator release tests passed, along with formatting, strict workspace Clippy, dependency layers and WebAssembly.
+
+### Paths Trace with rectangular path and background inputs
+
+Paths Trace matches 73,984/73,984 RGBA pixels on each processor count across 31 distinct settings. Nine MaterialCraft saves match 28,928/28,928 pixels on reopening in each application and across applications. Maximum error is zero in each format.
+
+| Root and comparison | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|
+| One or eight processors | 11,776/11,776 · 0 | 13,312/13,312 · 0 | 10,752/10,752 · 0 | 38,144/38,144 · 0 |
+| Saved packages, one processor | 4,864/4,864 · 0 | 2,048/2,048 · 0 | 2,048/2,048 · 0 | 19,968/19,968 · 0 |
+
+Repeat the 19 earlier settings using the original procedural paths and backgrounds. The fresh single-processor capture reproduces all 58,624 archived pixels. For the independent 32² F32 input at seed 113, the release before the runtime bitmap draw-order correction matched 1,012/1,024 pixels, maximum 1.22619528. The release with that correction matches all 1,024 pixels. Its regression renders three overlapping stamps with fixed and parameter-bound image slots, in gray and RGBA. In the RGBA case the measured red channel at the first pixel is .51298636 for fixed selectors and .451574 for a bound selector. [Path point coordinates and background formulas](#paths-caustics-and-cell-fields-after-pattern-sampling) · [Bitmap ordering controls and regression](#pattern-draw-order-for-fixed-and-runtime-image-slots)
+
+For the additional settings, start with the five-point path, its 16² background, default controls, 16 × 32 output and seed zero. Use the seven-point path and 64² background with corners and vertices enabled and thickness 1.625 for 32 × 16 at seed 235461 and 64 × 32 at seed 235507. Finish with the five-point path and 32² background, corners and vertices disabled and thickness .25, at 32 × 64 and seed 235529. Render U16 and F32 in every row, adding U8 and F16 on the two middle rows. Save the first, sixth, eleventh and sixteenth retained settings, then F32, U8, U16 and F16, and F32 on the four additional rows respectively.
+
 ## 2026-11-21 root comparisons
 
 ### Connected quadrant depth and amplified spot patterns
