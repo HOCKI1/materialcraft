@@ -32,7 +32,7 @@ struct Triangle {
 impl PixelPlanes {
     pub fn new(frame: &Footprint, region: &Region, center: [f32; 2], size: [f32; 2], dimensions: [u32; 2]) -> Option<Self> {
         let pixel_size: [f32; 2] = std::array::from_fn(|i| region.period()[i] / dimensions[i] as f32);
-        let projected: [_; 2] = std::array::from_fn(|i| region.stamp_vertices(i, center[i], frame.radius[i], dimensions[i]));
+        let projected: [_; 2] = std::array::from_fn(|i| region.stamp_sample_vertices(i, center[i], frame.radius[i], dimensions[i]));
         // Even a subpixel stamp interpolates its signed coordinates. Extents too large
         // to resolve half pixels use the ordinary footprint.
         if (0..2).any(|i| {
@@ -46,9 +46,9 @@ impl PixelPlanes {
             // The interval from the projected half-pixel to the first sample rounds
             // before its one-pixel offset is removed, including at a clipped edge.
             let first_sample = triangle.near[axis] + 0.5;
-            let interval = (first_sample - f64::from(projected[axis][0] - 0.5)) as f32;
+            let interval = (first_sample - f64::from(projected[axis][0])) as f32;
             let low_delta = (interval - 1.0) * pixel_size[axis];
-            let high_delta = (triangle.far[axis] - f64::from(projected[axis][1])) as f32 * pixel_size[axis];
+            let high_delta = (triangle.far[axis] - 0.5 - f64::from(projected[axis][1])) as f32 * pixel_size[axis];
             [low_delta - frame.radius[axis], high_delta + 3.0 * frame.radius[axis]]
         });
         let first_pixel = triangle.near.map(|n| n as u32);
@@ -153,8 +153,8 @@ impl PixelPlanes {
 
 impl Triangle {
     fn new(projected: [[f32; 2]; 2]) -> Self {
-        let near = projected.map(|[v, _]| (f64::from(v) + 0.5).floor());
-        let far = projected.map(|[_, v]| (f64::from(v) + 0.5).floor() + 1.0);
+        let near = projected.map(|[v, _]| f64::from(v).floor() + 1.0);
+        let far = projected.map(|[_, v]| f64::from(v).floor() + 2.0);
         let padded: [f32; 2] = std::array::from_fn(|i| ((far[i] - near[i]) * 0.5) as f32);
         let reciprocal = area_reciprocal(truncate_float(f64::from(padded[0]) * f64::from(padded[1])));
         let basis = std::array::from_fn(|i| truncate_float(f64::from(padded[1 - i]) * f64::from(reciprocal)));

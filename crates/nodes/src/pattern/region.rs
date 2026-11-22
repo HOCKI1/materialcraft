@@ -63,10 +63,11 @@ impl Region {
         self.start[axis] + (pixel as f32 + 0.5) / size as f32 * self.span[axis]
     }
 
-    pub fn stamp_vertices(&self, axis: usize, center: f32, radius: f32, pixels: u32) -> [f32; 2] {
+    pub fn stamp_sample_vertices(&self, axis: usize, center: f32, radius: f32, pixels: u32) -> [f32; 2] {
         let scale = pixels as f32 / self.span[axis];
-        // Store the two triangle vertices in pattern space before projecting them into the render window.
-        [center - radius, center + 3.0 * radius].map(|v| (v - self.start[axis]) * scale)
+        // Sample zero is the first pixel center. Rounding before its half-pixel offset
+        // changes the snapped edge and the interpolation slope in scaled windows.
+        [center - radius, center + 3.0 * radius].map(|v| (v - self.start[axis]).mul_add(scale, -0.5))
     }
 
     pub fn bounds(&self, center: [f32; 2], radius: [f32; 2], size: [u32; 2]) -> [[u32; 2]; 2] {

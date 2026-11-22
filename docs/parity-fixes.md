@@ -2364,6 +2364,48 @@ Repeat the [independently authored square and rotated-disc controls](#untiled-dr
 
 The earlier four-child Dirt 1 and Dirt 6 F32 controls still matched 246,784/246,784 pixels across 12 settings. After the [individual-copy change](#individual-tile-copies-across-a-pattern-draw-boundary), the prior 17-root verified set also matched all 3,139,328 pixels across its 167 root settings. Six interleaved single-processor release timings per binary after warmup gave medians of 765→780 ms at 256² and 753→770 ms at 512 × 128 for the Clouds 2 generator. The 430 release tests for the node and evaluation crates passed, along with formatting, workspace Clippy, layering and the WebAssembly check.
 
+### Projecting stamp vertices relative to pixel centers in scaled windows
+
+Draw one original horizontal offset ramp on a zero F32 background. Use tint 2, offset −1, global gain 1, additive blending, zero rotation and disabled tiling. Set the stamp width and height to the square render-window span S. Put the center at (S/2,S/2). At S = 7 and output 64², columns 12 and 19 return F32 bits BF1C0001 and BEC80004 in every row. Previously they returned BF1C0000 and BEC80000. At S = 3, output 32² and center X = 1.5 + 3/4096, the same columns return BE608008 and 3E5F7FF8. At S = 13 and output 32 × 64 they return BE600008 and 3E5FFFF8. The regression failed at the first S = 7 sample before the change.
+
+The reference results use a projected coordinate relative to sample zero. MaterialCraft now stores the pattern-space vertex, subtracts the window origin and combines projection and the −.5 pixel offset in one rounded F32 multiply-add. The snapped triangle and its coordinate interpolation both use that stored value. The early coverage check uses the same origin.
+
+For the 150-render sweep use S = 1,3,5,7,9,11,13,15,17,19,21,23,25,27,29,31,33,37,41,43,47,51,53,55,59,61,1.125,1.203125,1.3125,1.671875. In each window use (width,height,normalized X offset,width multiplier) of (64,64,0,1), (32,64,0,1), (32,32,1/4096,1), (64,32,.173177,1) and (64,32,.173177,.915781). Set center X to (.5 + offset)S and the stamp width to S times the multiplier. Use seed 170123 + 37j + k for zero-based span and configuration indices. Save the S = 3,7,13,51 graphs in MaterialCraft and reopen all five settings per graph in both applications.
+
+In a separate 198-render sweep keep the vertical span and stamp height at one. Use horizontal spans S = 3,7,13,15,51,1. For each, set the window width W to S or its immediate F32 neighbor below or above. For the first four cases use stamp width S and center X = (.5 + d)S. The (pixel width, pixel height, d) triples are (64,64,0), (32,64,0), (32,32,1/4096) and (64,32,.173177). For the next six cases at 64², the pairs (stamp width, twice the X center) are (W,W), (S−,S), (S+,S), (S,S−), (S,S+) and (1,S), where − and + denote neighboring F32 values. Finish with (1,1) at 32 × 64. Use seed 181161 + 73j + 11h + k for span index j, window step h in {−1,0,1} and case index k. One output still differs at 128 pixels, maximum 1.19209290e−7.
+
+For a separate edge test position either the near vertex or the padded far vertex at a half pixel. Try the horizontal spans 3,7,13,51,1.125,1.203125,1,3.375, widths 32,64,128 and height 32. With size S times .0625,.126953125,.25,.4375,.5,.78125,1 or 1.03125, solve for the stamp center that places the vertex at column x + .5. Test that F32 center and its two F32 neighbors. For x running from −1 to width − 2, retain up to four distinct (width,x) pairs per span and vertex where rounding before or after the half-pixel offset changes the snapped column. These give 34 renders. Interpolating from the corrected coordinates while retaining the previous snap matched 52,096/54,272 pixels. Moving both operations to the sample-relative coordinates matched 53,760/54,272 and made 27 whole renders exact.
+
+| Original controls | Renders | Previous exact / total | Current exact / total | Current maximum absolute error |
+|---|---:|---:|---:|---:|
+| Horizontal ramps across 30 spans | 150 | 314,688/337,920 | 337,920/337,920 | 0 |
+| Independent window, center and size variations | 198 | 561,088/645,120 | 644,992/645,120 | 1.1920929e-07 |
+| Edges that change snapped column | 34 | 51,680/54,272 | 53,760/54,272 | 1.1920929e-07 |
+| Ramps on both axes in six render windows | 168 | 426,144/442,368 | 441,344/442,368 | 1.1920929e-07 |
+| Rectangular windows and independent dimensions | 140 | 257,524/286,720 | 282,100/286,720 | 4.76837158e-07 |
+| Individual paraboloids from the two cell roots | 34 | 560,829/579,584 | 565,400/579,584 | 4.41534212e-07 |
+| Earlier unit-window ramps, precision neighbors and both brick roots | 544 | 7,065,600/7,065,600 | 7,065,600/7,065,600 | 0 |
+
+The last row includes the four storage formats for the brick outputs. The 20 saved ramp settings improved from 24,640/45,056 to 45,056/45,056 cross-app, maximum zero. Both applications reproduced their own source outputs. The three tiled Clouds 2 generator settings and six Dirt 6 generator settings retained 165,313/165,376 F32 pixels, maximum 1.49011612e−8. All 79 complete Clouds 2 root digests also reproduced revision f9699eb.
+
+For each Cells 1 root, repeat the [60 or 61 settings and saved comparisons](#moisture-spot-and-cell-fields-across-processors-and-saved-packages). Add 16 × 64, 64 × 32, 64 × 128 and 128 × 64 with seed 181763 + 31i + 97j for inventory index i and zero-based size j. Use U16 and F32 at all four sizes and add U8 and F16 at the middle two. Use defaults first, then the earlier settings with scale/disorder (1,.34375), (2,.78125) and (1,.5625). In v2 keep angle .125, angle random .2, pattern 3, pattern size (.8,1.2), pattern scale .8 and luminance random .25. For disorder d, use speed .625 + .5d, anisotropy .5d, anisotropy angle d − .375 and tile offset (.21875d,−.375d). Save and reopen every third added setting, beginning with the first.
+
+Both independent reference processor counts, one and eight, gave the same comparisons for each entire root. The 12 additional settings per root matched 59,392/59,392 pixels across both applications. Integer maxima below are stored levels and the F16 and F32 maxima are absolute.
+
+| Root | Settings | Previous exact / total | Current exact / total | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Cells 1 (240) | 72 | 777,168/788,736 | 778,411/788,736 | 96,000/96,000 · 0 | 315,611/315,648 · 1 | 104,192/104,192 · 0 | 262,608/272,896 · 2.38418579e-07 |
+| Cells 1 v2 (241) | 73 | 805,006/808,192 | 805,710/808,192 | 148,224/148,224 · 0 | 267,520/267,520 · 0 | 99,072/99,072 · 0 | 290,894/293,376 · 3.27825546e-07 |
+
+Only two settings per root differ. In Cells 1 these are U16 and F32 at 128 × 512, seed 411897, scale seven and disorder .53125 with non-square expansion disabled. In Cells 1 v2 they are F32 at 128², seed 269, and 32², seed 383. Use scale 13, disorder .6875, speed .625, base angle .0625, random angle .1875, anisotropy .25 at angle .125, pattern 4, size (.875,1.125), pattern scale .8125, luminance random .375 and tile offset (.1875,−.3125). Enable non-square expansion only at 128².
+
+| Saved root | Settings | Cross-app exact / total | Maximum U8 / U16 / F16 / F32 error |
+|---|---:|---:|---|
+| Cells 1 | 19 | 142,555/142,592 | 0 / 1 / 0 / 0 |
+| Cells 1 v2 | 20 | 211,712/211,712 | 0 / 0 / 0 / 0 |
+
+All of these saved settings reproduced each application’s own source frame. The isolated one-processor release timings used six interleaved runs per revision after warmup. Median Clouds 2 generator time changed from 792 to 811 ms at 256² and from 779 to 793 ms at 512 × 128. The two timed Cells 1 settings changed from 37.0 to 37.2 ms and from 24.4 to 24.6 ms. Both roots remain in progress. Formatting, all 431 release tests for the node and evaluation crates, workspace Clippy, dependency layers and the WebAssembly check passed.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color

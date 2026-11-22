@@ -116,8 +116,8 @@ impl SampleGrid {
                         let low = center[axis] - frame.radius[axis];
                         let end = bounds[axis][1];
                         let pixels = self.dimensions[axis];
-                        let near = self.render.stamp_vertices(axis, center[axis], frame.radius[axis], pixels)[0];
-                        f64::from(near) + 0.5 >= f64::from(end) && self.render.pixel_center(axis, end - 1, pixels) <= low
+                        let near = self.render.stamp_sample_vertices(axis, center[axis], frame.radius[axis], pixels)[0];
+                        f64::from(near) + 1.0 >= f64::from(end) && self.render.pixel_center(axis, end - 1, pixels) <= low
                     })
                 {
                     continue;

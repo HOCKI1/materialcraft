@@ -828,6 +828,32 @@ fn narrow_rotated_stamps_align_the_plane_origin_before_interpolation() {
 }
 
 #[test]
+fn stamp_projection_rounds_at_the_pixel_center_in_scaled_regions() {
+    let variables = BTreeMap::from([("$tiling".into(), Value::Int(0))]);
+    for (span, dx, dimensions, expected) in [
+        (7.0, 0.0, [64, 64], [0xbf1c_0001, 0xbec8_0004]),
+        (3.0, 3.0 / 4096.0, [32, 32], [0xbe60_8008, 0x3e5f_7ff8]),
+        (13.0, 0.0, [32, 64], [0xbe60_0008, 0x3e5f_fff8]),
+    ] {
+        let mut graph = PatternGraph::with_root(PatternNodeKind::Quadrant);
+        graph.nodes[0].parameters = BTreeMap::from([
+            ("patterntype".into(), Value::Int(17)),
+            ("patternsuppl".into(), Value::Float(-1.0)),
+            ("blendingmode".into(), Value::Int(0)),
+            ("opacity".into(), Value::Float(2.0)),
+            ("branchoffset".into(), Value::Float2([-0.5; 2])),
+            ("frameoffset".into(), Value::Float2([span * 0.5 + dx, span * 0.5])),
+            ("patternsize".into(), Value::Float2([span; 2])),
+        ]);
+        let region = [0.0, span, 0.0, span];
+        let image = cook_in_regions(graph, &variables, 170235, dimensions, [region; 2], 0.0).unwrap().remove(0);
+        for (x, bits) in [12, 19].into_iter().zip(expected) {
+            assert_eq!(image.get_gray(x, 0, false).to_bits(), bits, "span {span}, column {x}");
+        }
+    }
+}
+
+#[test]
 fn clipped_square_stamp_triangles_use_the_far_vertex_for_both_slope_terms() {
     for (dimensions, center, size, turns, shape, pixel, expected) in [
         ([256, 256], [-0.08850241, 2.9797058], [0.06013941, 0.0625], 161.3187, 4, [236, 1], 0x3dec_9e10),
