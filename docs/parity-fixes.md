@@ -2255,6 +2255,31 @@ The three directly connected F32 pattern-stage settings per root now match 106,4
 
 In six interleaved single-processor release cooks per binary after warmup, the median tiled generator times at 128 × 64 and 256 × 128 went from 783.9/839.3 to 812.8/866.2 ms for Dirt 1, and from 826.3/898.8 to 833.3/889.8 ms for Dirt 6.
 
+### Individual tile copies across a pattern draw boundary
+
+A wrapped square can straddle two draw runs. In six original graphs, a second square draws between two copies of the first. The rightmost translation draws first, then the next translation to its left. At a corner, the row with the largest Y draws first. The raster now carries the copy range through the reordered runs and charges the repetition budget for each selected copy. The split positions include draws discarded for empty pixel coverage. A run whose length would cross a depth-three subtree still uses its earlier ordering.
+
+Start with a full eight-level quadrant tree on a white F32 field, roughness zero and wrapping enabled on both axes. The first seven subdivisions have all four children. Only depth-seven parents and their four children draw. Use additive squares of size (.875,.875) and gain .25. Set each stamp’s frame offset to (.5,.75) minus its incoming position. Number the 81,920 draws from zero in traversal order, with each parent followed by its four children. Move just the two listed draws to the common center. Give them normalized width and height 1/16, using authored size 8 at depth seven or 16 at depth eight. Give the first draw gain −1 and the second 2⁻²⁵, then exchange them. The table records which corners or edges retained 2⁻²⁵ in the first orientation. The exchanged orientation reversed every readout.
+
+| First draw | Second draw | Center | Edge positions that retained 2⁻²⁵ |
+|---:|---:|---|---|
+| 36,179 | 53,930 | (0,.25) | Right |
+| 56,659 | 12,970 | (.25,0) | Bottom |
+| 15,699 | 65,280 | (0,0) | Bottom right |
+| 23,378 | 75,520 | (0,0) | Bottom right and bottom left |
+| 2,897 | 70,400 | (0,0) | Both bottom corners and top right |
+| 43,859 | 18,090 | (0,.375) | Right |
+
+Use 128², 64 × 128 and 128 × 64. For graph index h, size index j and gain orientation v, starting at zero, set seed 173519 + 37h + 7j + v. Render U16 and F32 at every size, plus U8 and F16 at the middle size. Across 96 settings all **983,040/983,040** pixels match, maximum zero. Previously 982,272 matched, maximum 2⁻²⁵. Save all six graphs in MaterialCraft. Reopen each on another logical processor and render the middle size at the first gain orientation in four formats, then the last size at the other orientation in U16 and F32. Across these 36 settings every application reproduced its originals, and all **294,912/294,912** cross-app pixels match.
+
+Across all 84 [dispersed child layouts](#wrapped-draw-order-for-four-children-below-depth-seven), all **5,505,024/5,505,024** full-frame F32 pixels now match, maximum zero. The concentrated three-slot, four-slot, all-subtree and even-subtree layouts retain their previous differences. The four-format rotated discs improve from 420,446 to 420,448/425,984. The 5,534 differing F32 samples have maximum 1.19209290e−7, and the two differing F16 samples have maximum .00048828125. All 425,984 tiled square pixels still match.
+
+For Dirt 6 repeat the [79 single- and eight-processor whole-root settings](#wrapped-draw-order-for-four-children-below-depth-seven). All **2,563,328/2,563,328** match on one processor. Eight processors match **2,561,906/2,563,328**. The U8, U16, F16 and F32 maxima on eight are respectively one level, five levels, .000244140625 and 9.27764922e−5. At 32 × 128 and seed 398553 the generator’s 15,646th logical draw has two copies. Its first copy ends at cumulative copy 15,787. Neither covers a pixel in that image. Splitting there changes the order of later visible draws. The original U16 value at (28,16), the five F32 sharpen samples, and all six isolated F32 generators at 32 × 128, 128 × 32, 16 × 64 and 64 × 256 now match. The isolated generators improved from 32,302 to 33,792/33,792.
+
+Add five distinct F32 whole-root settings for Dirt 6. Use seeds 398552 and 398554 at 32 × 128 and seed 398553 at 128 × 32, 16 × 64 and 64 × 256. All 29,696 pixels match on one processor. Eight processors match 29,641/29,696, maximum 6.06477261e-05. Reopening these five MaterialCraft saves on one processor reproduces each application's original and matches all 29,696 pixels across applications. Including them brings the one-processor result to 2,593,024/2,593,024 in 84 settings and the eight-processor result to 2,591,547/2,593,024. Dirt 1 retains 2,579,712/2,579,712 on one processor and 2,579,658/2,579,712 on eight at its 80 settings. The 16 previously specified reopens per root also match every pixel across applications. Both roots remain in progress.
+
+In six interleaved single-processor release runs per binary after warmup, median times at 128 × 64 and 256 × 128 changed from 578.4/637.5 to 561.4/618.3 ms for Dirt 1 and from 603.3/638.7 to 604.2/669.4 ms for Dirt 6.
+
 ## 2026-11-20 root comparisons
 
 ### Hue, saturation, lightness and Replace Color

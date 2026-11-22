@@ -1,6 +1,10 @@
 use materialcraft_core::{PatternNode, PatternNodeKind};
 
-use super::{pattern_stamp::PatternStamp, raster::MIN_STAMP_SIZE, tile_runs::TileCopies};
+use super::{
+    pattern_stamp::{DrawPosition, DrawRun, PatternStamp},
+    raster::MIN_STAMP_SIZE,
+    tile_runs::TileCopies,
+};
 use crate::CookContext;
 
 // Each pair is the exclusive end in depth-seven parent visits and its compositing position.
@@ -74,7 +78,7 @@ const FOUR_CHILDREN: &[(usize, usize)] = &[
 #[derive(Default)]
 pub(super) struct MixedDepthRuns {
     layout: &'static [(usize, usize)],
-    starts: Vec<usize>,
+    starts: Vec<DrawPosition>,
     next_boundary: usize,
     parents: usize,
     children_per_parent: usize,
@@ -122,7 +126,7 @@ impl MixedDepthRuns {
         }
         if self.parents == self.next_boundary {
             let Some(&(end, _)) = self.layout.get(self.starts.len()) else { return false };
-            self.starts.push(retained);
+            self.starts.push(DrawPosition { stamp: retained, copy: 0 });
             self.next_boundary = end;
         }
         self.parents += 1;
@@ -142,20 +146,20 @@ impl MixedDepthRuns {
             return false;
         }
         self.draws += 1;
-        self.copies.as_mut().is_none_or(|copies| copies.record(stamp, retained).is_some())
+        self.copies.as_mut().is_none_or(|copies| copies.record(stamp, retained, self.draws).is_some())
     }
 
-    pub(super) fn finish(mut self, stamps: &[PatternStamp]) -> Option<Vec<&[PatternStamp]>> {
+    pub(super) fn finish(mut self, stamps: &[PatternStamp]) -> Option<Vec<DrawRun<'_>>> {
         if self.parents != 16384 || self.draws != self.parents * (1 + self.children_per_parent) || self.starts.len() != self.layout.len() {
             return None;
         }
-        self.starts.push(stamps.len());
+        self.starts.push(DrawPosition { stamp: stamps.len(), copy: 0 });
         if let Some(copies) = self.copies {
             self.starts = copies.boundaries(self.layout)?;
         }
-        let mut groups = vec![&[][..]; self.layout.len()];
+        let mut groups = vec![DrawRun::whole(&[]); self.layout.len()];
         for ((_, rank), bounds) in self.layout.iter().zip(self.starts.windows(2)) {
-            *groups.get_mut(*rank)? = stamps.get(bounds[0]..bounds[1])?;
+            *groups.get_mut(*rank)? = DrawRun::between(stamps, bounds[0], bounds[1])?;
         }
         Some(groups)
     }

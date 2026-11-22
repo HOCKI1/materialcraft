@@ -391,6 +391,7 @@ pub fn cook_with_base_level_inputs(context: &CookContext, base_level_only: &[boo
         }
         groups[0] = prefix;
     }
+    let groups = groups.map(super::pattern_stamp::DrawRun::whole);
     let mixed_groups = mixed_depth_runs.and_then(|runs| runs.finish(&stamps));
     Ok(vec![raster::render(context, mixed_groups.as_deref().unwrap_or(&groups), opacities, nonfinite_gray_opacity, base_level_only, runtime_image_selector)?])
 }

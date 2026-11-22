@@ -1,5 +1,10 @@
-use super::{footprint::Footprint, pattern_stamp::PatternStamp, region::Region};
+use super::{
+    footprint::Footprint,
+    pattern_stamp::{DrawPosition, PatternStamp},
+    region::Region,
+};
 use crate::CookContext;
+use std::ops::Range;
 
 const UNIT_WINDOW: [f32; 4] = [0.0, 1.0, 0.0, 1.0];
 const DRAWS_PER_PARENT: usize = 5;
@@ -9,8 +14,9 @@ const COPIES_PER_BATCH: u32 = 5460;
 
 pub(super) struct TileCopies {
     window: Region,
-    ends: Vec<u32>,
-    retained_ends: Vec<u32>,
+    total: u32,
+    subtree_ends: Vec<u32>,
+    retained: Vec<Range<u32>>,
 }
 
 impl TileCopies {
@@ -18,32 +24,35 @@ impl TileCopies {
         if context.v4("render_region") != UNIT_WINDOW || context.v4("tiling_region") != UNIT_WINDOW {
             return None;
         }
-        Some(Self { window: Region::new(UNIT_WINDOW).ok()?, ends: Vec::new(), retained_ends: Vec::new() })
+        Some(Self { window: Region::new(UNIT_WINDOW).ok()?, total: 0, subtree_ends: Vec::new(), retained: Vec::new() })
     }
 
-    pub(super) fn record(&mut self, stamp: &PatternStamp, retained: bool) -> Option<()> {
+    pub(super) fn record(&mut self, stamp: &PatternStamp, retained: bool, draws: usize) -> Option<()> {
         let footprint = Footprint::new(stamp).ok()?;
         let center = self.window.copy_origin(stamp.center, [true; 2]);
         let [x, y] = self.window.repeats(&self.window, center, footprint.radius, [true; 2]).ok()?;
         if !(1..=2).contains(&x.count) || !(1..=2).contains(&y.count) {
             return None;
         }
-        let end = self.ends.last().copied().unwrap_or(0).checked_add((x.count * y.count) as u32)?;
-        self.ends.push(end);
+        let end = self.total.checked_add((x.count * y.count) as u32)?;
         if retained {
-            self.retained_ends.push(end);
+            self.retained.push(self.total..end);
+        }
+        self.total = end;
+        if draws.is_multiple_of(DRAWS_PER_PARENT * PARENTS_PER_SUBTREE) {
+            self.subtree_ends.push(end);
         }
         Some(())
     }
 
-    pub(super) fn boundaries(&self, layout: &[(usize, usize)]) -> Option<Vec<usize>> {
+    pub(super) fn boundaries(&self, layout: &[(usize, usize)]) -> Option<Vec<DrawPosition>> {
         let mut cuts = vec![None; layout.len() + 1];
         let mut order = vec![0; layout.len()];
         cuts[0] = Some(0_u32);
         for (run, &(parents, rank)) in layout.iter().enumerate() {
             *order.get_mut(rank)? = run;
             if parents % PARENTS_PER_SUBTREE == 0 {
-                cuts[run + 1] = self.ends.get(parents * DRAWS_PER_PARENT - 1).copied();
+                cuts[run + 1] = self.subtree_ends.get(parents / PARENTS_PER_SUBTREE - 1).copied();
             }
         }
 
@@ -54,10 +63,8 @@ impl TileCopies {
                 Some(end) => end,
                 None => {
                     let end = start.checked_add(COPIES_PER_BATCH - drawn % COPIES_PER_BATCH)?;
-                    // A split inside a repeated stamp would need separate copy ranges at render time.
-                    let draws = self.ends.binary_search(&end).ok()? + 1;
                     // Crossing a depth-three subtree can change the order of the later runs.
-                    if draws / (DRAWS_PER_PARENT * PARENTS_PER_SUBTREE) != layout[run].0 / PARENTS_PER_SUBTREE {
+                    if self.subtree_ends.partition_point(|boundary| *boundary <= end) != layout[run].0 / PARENTS_PER_SUBTREE {
                         return None;
                     }
                     cuts[run + 1] = Some(end);
@@ -66,9 +73,17 @@ impl TileCopies {
             };
             drawn = drawn.checked_add(end.checked_sub(start)?)?;
         }
-        if self.ends.last().copied() != Some(drawn) {
+        if self.total != drawn {
             return None;
         }
-        cuts.into_iter().map(|end| end.map(|cut| self.retained_ends.partition_point(|value| *value <= cut))).collect()
+        cuts.into_iter()
+            .map(|cut| {
+                let cut = cut?;
+                let stamp = self.retained.partition_point(|range| range.end <= cut);
+                // Across discarded draws the next retained stamp starts at its first copy.
+                let copy = self.retained.get(stamp).map_or(0, |range| cut.saturating_sub(range.start));
+                Some(DrawPosition { stamp, copy })
+            })
+            .collect()
     }
 }

@@ -11,3 +11,46 @@ pub(super) struct PatternStamp {
     pub filtering: i32,
     pub premultiplied: bool,
 }
+
+/// A position between tile copies in traversal order.
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub(super) struct DrawPosition {
+    pub stamp: usize,
+    pub copy: u32,
+}
+
+#[derive(Clone, Copy)]
+pub(super) struct DrawRun<'a> {
+    stamps: &'a [PatternStamp],
+    first_copy: u32,
+    end_copy: u32,
+}
+
+impl<'a> DrawRun<'a> {
+    pub fn whole(stamps: &'a [PatternStamp]) -> Self {
+        Self { stamps, first_copy: 0, end_copy: 0 }
+    }
+
+    pub fn between(stamps: &'a [PatternStamp], start: DrawPosition, end: DrawPosition) -> Option<Self> {
+        if start > end {
+            return None;
+        }
+        if start == end {
+            return Some(Self::whole(&[]));
+        }
+        let stop = end.stamp.checked_add(usize::from(end.copy != 0))?;
+        Some(Self { stamps: stamps.get(start.stamp..stop)?, first_copy: start.copy, end_copy: end.copy })
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.stamps.is_empty()
+    }
+
+    pub fn draws(&self) -> impl Iterator<Item = (&'a PatternStamp, std::ops::Range<u64>)> + Clone + '_ {
+        self.stamps.iter().enumerate().map(|(i, stamp)| {
+            let first = if i == 0 { u64::from(self.first_copy) } else { 0 };
+            let end = if i + 1 == self.stamps.len() && self.end_copy != 0 { u64::from(self.end_copy) } else { u64::MAX };
+            (stamp, first..end)
+        })
+    }
+}

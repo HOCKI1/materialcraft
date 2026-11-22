@@ -2,7 +2,14 @@ use craft_texture::{Image, Kind, Limits};
 use materialcraft_core::OutputFormat;
 use std::sync::Arc;
 
-use super::{bitmap, blend, coordinates::PixelPlanes, footprint::Footprint, pattern_stamp::PatternStamp, region::Region, shape};
+use super::{
+    bitmap, blend,
+    coordinates::PixelPlanes,
+    footprint::Footprint,
+    pattern_stamp::{DrawRun, PatternStamp},
+    region::Region,
+    shape,
+};
 use crate::CookContext;
 use crate::atomic::input_resize::{InputResize, resized_input};
 use crate::function::flush_subnormal;
@@ -13,7 +20,7 @@ pub(super) const MIN_STAMP_SIZE: f32 = 1e-8;
 
 pub(super) fn render(
     context: &CookContext,
-    groups: &[&[PatternStamp]],
+    groups: &[DrawRun<'_>],
     opacities: Result<Vec<f32>, String>,
     nonfinite_gray_opacity: bool,
     base_level_only: &[bool],
@@ -32,7 +39,7 @@ pub(super) fn render(
             Image::filled(width, height, kind, color.map(flush_subnormal))
         })
     };
-    if groups.iter().all(|group| group.is_empty()) {
+    if groups.iter().all(DrawRun::is_empty) {
         return Ok(background);
     }
 
@@ -53,7 +60,7 @@ pub(super) fn render(
     let tile_region = Region::tiling(context.v4("tiling_region"), axes, cull_outside)?;
     let mut mipmaps = bitmap::Mipmaps::new();
 
-    let mut traversal = groups.iter().copied().flatten();
+    let mut traversal = groups.iter().flat_map(DrawRun::draws);
     let mut ordered = Vec::new();
     // A runtime image selector reserves the wired slots in port order. Fixed slots acquire their ranks on first use.
     let mut bitmap_ranks = if runtime_image_selector { std::array::from_fn(|index| 256 + index as i32) } else { [0; crate::MAX_IMAGE_INPUTS] };
@@ -73,16 +80,16 @@ pub(super) fn render(
         }
         (rank, filtering, stamp.blend != 0)
     };
-    if !traversal.clone().map(&mut draw_order).is_sorted() {
+    if !traversal.clone().map(|(stamp, _)| draw_order(stamp)).is_sorted() {
         // Assign the remaining ranks in traversal order before the sort compares stamps.
-        for stamp in traversal.by_ref() {
-            draw_order(stamp);
-            ordered.push(stamp);
+        for draw in traversal.by_ref() {
+            draw_order(draw.0);
+            ordered.push(draw);
         }
         // Each shape or bitmap slot draws by filter, then additive before the other blend modes.
-        ordered.sort_by_key(|stamp| draw_order(stamp));
+        ordered.sort_by_key(|(stamp, _)| draw_order(stamp));
     }
-    for stamp in traversal.chain(ordered) {
+    for (stamp, selection) in traversal.chain(ordered) {
         if !stamp.center.iter().chain(&stamp.size).chain(&stamp.color).chain([&stamp.rotation, &stamp.variation]).all(|value| value.is_finite()) {
             return Err("pattern parameters must be finite".into());
         }
@@ -136,13 +143,23 @@ pub(super) fn render(
         let center = tile_region.copy_origin(stamp.center, axes);
         let repeats = tile_region.repeats(&render_region, center, radius, axes)?;
         let copies = repeats[0].count.checked_mul(repeats[1].count).ok_or("pattern repetition exceeds its budget")?;
-        if copies == 0 {
+        let end = selection.end.min(copies);
+        let selected = end.saturating_sub(selection.start);
+        if selected == 0 {
             continue;
         }
-        copies_left = copies_left.checked_sub(copies).ok_or("pattern repetition exceeds its budget")?;
+        copies_left = copies_left.checked_sub(selected).ok_or("pattern repetition exceeds its budget")?;
         let columns = repeats[0].centers();
-        for y_center in repeats[1].centers() {
+        let mut copy = 0_u64;
+        'rows: for y_center in repeats[1].centers() {
             for x_center in columns.clone() {
+                if copy == end {
+                    break 'rows;
+                }
+                copy += 1;
+                if copy <= selection.start {
+                    continue;
+                }
                 let center = [x_center, y_center];
                 let bounds = render_region.bounds(center, radius, [width, height]);
                 let [[left, right], [top, bottom]] = bounds;

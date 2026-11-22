@@ -614,6 +614,61 @@ fn depth_eight_parent_order_counts_children_that_cross_the_tile_edge() {
 }
 
 #[test]
+fn wrapped_copies_of_one_stamp_can_draw_on_opposite_sides_of_another_stamp() {
+    fn square(gain: f32, center: [f32; 2], size: f32) -> BTreeMap<String, Value> {
+        let mut frame = FunctionGraph::default();
+        let target = frame.add_constant(Value::Float2(center));
+        let position = frame.add("get_float2", &[], Some(Value::Text("$pos".into())));
+        frame.output = Some(frame.add("sub", &[target, position], None));
+        let mut parameters = additive_square(gain, [0.0; 2], [0.0; 2]);
+        parameters.insert("frameoffset".into(), Value::Function(Box::new(frame)));
+        parameters.insert("patternsize".into(), Value::Float2([size; 2]));
+        parameters
+    }
+
+    let mut tree = PatternGraph::with_root(PatternNodeKind::Quadrant);
+    let mut parent = tree.root.unwrap();
+    for depth in 1..=8 {
+        let child = tree.add(PatternNodeKind::Quadrant).unwrap();
+        tree.nodes[(parent - 1) as usize].children.fill(Some(child));
+        if depth >= 7 {
+            tree.nodes[(child - 1) as usize].parameters = square(0.25, [0.5, 0.75], 0.875);
+        }
+        parent = child;
+    }
+
+    let tiny = f32::EPSILON * 0.25;
+    let variables = BTreeMap::from([("$tiling".into(), Value::Int(3))]);
+    // Each parent draws once, followed by four children. Only the two selected squares cross the corner.
+    for (negative, positive, early_copies) in [(15_699, 65_280, 1), (23_378, 75_520, 2), (2_897, 70_400, 3)] {
+        let mut graph = tree.clone();
+        for (draw, gain) in [(negative, -1.0), (positive, tiny)] {
+            let parent_visit = draw / 5;
+            let mut path: Vec<_> = (0..7).rev().map(|level| (parent_visit >> (level * 2)) & 3).collect();
+            if draw % 5 != 0 {
+                path.push(draw % 5 - 1);
+            }
+            let size = (1 << path.len()) as f32 / 16.0;
+            let mut parent = graph.root.unwrap();
+            for slot in path {
+                let original = graph.nodes[(parent - 1) as usize].children[slot].unwrap();
+                let node = graph.nodes[(original - 1) as usize].clone();
+                let child = graph.add(PatternNodeKind::Quadrant).unwrap();
+                graph.nodes[(child - 1) as usize] = materialcraft_core::PatternNode { id: child, ..node };
+                graph.nodes[(parent - 1) as usize].children[slot] = Some(child);
+                parent = child;
+            }
+            graph.nodes[(parent - 1) as usize].parameters = square(gain, [0.0; 2], size);
+        }
+        let image = cook_in_regions(graph, &variables, 173_519, [128, 64], [[0.0, 1.0, 0.0, 1.0]; 2], 1.0).unwrap().remove(0);
+        let corners = [(127, 63), (0, 63), (127, 0), (0, 0)];
+        for (copy, (x, y)) in corners.into_iter().enumerate() {
+            assert_eq!(image.get_gray(x, y, false), if copy < early_copies { tiny } else { 0.0 }, "draw {negative}, copy {copy}");
+        }
+    }
+}
+
+#[test]
 fn missing_slots_at_the_last_two_subdivisions_keep_the_grandchild_boundaries() {
     let tiny = f32::EPSILON * 0.25;
     for (subdivision, mask) in [(5, 0b1011), (6, 0b1000), (6, 0b1010)] {
