@@ -19,6 +19,32 @@ pub(super) struct DrawPosition {
     pub copy: u32,
 }
 
+/// Boundaries in the complete tile stream, including draws discarded before rasterization.
+#[derive(Default)]
+pub(super) struct CopyPositions {
+    pub total: u32,
+    retained: Vec<std::ops::Range<u32>>,
+}
+
+impl CopyPositions {
+    pub fn record(&mut self, count: u32, retained: bool) -> Option<std::ops::Range<u32>> {
+        let start = self.total;
+        self.total = start.checked_add(count)?;
+        let range = start..self.total;
+        if retained {
+            self.retained.push(range.clone());
+        }
+        Some(range)
+    }
+
+    pub fn at(&self, cut: u32) -> DrawPosition {
+        let stamp = self.retained.partition_point(|range| range.end <= cut);
+        // Across discarded draws the next retained stamp starts at its first copy.
+        let copy = self.retained.get(stamp).map_or(0, |range| cut.saturating_sub(range.start));
+        DrawPosition { stamp, copy }
+    }
+}
+
 #[derive(Clone, Copy)]
 pub(super) struct DrawRun<'a> {
     stamps: &'a [PatternStamp],

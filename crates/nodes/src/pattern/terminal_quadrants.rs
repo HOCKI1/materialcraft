@@ -1,7 +1,8 @@
 use super::{
     footprint::SampleGrid,
-    pattern_stamp::{DrawRun, PatternStamp},
+    pattern_stamp::{CopyPositions, DrawRun, PatternStamp},
     raster::MIN_STAMP_SIZE,
+    tile_runs::COPIES_PER_BATCH,
 };
 use materialcraft_core::{PatternNode, PatternNodeKind};
 
@@ -177,7 +178,11 @@ const FOUR_TAIL: &[ParentRange] = &[
 
 #[derive(Default)]
 pub(super) struct TerminalQuadrants {
-    starts: Vec<usize>,
+    // The retained stamp index and physical copy offset at each depth-six parent.
+    starts: Vec<(usize, u32)>,
+    positions: CopyPositions,
+    quarter_start: u32,
+    wrapped: bool,
     draws: usize,
     shape: Option<i32>,
 }
@@ -194,7 +199,7 @@ impl TerminalQuadrants {
                         return false;
                     }
                     // Invisible draws still occupy a place in their parent's run.
-                    self.starts.push(retained);
+                    self.starts.push((retained, self.positions.total));
                 }
                 true
             }
@@ -202,7 +207,7 @@ impl TerminalQuadrants {
         }
     }
 
-    pub(super) fn draw(&mut self, stamp: &PatternStamp, weights: &[f32], grid: Option<&SampleGrid>) -> bool {
+    pub(super) fn draw(&mut self, stamp: &PatternStamp, weights: &[f32], grid: Option<&SampleGrid>, retained: bool) -> bool {
         let Some(weight) = weights.get(stamp.depth as usize) else { return false };
         if !(6..=8).contains(&stamp.depth)
             || stamp.blend != 0
@@ -213,9 +218,19 @@ impl TerminalQuadrants {
         {
             return false;
         }
+        let Some(count) = grid.and_then(|grid| grid.copy_count(stamp)) else { return false };
+        if self.positions.record(count, retained).is_none() {
+            return false;
+        }
         self.draws += 1;
-        // Tiling changes these boundaries only when it actually emits a different number of copies.
-        grid.is_some_and(|grid| grid.single_copy(stamp))
+        self.wrapped |= count > 1;
+        if self.draws.is_multiple_of(64 * 21) {
+            // Filling a quarter batch can change which subtree submits the next draw.
+            let count = self.positions.total - self.quarter_start;
+            self.quarter_start = self.positions.total;
+            return count < COPIES_PER_BATCH / 4;
+        }
+        true
     }
 
     pub(super) fn finish(mut self, stamps: &[PatternStamp], repeats: usize) -> Option<Vec<DrawRun<'_>>> {
@@ -228,12 +243,43 @@ impl TerminalQuadrants {
         if self.starts.len() != repeats * 4096 || self.draws != self.starts.len() * 21 {
             return None;
         }
-        self.starts.push(stamps.len());
-        let mut groups = Vec::with_capacity(FIRST.len() + middle.len() + tail.len());
-        for &(start, end) in FIRST.iter().chain(middle).chain(tail) {
-            let stamps = stamps.get(*self.starts.get(start)?..*self.starts.get(end)?)?;
-            groups.push(DrawRun::whole(stamps));
+        self.starts.push((stamps.len(), self.positions.total));
+        let ranges = FIRST.iter().chain(middle).chain(tail);
+        if !self.wrapped {
+            return ranges.map(|&(start, end)| Some(DrawRun::whole(stamps.get(self.starts.get(start)?.0..self.starts.get(end)?.0)?))).collect();
         }
-        Some(groups)
+
+        // Complete 64-parent subtrees have fixed boundaries. Interior spans finish
+        // at a batch boundary and can end between two copies of the same stamp.
+        let mut cuts = vec![None; self.starts.len()];
+        cuts[0] = Some(0);
+        for &(_, end) in ranges.clone().filter(|(_, end)| end.is_multiple_of(64)) {
+            *cuts.get_mut(end)? = Some(self.starts.get(end)?.1);
+        }
+        let mut submitted = 0_u32;
+        let mut groups = Vec::with_capacity(FIRST.len() + middle.len() + tail.len());
+        for &(start, end) in ranges {
+            let first = (*cuts.get(start)?)?;
+            let stop = match *cuts.get(end)? {
+                Some(cut) => cut,
+                None => {
+                    let phase = submitted % COPIES_PER_BATCH;
+                    let span = self.starts.get(end)?.1.checked_sub(first)?;
+                    let batches = span.checked_add(phase)?.checked_add(COPIES_PER_BATCH / 2)? / COPIES_PER_BATCH;
+                    let cut = first.checked_add(batches.checked_mul(COPIES_PER_BATCH)?.checked_sub(phase)?)?;
+                    // Outside the neighboring quarter the measured submission order no longer applies.
+                    let low = self.starts.get(end.saturating_sub(64))?.1;
+                    let high = self.starts.get(end.saturating_add(64)).map_or(self.positions.total, |entry| entry.1);
+                    if !(low..=high).contains(&cut) {
+                        return None;
+                    }
+                    *cuts.get_mut(end)? = Some(cut);
+                    cut
+                }
+            };
+            submitted = submitted.checked_add(stop.checked_sub(first)?)?;
+            groups.push(DrawRun::between(stamps, self.positions.at(first), self.positions.at(stop))?);
+        }
+        (submitted == self.positions.total).then_some(groups)
     }
 }

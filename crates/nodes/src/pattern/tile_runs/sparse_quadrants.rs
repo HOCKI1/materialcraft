@@ -91,7 +91,7 @@ impl SparseQuadrantRuns {
             }
             ends[group] = submitted;
         }
-        if submitted != self.copies.total {
+        if submitted != self.copies.positions.total {
             return None;
         }
 
@@ -101,8 +101,8 @@ impl SparseQuadrantRuns {
                 let first = batch.start.saturating_sub(*offset);
                 let end = batch.end.saturating_sub(*offset).min(source.end - source.start);
                 if first < end {
-                    let start = self.copies.draw_position(source.start + first);
-                    let stop = self.copies.draw_position(source.start + end);
+                    let start = self.copies.positions.at(source.start + first);
+                    let stop = self.copies.positions.at(source.start + end);
                     runs.push(DrawRun::between(stamps, start, stop)?);
                 }
             }

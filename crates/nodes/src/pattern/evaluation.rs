@@ -311,7 +311,7 @@ pub fn cook_with_base_level_inputs(context: &CookContext, base_level_only: &[boo
                     if mixed_depth_runs.as_mut().is_some_and(|runs| !runs.draw(&stamp, opacities.as_deref().unwrap_or_default(), !missed)) {
                         mixed_depth_runs = None;
                     }
-                    if terminal_quadrants.as_mut().is_some_and(|runs| !runs.draw(&stamp, opacities.as_deref().unwrap_or_default(), grid.as_ref())) {
+                    if terminal_quadrants.as_mut().is_some_and(|runs| !runs.draw(&stamp, opacities.as_deref().unwrap_or_default(), grid.as_ref(), !missed)) {
                         terminal_quadrants = None;
                     }
                     if missed {

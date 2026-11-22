@@ -1,6 +1,6 @@
 use super::{
     footprint::Footprint,
-    pattern_stamp::{DrawPosition, DrawRun, PatternStamp},
+    pattern_stamp::{CopyPositions, DrawPosition, DrawRun, PatternStamp},
     region::Region,
 };
 use crate::CookContext;
@@ -26,9 +26,8 @@ pub(super) struct TileCopies {
     window: Region,
     axes: [bool; 2],
     parents_per_subtree: usize,
-    total: u32,
+    positions: CopyPositions,
     subtree_ends: Vec<u32>,
-    retained: Vec<Range<u32>>,
     full_pairs: u8,
 }
 
@@ -42,29 +41,25 @@ impl TileCopies {
             window: Region::new(UNIT_WINDOW).ok()?,
             axes: context.tiling_axes(),
             parents_per_subtree,
-            total: 0,
+            positions: CopyPositions::default(),
             subtree_ends: Vec::new(),
-            retained: Vec::new(),
             full_pairs: 0,
         })
     }
 
     fn count_stamp(&mut self, stamp: Option<&PatternStamp>, retained: bool) -> Option<Range<u32>> {
-        let start = self.total;
-        if let Some(stamp) = stamp {
+        let count = if let Some(stamp) = stamp {
             let footprint = Footprint::new(stamp).ok()?;
             let center = self.window.copy_origin(stamp.center, self.axes);
             let [x, y] = self.window.repeats(&self.window, center, footprint.radius, self.axes).ok()?;
             if !(1..=2).contains(&x.count) || !(1..=2).contains(&y.count) {
                 return None;
             }
-            self.total = self.total.checked_add((x.count * y.count) as u32)?;
-        }
-        let range = start..self.total;
-        if retained {
-            self.retained.push(range.clone());
-        }
-        Some(range)
+            (x.count * y.count) as u32
+        } else {
+            0
+        };
+        self.positions.record(count, retained)
     }
 
     pub(super) fn record(&mut self, stamp: &PatternStamp, retained: bool, draws: usize, draws_per_parent: usize) -> Option<()> {
@@ -86,16 +81,9 @@ impl TileCopies {
         Some(())
     }
 
-    fn draw_position(&self, cut: u32) -> DrawPosition {
-        let stamp = self.retained.partition_point(|range| range.end <= cut);
-        // Across discarded draws the next retained stamp starts at its first copy.
-        let copy = self.retained.get(stamp).map_or(0, |range| cut.saturating_sub(range.start));
-        DrawPosition { stamp, copy }
-    }
-
     pub(super) fn two_child_runs<'a>(&self, stamps: &'a [PatternStamp]) -> Option<Vec<DrawRun<'a>>> {
         let ranges = two_children::ranges(&self.subtree_ends)?;
-        ranges.into_iter().map(|r| DrawRun::between(stamps, self.draw_position(r.start), self.draw_position(r.end))).collect()
+        ranges.into_iter().map(|r| DrawRun::between(stamps, self.positions.at(r.start), self.positions.at(r.end))).collect()
     }
 
     fn subtree_copies(&self, subtrees: Range<usize>) -> Option<u32> {
@@ -495,9 +483,9 @@ impl TileCopies {
             };
             drawn = drawn.checked_add(end.checked_sub(start)?)?;
         }
-        if self.total != drawn {
+        if self.positions.total != drawn {
             return None;
         }
-        cuts.into_iter().map(|cut| cut.map(|cut| self.draw_position(cut))).collect()
+        cuts.into_iter().map(|cut| cut.map(|cut| self.positions.at(cut))).collect()
     }
 }
