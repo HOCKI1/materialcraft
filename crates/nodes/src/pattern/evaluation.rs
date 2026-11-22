@@ -113,6 +113,7 @@ pub fn cook_with_base_level_inputs(context: &CookContext, base_level_only: &[boo
 
     let mut stamps = Vec::new();
     let mut runtime_image_selector = false;
+    let mut root_siblings = None;
     let mut root_children_pending = 0;
     let mut branch_starts = [None; 4];
 
@@ -139,7 +140,9 @@ pub fn cook_with_base_level_inputs(context: &CookContext, base_level_only: &[boo
         // Returning below the previous stack size starts the next child of the root.
         if pending.len() < root_children_pending {
             root_children_pending = pending.len();
-            branch_starts[root_children_pending] = Some(stamps.len());
+            if let Some(slot) = root_siblings.and_then(|siblings| pending.len().checked_sub(siblings)).and_then(|slot| branch_starts.get_mut(slot)) {
+                *slot = Some(stamps.len());
+            }
         }
         variables.resume(pending.len());
         max_depth = max_depth.max(visit.depth);
@@ -243,6 +246,8 @@ pub fn cook_with_base_level_inputs(context: &CookContext, base_level_only: &[boo
         let vector = |name: &str| field(name).and_then(Value::as_vec4).map(|value| [value[0], value[1]]).unwrap_or([0.0; 2]);
         children.clear();
         let mut repeated = None;
+        let track_root_children =
+            grayscale && node.kind == PatternNodeKind::Quadrant && visit.depth == 0 && (Some(node.id) == graph.root || opacity_depth == 6);
         match node.kind {
             PatternNodeKind::Dot => {}
             PatternNodeKind::Quadrant => {
@@ -396,8 +401,16 @@ pub fn cook_with_base_level_inputs(context: &CookContext, base_level_only: &[boo
         }
 
         variables.keep_for_children(pending.len(), declared);
-        if grayscale && node.kind == PatternNodeKind::Quadrant && Some(node.id) == graph.root {
-            root_children_pending = children.len();
+        if track_root_children {
+            if root_siblings.is_some() {
+                // Multiple emitted trees can interleave. A single tree's four child ranges no longer describe the draw.
+                branch_starts.fill(None);
+                root_children_pending = 0;
+            } else {
+                // Outer repetitions can remain on the stack while the only emitted tree visits its four children.
+                root_siblings = Some(pending.len());
+                root_children_pending = pending.len() + children.len();
+            }
         }
         pending.extend(repeated);
         pending.extend(children.drain(..).rev().map(|visit| (visit, 0)));

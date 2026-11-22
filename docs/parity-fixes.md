@@ -59,6 +59,70 @@ The first pass classifies all 546 roots: 166 Parity and 380 Too hard. These meas
 
 ## 2026-11-22 root comparisons
 
+### Six-level quadrant draw order after an iteration or switch
+
+A single grayscale quadrant tree with six levels of subdivision draws the initial quadrant and then composites its four child streams in reverse slot order. Outer iterations can still be waiting on the evaluation stack while the only active tree runs. The renderer now records where the four children start relative to those waiting iterations. A second active tree invalidates these ranges. Parameter evaluation, seed inheritance and the order inside each child stream follow the original traversal. [Direct six-level probes](#draw-order-at-six-quadrant-subdivisions)
+
+For an independent F32 probe, center one leaf from each first-level subtree on pixel (15,15) of a 32² image. Use the direct six-level construction with analytic pattern 4 on the leaves and include all four children at every subdivision. Start from black. Use the four gains from each row, keep the stamp size at (.75,.75) and use seed 306293 + 17j. Each tuple applies to slots zero through three. Repeat the third and fourth tuples at 64 × 32 and 32 × 64 with seeds 306719 and 306763. At the test pixel the fourth outer iteration passes the tree and the other eight iterations take the empty switch arm. For gains (1,2⁻²⁴,−1,0) the earlier renderer returned zero and the reference returned 2⁻²⁴. [Regression fixture](../crates/nodes/src/pattern/tests.rs)
+
+| j | Seed | Gains in slot order |
+|---:|---:|---|
+| 0 | 306293 | 0.25, 0.125, 0.375, 0.0625 |
+| 1 | 306310 | 1, −1, 2⁻²⁴, 0 |
+| 3 | 306344 | 1, 2⁻²⁴, −1, 0 |
+| 8 | 306429 | −1, 1, 0, 2⁻²⁴ |
+| 13 | 306514 | 2⁻²⁴, 1, −1, 0 |
+| 21 | 306650 | 0, −1, 1, 2⁻²⁴ |
+| 32 | 306837 | −1, 1, 2⁻²⁴, 2⁻²⁵ |
+| 48 | 307109 | 2⁻²⁴, 2⁻²⁵, −1, 1 |
+
+One repeated branch, the initial branch alone, a constant switch, the fourth of nine repetitions, and a single inner repetition after depth two each reproduce the direct reference image. Across these 50 renders the earlier cook matched 53,760/61,440 · 5.96046448e-08 and the corrected cook matches 61,440/61,440 · 0. The fourth-of-nine graph was saved and reopened in both applications at the three square settings with j = 1, 13 and 48. Exact pixels improved from 2,560/3,072 · 5.96046448e-08 to 3,072/3,072 · 0. The two-tree and two-of-nine controls retain their earlier raw buffers and match 21,504/24,576 · 1.1920929e-07. Five-level controls remain exact. The seven-level case that passes through the outer switch still differs in this revision.
+
+Expose the six-level pattern stage as F32. It is the first generator in Clouds 1 and the middle generator in Clouds 2. Request whole graph sizes 16², 128², 128 × 64 and 256² at the following settings. The stage renders at half the requested width and height. Values use the original package identifiers.
+
+| Requested size | Seed | Exposed controls |
+|---|---:|---|
+| 16 × 16 | 103017 / 103039 for Clouds 1 / 2 | Defaults |
+| 128 × 128 | 0 | Defaults |
+| 128 × 64 | 411681 / 411695 for Clouds 1 / 2 | scale=2, disorder=0.96875, non_square_expansion=false |
+| 256 × 256 | 0 | Defaults |
+
+| Six-level stage · four settings | Earlier F32 exact / total · max | Corrected F32 exact / total · max |
+|---|---:|---:|
+| Clouds 1 · original controls | 20,397/22,592 · 1.49011612e-07 | 22,468/22,592 · 1.49011612e-07 |
+| Clouds 1 · wrapping off | 21,369/22,592 · 1.49011612e-07 | 22,503/22,592 · 1.1920929e-07 |
+| Clouds 1 · one outer repetition, unit windows, wrapping off | 21,350/22,592 · 1.49011612e-07 | 22,592/22,592 · 0 |
+| Clouds 1 · one child at each subdivision | 22,592/22,592 · 0 | 22,592/22,592 · 0 |
+| Clouds 2 · original controls | 16,239/22,592 · 5.96046448e-08 | 22,024/22,592 · 4.47034836e-08 |
+| Clouds 2 · wrapping off | 19,141/22,592 · 4.47034836e-08 | 22,222/22,592 · 4.47034836e-08 |
+| Clouds 2 · one outer repetition, unit windows, wrapping off | 19,017/22,592 · 5.96046448e-08 | 22,592/22,592 · 0 |
+| Clouds 2 · one child at each subdivision | 22,592/22,592 · 0 | 22,592/22,592 · 0 |
+
+With original controls the 128 × 64 request emits four trees in each six-level stage. Its remaining error is visible before final quantization. The other three requests emit one tree and match every F32 stage sample. A separate replay kept every original F32 contribution and its sample position. Reversing the four 1,280-draw streams gave the measured single-tree images. Each stream has 256 depth-five draws and 1,024 depth-six draws.
+
+Repeat the 60 whole settings and 15 SBS reopens for each root. Maxima use stored integer levels or absolute floating-point differences. [Whole-graph settings](#four-cloud-noise-generators-and-repeated-saved-file-comparisons)
+
+| Package · comparison | Rendered / requested | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|---:|
+| noise_clouds_1 · one processor | 58/60 | 85,760/85,760 · 0 | 293,987/294,144 · 1 | 93,952/93,952 · 0 | 251,254/251,392 · 1.52587891e-05 |
+| noise_clouds_1 · eight processors | 58/60 | 85,760/85,760 · 0 | 294,027/294,144 · 1 | 93,950/93,952 · 0.00048828125 | 251,272/251,392 · 1.52587891e-05 |
+| noise_clouds_1 · reference one versus eight | 60/60 | 85,760/85,760 · 0 | 296,060/296,192 · 1 | 93,950/93,952 · 0.00048828125 | 253,328/253,440 · 1.52587891e-05 |
+| noise_clouds_1 · after reopening, one processor | 14/15 | 4,096/4,096 · 0 | 92,883/92,928 · 1 | 1,536/1,536 · 0 | 22,512/22,528 · 1.52587891e-05 |
+| noise_clouds_1 · reference original versus reopened | 15/15 | 4,096/4,096 · 0 | 94,976/94,976 · 0 | 1,536/1,536 · 0 | 22,528/22,528 · 0 |
+| noise_clouds_2 · one processor | 60/60 | 85,760/85,760 · 0 | 296,179/296,192 · 2 | 93,952/93,952 · 0 | 253,428/253,440 · 2.29477882e-05 |
+| noise_clouds_2 · eight processors | 60/60 | 85,760/85,760 · 0 | 296,171/296,192 · 2 | 93,952/93,952 · 0 | 253,427/253,440 · 2.29477882e-05 |
+| noise_clouds_2 · reference one versus eight | 60/60 | 85,760/85,760 · 0 | 296,180/296,192 · 2 | 93,952/93,952 · 0 | 253,429/253,440 · 2.29477882e-05 |
+| noise_clouds_2 · after reopening, one processor | 15/15 | 4,096/4,096 · 0 | 94,971/94,976 · 2 | 1,536/1,536 · 0 | 22,524/22,528 · 2.29477882e-05 |
+| noise_clouds_2 · reference original versus reopened | 15/15 | 4,096/4,096 · 0 | 94,976/94,976 · 0 | 1,536/1,536 · 0 | 22,528/22,528 · 0 |
+
+Against the one-processor captures, Clouds 1 improved from 724,871 to 724,953/725,248 exact pixels and Clouds 2 from 729,305 to 729,319/729,344. At 128 × 64 with seed 411695, the first and third Clouds 2 generators match every U16 sample. The six-level generator matches 2,047/2,048, maximum one stored level. The first blend retains that difference. The second blend differs at two output pixels, and the final F32 maximum is 2.28881836e−5. Every successful MaterialCraft save reproduced its original raw buffer. Settings that returned an execution-budget error contribute no pixels.
+
+Noise Fluid retained 1,266,944/1,266,944 whole pixels at both processor counts and 271,872/271,872 across 15 reopens. [Noise Fluid settings](#noise-fluid-across-procedural-controls-and-stored-formats)
+
+The color and grayscale tile-patch roots each retained 21,366,784/21,366,784 whole pixels across 127 settings through 1024². The 122 reopened settings per root matched all 22,283,264 stored pixels. [Tile-patch settings and fields](#diagonal-blur-across-rectangular-tile-edges)
+
+In six interleaved release runs on one processor, median process CPU time including loading and raw readback changed from 7.875 to 7.781 seconds for four single-tree renders, 8.078 to 7.859 seconds for four two-tree renders, and 10.766 to 10.719 seconds for three whole Clouds 2 renders. All 455 release node and evaluator tests, formatting, strict workspace Clippy, dependency layers and WebAssembly passed.
+
 ### Noise Fluid across procedural controls and stored formats
 
 Noise Fluid matches all 1,266,944 pixels in 71 distinct settings on both one and eight processors. The first 53 repeat the earlier measurements against both fresh captures and the original archived buffers. They include the 273 U16 and 171 F32 pixels that previously differed. The generator has no image inputs. Every saved case reopened in both applications and reproduced its original raw values. [Earlier whole outputs and controls](#diagonal-blur-across-rectangular-tile-edges)

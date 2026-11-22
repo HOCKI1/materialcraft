@@ -447,6 +447,21 @@ fn bitmap_draw_order_uses_the_wired_slots_for_a_runtime_selector() {
     }
 }
 
+fn draw_on_fourth_repetition(graph: &mut PatternGraph) {
+    // Only the fourth outer repetition submits a quadrant tree.
+    let select = graph.add(PatternNodeKind::Switch).unwrap();
+    let mut condition = FunctionGraph::default();
+    let number = condition.add("get_float1", &[], Some(Value::Text("$number".into())));
+    let three = condition.add_constant(Value::Float(3.0));
+    condition.output = Some(condition.add("eq", &[number, three], None));
+    graph.nodes[(select - 1) as usize].children[1] = graph.root;
+    graph.nodes[(select - 1) as usize].parameters.insert("switch".into(), Value::Function(Box::new(condition)));
+    let outer = graph.add(PatternNodeKind::Iterate).unwrap();
+    graph.nodes[(outer - 1) as usize].children[1] = Some(select);
+    graph.nodes[(outer - 1) as usize].parameters.insert("numberadded".into(), Value::Int(9));
+    graph.root = Some(outer);
+}
+
 #[test]
 fn six_quadrant_levels_composite_overlapping_subtrees_in_reverse_slot_order() {
     let small = f32::EPSILON * 0.5;
@@ -470,8 +485,12 @@ fn six_quadrant_levels_composite_overlapping_subtrees_in_reverse_slot_order() {
                 ("blendingmode".into(), Value::Int(0)),
             ]);
         }
-        let image = cook_at_size(graph, &BTreeMap::new(), 377014, 32).unwrap().remove(0);
+        let image = cook_at_size(graph.clone(), &BTreeMap::new(), 377014, 32).unwrap().remove(0);
         assert_eq!(image.get_gray(15, 15, false).to_bits(), expected.to_bits(), "{depth} levels");
+
+        draw_on_fourth_repetition(&mut graph);
+        let image = cook_at_size(graph, &BTreeMap::new(), 306344, 32).unwrap().remove(0);
+        assert_eq!(image.get_gray(15, 15, false).to_bits(), expected.to_bits(), "{depth} levels through a gated repetition");
     }
 }
 
@@ -604,18 +623,7 @@ fn single_branch_controls_keep_the_order_of_a_complete_nine_level_tree() {
         graph.nodes[prior].children.fill(Some(pass));
     }
 
-    // Only the fourth outer repetition submits a quadrant tree.
-    let select = graph.add(PatternNodeKind::Switch).unwrap();
-    let mut condition = FunctionGraph::default();
-    let number = condition.add("get_float1", &[], Some(Value::Text("$number".into())));
-    let three = condition.add_constant(Value::Float(3.0));
-    condition.output = Some(condition.add("eq", &[number, three], None));
-    graph.nodes[(select - 1) as usize].children[1] = graph.root;
-    graph.nodes[(select - 1) as usize].parameters.insert("switch".into(), Value::Function(Box::new(condition)));
-    let outer = graph.add(PatternNodeKind::Iterate).unwrap();
-    graph.nodes[(outer - 1) as usize].children[1] = Some(select);
-    graph.nodes[(outer - 1) as usize].parameters.insert("numberadded".into(), Value::Int(9));
-    graph.root = Some(outer);
+    draw_on_fourth_repetition(&mut graph);
 
     let variables = BTreeMap::from([("$tiling".into(), Value::Int(0))]);
     let image = cook_in_regions(graph, &variables, 188119, [128; 2], [[0.0, 1.0, 0.0, 1.0]; 2], 1.0).unwrap().remove(0);
