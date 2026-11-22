@@ -5,7 +5,7 @@ use materialcraft_core::{PatternNode, PatternNodeKind};
 use super::{
     pattern_stamp::{DrawPosition, DrawRun, PatternStamp},
     raster::MIN_STAMP_SIZE,
-    tile_runs::{TileCopies, UNIT_WINDOW},
+    tile_runs::{FOUR_CHILDREN, TileCopies, UNIT_WINDOW},
 };
 use crate::CookContext;
 
@@ -38,43 +38,6 @@ const TWO_CHILDREN: &[(usize, usize)] = &[
     (15360, 7),
     (15872, 17),
     (16384, 19),
-];
-const FOUR_CHILDREN: &[(usize, usize)] = &[
-    (580, 6),
-    (1024, 19),
-    (1416, 15),
-    (1536, 24),
-    (2048, 20),
-    (3140, 2),
-    (4096, 9),
-    (4676, 4),
-    (5120, 13),
-    (5376, 29),
-    (5444, 18),
-    (5632, 31),
-    (5768, 10),
-    (5888, 34),
-    (6144, 14),
-    (7236, 0),
-    (8192, 11),
-    (8772, 8),
-    (9216, 25),
-    (9352, 21),
-    (9728, 27),
-    (9984, 30),
-    (10240, 26),
-    (11332, 1),
-    (12288, 22),
-    (12800, 17),
-    (13312, 3),
-    (13448, 12),
-    (13824, 33),
-    (14336, 7),
-    (14472, 23),
-    (14848, 32),
-    (15360, 5),
-    (15872, 28),
-    (16384, 16),
 ];
 
 // With four children and four grandchildren, the independent subtree boundaries
@@ -141,7 +104,6 @@ pub(super) struct MixedDepthRuns {
     draws: usize,
     shape: Option<i32>,
     copies: Option<TileCopies>,
-    two_child_window: bool,
 }
 
 impl MixedDepthRuns {
@@ -150,14 +112,14 @@ impl MixedDepthRuns {
             return None;
         }
         let axes = context.tiling_axes();
-        // The two-child batch boundaries also hold when both axes wrap in equal, non-unit windows.
+        // Count the eight-level batches in the common window, including repeated copies along its edges.
         let window = if deepest == 8 && axes == [true; 2] { context.v4("render_region") } else { UNIT_WINDOW };
         let copies = match axes {
             [false, false] => None,
             axes if axes == [true; 2] || deepest == 9 => Some(TileCopies::new(context, deepest, window)?),
             _ => return None,
         };
-        Some(Self { copies, deepest, two_child_window: window != UNIT_WINDOW, ..Self::default() })
+        Some(Self { copies, deepest, ..Self::default() })
     }
 
     pub(super) fn visit(&mut self, node: &PatternNode, depth: u32, retained: usize) -> bool {
@@ -183,7 +145,7 @@ impl MixedDepthRuns {
         if self.layout.is_empty() {
             (self.layout, self.draws_per_parent) = match (self.deepest, children) {
                 (8, 2) => (TWO_CHILDREN, 3),
-                (8, 4) if !self.two_child_window => (FOUR_CHILDREN, 5),
+                (8, 4) => (FOUR_CHILDREN, 5),
                 (9, 4) => (FOUR_CHILDREN_AND_GRANDCHILDREN, 21),
                 _ => return false,
             };

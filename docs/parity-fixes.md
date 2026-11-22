@@ -59,6 +59,148 @@ The first pass classifies all 546 roots: 166 Parity and 380 Too hard. These meas
 
 ## 2026-11-22 root comparisons
 
+### Four-child pattern order as a tile-copy batch fills
+
+In one eight-level additive quadrant tree, each of the 16,384 depth-seven parents draws itself and four leaves. A depth-three subtree contains 256 of these parents and 1,280 logical draws. A stamp crossing the tiling window can contribute several copies. The render order changes when subtrees 58 and 59 followed by 0 and 1 reach 5,460 physical copies. In the measured continuation, subtree 2 moves later and the next prefix starts in subtree 3. The prefix starting in subtree 40 can also fill one subtree earlier. MaterialCraft counts copies in the common render and tiling window and uses the observed order within its measured range. [Four-child ordering and threshold regression](../crates/nodes/src/pattern/tile_runs/four_children.rs)
+
+To reproduce the threshold, use a white F32 image and active additive squares. At each parent, reserve the parent and its first leaf for signed markers. Number the other three leaves in recursive slot order. For a subtree with q additional copies, place leaves with ordinal floor(768j/q) on the X seam for j from 0 through q−1. Keep the other leaves inside the unit square. In groups 58, 59, 0, 1 distribute 339 extra copies as (84,85,85,85). Do the same for groups 40 through 43 and use (84,85) for groups 2 and 3. With all other extra counts at zero, groups (58,59,0,1), (40,41,42,43) and (0,1,2,3) each account for 5,459 copies. Move one more leaf of group 58 to the seam to reach 5,460 in the first total. Two signed square markers sharing a pixel with gains −1 and 2⁻²⁵ reveal their order. Swap the gains and repeat. Seven marker pairs in the regression reverse order and two preserve it. Adding one copy to group 40 or group 2 alone preserves the earlier ordering for these pairs. The regression failed before the change.
+
+For an independent order readout, give selected parents horizontal strips and their first leaves vertical strips. Read their F32 intersections, exchange the two gains and resolve tied ranks with individual point pairs. Refine each interval where adjacent sampled parents separate in rank. The observed order spans 35 runs before the first total fills and 33 afterwards. A separate profile with 5,461 copies in the prefix starting at group 40 locates its first cut in group 43. For the profile with 5,461 in groups 58, 59, 0 and 1, the parent ordering agreed at all 16,384 positions. Eleven of 192 nearby stamp pairs gave different orders between two dense point fields. Each of those eleven pairs was then isolated at a separate pixel, one pair per field. With seeds 335509 and 335527 and both gain assignments, all 44 isolated readouts reproduced the 33-run order.
+
+In a second regression, use all four terminal leaf slots in the expanded-window square construction. At the 1,024 Morton-ordered readout positions the following half-open parent ranges return 2⁻²⁵. All other positions return zero. [Square construction](#eight-level-two-child-drawing-across-equal-tile-and-render-windows) · [End-to-end regression](../crates/nodes/src/pattern/tests.rs)
+
+| Common X and Y windows | Output | Readout origin | Leaf X offset | Positive ranges |
+|---|---|---|---:|---|
+| (−.5,1.5) × (−.5,1.5) | 256² | (64,64) | 0 | [580,648), [768,1024) |
+| (0,1) × (−.5,1.5) | 128 × 256 | (0,64) | −1/512 | [571,644), [768,1024) |
+| (0,1) × (−.5,1.5) | 128 × 256 | (0,64) | .4995 | [574,623), [768,1024) |
+
+Repeat the 64-subtree round-robin fields in the linked construction with all four leaf slots and add 613 to each seed. Use both gain assignments at all four sizes and the four stored formats at 128 × 64. Save and reopen every third case, starting with the first. Counts compare raw pixels, integer errors use stored levels and floating errors are absolute.
+
+| Window and reference | Earlier exact / total · max | Corrected exact / total · max |
+|---|---:|---:|
+| Expanded square · one processor | 240,504/245,760 · 2.98023224e-08 | 245,760/245,760 · 0 |
+| Expanded square · eight processors | 241,800/245,760 · 2.98023224e-08 | 239,344/245,760 · 2.98023224e-08 |
+| Expanded square · one-processor reopen | 103,868/106,496 · 2.98023224e-08 | 106,496/106,496 · 0 |
+| Expanded X · one processor | 245,760/245,760 · 0 | 245,760/245,760 · 0 |
+| Expanded X · eight processors | 245,760/245,760 · 0 | 245,760/245,760 · 0 |
+| Expanded X · one-processor reopen | 106,496/106,496 · 0 | 106,496/106,496 · 0 |
+| Translated rectangle · one processor | 235,248/245,760 · 2.98023224e-08 | 245,760/245,760 · 0 |
+| Translated rectangle · eight processors | 228,016/245,760 · 2.98023224e-08 | 230,672/245,760 · 2.98023224e-08 |
+| Translated rectangle · one-processor reopen | 101,240/106,496 · 2.98023224e-08 | 106,496/106,496 · 0 |
+| Unit render and larger tiling window · one processor | 221,320/245,760 · 2.98023224e-08 | 221,320/245,760 · 2.98023224e-08 |
+| Unit render and larger tiling window · eight processors | 199,776/245,760 · 2.98023224e-08 | 199,776/245,760 · 2.98023224e-08 |
+| Unit render and larger tiling window · one-processor reopen | 94,276/106,496 · 2.98023224e-08 | 94,276/106,496 · 2.98023224e-08 |
+
+All 42 equal-window settings agreed on one processor, 737,280/737,280 pixels, with zero maximum error. All 15 corresponding reopens also agreed, 319,488/319,488 pixels. The unequal-window control retained its earlier raw buffers.
+
+For Noise Clouds 1 and Noise Clouds 1 v2, expose the final pattern generator directly as F32. Force the outer repeat to one and the switch to its tree. Disconnect the background input on v2 and set both generators’ backgrounds to opaque black. Run the following settings in order. Save and reopen settings 0, 3 and 6 in both applications.
+
+| Setting | Size | Seed | Exposed controls |
+|---:|---|---:|---|
+| 0 | 128 × 128 | 0 | Defaults |
+| 1 | 128 × 128 | 17 | Defaults |
+| 2 | 64 × 64 | 330251 | scale=1, disorder=0.21875, non_square_expansion=true |
+| 3 | 128 × 128 | 330277 | scale=1, disorder=0.46875, non_square_expansion=false |
+| 4 | 256 × 64 | 330307 | scale=1, disorder=0.71875, non_square_expansion=true |
+| 5 | 64 × 256 | 330353 | scale=1, disorder=0.28125, non_square_expansion=true |
+| 6 | 128 × 64 | 330371 | scale=2, disorder=0.9375, non_square_expansion=false |
+| 7 | 128 × 128 | 0 | Defaults |
+
+| F32 single-tree field | Earlier exact / total · max | Corrected exact / total · max |
+|---|---:|---:|
+| Clouds 1 · one processor | 77,763/110,592 · 1.1920929e-07 | 110,592/110,592 · 0 |
+| Clouds 1 · eight processors | 80,201/110,592 · 8.94069672e-08 | 77,612/110,592 · 1.1920929e-07 |
+| Clouds 1 · one-processor reopen | 26,715/40,960 · 8.94069672e-08 | 40,960/40,960 · 0 |
+| Clouds 1 v2 · one processor | 77,175/110,592 · 8.94069672e-08 | 110,592/110,592 · 0 |
+| Clouds 1 v2 · eight processors | 81,392/110,592 · 1.1920929e-07 | 75,691/110,592 · 1.1920929e-07 |
+| Clouds 1 v2 · one-processor reopen | 26,490/40,960 · 8.94069672e-08 | 40,960/40,960 · 0 |
+
+Restore each generator’s original background, including the incoming connection on v2. At the seven settings below, compare the original controls with one, two or four forced trees, wrapping off, parents only and leaves only. Each row names the settings used for that comparison. [Earlier cloud sources and seeds](#four-cloud-noise-generators-and-repeated-saved-file-comparisons)
+
+| Setting | Size | Seed for Clouds 1 / v2 | Exposed controls |
+|---|---|---|---|
+| a0 | 128 × 128 | 0 / 0 | Defaults |
+| a34 | 128 × 64 | 411681 / 411688 | scale=2, disorder=0.96875, non_square_expansion=false / scale=2, disorder=0.96875, disorder_speed=0.96875, disorder_anisotropy=0.96875, disorder_anisotropy_angle=0.71875, tile_offset=[0.625, -0.44140625], non_square_expansion=false |
+| a46 | 512 × 128 | 411986 / 411993 | scale=1, disorder=0.09375, non_square_expansion=true / scale=1, disorder=0.09375, disorder_speed=0.09375, disorder_anisotropy=0.09375, disorder_anisotropy_angle=-0.15625, tile_offset=[-0.25, 0.32421875], non_square_expansion=true |
+| a9 | 16 × 16 | 103017 / 103028 | Defaults |
+| more | 64 × 128 | 326871 / 326872 | scale=2, disorder=0.59375, non_square_expansion=false / scale=2, disorder=0.59375, disorder_speed=0.96875, disorder_anisotropy=0.96875, disorder_anisotropy_angle=0.71875, tile_offset=[0.625, -0.44140625], non_square_expansion=false |
+| offset | 128 × 64 | 411698 / 411705 | scale=2, disorder=0.96875, non_square_expansion=false / scale=2, disorder=0.96875, disorder_speed=0.96875, disorder_anisotropy=0.96875, disorder_anisotropy_angle=0.71875, tile_offset=[0.625, -0.44140625], non_square_expansion=false |
+| repeat | 128 × 64 | 411681 / 411688 | scale=2, disorder=0.96875, non_square_expansion=false / scale=2, disorder=0.96875, disorder_speed=0.96875, disorder_anisotropy=0.96875, disorder_anisotropy_angle=0.71875, tile_offset=[0.625, -0.44140625], non_square_expansion=false |
+
+| F32 stage with original background · one processor unless specified | Settings | Rendered | Earlier exact / total · max | Corrected exact / total · max |
+|---|---|---:|---:|---:|
+| Clouds 1 · original | a0, a34, a46, a9, more, offset, repeat | 7/7 | 70,037/114,944 · 8.94069672e-08 | 76,906/114,944 · 8.94069672e-08 |
+| Clouds 1 · original, eight processors | a0, a34, a46, a9, more, offset, repeat | 7/7 | 72,405/114,944 · 8.94069672e-08 | 72,899/114,944 · 8.94069672e-08 |
+| Clouds 1 · one tree | a0, a34, a46, more | 4/4 | 82,948/98,304 · 8.94069672e-08 | 98,304/98,304 · 0 |
+| Clouds 1 · one tree, wrapping off | a0, a34, a46, more | 4/4 | 98,304/98,304 · 0 | 98,304/98,304 · 0 |
+| Clouds 1 · original, wrapping off | a0, a34, a46, more | 4/4 | 69,155/98,304 · 8.94069672e-08 | 69,155/98,304 · 8.94069672e-08 |
+| Clouds 1 · two trees | a34, a9 | 2/2 | 7,266/8,448 · 1.1920929e-07 | 7,266/8,448 · 1.1920929e-07 |
+| Clouds 1 · four trees | a34, a9 | 2/2 | 7,127/8,448 · 2.38418579e-07 | 7,127/8,448 · 2.38418579e-07 |
+| Clouds 1 · parents only | a34, a9 | 2/2 | 6,953/8,448 · 5.96046448e-08 | 6,953/8,448 · 5.96046448e-08 |
+| Clouds 1 · leaves only | a34, a9 | 2/2 | 6,709/8,448 · 2.98023224e-08 | 6,709/8,448 · 2.98023224e-08 |
+| Clouds 1 · original SBS reopen | a0, a9, repeat | 3/3 | 15,055/24,832 · 8.94069672e-08 | 21,924/24,832 · 8.94069672e-08 |
+| Clouds 1 v2 · original | a0, a34, a46, a9, more, offset, repeat | 7/7 | 102,201/114,944 · 3.27825546e-07 | 104,432/114,944 · 3.27825546e-07 |
+| Clouds 1 v2 · original, eight processors | a0, a34, a46, a9, more, offset, repeat | 7/7 | 102,663/114,944 · 2.98023224e-07 | 102,514/114,944 · 2.98023224e-07 |
+| Clouds 1 v2 · one tree | a0, a34, a46, more | 4/4 | 94,040/98,304 · 2.08616257e-07 | 96,237/98,304 · 2.08616257e-07 |
+| Clouds 1 v2 · one tree, wrapping off | a0, a34, a46, more | 4/4 | 97,304/98,304 · 1.78813934e-07 | 97,304/98,304 · 1.78813934e-07 |
+| Clouds 1 v2 · original, wrapping off | a0, a34, a46, more | 1/4 | 14,573/16,384 · 1.78813934e-07 | 14,573/16,384 · 1.78813934e-07 |
+| Clouds 1 v2 · two trees | a34, a9 | 2/2 | 7,564/8,448 · 3.27825546e-07 | 7,564/8,448 · 3.27825546e-07 |
+| Clouds 1 v2 · four trees | a34, a9 | 2/2 | 6,511/8,448 · 3.27825546e-07 | 6,511/8,448 · 3.27825546e-07 |
+| Clouds 1 v2 · parents only | a34, a9 | 1/2 | 248/256 · 5.96046448e-08 | 248/256 · 5.96046448e-08 |
+| Clouds 1 v2 · leaves only | a34, a9 | 2/2 | 8,147/8,448 · 1.1920929e-07 | 8,147/8,448 · 1.1920929e-07 |
+| Clouds 1 v2 · original SBS reopen | a0, a9, repeat | 3/3 | 21,645/24,832 · 3.27825546e-07 | 23,876/24,832 · 3.27825546e-07 |
+
+For Clouds 1 at 128² defaults the single tree has 81,920 logical draws and 3,141 extra wrapped copies. Replaying its original F32 contributions at their original pixels in physical copy order reproduces all 16,384 reference pixels. The earlier order reproduced 9,619. The original 128 × 64 changed setting emits four trees with 0, 1,577, 3,016 and 1,679 extra copies. Applying the single-tree ordering successively to these trees reproduces 6,611/8,192 pixels. This comparison leaves the repeated-tree order open.
+
+A separate marker field reproduced the 64 subtree copy totals of each of these four trees. Its 142 observed draw runs interleave adjacent trees. Applying the resulting physical copy order to the original cloud contributions reproduced all 8,192 pixels with zero maximum error. This replay is independent of the single-tree renderer change.
+
+For the whole Clouds 1 graph repeat all 60 settings and 15 SBS reopens. Cook four settings spanning default and changed controls and U8, U16, F16 and F32 in both fresh and cached sessions. All four raw buffers and error results agreed between execution paths. [Complete cloud settings](#four-cloud-noise-generators-and-repeated-saved-file-comparisons)
+
+| Root and comparison | Rendered / requested | Exact settings | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|---:|---:|
+| Clouds 1 · one processor | 58/60 | 43 | 85,760/85,760 · 0 | 294,083/294,144 · 1 | 93,952/93,952 · 0 | 251,336/251,392 · 1.52587891e-05 |
+| Clouds 1 · eight processors | 58/60 | 37 | 85,760/85,760 · 0 | 294,039/294,144 · 1 | 93,950/93,952 · 0.00048828125 | 251,284/251,392 · 1.52587891e-05 |
+| Clouds 1 · reference one versus eight | 60/60 | 35 | 85,760/85,760 · 0 | 296,060/296,192 · 1 | 93,950/93,952 · 0.00048828125 | 253,328/253,440 · 1.52587891e-05 |
+| Clouds 1 · one-processor SBS reopen | 14/15 | 9 | 4,096/4,096 · 0 | 92,907/92,928 · 1 | 1,536/1,536 · 0 | 22,522/22,528 · 1.52587891e-05 |
+| Clouds 1 · reference original versus reopened | 15/15 | 15 | 4,096/4,096 · 0 | 94,976/94,976 · 0 | 1,536/1,536 · 0 | 22,528/22,528 · 0 |
+
+| Whole root | Earlier → corrected exact pixels on one processor | Eight processors | SBS reopen on one processor |
+|---|---:|---:|---:|
+| Clouds 1 | 725,069 → 725,131 of 725,248 | 725,041 → 725,033 of 725,248 | 121,054 → 121,061 of 121,088 |
+
+The earlier whole Clouds 1 measurements used revision `f59c45f`. Each successful MaterialCraft reopen reproduced its original buffer. The following settings reached the pattern execution budget.
+
+| Root | Size | Seed | Exposed controls | Format | Run |
+|---|---|---:|---|---|---|
+| Clouds 1 | 64 × 32 | 103023 | scale=5, disorder=0.8125, non_square_expansion=true | F32 | Whole |
+| Clouds 1 | 32 × 64 | 103024 | scale=5, disorder=0.8125, non_square_expansion=true | U16 | Whole and reopened |
+
+The following four whole Clouds 1 v2 settings are measured in this revision. A fresh session and a cached session produced identical raw buffers.
+
+| Size | Seed | Exposed controls | Format | One processor · exact / total · max | Eight processors · exact / total · max |
+|---|---:|---|---|---:|---:|
+| 16 × 16 | 0 | Defaults | U8 | 256/256 · 0 | 256/256 · 0 |
+| 16 × 16 | 0 | Defaults | U16 | 256/256 · 0 | 256/256 · 0 |
+| 32 × 16 | 169477 | scale=1, disorder=0.34375, disorder_speed=0.796875, disorder_anisotropy=0.171875, disorder_anisotropy_angle=-0.03125, tile_offset=[0.0751953125, -0.12890625] | F16 | 512/512 · 0 | 512/512 · 0 |
+| 32 × 16 | 169477 | scale=1, disorder=0.34375, disorder_speed=0.796875, disorder_anisotropy=0.171875, disorder_anisotropy_angle=-0.03125, tile_offset=[0.0751953125, -0.12890625] | F32 | 458/512 · 1.1920929e-07 | 474/512 · 5.96046448e-08 |
+
+The same terminal structure occurs in Dirt 1 and Dirt 6. Repeat the 68 earlier Dirt 1 settings, 67 earlier Dirt 6 settings and twelve additional wrapping settings per root. Each graph had 16 SBS reopens. [Dirt 1 and Dirt 6 wrapping evidence](#wrapped-draw-order-for-four-children-below-depth-seven)
+
+| Root | Whole one processor · exact / total | Whole eight processors · exact / total | Reopened one processor · exact / total | Changed local raw buffers versus the previous cook |
+|---|---:|---:|---:|---:|
+| Dirt 1 | 2,579,712/2,579,712 | 2,579,658/2,579,712 | 288,512/288,512 | 0/96 |
+| Dirt 6 | 2,563,328/2,563,328 | 2,561,906/2,563,328 | 510,720/510,720 | 0/95 |
+
+The maximum error was zero across every one-processor whole and reopened Dirt setting. The eight-processor whole errors were measured separately for each stored format.
+
+| Root | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|
+| Dirt 1 | 542,976/542,976 · 0 | 770,280/770,304 · 1 | 542,975/542,976 · 0.00048828125 | 723,427/723,456 · 1.53183937e-05 |
+| Dirt 6 | 542,975/542,976 · 1 | 753,560/753,920 · 5 | 542,830/542,976 · 0.000244140625 | 722,541/723,456 · 9.27764922e-05 |
+
+Median one-processor process CPU time over three alternating release runs per version, including load and readback, changed from 5.719 to 5.547 seconds for three forced single-tree fields, 10.656 to 10.859 seconds for three repeated-tree fields, 8.781 to 8.891 seconds for three whole Clouds 1 renders. Both regressions failed on the earlier implementation and passed on the corrected code. All 457 release node and evaluator tests, formatting, strict workspace Clippy, dependency layers and WebAssembly passed.
+
 ### Whole and saved outputs for Noise Clouds 2 v2 with equal-window batching
 
 Cook all 60 whole procedural settings and the 15 SBS reopens at revision `f59c45f`. Compare raw integer levels and floating-point bit patterns. Maxima are absolute differences in each stored format. The reference ran with one and eight processors. [Settings, output sizes, formats and seeds](#four-cloud-noise-generators-and-repeated-saved-file-comparisons)

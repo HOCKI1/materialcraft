@@ -6,10 +6,12 @@ use super::{
 use crate::CookContext;
 use std::{borrow::Cow, ops::Range};
 
+mod four_children;
 mod paired_batches;
 mod sparse_quadrants;
 mod two_children;
 
+pub(super) use four_children::FOUR_CHILDREN;
 pub(super) use sparse_quadrants::SparseQuadrantRuns;
 
 use paired_batches::PairedBatches;
@@ -391,6 +393,13 @@ impl TileCopies {
     }
 
     pub(super) fn layout(&self, ordinary: &'static [(usize, usize)]) -> Option<Cow<'static, [(usize, usize)]>> {
+        if self.parents_per_subtree == DEPTH_THREE_PARENTS {
+            let partner = self.group_copies(58..60)?;
+            if partner.checked_add(self.group_copies(0..2)?)? >= COPIES_PER_BATCH {
+                // A cut before the second group has a different, unmeasured continuation.
+                return (partner.checked_add(self.group_copies(0..1)?)? < COPIES_PER_BATCH).then_some(Cow::Borrowed(four_children::FILLED_FIRST_PAIR));
+            }
+        }
         if self.full_pairs == u8::MAX && self.axes[0] {
             return Some(Cow::Borrowed(paired_batches::ALL_FULL_PAIRS));
         }
@@ -426,6 +435,10 @@ impl TileCopies {
             return self.subtree_ends.partition_point(|&end| end < cut) + 1 == subtree;
         }
         let group = parents / DEPTH_THREE_PARENTS;
+        if self.parents_per_subtree == DEPTH_THREE_PARENTS && group == 44 {
+            // The prefix beginning at group 40 keeps its place when its batch fills one subtree earlier.
+            return self.subtree_ends.get(42).zip(self.subtree_ends.get(44)).is_some_and(|(&before, &after)| before < cut && cut < after);
+        }
         if self.parents_per_subtree == DEPTH_FOUR_PARENTS && self.axes == [true, false] && parents % DEPTH_THREE_PARENTS < DEPTH_FOUR_PARENTS {
             let previous = match group {
                 // When the seventh batch ends early, the remaining copies join the
