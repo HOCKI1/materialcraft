@@ -739,6 +739,41 @@ For the additional whole-root settings, generate one grayscale byte per texel as
 
 Save the first, sixth, eleventh and sixteenth retained settings and the new F32, U8, U16 and F16, and F32 cases in row order. All 442 release tests in the node and evaluator crates passed, along with formatting, strict workspace Clippy, dependency layers and WebAssembly.
 
+### Gaussian Spots 1 across scaled projection windows
+
+Both Gaussian Spots 1 packages match 2,808,832/2,808,832 pixels each in 79 distinct settings, on one and eight processors. Each has 65 MaterialCraft saves with 2,689,024/2,689,024 exact pixels on reopening in both applications and comparing across them. Maximum stored error is zero across all four formats.
+
+| Root and comparison | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|
+| Gaussian Spots 1, one or eight processors | 508,928/508,928 · 0 | 911,360/911,360 · 0 | 508,928/508,928 · 0 | 879,616/879,616 · 0 |
+| Gaussian Spots 1, saved files | 506,880/506,880 · 0 | 805,888/805,888 · 0 | 504,320/504,320 · 0 | 871,936/871,936 · 0 |
+| Gaussian Spots 1 v2, one or eight processors | 541,696/541,696 · 0 | 878,592/878,592 · 0 | 508,928/508,928 · 0 | 879,616/879,616 · 0 |
+| Gaussian Spots 1 v2, saved files | 441,344/441,344 · 0 | 871,424/871,424 · 0 | 504,320/504,320 · 0 | 871,936/871,936 · 0 |
+
+Render the 67 archived settings, including the two thirty-case series. Their fresh one-processor captures reproduce all 2,793,472 original pixels per root. The following independent release comparisons locate the earlier differences at the change that projects stamp vertices relative to pixel centers in scaled windows. The rectangular stamp regression measures that displacement directly. [Archived scratch and Gaussian settings](#scaled-scratch-and-gaussian-noise-and-spot-generators) · [Pixel-center controls](#projecting-stamp-vertices-relative-to-pixel-centers-in-scaled-windows) · [Rectangular regression](#fur-1-across-scaled-windows-and-saved-files)
+
+| Root | Size | Seed | Format | Previous exact / total · max | Corrected exact / total · max |
+|---|---|---:|---|---:|---:|
+| Gaussian Spots 1 | 128 × 32 | 433803 | F32 | 3,138/4,096 · 5.12599945e−6 | 4,096/4,096 · 0 |
+| Gaussian Spots 1 v2 | 128 × 32 | 433816 | F32 | 3,091/4,096 · 5.42402267e−6 | 4,096/4,096 · 0 |
+
+Gaussian Spots 1 at seed 433803 uses scale 3, disorder 0.046875, non-square expansion on. Gaussian Spots 1 v2 at seed 433816 uses scale 3, disorder 0.046875, disorder speed 0.046875, disorder anisotropy 0.046875, disorder anisotropy angle -0.203125, tile offset (-0.296875, 0.365234375), non-square expansion on.
+
+Add the following original procedural settings. Render U16 and F32 at each size and add U8 and F16 at 32 × 16 and 64 × 32. Save the settings from both thirty-case series that contributed a distinct entry after the original default, seed and precision sweeps. Also save every fifth distinct archived setting from the first, and the new F32, U8, U16 and F16, and F32 controls in size order. Count each setting once.
+
+| Root | Output size and seed | Exposed settings |
+|---|---|---|
+| Gaussian Spots 1 | 16 × 32 at 238600 | defaults |
+| Gaussian Spots 1 | 32 × 16 at 235394 | disorder 0.21875, non-square expansion on, scale 2 |
+| Gaussian Spots 1 | 64 × 32 at 235440 | disorder 0.9375, non-square expansion off, scale 1 |
+| Gaussian Spots 1 | 32 × 64 at 235462 | disorder 0.046875, non-square expansion on, scale 3 |
+| Gaussian Spots 1 v2 | 16 × 32 at 238601 | defaults |
+| Gaussian Spots 1 v2 | 32 × 16 at 235395 | disorder 0.21875, disorder anisotropy 0.21875, disorder anisotropy angle -0.03125, disorder speed 0.21875, non-square expansion on, scale 2, tile offset (-0.125, 0.21484375) |
+| Gaussian Spots 1 v2 | 64 × 32 at 235441 | disorder 0.9375, disorder anisotropy 0.9375, disorder anisotropy angle 0.6875, disorder speed 0.9375, non-square expansion off, scale 1, tile offset (0.59375, -0.4140625) |
+| Gaussian Spots 1 v2 | 32 × 64 at 235463 | disorder 0.046875, disorder anisotropy 0.046875, disorder anisotropy angle -0.203125, disorder speed 0.046875, non-square expansion on, scale 3, tile offset (-0.296875, 0.365234375) |
+
+All 442 release tests in the node and evaluator crates passed, along with formatting, strict workspace Clippy, dependency layers and WebAssembly.
+
 ## 2026-11-21 root comparisons
 
 ### Connected quadrant depth and amplified spot patterns
