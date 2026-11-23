@@ -59,6 +59,24 @@ The first pass classifies all 546 roots: 166 Parity and 380 Too hard. These meas
 
 ## 2026-11-22 root comparisons
 
+### Scalar Quadrant luminosity in saved packages
+
+A Quadrant accepts a scalar luminosity in MaterialCraft. Saving that value as a one-component literal swatch produced an SBS that the reference renderer could not compile. The native swatch takes four components. A single constant scalar function is also a valid property representation, and retains the scalar’s meaning in both grayscale and color. The writer now uses that representation for a scalar literal on a Quadrant. Existing four-component swatches and authored functions retain their representations. [Writer and regression](../crates/formats/src/sbs/pattern_graph.rs)
+
+Use one additive square covering the canvas with pattern size (4,4), zero roughness, opacity multiplier one and tiling off. Use black for the grayscale background and (.125,.25,.5,.375) for the color background. For each color mode and each luminosity in (.375,−.3125,1.5,0,1), compare three graphs. The first holds the scalar directly in MaterialCraft. The second uses a function with that scalar as its only constant. The third uses the literal swatch (.1875,.5,.8125,luminosity). Save each with the ordinary file command and reopen it. The earlier writer’s ten scalar saves were all rejected by the reference compiler. All ten corrected scalar saves, ten constant-function saves and ten swatch saves compiled.
+
+Render 16 × 8 F32, 8 × 16 U8, 32 × 16 U16 and 16 × 32 F16, then return to the original F32 setting. The seed is 352001 + 37i + 17j for zero-based luminosity and setting indices, with the original seed on return. For RGBA, count a matching pixel only when all four component bit patterns agree.
+
+| Comparison across both color modes | Renders | U8 exact / total | U16 exact / total | F16 exact / total | F32 exact / total | Maximum error |
+|---|---:|---:|---:|---:|---:|---:|
+| Original MaterialCraft scalar vs. the reference scalar expression | 50 | 1,280/1,280 | 5,120/5,120 | 5,120/5,120 | 2,560/2,560 | 0 |
+| Corrected scalar save reopened in both applications | 50 | 1,280/1,280 | 5,120/5,120 | 5,120/5,120 | 2,560/2,560 | 0 |
+| Reference scalar expression vs. the reopened scalar save | 50 | 1,280/1,280 | 5,120/5,120 | 5,120/5,120 | 2,560/2,560 | 0 |
+| Authored constant expression, reopened in both applications | 50 | 1,280/1,280 | 5,120/5,120 | 5,120/5,120 | 2,560/2,560 | 0 |
+| Authored literal swatch, reopened in both applications | 50 | 1,280/1,280 | 5,120/5,120 | 5,120/5,120 | 2,560/2,560 | 0 |
+
+The 549 tracked SBS packages contain 396 function-valued and 59 four-component literal Quadrant opacity properties. None contains a one-component literal in that field. This corrects saved user graphs while the measured root count stays at 475/546. The regression failed on the previous writer and passed after the change. All 127 format-crate release tests passed, along with formatting, strict workspace Clippy, dependency layers and the WebAssembly checks.
+
 ### Position, depth and iteration in pattern expressions
 
 Iterate supplies the zero-based repetition number. Quadrant subdivision supplies the branch position, depth and extent. Expressions on descendants can read those values. A Switch or Iterate at the root read the starting position (.5,.5). After Quadrant slots 1 and 2, each read (.625,.375). An Iterate’s initial branch keeps the enclosing number and its repeated branch starts a new counter. [Nested counter measurements](#initial-branch-of-a-nested-pattern-iterator)
