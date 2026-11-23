@@ -59,6 +59,66 @@ The first pass classifies all 546 roots: 166 Parity and 380 Too hard. These meas
 
 ## 2026-11-22 root comparisons
 
+### Position, depth and iteration in pattern expressions
+
+Iterate supplies the zero-based repetition number. Quadrant subdivision supplies the branch position, depth and extent. Expressions on descendants can read those values. A Switch or Iterate at the root read the starting position (.5,.5). After Quadrant slots 1 and 2, each read (.625,.375). An Iterate’s initial branch keeps the enclosing number and its repeated branch starts a new counter. [Nested counter measurements](#initial-branch-of-a-nested-pattern-iterator)
+
+Build a grayscale pattern with a black background, zero roughness, opacity multiplier one and tiling off. Follow the first d slots of (1,2,3,0,1) through empty Quadrants. At the end, draw one additive square of size (4 × 2ᵈ, 4 × 2ᵈ). For the Quadrant read the value in the square’s luminosity. For the control-node readouts, assign the value inside the Iterate count or Switch condition, return one or true, and read the assigned value in the child square. Set the outer count to two or four where indicated. At 16 × 8 in F32 these single-draw values were constant across the image.
+
+| Depth d | Horizontal position | Vertical position | Depth readout | Depth scale readout |
+|---:|---:|---:|---:|---:|
+| 0 | .5 | .5 | 0 | 1 |
+| 1 | .75 | .25 | 1 | .5 |
+| 2 | .625 | .375 | 2 | .25 |
+| 3 | .6875 | .4375 | 3 | .125 |
+| 5 | .671875 | .390625 | 5 | .03125 |
+
+Use 13 graphs. For a Quadrant use d = 0, 1, 2, 3 and 5, then d = 2 with two or four outer repetitions. For an Iterate and a Switch use d = 0 and 2, then d = 3 with two outer repetitions. Select the constant .375, `$depth`, `$depthpow2`, `$number`, X and Y of `$pos`, X and Y of `$size`, X and Y of `$sizelog2`, and `$time` in that order. Use seed 346181 + 13j for selector j starting at zero. Repeat the position-X readout at 8 × 16, then the depth-scale readout in U8, U16, F16 and F32 at 16 × 8. The unanimated time read zero. Image size and its base-two logarithm read (16,8) and (4,3). Outside a repetition the number read zero.
+
+| Comparison | Renders | U8 exact / total | U16 exact / total | F16 exact / total | F32 exact / total | Maximum error |
+|---|---:|---:|---:|---:|---:|---:|
+| Original, one eligible host processor | 208 | 1,664/1,664 | 1,664/1,664 | 1,664/1,664 | 21,632/21,632 | 0 |
+| Original, eight eligible host processors | 64 | 512/512 | 512/512 | 512/512 | 6,656/6,656 | 0 |
+| Reopened in both applications | 24 | 512/512 | — | — | 2,560/2,560 | 0 |
+| Ancestor and emitting-node offsets | 35 | — | — | — | 4,480/4,480 | 0 |
+| Direct predicates without an assignment | 104 | — | — | — | 13,312/13,312 | 0 |
+
+The eight-processor controls use the three depth-two node kinds and the four-repeat depth-two Quadrant. Save each in MaterialCraft and reopen every third selector case starting at zero. Each application also reproduced its original raw output in all 24 reopens.
+
+Apply a branch offset of (1.125,−.8125) at the root of the depth-two path. Quadrant, Iterate and Switch then read (1.75,−.4375). Moving the same offset to the emitting Quadrant itself left its position readout at (.625,.375). These five graphs use the constant, depth, depth scale, number and two position components at 16 × 8, then position X at 8 × 16.
+
+In the independent predicate graphs, compare the counter with −1, 0, 1, 2, 3 and 4. Set the square’s gain to one on equality and zero otherwise. Four outer repetitions produced (0,1,1,1,1,0). Two produced (0,1,1,0,0,0). For the two nested control nodes, use two outer repetitions at depth three. The Switch opens its drawing arm on equality. The inner Iterate emits three squares on equality and one otherwise. For position tests on both controls, compare each component directly with .125, .25, .375, .5, .625 and .75 at depths zero and two. The root Switch opened for the first three thresholds on either axis. At depth two it opened for the first four thresholds on X and the first two on Y. The Iterate chose three or one repetitions at the same boundaries. Use seed 181503 + 11j at 16 × 8, repeat threshold index two at 8 × 16 with seed 718201, and return to the first setting. The earlier measurements of the five Quadrant mode fields apply to their separate evaluation phase. [Mode-field measurements](#assignments-in-quadrant-mode-expressions)
+
+### Worker count and repeatability of overlapping patterns
+
+Desktop captures labeled one or eight processors in this inventory select the eligible host processors using process affinity. The standalone CPU renderer also has an explicit worker-count setting. These two controls produced different F32 buffers for the same original overlap graph.
+
+Repeat a complete four-child tree to depth eight either twice or four times. Start with white, use zero roughness, unit render and tiling regions and disable wrapping. Draw additive squares at depths seven and eight. In tree N−1 mark depth-seven parents 6 × 1,024 + i and in tree N−2 mark parents 5 × 1,024 + i, with trees and parents numbered from zero in traversal order. Place both marked squares at pixel (x,y) in the upper-left 32² readout, where the interleaved bits of x and y give i. Make each marked square .875 pixels wide at 128² and move unmarked draws clear of the readout. Give the two squares −1 and 2⁻²⁵, then exchange the gains. The two possible stored results are zero and 2⁻²⁵. The inputs encoding the marker positions and assignments were generated for this test. [Single-tree marker construction](#four-child-pattern-order-as-a-tile-copy-batch-fills)
+
+Publish each original graph, select the SSE2 CPU engine and render at 128² F32 with seed 343877. Run each gain assignment twice at each explicit worker count. Compare the second raw buffer with the first at every pixel, including pixels outside the marker field.
+
+| Trees | Workers | Exact / total, both repeated assignments | Maximum F32 error |
+|---:|---|---:|---:|
+| 2 | 1, 2 or 4, each | 32,768/32,768 | 0 |
+| 4 | 1, 2 or 4, each | 32,768/32,768 | 0 |
+| 2 | 8 | 32,256/32,768 | 2⁻²⁵ |
+| 4 | 8 | 31,744/32,768 | 2⁻²⁵ |
+
+With one, two or four workers, every marker had the same order in both trees tested. With eight workers, duplicate runs differed on 256 pixels per gain assignment for two trees and 512 for four. In the desktop two-tree probe, one positive-gain assignment produced 564 positive markers on the first 128² F32 request and zero when returning to that setting after the other formats, even with affinity limited to one host processor.
+
+For direct MaterialCraft comparisons, render each gain assignment at 128², 128 × 64 and 64 × 128 F32 with seeds 343877, 343903 and 343907 respectively. Add U8, U16 and F16 at 128² and seed 343939, then return to the first request. Save each graph and reopen requests numbered 0, 3, 6, 9 and 12 in the combined series of 14.
+
+| Trees | Desktop affinity | U8 exact / total | U16 exact / total | F16 exact / total | F32 exact / total · maximum error |
+|---:|---|---:|---:|---:|---:|
+| 2 | One | 32,768/32,768 | 32,768/32,768 | 32,768/32,768 | 96,612/98,304 · 2⁻²⁵ |
+| 2 | Eight | 32,768/32,768 | 32,768/32,768 | 32,768/32,768 | 98,304/98,304 · 0 |
+| 4 | One | 32,768/32,768 | 32,768/32,768 | 32,768/32,768 | 97,280/98,304 · 2⁻²⁵ |
+| 4 | Eight | 32,768/32,768 | 32,768/32,768 | 32,768/32,768 | 98,304/98,304 · 0 |
+| 2 | One, reopened | 16,384/16,384 | — | 16,384/16,384 | 39,832/40,960 · 2⁻²⁵ |
+| 4 | One, reopened | 16,384/16,384 | — | 16,384/16,384 | 40,448/40,960 · 2⁻²⁵ |
+
+All U8, U16 and F16 maxima were zero. The desktop node exposed its seed, tiling, culling, regions, roughness and opacity. The inspected node had 15 input properties, with no draw-order selector. The repeat differences leave the affected whole roots in progress.
+
 ### Whole and saved outputs for the two Gaussian Spots 2 noise generators
 
 Compare the whole procedural outputs before and after the seven-level compositing change at `8a52087`. Each saved SBS was reopened in both applications at the listed settings. Integer errors use stored levels. Floating-point counts compare bits and maxima use absolute error. [Seven-level controls and identification of a single emitted tree](#compositing-a-single-seven-level-tree-through-pattern-controls)
