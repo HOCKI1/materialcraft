@@ -59,6 +59,207 @@ The first pass classifies all 546 roots: 166 Parity and 380 Too hard. These meas
 
 ## 2026-11-22 root comparisons
 
+### Whole and saved outputs for the two Gaussian Spots 2 noise generators
+
+Compare the whole procedural outputs before and after the seven-level compositing change at `8a52087`. Each saved SBS was reopened in both applications at the listed settings. Integer errors use stored levels. Floating-point counts compare bits and maxima use absolute error. [Seven-level controls and identification of a single emitted tree](#compositing-a-single-seven-level-tree-through-pattern-controls)
+
+Expose the first pattern generator as F32. For the first four requests use graph sizes 16 × 32, 64 × 32, 32 × 64 and 64² with seed 288101 + 43i + 79j, where i is the inventory index and j = 0…3. Then use 128², defaults and seed zero. Run each stage with its normal controls, with the outer repeat forced to one and switch forced to the tree, and with both outer controls bypassed.
+
+| Index · package | Controls for the four seeded stage requests, in order |
+|---|---|
+| 285 · noise_gaussian_spots_2 | Defaults / scale=1, disorder=0, non_square_expansion=on / scale=7, disorder=0.8125, non_square_expansion=on / scale=3, disorder=0.3125, non_square_expansion=off |
+| 286 · noise_gaussian_spots_2_v2 | Defaults / scale=1, disorder=0, non_square_expansion=on, disorder_speed=1, disorder_anisotropy=0, disorder_anisotropy_angle=0, tile_offset=(0, 0) / scale=7, disorder=0.8125, non_square_expansion=on, disorder_speed=1.375, disorder_anisotropy=0.625, disorder_anisotropy_angle=-0.3125, tile_offset=(-0.4375, 0.0625) / scale=3, disorder=0.3125, non_square_expansion=off, disorder_speed=0.625, disorder_anisotropy=0.375, disorder_anisotropy_angle=0.1875, tile_offset=(0.1875, -0.3125) |
+
+| Stage · five requested settings | Rendered | Earlier F32 exact / total · max | Corrected F32 exact / total · max |
+|---|---:|---:|---:|
+| noise_gaussian_spots_2 · original | 4/5 | 21,037/23,040 · 5.96046448e-08 | 22,526/23,040 · 5.96046448e-08 |
+| noise_gaussian_spots_2 · one forced tree | 5/5 | 23,460/25,088 · 5.96046448e-08 | 25,088/25,088 · 0 |
+| noise_gaussian_spots_2 · outer controls bypassed | 5/5 | 25,088/25,088 · 0 | 25,088/25,088 · 0 |
+| noise_gaussian_spots_2_v2 · original | 4/5 | 20,334/23,040 · 8.94069672e-08 | 22,096/23,040 · 5.96046448e-08 |
+| noise_gaussian_spots_2_v2 · one forced tree | 5/5 | 23,122/25,088 · 8.94069672e-08 | 25,022/25,088 · 5.96046448e-08 |
+| noise_gaussian_spots_2_v2 · outer controls bypassed | 5/5 | 23,055/25,088 · 8.94069672e-08 | 25,015/25,088 · 8.94069672e-08 |
+
+The original stage in each graph reached the execution budget at the changed 32 × 64 request. Both forced single-tree stages and both bypassed stages rendered all five settings.
+
+| Package · comparison | Rendered / requested | Exact settings | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|---:|---:|
+| noise_gaussian_spots_2 · one processor | 56/62 | 38 | 97,792/97,792 · 0 | 344,572/344,576 · 1 | 97,792/97,792 · 0 | 256,336/269,056 · 1.1920929e-07 |
+| noise_gaussian_spots_2 · eight processors | 56/62 | 27 | 97,792/97,792 · 0 | 344,555/344,576 · 1 | 97,791/97,792 · 6.10351562e-05 | 251,734/269,056 · 1.1920929e-07 |
+| noise_gaussian_spots_2 · reference one versus eight | 62/62 | 31 | 99,840/99,840 · 0 | 348,651/348,672 · 1 | 99,839/99,840 · 6.10351562e-05 | 254,425/273,152 · 1.1920929e-07 |
+| noise_gaussian_spots_2 · one-processor SBS reopen | 12/13 | 11 | 4,096/4,096 · 0 | 119,808/119,808 · 0 | 4,096/4,096 · 0 | 23,390/23,552 · 5.96046448e-08 |
+| noise_gaussian_spots_2 · reference original versus reopened | 13/13 | 12 | 4,096/4,096 · 0 | 119,808/119,808 · 0 | 4,096/4,096 · 0 | 25,563/25,600 · 5.96046448e-08 |
+| noise_gaussian_spots_2_v2 · one processor | 56/62 | 34 | 196,096/196,096 · 0 | 246,246/246,272 · 1 | 97,792/97,792 · 0 | 232,229/269,056 · 1.78813934e-07 |
+| noise_gaussian_spots_2_v2 · eight processors | 56/62 | 27 | 196,096/196,096 · 0 | 246,244/246,272 · 1 | 97,792/97,792 · 0 | 226,045/269,056 · 1.78813934e-07 |
+| noise_gaussian_spots_2_v2 · reference one versus eight | 62/62 | 31 | 198,144/198,144 · 0 | 250,334/250,368 · 1 | 99,840/99,840 · 0 | 227,967/273,152 · 1.78813934e-07 |
+| noise_gaussian_spots_2_v2 · one-processor SBS reopen | 12/13 | 9 | 20,480/20,480 · 0 | 103,416/103,424 · 1 | 4,096/4,096 · 0 | 22,158/23,552 · 8.94069672e-08 |
+| noise_gaussian_spots_2_v2 · reference original versus reopened | 13/13 | 12 | 20,480/20,480 · 0 | 103,424/103,424 · 0 | 4,096/4,096 · 0 | 25,261/25,600 · 5.96046448e-08 |
+
+| Package | Earlier → corrected one-processor exact pixels | Eight-processor exact pixels | One-processor saved exact pixels |
+|---|---:|---:|---:|
+| noise_gaussian_spots_2 | 787,083 → 796,492 of 809,216 | 790,563 → 791,872 of 809,216 | 149,414 → 151,390 of 151,552 |
+| noise_gaussian_spots_2_v2 | 761,369 → 772,363 of 809,216 | 765,155 → 766,177 of 809,216 | 148,177 → 150,150 of 151,552 |
+
+The material outputs still differ at the listed settings. Every successful MaterialCraft save reproduced its original output.
+
+<details>
+<summary>noise_gaussian_spots_2 procedural settings</summary>
+
+The control columns use `disorder`, `non_square_expansion`, `scale`, in that order.
+
+| Size | Seed | Controls | Formats | Reopened | Execution budget reached |
+|---|---:|---|---|---|---|
+| 128 × 128 | 0 | Defaults | U16, U8, F16, F32 | U16 | — |
+| 256 × 256 | 0 | Defaults | U16 | — | — |
+| 128 × 128 | 42 | Defaults | U16 | — | — |
+| 128 × 128 | 0 | 0.37, default, 2 | U16 | — | — |
+| 32 × 32 | 113 | 0.37, default, 2 | F32 | — | — |
+| 64 × 64 | 42 | 0.37, default, 2 | U8, U16, F16, F32 | U8 | — |
+| 16 × 16 | 87914 | Defaults | F32 | — | — |
+| 32 × 32 | 87915 | 0, on, 1 | F32 | F32 | — |
+| 32 × 32 | 87916 | 0.3125, off, 3 | U8, U16, F16, F32 | — | — |
+| 64 × 32 | 87920 | 0.8125, on, 7 | F32 | F32 | F32 |
+| 32 × 64 | 87921 | 0.8125, on, 7 | U16 | — | U16 |
+| 64 × 64 | 87922 | 0.3125, off, 3 | F32 | — | — |
+| 128 × 64 | 87923 | 0.3125, off, 3 | F32 | — | — |
+| 64 × 128 | 87923 | 0.3125, off, 3 | U16 | — | — |
+| 128 × 128 | 87925 | Defaults | F32 | F32 | — |
+| 16 × 32 | 0 | Defaults | U8, U16, F16, F32 | — | — |
+| 32 × 16 | 42 | 0.21875, on, 2 | U16, F32 | U16 | — |
+| 64 × 64 | 433792 | 0.9375, off, 1 | U8, U16, F16, F32 | F32 | — |
+| 128 × 32 | 433829 | 0.046875, on, 3 | U16, F32 | — | — |
+| 32 × 128 | 433866 | 0.5625, off, 2 | U8, U16, F16, F32 | F16 | — |
+| 256 × 128 | 433940 | 0.328125, off, 3 | U16, F32 | U16 | — |
+| 128 × 256 | 433977 | 0.8125, on, 1 | U16, F32 | — | — |
+| 256 × 256 | 42 | Defaults | U8, U16, F16, F32 | U16 | — |
+| 512 × 128 | 434051 | 0.671875, on, 1 | U16, F32 | — | — |
+| 16 × 32 | 300356 | Defaults | U16, F32 | U16 | — |
+| 64 × 32 | 300435 | 0, on, 1 | U8, U16, F16, F32 | F32 | — |
+| 32 × 64 | 300514 | 0.8125, on, 7 | U8, U16, F16, F32 | — | U8, U16, F16, F32 |
+| 64 × 64 | 300593 | 0.3125, off, 3 | U16, F32 | U16 | — |
+
+</details>
+
+<details>
+<summary>noise_gaussian_spots_2_v2 procedural settings</summary>
+
+The control columns use `disorder`, `disorder_anisotropy`, `disorder_anisotropy_angle`, `disorder_speed`, `non_square_expansion`, `scale`, `tile_offset`, in that order.
+
+| Size | Seed | Controls | Formats | Reopened | Execution budget reached |
+|---|---:|---|---|---|---|
+| 128 × 128 | 0 | Defaults | U8, U16, F16, F32 | U8 | — |
+| 256 × 256 | 0 | Defaults | U8 | — | — |
+| 128 × 128 | 42 | Defaults | U8 | — | — |
+| 128 × 128 | 0 | 0.37, 0.3, 0.125, 0.6, default, 2, (0.17, 0.29) | U8 | — | — |
+| 32 × 32 | 113 | 0.37, 0.3, 0.125, 0.6, default, 2, (0.17, 0.29) | F32 | — | — |
+| 64 × 64 | 42 | 0.37, 0.3, 0.125, 0.6, default, 2, (0.17, 0.29) | U8, U16, F16, F32 | U8 | — |
+| 16 × 16 | 87921 | Defaults | F32 | — | — |
+| 32 × 32 | 87922 | 0, 0, 0, 1, on, 1, (0, 0) | F32 | F32 | — |
+| 32 × 32 | 87923 | 0.3125, 0.375, 0.1875, 0.625, off, 3, (0.1875, -0.3125) | U8, U16, F16, F32 | — | — |
+| 64 × 32 | 87927 | 0.8125, 0.625, -0.3125, 1.375, on, 7, (-0.4375, 0.0625) | F32 | F32 | F32 |
+| 32 × 64 | 87928 | 0.8125, 0.625, -0.3125, 1.375, on, 7, (-0.4375, 0.0625) | U16 | — | U16 |
+| 64 × 64 | 87929 | 0.3125, 0.375, 0.1875, 0.625, off, 3, (0.1875, -0.3125) | F32 | — | — |
+| 128 × 64 | 87930 | 0.3125, 0.375, 0.1875, 0.625, off, 3, (0.1875, -0.3125) | F32 | — | — |
+| 64 × 128 | 87930 | 0.3125, 0.375, 0.1875, 0.625, off, 3, (0.1875, -0.3125) | U16 | — | — |
+| 128 × 128 | 87932 | Defaults | F32 | F32 | — |
+| 16 × 32 | 0 | Defaults | U8, U16, F16, F32 | — | — |
+| 32 × 16 | 42 | 0.21875, 0.21875, -0.03125, 0.21875, on, 2, (-0.125, 0.214844) | U16, F32 | U16 | — |
+| 64 × 64 | 433805 | 0.9375, 0.9375, 0.6875, 0.9375, off, 1, (0.59375, -0.414062) | U8, U16, F16, F32 | F32 | — |
+| 128 × 32 | 433842 | 0.046875, 0.046875, -0.203125, 0.046875, on, 3, (-0.296875, 0.365234) | U16, F32 | — | — |
+| 32 × 128 | 433879 | 0.5625, 0.5625, 0.3125, 0.5625, off, 2, (0.21875, -0.0859375) | U8, U16, F16, F32 | F16 | — |
+| 256 × 128 | 433953 | 0.328125, 0.328125, 0.078125, 0.328125, off, 3, (-0.015625, 0.119141) | U16, F32 | U16 | — |
+| 128 × 256 | 433990 | 0.8125, 0.8125, 0.5625, 0.8125, on, 1, (0.46875, -0.304688) | U16, F32 | — | — |
+| 256 × 256 | 42 | Defaults | U8, U16, F16, F32 | U16 | — |
+| 512 × 128 | 434064 | 0.671875, 0.671875, 0.421875, 0.671875, on, 1, (0.328125, -0.181641) | U16, F32 | — | — |
+| 16 × 32 | 300399 | Defaults | U16, F32 | U16 | — |
+| 64 × 32 | 300478 | 0, 0, 0, 1, on, 1, (0, 0) | U8, U16, F16, F32 | F32 | — |
+| 32 × 64 | 300557 | 0.8125, 0.625, -0.3125, 1.375, on, 7, (-0.4375, 0.0625) | U8, U16, F16, F32 | — | U8, U16, F16, F32 |
+| 64 × 64 | 300636 | 0.3125, 0.375, 0.1875, 0.625, off, 3, (0.1875, -0.3125) | U16, F32 | U16 | — |
+
+</details>
+
+### Whole and saved outputs for Noise Dirt 3 v2
+
+Compare the whole procedural outputs before and after the seven-level compositing change at `8a52087`. Each saved SBS was reopened in both applications at the listed settings. Integer errors use stored levels. Floating-point counts compare bits and maxima use absolute error. [Seven-level controls and identification of a single emitted tree](#compositing-a-single-seven-level-tree-through-pattern-controls)
+
+| Package · comparison | Rendered / requested | Exact settings | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|---:|---:|
+| noise_dirt_3_v2 · one processor | 58/60 | 34 | 198,144/198,144 · 0 | 236,538/236,544 · 1 | 101,888/101,888 · 0 | 234,828/240,896 · 1.1920929e-07 |
+| noise_dirt_3_v2 · eight processors | 58/60 | 33 | 198,144/198,144 · 0 | 236,538/236,544 · 1 | 101,888/101,888 · 0 | 234,978/240,896 · 1.1920929e-07 |
+| noise_dirt_3_v2 · reference one versus eight | 60/60 | 35 | 198,144/198,144 · 0 | 240,636/240,640 · 1 | 101,888/101,888 · 0 | 238,158/244,992 · 5.96046448e-08 |
+| noise_dirt_3_v2 · one-processor SBS reopen | 11/12 | 8 | 26,624/26,624 · 0 | 51,712/51,712 · 0 | — | 66,532/67,072 · 1.1920929e-07 |
+| noise_dirt_3_v2 · reference original versus reopened | 12/12 | 10 | 26,624/26,624 · 0 | 51,712/51,712 · 0 | — | 71,141/71,168 · 5.96046448e-08 |
+
+| Package | Earlier → corrected one-processor exact pixels | Eight-processor exact pixels | One-processor saved exact pixels |
+|---|---:|---:|---:|
+| noise_dirt_3_v2 | 771,398 → 771,398 of 777,472 | 771,548 → 771,548 of 777,472 | 144,868 → 144,868 of 145,408 |
+
+The material outputs still differ at the listed settings. Every successful MaterialCraft save reproduced its original output.
+
+<details>
+<summary>noise_dirt_3_v2 procedural settings</summary>
+
+The control columns use `disorder`, `disorder_anisotropy`, `disorder_anisotropy_angle`, `disorder_speed`, `non_square_expansion`, `scale`, `tile_offset`, in that order.
+
+| Size | Seed | Controls | Formats | Reopened | Execution budget reached |
+|---|---:|---|---|---|---|
+| 128 × 128 | 0 | Defaults | U8, U16, F16, F32 | U8, U16 | — |
+| 256 × 256 | 0 | Defaults | U8 | — | — |
+| 128 × 128 | 42 | Defaults | U8 | — | — |
+| 128 × 128 | 0 | 0.37, 0.3, 0.125, 0.6, default, 2, (0.17, 0.29) | U8 | — | — |
+| 32 × 32 | 113 | 0.37, 0.3, 0.125, 0.6, default, 2, (0.17, 0.29) | F32 | — | — |
+| 64 × 64 | 42 | 0.37, 0.3, 0.125, 0.6, default, 2, (0.17, 0.29) | U8, U16, F16, F32 | U8 | — |
+| 16 × 16 | 105492 | Defaults | F32 | — | — |
+| 32 × 32 | 105493 | 0, 0, 0, 1, on, 1, (0, 0) | F32 | F32 | — |
+| 32 × 32 | 105494 | 0.3125, 0.25, 0.3125, 0.6875, off, 1, (0.125, -0.1875) | U8, U16, F16, F32 | — | — |
+| 32 × 16 | 105498 | 0.8125, 0.625, -0.21875, 1.4375, on, 2, (-0.3125, 0.4375) | F32 | F32 | — |
+| 16 × 32 | 105499 | 0.8125, 0.625, -0.21875, 1.4375, on, 2, (-0.3125, 0.4375) | U16 | — | — |
+| 64 × 32 | 105500 | 0.3125, 0.25, 0.3125, 0.6875, off, 1, (0.125, -0.1875) | F32 | — | — |
+| 32 × 64 | 105501 | 0, 0, 0, 1, on, 1, (0, 0) | F16 | — | — |
+| 16 × 32 | 0 | Defaults | U8, U16, F16, F32 | U16 | — |
+| 32 × 16 | 42 | 0.21875, 0.21875, -0.03125, 0.21875, on, 2, (-0.125, 0.214844) | U16, F32 | — | — |
+| 64 × 64 | 433532 | 0.9375, 0.9375, 0.6875, 0.9375, off, 1, (0.59375, -0.414062) | U8, U16, F16, F32 | U8 | — |
+| 128 × 32 | 433569 | 0.046875, 0.046875, -0.203125, 0.046875, on, 3, (-0.296875, 0.365234) | U16, F32 | F32 | U16, F32 |
+| 32 × 128 | 433606 | 0.5625, 0.5625, 0.3125, 0.5625, off, 2, (0.21875, -0.0859375) | U8, U16, F16, F32 | — | — |
+| 256 × 128 | 433680 | 0.328125, 0.328125, 0.078125, 0.328125, off, 3, (-0.015625, 0.119141) | U16, F32 | — | — |
+| 128 × 256 | 433717 | 0.8125, 0.8125, 0.5625, 0.8125, on, 1, (0.46875, -0.304688) | U16, F32 | U16 | — |
+| 256 × 256 | 42 | Defaults | U8, U16, F16, F32 | F32 | — |
+| 512 × 128 | 433791 | 0.671875, 0.671875, 0.421875, 0.671875, on, 1, (0.328125, -0.181641) | U16, F32 | — | — |
+| 16 × 32 | 299496 | Defaults | U16, F32 | — | — |
+| 64 × 32 | 299575 | 0, 0, 0, 1, on, 1, (0, 0) | U8, U16, F16, F32 | U8 | — |
+| 32 × 64 | 299654 | 0.8125, 0.625, -0.21875, 1.4375, on, 2, (-0.3125, 0.4375) | U8, U16, F16, F32 | U16 | — |
+| 64 × 64 | 299733 | 0.21875, 0.21875, -0.03125, 0.21875, on, 2, (-0.125, 0.214844) | U16, F32 | — | — |
+
+</details>
+
+### Whole and saved outputs for Noise Clouds 1 v2 at the four-child batch boundary
+
+Repeat the 60 whole-root settings and 15 SBS reopens at revision `1852120`. Compare stored integer levels and exact floating-point bits. Error maxima are absolute differences within each format. [Procedural inputs, settings and seeds](#four-cloud-noise-generators-and-repeated-saved-file-comparisons) · [Isolated four-child generator](#four-child-pattern-order-as-a-tile-copy-batch-fills)
+
+| Comparison | Rendered / requested | Exact settings | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|---:|---:|
+| One processor | 56/60 | 33 | 134,912/134,912 · 0 | 228,553/228,608 · 1 | 93,952/93,952 · 0 | 216,735/235,008 · 3.27825546e-07 |
+| Eight processors | 56/60 | 25 | 134,912/134,912 · 0 | 228,520/228,608 · 1 | 93,951/93,952 · 0.00048828125 | 209,153/235,008 · 2.98023224e-07 |
+| Reference one versus eight | 60/60 | 24 | 134,912/134,912 · 0 | 246,944/247,040 · 1 | 93,951/93,952 · 0.00048828125 | 222,210/253,440 · 2.98023224e-07 |
+| One-processor SBS reopen | 13/15 | 7 | 20,480/20,480 · 0 | 76,514/76,544 · 1 | 1,536/1,536 · 0 | 5,464/6,144 · 1.78813934e-07 |
+| Reference original versus reopened | 15/15 | 12 | 20,480/20,480 · 0 | 78,591/78,592 · 1 | 1,536/1,536 · 0 | 21,412/22,528 · 2.98023224e-07 |
+
+| Comparison | Earlier exact pixels at `e4675a1` | Exact pixels at `1852120` | Total |
+|---|---:|---:|---:|
+| Whole, one processor | 664,563 | 674,152 | 692,480 |
+| Whole, eight processors | 669,413 | 666,536 | 692,480 |
+| Reopened, one processor | 103,994 | 103,994 | 104,704 |
+
+The following requests reached the pattern execution budget in MaterialCraft. All 13 successful MaterialCraft reopens reproduced their original raw outputs.
+
+| Run | Size | Seed | Exposed controls | Format |
+|---|---|---:|---|---|
+| Whole | 64 × 32 | 103034 | scale=5, disorder=0.8125, non_square_expansion=true, disorder_speed=1.4375, disorder_anisotropy=0.625, disorder_anisotropy_angle=-0.21875, tile_offset=[-0.3125, 0.4375] | F32 |
+| Whole | 32 × 64 | 103035 | scale=5, disorder=0.8125, non_square_expansion=true, disorder_speed=1.4375, disorder_anisotropy=0.625, disorder_anisotropy_angle=-0.21875, tile_offset=[-0.3125, 0.4375] | U16 |
+| Whole | 128 × 128 | 411810 | scale=3, disorder=0.65625, disorder_speed=0.65625, disorder_anisotropy=0.65625, disorder_anisotropy_angle=0.40625, tile_offset=[0.3125, -0.16796875], non_square_expansion=false | U16 |
+| Whole | 128 × 128 | 411810 | scale=3, disorder=0.65625, disorder_speed=0.65625, disorder_anisotropy=0.65625, disorder_anisotropy_angle=0.40625, tile_offset=[0.3125, -0.16796875], non_square_expansion=false | F32 |
+| Reopened | 32 × 64 | 103035 | scale=5, disorder=0.8125, non_square_expansion=true, disorder_speed=1.4375, disorder_anisotropy=0.625, disorder_anisotropy_angle=-0.21875, tile_offset=[-0.3125, 0.4375] | U16 |
+| Reopened | 128 × 128 | 411810 | scale=3, disorder=0.65625, disorder_speed=0.65625, disorder_anisotropy=0.65625, disorder_anisotropy_angle=0.40625, tile_offset=[0.3125, -0.16796875], non_square_expansion=false | F32 |
+
 ### Four-child pattern order as a tile-copy batch fills
 
 In one eight-level additive quadrant tree, each of the 16,384 depth-seven parents draws itself and four leaves. A depth-three subtree contains 256 of these parents and 1,280 logical draws. A stamp crossing the tiling window can contribute several copies. The render order changes when subtrees 58 and 59 followed by 0 and 1 reach 5,460 physical copies. In the measured continuation, subtree 2 moves later and the next prefix starts in subtree 3. The prefix starting in subtree 40 can also fill one subtree earlier. MaterialCraft counts copies in the common render and tiling window and uses the observed order within its measured range. [Four-child ordering and threshold regression](../crates/nodes/src/pattern/tile_runs/four_children.rs)
