@@ -68,15 +68,27 @@ pub(super) struct Term {
 pub(super) type Sum = [Option<Term>; 4];
 
 pub(super) fn evaluate_sum(terms: &Sum, arguments: &[Value], subtract: bool, state: &EvaluationState) -> Result<Value, String> {
-    let [left, right] = arguments else { return Err("missing sum operands".into()) };
+    let (left, right, subtract, weight) = match arguments {
+        [left, right] => (left, right, subtract, None),
+        // Interpolation first forms the difference between its second and first endpoints.
+        [first, second, Value::Float(weight)] => (second, first, true, Some(*weight)),
+        _ => return Err("invalid product sum operands".into()),
+    };
     let width = value_type::dimensions(left);
     if width != value_type::dimensions(right) {
         return Err("float operands must have the same dimensions".into());
     }
-    let left = value_type::floats(left)?.map(flush_subnormal);
-    let right = value_type::floats(right)?.map(flush_subnormal);
+    let left = value_type::floats(left)?;
+    let right = value_type::floats(right)?;
     let mut result = [0.0; 4];
     for (((output, term), left), right) in result.iter_mut().zip(terms).zip(left).zip(right).take(width) {
+        if let Some(weight) = weight
+            && term.is_none()
+        {
+            *output = (left - right).mul_add(weight, right);
+            continue;
+        }
+        let (left, right) = (flush_subnormal(left), flush_subnormal(right));
         let sum = if let Some(term) = term {
             let [a, b] = term.source.factors(state)?.map(flush_subnormal);
             let a = if subtract && term.on_right { -a } else { a };
@@ -96,13 +108,20 @@ pub(super) fn evaluate_sum(terms: &Sum, arguments: &[Value], subtract: bool, sta
         } else {
             left + right
         };
-        *output = flush_subnormal(sum);
+        let sum = flush_subnormal(sum);
+        *output = weight.map_or(sum, |weight| flush_subnormal(sum.mul_add(weight, right)));
     }
     value_type::intermediate_float_value(result.get(..width).ok_or("invalid sum dimensions")?)
 }
 
 pub(super) type Lanes = [Option<Source>; 4];
 type Origins = [Option<usize>; 4];
+
+#[derive(Default)]
+struct Reads {
+    total: usize,
+    sole_product_in_sum: usize,
+}
 
 pub(super) fn float_width(code: u32) -> usize {
     match code {
@@ -163,7 +182,7 @@ pub(super) fn identify(program: &mut Program, mut returned: BTreeMap<usize, Lane
 
     let loops: Vec<_> = program.instructions.iter().enumerate().filter_map(|(i, op)| (op.definition.id == "while").then_some(i)).collect();
     let mut origins: Vec<Origins> = Vec::with_capacity(program.instructions.len());
-    let mut products: Vec<(Source, usize)> = Vec::new();
+    let mut products: Vec<(Source, Reads)> = Vec::new();
     let mut sums = Vec::new();
     for (index, op) in program.instructions.iter().enumerate() {
         if let Some(lanes) = forwarded(op, &program.instructions, &origins, None) {
@@ -173,19 +192,29 @@ pub(super) fn identify(program: &mut Program, mut returned: BTreeMap<usize, Lane
 
         for source in op.inputs.iter().filter_map(|i| origins.get(*i)).flatten().flatten() {
             if let Some((_, uses)) = products.get_mut(*source) {
-                *uses += 1;
+                uses.total += 1;
             }
         }
         let width = float_width(op.type_code);
-        if matches!(op.definition.id, "add" | "sub")
-            && width > 0
+        let lanes_of = |i: usize| origins.get(i).copied().unwrap_or([None; 4]);
+        let sides = match (op.definition.id, op.inputs.as_slice()) {
+            ("add" | "sub", &[left, right]) => Some([lanes_of(left), lanes_of(right)]),
+            ("lerp", &[_, second, weight]) if program.instructions.get(weight).is_some_and(|w| w.type_code == 256) => Some([lanes_of(second), [None; 4]]),
+            _ => None,
+        };
+        if width > 0
             && op.pixel_product_sum.is_none()
-            && let &[left, right] = op.inputs.as_slice()
+            && let Some(sides) = sides
+            && sides.iter().flatten().any(Option::is_some)
         {
-            let sides = [left, right].map(|i| origins.get(i).copied().unwrap_or([None; 4]));
-            if sides.iter().flatten().any(Option::is_some) {
-                sums.push((index, sides));
+            for (left, right) in sides[0].iter().zip(sides[1]) {
+                if let Some(id) = left.xor(right)
+                    && let Some((_, reads)) = products.get_mut(id)
+                {
+                    reads.sole_product_in_sum += 1;
+                }
             }
+            sums.push((index, sides));
         }
 
         let mut lanes = [None; 4];
@@ -193,7 +222,7 @@ pub(super) fn identify(program: &mut Program, mut returned: BTreeMap<usize, Lane
             && let &[a, _] = op.inputs.as_slice()
         {
             lanes[0] = Some(products.len());
-            products.push((Source::local([Factor::Register(a), factor]), 0));
+            products.push((Source::local([Factor::Register(a), factor]), Reads::default()));
         } else if let Some(operation) = op.product_operation()
             && !op.literal
             && let &[a, b] = op.inputs.as_slice()
@@ -202,7 +231,7 @@ pub(super) fn identify(program: &mut Program, mut returned: BTreeMap<usize, Lane
             for (i, lane) in lanes.iter_mut().take(width).enumerate() {
                 *lane = Some(products.len());
                 let j = if op.definition.id == "mulscalar" { 0 } else { i };
-                products.push((Source { components: [i as u8, j as u8], operation, ..Source::local([a, b].map(Factor::Register)) }, 0));
+                products.push((Source { components: [i as u8, j as u8], operation, ..Source::local([a, b].map(Factor::Register)) }, Reads::default()));
             }
         } else if let Some(exports) = returned.remove(&index) {
             // Two returned lanes can reference the same product. Count their downstream reads together.
@@ -212,7 +241,7 @@ pub(super) fn identify(program: &mut Program, mut returned: BTreeMap<usize, Lane
                     source.calls.insert(0, index);
                     *lane = Some(*distinct.entry(source.clone()).or_insert_with(|| {
                         let id = products.len();
-                        products.push((source, 0));
+                        products.push((source, Reads::default()));
                         id
                     }));
                 }
@@ -224,22 +253,23 @@ pub(super) fn identify(program: &mut Program, mut returned: BTreeMap<usize, Lane
     let output = origins.get(program.output).copied().unwrap_or([None; 4]);
     let exported = output.map(|id| {
         let (source, uses) = products.get(id?)?;
-        (*uses == 0).then(|| source.clone())
+        (uses.total == 0).then(|| source.clone())
     });
     // A caller cannot retain registers that the callee's last loop iteration may have cleared.
     let exported = if loops.is_empty() { exported } else { empty() };
     for id in output.into_iter().flatten() {
         if let Some((_, uses)) = products.get_mut(id) {
-            *uses += 1;
+            uses.total += 1;
         }
     }
     for (index, sides) in sums {
         let terms: Sum = std::array::from_fn(|i| {
-            // A shared lane has already rounded. When both products are free, the left one contracts.
+            // Each sum can contract its only product until a separate reader observes the rounded lane.
             sides.iter().enumerate().find_map(|(side, lanes)| {
                 let id = lanes.get(i).copied().flatten()?;
                 let (source, uses) = products.get(id)?;
-                (*uses == 1 && source.live_for_sum(program, &loops, index)).then(|| Term { source: source.clone(), on_right: side == 1 })
+                let available = uses.total == 1 || (loops.is_empty() && uses.total == uses.sole_product_in_sum);
+                (available && source.live_for_sum(program, &loops, index)).then(|| Term { source: source.clone(), on_right: side == 1 })
             })
         });
         if terms.iter().any(Option::is_some)

@@ -59,6 +59,34 @@ The first pass classifies all 546 roots: 166 Parity and 380 Too hard. These meas
 
 ## 2026-11-22 root comparisons
 
+### Packed products in the second endpoint of a pixel interpolation
+
+At 64² in the [world-position plane light](#panoramic-line-light-and-horizon-across-the-seam), separately returning the two endpoints and scalar weight from the final interpolation gave 4,096/4,096 exact F32 pixels at each readout. The interpolated output matched 4,084/4,096. Its second endpoint packs RGB multiplied by exposure alongside a constant alpha. At (21,3), rounding the blue product before subtracting the first endpoint gives output bits `3ebaed06`. Combining that product with the subtraction gives the measured `3ebaed07`. This calculation reproduced all 4,096 pixels. The shared pixel evaluator now carries the factors of each eligible component through packing into the interpolation. A separate read of a product lane preserves its rounded value. If the interpolation and a subsequent add both consume the product, each can fuse it with its own addend.
+
+For the independent graphs, sample one original RGBA32F field at texel centers. For (width,height) = (64,32), (32,64), (64,64), number the fields j from zero. For channel c from zero let q be ((x + width × y) × (747796405 + 2c) + 2891336453 + 19998479c + 78571j) modulo 2³². Use bit 13 of q for the sign, 125 + ((q >> 25) modulo 3) for the biased F32 exponent, and bits 1 through 23 for the fraction. Use seed 379131 + 41j. Run F32 at all sizes, add U8, U16 and F16 at 64 × 32, then repeat its F32 setting.
+
+Use first endpoint (B,R,A,G), second endpoint (R×A,G×A,B×A,.625) and weight G. Test this graph, reversed endpoints, and identical packed endpoints. Also test returning the independently rounded blue product alongside the mixed RGB, adding the second endpoint to the mix, selecting lanes YWZX from the second endpoint, dividing RGB by A, using RGBA×A directly, and packing (R×A,G×A,R×B,B×G). At (11,0), the second-endpoint case gives RGB bits `bd551682 bef1e18c bec17c27`. Returning the blue product changes just the mixed blue to `bec17c28`. The separate product reads `3f1cb4a3`.
+
+| Comparison | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|
+| Nine original graphs, previous cook | 18,432/18,432 · 0 | 18,428/18,432 · 1 | 18,431/18,432 · 3.81469727e-06 | 64,959/92,160 · 9.53674316e-07 |
+| Same nine graphs, corrected cook | 18,432/18,432 · 0 | 18,432/18,432 · 0 | 18,432/18,432 · 0 | 92,160/92,160 · 0 |
+| Five MaterialCraft saves, opened in both applications | 10,240/10,240 · 0 | 10,240/10,240 · 0 | 10,240/10,240 · 0 | 51,200/51,200 · 0 |
+
+The five saves cover the ordinary and reversed endpoints, the independently returned blue lane, the subsequent add and the quotient. Every saved reference buffer reproduced its original. Two additional probes deliberately connected a float4 to the weight port. The desktop reported that port as scalar and the incoming connection as float4. At 64 × 32 in F32 both reference outputs equaled the first endpoint, 4,096/4,096 pixels. MaterialCraft evaluated component weights at those connections. Across the 14 format and size comparisons those two graphs matched 214/32,768 pixels, with maxima of 255 U8 levels, 65,535 U16 levels, 10.1123047 F16 and 10.1180855 F32. These mismatched port types remain a separate difference.
+
+Repeat the [22 earlier plane-light settings](#nadir-patch-after-reopening-its-linked-shape-package). For four additional geometries use (output width, output height, input width, input height) = (32,16,32,16), (16,32,16,32), (64,32,32,16) and (32,64,64,32). For geometry j use seed 380233 + 47j. Number the three input identifiers m alphabetically and components c from zero. Store each channel as ((41x + 73y + 11xy + 157m + 61c + 3cx + seed) modulo 1021)/1024 in F32. Use channel zero for the pattern image. Keep the first geometry at defaults. For the others use position modes 2, 1, 0 and patterns 4, 1, 3 respectively. Set world position (−.875,.34375,1.125), UV position (.328125,.203125), scale .6875, size (.75,1.25), rotation (.046875,−.09375,.171875), color mode 2 and exposure 1.3125. Enable the background input. Enable ground clipping and the grid on geometry two only. Use F32 on all four geometries and all four formats on geometries zero and two. Reopen a normal MaterialCraft SBS save at these ten settings and the four earlier plane-space settings.
+
+| Comparison | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|
+| 22 earlier whole-root settings | 8,192/8,192 · 0 | 8,192/8,192 · 0 | 8,192/8,192 · 0 | 175,360/175,360 · 0 |
+| 10 independent rectangular settings | 2,560/2,560 · 0 | 2,560/2,560 · 0 | 2,560/2,560 · 0 | 5,120/5,120 · 0 |
+| 14 whole-root reopens in both applications | 2,560/2,560 · 0 | 2,560/2,560 · 0 | 2,560/2,560 · 0 | 33,792/33,792 · 0 |
+
+Panorama Plane Light matched **212,736/212,736** original pixels across 32 settings and **41,472/41,472** reopened pixels. Both applications reproduced their original buffers after reopening. The packed-lane regression failed on the previous build and passed with the fix. All 394 node release tests passed, as did formatting, strict workspace Clippy, dependency layers and WebAssembly.
+
+The 49 earlier graphs for returned vectors, shared product pairs and scalar quotients retained 1,288,192/1,288,192 exact pixels across 307 renders. [Returned-vector probes](#pixel-products-carried-through-vector-lanes-and-calls) · [Quotient and interpolation probes](#pixel-quotients-and-volume-mask-interpolation)
+
 ### Reciprocal division through pixel function calls
 
 The two eighth specular passes divide a lighting term by the Z component of a normalized direction. Returning the environment lookup alone matched the 128-pixel scanline through (62,57) of the second pass. Returning the scalar lighting quotient exposed a rounding difference. Both operands matched at that pixel. In a separate original graph, the pixel expression `A / (1 / B)` reproduced A × B throughout the signed field. At (1,0) the inputs have F32 words `40763400` and `3f68c2ba`. A separate read of the inner reciprocal returns `3f8cc7a2`. The outer quotient returns `405fda66`. Supplying the one from a sampled channel returns `405fda65`. The latter control matched before the change.

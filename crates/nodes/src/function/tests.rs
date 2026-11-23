@@ -489,6 +489,45 @@ fn pixel_quotient_sums_and_second_interpolation_operands_contract() {
 }
 
 #[test]
+fn pixel_interpolation_contracts_only_unobserved_product_lanes_in_its_second_endpoint() {
+    let sample = [0xbed0_b7e6, 0x3ee9_4b78, 0xbf01_df0b, 0xbf9a_729d].map(f32::from_bits);
+    let variables = BTreeMap::from([("sample".into(), Value::Float4(sample))]);
+    let context = EvaluationContext {
+        scope: super::FunctionScope::PixelProcessor,
+        image_formats: &[],
+        position: [0.5; 2],
+        size: [1.0; 2],
+        images: &[],
+        tile: true,
+        variables: &variables,
+    };
+    let pixel = |graph: &FunctionGraph| compile(graph, 0).unwrap().evaluate_pixel(&context, &mut EvaluationState::default()).unwrap();
+    let mut graph = FunctionGraph::default();
+    let sample = graph.add("get_float4", &[], Some(Value::Text("sample".into())));
+    let first = graph.add("swizzle4", &[sample], Some(Value::Int4([2, 0, 3, 1])));
+    let rgb = graph.add("swizzle3", &[sample], Some(Value::Int3([0, 1, 2])));
+    let gain = graph.add("swizzle1", &[sample], Some(Value::Int(3)));
+    let weight = graph.add("swizzle1", &[sample], Some(Value::Int(1)));
+    let product = graph.add("mulscalar", &[rgb, gain], None);
+    let alpha = graph.add_constant(Value::Float(0.625));
+    let last = graph.add("vector4", &[product, alpha], None);
+    let mix = graph.add("lerp", &[first, last, weight], None);
+    graph.output = Some(mix);
+    assert_eq!(pixel(&graph), Value::Float4([0xbd55_1682, 0xbef1_e18c, 0xbec1_7c27, 0x3f08_66b4].map(f32::from_bits)));
+
+    let mixed_rgb = graph.add("swizzle3", &[mix], Some(Value::Int3([0, 1, 2])));
+    let blue = graph.add("swizzle1", &[product], Some(Value::Int(2)));
+    graph.output = Some(graph.add("vector4", &[mixed_rgb, blue], None));
+    assert_eq!(pixel(&graph), Value::Float4([0xbd55_1682, 0xbef1_e18c, 0xbec1_7c28, 0x3f1c_b4a3].map(f32::from_bits)));
+
+    graph.output = Some(graph.add("add", &[mix, last], None));
+    assert_eq!(pixel(&graph), Value::Float4([0x3ee1_3554, 0xbf82_d84f, 0x3e6f_da3f, 0x3f94_335a].map(f32::from_bits)));
+
+    graph.output = Some(graph.add("lerp", &[last, first, weight], None));
+    assert_eq!(pixel(&graph), Value::Float4([0x3d15_e6f2, 0xbef8_560b, 0xbe5d_ca0b, 0x3f0c_3f08].map(f32::from_bits)));
+}
+
+#[test]
 fn pixel_product_sums_round_once_unless_the_product_is_also_read() {
     let values = [0x3fe34b19, 0x400d3c6f, 0xc0732711, 0x3f9665e4].map(|bits| Value::Float(f32::from_bits(bits)));
     let variables: BTreeMap<_, _> = ["a", "b", "c", "d"].into_iter().map(str::to_owned).zip(values).collect();
