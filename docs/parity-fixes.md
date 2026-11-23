@@ -82,6 +82,38 @@ The saved graphs cover the simple reciprocal, packed lane, sampled one, two read
 
 For the specular controls, retain the initial assignments and the first n contributions for n = 0 through 8. Preserve the original normalization after the sum. At 128² read every pixel of row 36 in pass 396 with the changed controls, and row 57 in pass 408 with the default controls. Both full eight-contribution reference buffers reproduced the original intermediate, 16,384/16,384 per graph. The corrected scanlines match 1,152/1,152 pixels per graph over the nine prefixes. The previous counts were 1,064/1,152, maximum 5.96046447754e−8, and 1,075/1,152, maximum 1.19209289551e−7, respectively. The changed 128² F16 root 396 scores **16,384/16,384 · 0**. The default 128² F16 root 408 scores **16,384/16,384 · 0**. The earlier full-size matrix includes additional seeds and 256² renders. [Original fields and half-precision differences](#rectangular-inputs-and-remaining-half-float-pixels-in-the-eighth-specular-passes)
 
+### Branch offsets, center culling and two dense spot graphs
+
+An empty Quadrant can sit outside the tiling region and still have a visible descendant. In an original grayscale graph, route slots 1 then 2 through two empty Quadrants to one additive square. Give the square luminosity .75 and size (.75,.75) in its local frame. Move the outer branch horizontally by d. At the square either subtract d as a branch offset, subtract d as a pattern offset, or leave its offset zero. Test each graph with center culling off and on and with wrapping off and on along both axes. Keep the unit render and tiling regions.
+
+Use (width, height, format, d) = (32,16,F32,0), (32,16,F32,1.25), (32,16,F32,−1.5), (16,32,U16,5.25), (32,16,U8,1.25), (64,32,F16,−1.5) and the first setting again. For setting j starting at zero use seed 371092 + 23j and restore the original seed on the last request. Both offsets that bring the square back draw 18 pixels at 32 × 16 and 72 at 64 × 32, including with culling enabled. Without the return offset, culling removes the displaced squares. With culling disabled, wrapping brings them back into view.
+
+| Comparison | Renders | U8 exact / total | U16 exact / total | F16 exact / total | F32 exact / total | Maximum error |
+|---|---:|---:|---:|---:|---:|---:|
+| Twelve original graphs | 84 | 6,144/6,144 | 6,144/6,144 | 24,576/24,576 | 24,576/24,576 | 0 |
+| Three graphs saved in MaterialCraft and reopened in both applications | 21 | 1,536/1,536 | 1,536/1,536 | 6,144/6,144 | 6,144/6,144 | 0 |
+
+The reopens use the returning branch offset and pattern offset, both with culling on and wrapping off, and the uncorrected offset with culling and wrapping on. Each saved reference buffer reproduced the original. Skipping a subtree solely because an ancestor lies outside the frame would lose the measured returning squares. [Position, depth and iteration](#position-depth-and-iteration-in-pattern-expressions)
+
+For the two separately packaged BNW Spots 3 roots, use the [explicit renderer worker procedure](#patterns-with-an-explicit-reference-worker-count) on a normal MaterialCraft save. Compare the desktop original on one eligible processor to the saved graph rendered with one or eight workers. At 16² use defaults and seed zero in all four formats. At 64² use scale 2, disorder .37 and seed 42 in all four formats. For version 2 also use disorder speed .6, anisotropy .3, angle .125 and tile offset (.17,.29). At 64 × 16 use F32, scale 2, disorder .03125, expansion on and seed 42. In version 2 set speed and anisotropy to .03125, angle to −.21875 and tile offset to (−.3125,.37890625). Include the 256² default F16 at seed zero. Repeat the three F32 settings in each worker configuration.
+
+| Root | Comparison | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---:|---|---:|---:|---:|---:|
+| 238 | Desktop vs. one worker | 4,352/4,352 · 0 | 4,351/4,352 · 1 | 42,614/69,888 · 0.00048828125 | 5,373/5,376 · 1.06990337372e-05 |
+| 238 | Desktop vs. eight workers | 4,352/4,352 · 0 | 4,352/4,352 · 0 | 42,612/69,888 · 0.00048828125 | 5,372/5,376 · 1.06990337372e-05 |
+| 238 | One vs. eight workers | 4,352/4,352 · 0 | 4,351/4,352 · 1 | 69,882/69,888 · 0.00048828125 | 5,373/5,376 · 1.06692314148e-05 |
+| 238 | One worker, repeated | — | — | — | 5,376/5,376 · 0 |
+| 238 | Eight workers, repeated | — | — | — | 5,374/5,376 · 1.06692314148e-05 |
+| 239 | Desktop vs. one worker | 4,352/4,352 · 0 | 4,352/4,352 · 0 | 69,887/69,888 · 0.0001220703125 | 4,855/5,376 · 1.49011611938e-07 |
+| 239 | Desktop vs. eight workers | 4,352/4,352 · 0 | 4,351/4,352 · 1 | 69,887/69,888 · 0.000244140625 | 4,614/5,376 · 1.78813934326e-07 |
+| 239 | One vs. eight workers | 4,352/4,352 · 0 | 4,351/4,352 · 1 | 69,886/69,888 · 0.000244140625 | 4,730/5,376 · 1.78813934326e-07 |
+| 239 | One worker, repeated | — | — | — | 5,376/5,376 · 0 |
+| 239 | Eight workers, repeated | — | — | — | 4,677/5,376 · 1.78813934326e-07 |
+
+Opening the original SBS, its MaterialCraft save and the source prepared for publication in the desktop reproduced the same 17,408/17,408 pixels across the two roots, at 16² and 64² in F16 and F32. The maximum error for each pair was zero. For root 238, publishing that source and rendering with one worker gave 140/256 and 2,586/4,096 exact F16 pixels against the desktop. Of the differing desktop values, 1,592 were one half-float step lower and 34 were two steps lower. The maximum error was .00048828125. Truncating the standalone F32 output toward zero to F16 reproduced all 4,352 standalone F16 values. The corresponding 4,352 F16 pixels of root 239 were identical between the two renderers.
+
+Both the production cook and ordinary Quadrant traversal matched the one-worker reference on all 4,352 F32 pixels of the 16² and 64² square settings for root 238. At 64² they matched 4,093/4,096 desktop pixels with maximum .0000106990337. For root 239, both cooks matched 256/256 at 16² against the one-worker reference and 232/256 against the desktop, maximum 5.96046448e−8. Both reached the execution budget at 64² in root 239 and at 64 × 16 in both roots. All three F32 reference requests completed for both worker counts. [Previous complete-root measurements](#whole-root-precision-and-saved-comparisons-for-the-three-neighboring-spot-graphs)
+
 ### Patterns with an explicit reference worker count
 
 The desktop process affinity and the worker count chosen by the standalone renderer select different execution conditions. For the latter, use Direct3D 11, publish the normally saved SBS with optimization disabled, expose random seed, and inherit the graph seed from the render request. Set the final filter to the desired storage precision before publishing each of the four variants. Request the graph output as a 32-bit floating-point TIFF and convert back to its declared storage for comparison. Integer maxima are stored levels. For floating-point images compare component bit patterns and report absolute error. [Overlap repeatability and desktop property inspection](#worker-count-and-repeatability-of-overlapping-patterns)
