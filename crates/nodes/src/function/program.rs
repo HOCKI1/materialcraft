@@ -248,6 +248,11 @@ impl Program {
                     let pattern =
                         instruction.call.as_ref().and_then(|call| call.pattern_arguments.as_ref()).filter(|_| context.scope == super::FunctionScope::FxMap);
                     let result = if context.scope == super::FunctionScope::PixelProcessor
+                        && let Some(factor) = instruction.reciprocal_factor
+                        && let Some(product) = super::reciprocal::multiply_original(arguments.first(), factor.read(state))
+                    {
+                        Ok(product)
+                    } else if context.scope == super::FunctionScope::PixelProcessor
                         && let Some(value) = instruction.pixel_interval.as_deref().and_then(|interval| interval.saturate(state))
                     {
                         Ok(value)
@@ -259,11 +264,19 @@ impl Program {
                         super::function_call::pack_scalars(arguments)
                     } else if let Some(call) = &instruction.call {
                         let factors = if let Some([a, b]) = call.argument_factors.filter(|_| context.scope == super::FunctionScope::PixelProcessor) {
-                            let factor = |i| state.scalar_register(i).ok_or("missing scalar argument factor");
-                            Some([factor(a)?, factor(b)?])
+                            Some([a.read(state).ok_or("missing scalar argument factor")?, b.read(state).ok_or("missing scalar argument factor")?])
                         } else {
                             None
                         };
+                        let reciprocals = call.reciprocals.as_deref().filter(|_| context.scope == super::FunctionScope::PixelProcessor);
+                        if let Some(plan) = reciprocals
+                            && !plan.arguments.is_empty()
+                        {
+                            let mut values = state.calls.get_mut(&index).map(|child| std::mem::take(&mut child.reciprocal_arguments)).unwrap_or_default();
+                            values.clear();
+                            values.extend(plan.arguments.iter().map(|factor| factor.read(state)));
+                            state.calls.entry(index).or_default().reciprocal_arguments = values;
+                        }
                         let storage = state.calls.entry(index).or_default();
                         storage.argument_factors = factors;
                         storage.variables.clone_from(&state.variables);
@@ -281,6 +294,9 @@ impl Program {
                         storage.random = state.random;
                         let child = CallBindings { call, caller_assignments: &state.assignments, parent: bindings };
                         let result = call.program.run(context, storage, remaining_steps, Some(&child));
+                        if let Some(plan) = reciprocals {
+                            storage.returned_reciprocals = plan.results.map(|factor| factor.and_then(|f| f.read(storage)));
+                        }
                         state.random = storage.random;
                         if call.exports && result.is_ok() {
                             // A free assignment can pass through a caller with a formal of the same name.

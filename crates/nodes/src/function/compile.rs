@@ -19,7 +19,9 @@ pub(super) fn compile_program(
 ) -> Result<Program, String> {
     let mut remaining = super::MAX_EXPANDED_NODES;
     let mut program = compile_nested(graph, seed, 0, &mut remaining)?;
-    mark_literals(&mut program, literal_inputs.iter().map(String::as_str).collect(), pixel);
+    mark_literals(&mut program, literal_inputs.iter().map(|name| (name.as_str(), ())).collect());
+    super::reciprocal::identify_products(&mut program, BTreeMap::new());
+    plan_pixel_operations(&mut program, pixel);
     Ok(program)
 }
 
@@ -125,6 +127,7 @@ fn compile_nested(graph: &FunctionGraph, seed: u32, depth: usize, remaining: &mu
                             type_code,
                             literal: true,
                             literal_divisor: false,
+                            reciprocal_factor: None,
                             pixel_product_sum: None,
                             pixel_interval: None,
                             control_registers: Vec::new(),
@@ -171,7 +174,7 @@ fn compile_nested(graph: &FunctionGraph, seed: u32, depth: usize, remaining: &mu
             let exports =
                 program.instructions.iter().any(|instruction| instruction.definition.id == "set" || instruction.call.as_ref().is_some_and(|call| call.exports));
             let pattern_arguments = super::function_call::PatternArguments::identify(&program, &names, &defaults, &inputs);
-            Some(super::function_call::FunctionCall { program, inputs: names, defaults, argument_factors: None, pattern_arguments, exports })
+            Some(super::function_call::FunctionCall { program, inputs: names, defaults, argument_factors: None, reciprocals: None, pattern_arguments, exports })
         } else {
             None
         };
@@ -195,6 +198,7 @@ fn compile_nested(graph: &FunctionGraph, seed: u32, depth: usize, remaining: &mu
             type_code,
             literal: false,
             literal_divisor: false,
+            reciprocal_factor: None,
             pixel_product_sum: None,
             pixel_interval: None,
             control_registers: Vec::new(),
@@ -230,12 +234,12 @@ fn compile_nested(graph: &FunctionGraph, seed: u32, depth: usize, remaining: &mu
     Ok(Program { instructions, output, seed, pattern_draws: BTreeMap::new(), pattern_components: BTreeMap::new(), loop_sums: BTreeMap::new() })
 }
 
-fn mark_literals(program: &mut Program, mut arguments: BTreeSet<&str>, pixel: Option<&super::EvaluationContext<'_>>) -> super::returned_product::Lanes {
-    // A write in the callee can replace a literal argument before its next read.
+/// A write can replace an argument before its next read.
+pub(super) fn remove_written_arguments<T>(program: &Program, arguments: &mut BTreeMap<&str, T>) {
     for op in &program.instructions {
         if op.call.as_ref().is_some_and(|call| call.exports) {
             arguments.clear();
-            break;
+            return;
         }
         if op.definition.id == "set"
             && let Some(materialcraft_core::Value::Text(name)) = &op.value
@@ -243,30 +247,39 @@ fn mark_literals(program: &mut Program, mut arguments: BTreeSet<&str>, pixel: Op
             arguments.remove(name.as_str());
         }
     }
+}
+
+fn mark_literals(program: &mut Program, mut arguments: BTreeMap<&str, ()>) {
+    remove_written_arguments(program, &mut arguments);
     let mut literals = Vec::with_capacity(program.instructions.len());
-    let mut returned = BTreeMap::new();
-    for (index, op) in program.instructions.iter_mut().enumerate() {
+    for op in &mut program.instructions {
         let literal = |index: &usize| literals.get(*index) == Some(&true);
         let id = op.definition.id;
         op.literal_divisor = id == "div" && op.inputs.get(1).is_some_and(literal);
         if let Some(call) = &mut op.call {
-            let bound = call.inputs.iter().zip(&op.inputs).filter(|(_, index)| literal(index)).map(|(name, _)| name.as_str()).collect();
-            let lanes = mark_literals(&mut call.program, bound, None);
+            let bound = call.inputs.iter().zip(&op.inputs).filter(|(_, index)| literal(index)).map(|(name, _)| (name.as_str(), ())).collect();
+            mark_literals(&mut call.program, bound);
             op.literal = call.program.output_is_literal();
-            // Returned products read the call's evaluated registers after its assignments have run.
-            if lanes.iter().any(Option::is_some) {
-                returned.insert(index, lanes);
-            }
         } else {
             op.literal = id.starts_with("const_")
-                || (id.starts_with("get_") && matches!(&op.value, Some(materialcraft_core::Value::Text(name)) if arguments.contains(name.as_str())))
+                || (id.starts_with("get_") && matches!(&op.value, Some(materialcraft_core::Value::Text(name)) if arguments.contains_key(name.as_str())))
                 || (op.depends_only_on_operands() && op.inputs.iter().all(literal));
         }
         literals.push(op.literal);
     }
+}
+
+fn plan_pixel_operations(program: &mut Program, pixel: Option<&super::EvaluationContext<'_>>) -> super::returned_product::Lanes {
+    let mut returned = BTreeMap::new();
     for index in 0..program.instructions.len() {
         let (previous, current) = program.instructions.split_at_mut(index);
         if let Some(op) = current.first_mut() {
+            if let Some(call) = &mut op.call {
+                let lanes = plan_pixel_operations(&mut call.program, None);
+                if lanes.iter().any(Option::is_some) {
+                    returned.insert(index, lanes);
+                }
+            }
             op.pixel_interval = pixel_interval(op, previous).map(Box::new);
         }
     }

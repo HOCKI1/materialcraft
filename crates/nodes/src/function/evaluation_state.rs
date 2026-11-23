@@ -12,6 +12,8 @@ pub struct EvaluationState {
     pub(crate) assignments: BTreeMap<String, Value>,
     pub(crate) random: crate::random::FunctionRandom,
     pub(super) argument_factors: Option<[f32; 2]>,
+    pub(super) reciprocal_arguments: Vec<Option<f32>>,
+    pub(super) returned_reciprocals: [Option<f32>; 4],
     pub(crate) calls: BTreeMap<usize, EvaluationState>,
 }
 

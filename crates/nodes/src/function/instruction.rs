@@ -11,6 +11,8 @@ pub(crate) struct Instruction {
     pub literal: bool,
     /// A constant denominator folds to its rounded reciprocal even with a varying numerator.
     pub(super) literal_divisor: bool,
+    /// Original scalar divisor retained when a pixel expression divides by its reciprocal.
+    pub(super) reciprocal_factor: Option<super::reciprocal::Factor>,
     pub(super) pixel_product_sum: Option<super::product_sum::ProductSum>,
     /// Registers for max(lower, min(value, upper)) with literal scalar bounds.
     pub(super) pixel_interval: Option<Box<PixelInterval>>,
@@ -25,6 +27,11 @@ impl Instruction {
     }
 
     pub(super) fn product_operation(&self) -> Option<&'static str> {
+        // A cancelled reciprocal keeps the original operands live for their other readers.
+        // The retained-product pass can use its factor after both operands have run.
+        if self.reciprocal_factor.is_some() {
+            return None;
+        }
         let [_, _] = self.inputs.as_slice() else { return None };
         match self.definition.id {
             "rand" => Some("mul"),

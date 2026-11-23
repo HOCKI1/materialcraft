@@ -1,4 +1,4 @@
-use super::{EvaluationState, arithmetic::flush_subnormal, instruction::Instruction, returned_product::Source, value_type};
+use super::{EvaluationState, arithmetic::flush_subnormal, instruction::Instruction, reciprocal::Factor, returned_product::Source, value_type};
 use materialcraft_core::Value;
 use std::collections::BTreeMap;
 
@@ -45,12 +45,12 @@ impl ProductSum {
         }
         let passed;
         let (a, b, c, blend, subtract) = if let Some(Retained::Argument { source, addend, subtract }) = self.retained.as_deref() {
-            let (a, b) = source.factors(state)?;
+            passed = source.factors(state)?.map(Value::Float);
             let c = match addend {
                 Addend::Argument(i) => arguments.get(*i).ok_or("missing product addend")?,
                 Addend::Literal(value) => value,
             };
-            (a, b, c, None, *subtract)
+            (&passed[0], &passed[1], c, None, *subtract)
         } else if matches!(self.retained.as_deref(), Some(Retained::PassedArgument)) {
             let [left, right] = arguments else { return Err("missing scalar sum operands".into()) };
             passed = state.argument_factors.ok_or("missing scalar argument factors")?.map(Value::Float);
@@ -118,6 +118,18 @@ fn selected_components(op: &Instruction) -> Option<u8> {
     components.iter().take(count).try_fold(0, |mask, &i| (0..4).contains(&i).then(|| mask | 1 << i))
 }
 
+fn scalar_product(op: &Instruction) -> Option<(&'static str, [Factor; 2])> {
+    let &[a, b] = op.inputs.as_slice() else { return None };
+    if op.literal || op.type_code != 256 {
+        return None;
+    }
+    match (op.definition.id, op.reciprocal_factor) {
+        ("div", Some(factor)) => Some(("mul", [Factor::Register(a), factor])),
+        (operation @ ("mul" | "div"), _) => Some((operation, [a, b].map(Factor::Register))),
+        _ => None,
+    }
+}
+
 /// A scalar argument can contract with a callee's addition when that addition is its only use.
 fn called_sum(op: &Instruction, instructions: &[Instruction], usage: &[ProductUsage]) -> Option<ProductSum> {
     let call = op.call.as_ref()?;
@@ -146,16 +158,16 @@ fn called_sum(op: &Instruction, instructions: &[Instruction], usage: &[ProductUs
         let Addend::Argument(slot) = operand else { return None };
         let index = *op.inputs.get(*slot)?;
         let product = instructions.get(index)?;
-        if usage.get(index)?.count != 1 || product.literal || product.type_code != 256 || !matches!(product.definition.id, "mul" | "div") {
+        if usage.get(index)?.count != 1 {
             return None;
         }
-        let &[a, b] = product.inputs.as_slice() else { return None };
-        let retained = Retained::Argument { source: Source::local([a, b]), addend: addend.clone(), subtract: sum.definition.id == "sub" };
+        let (operation, factors) = scalar_product(product)?;
+        let retained = Retained::Argument { source: Source::local(factors), addend: addend.clone(), subtract: sum.definition.id == "sub" };
         Some(ProductSum {
             inputs: op.inputs.clone(),
             product_on_right,
             negated: false,
-            operation: product.definition.id,
+            operation,
             literal_divisor: product.literal_divisor,
             rounded_components: 0,
             retained: Some(Box::new(retained)),
@@ -168,11 +180,10 @@ fn called_sum(op: &Instruction, instructions: &[Instruction], usage: &[ProductUs
 fn pass_into_sums(call: &mut super::function_call::FunctionCall, inputs: &[usize], previous: &[Instruction], usage: &[ProductUsage]) {
     let mut candidates = call.inputs.iter().zip(inputs).filter_map(|(name, &index)| {
         let product = previous.get(index)?;
-        (usage.get(index)?.count == 1 && !product.literal && product.type_code == 256 && matches!(product.definition.id, "mul" | "div"))
-            .then_some((name, product))
+        let (operation, factors) = scalar_product(product)?;
+        (usage.get(index)?.count == 1).then_some((name, product.literal_divisor, operation, factors))
     });
-    let Some((name, product)) = candidates.next() else { return };
-    let &[a, b] = product.inputs.as_slice() else { return };
+    let Some((name, literal_divisor, operation, factors)) = candidates.next() else { return };
     let body = &mut call.program.instructions;
     if candidates.next().is_some() || call.exports || body.iter().any(|op| op.call.is_some() || matches!(op.definition.id, "ifelse" | "sequence" | "while")) {
         return;
@@ -192,15 +203,15 @@ fn pass_into_sums(call: &mut super::function_call::FunctionCall, inputs: &[usize
     if sums.is_empty() {
         return;
     }
-    call.argument_factors = Some([a, b]);
+    call.argument_factors = Some(factors);
     for (index, product_on_right) in sums {
         if let Some(sum) = body.get_mut(index) {
             sum.pixel_product_sum = Some(ProductSum {
                 inputs: sum.inputs.clone(),
                 product_on_right,
                 negated: false,
-                operation: product.definition.id,
-                literal_divisor: product.literal_divisor,
+                operation,
+                literal_divisor,
                 rounded_components: 0,
                 retained: Some(Box::new(Retained::PassedArgument)),
             });

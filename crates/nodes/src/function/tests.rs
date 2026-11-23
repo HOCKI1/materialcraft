@@ -2560,3 +2560,88 @@ fn packed_loop_products_keep_the_factors_from_the_current_iteration() {
         assert_eq!(actual.map(f32::to_bits), [x, y, z, alpha].map(f32::to_bits), "nested read {nested_read}");
     }
 }
+
+#[test]
+fn pixel_division_by_a_literal_unit_reciprocal_uses_the_original_factor() {
+    let variables = BTreeMap::from([
+        ("a".into(), Value::Float(f32::from_bits(0x4076_3400))),
+        ("b".into(), Value::Float(f32::from_bits(0x3f68_c2ba))),
+        ("unit".into(), Value::Float(1.0)),
+    ]);
+    let context = EvaluationContext {
+        image_formats: &[],
+        scope: super::FunctionScope::PixelProcessor,
+        position: [0.5; 2],
+        size: [1.0; 2],
+        images: &[],
+        tile: true,
+        variables: &variables,
+    };
+    for (literal, expected) in [(true, 0x405f_da66), (false, 0x405f_da65)] {
+        let mut graph = FunctionGraph::default();
+        let [a, b, unit] = ["a", "b", "unit"].map(|name| graph.add("get_float1", &[], Some(Value::Text(name.into()))));
+        let one = if literal { graph.add_constant(Value::Float(1.0)) } else { unit };
+        let reciprocal = graph.add("div", &[one, b], None);
+        let quotient = graph.add("div", &[a, reciprocal], None);
+        graph.output = Some(graph.add("vector2", &[quotient, reciprocal], None));
+        let value = compile(&graph, 0).unwrap().evaluate_pixel(&context, &mut EvaluationState::default()).unwrap();
+        assert_eq!(value, Value::Float2([expected, 0x3f8c_c7a2].map(f32::from_bits)), "literal unit {literal}");
+    }
+}
+
+#[test]
+fn pixel_division_keeps_the_original_length_across_vector_and_scalar_calls() {
+    fn call(graph: &mut FunctionGraph, body: FunctionGraph, input: u32, kind: u32, default: Value) -> u32 {
+        let id = graph.add("instance", &[input], None);
+        let node = graph.nodes.last_mut().unwrap();
+        node.instance = Some(materialcraft_core::GraphInstance {
+            graph: "operation".into(),
+            label: String::new(),
+            package: String::new(),
+            inputs: vec![materialcraft_core::GraphPort { identifier: "v".into(), type_code: kind }],
+            outputs: Vec::new(),
+            defaults: BTreeMap::from([("v".into(), default)]),
+        });
+        node.source = Some(Ok(std::sync::Arc::new(body)));
+        id
+    }
+
+    let variables = ["a", "b", "c", "z"]
+        .map(str::to_owned)
+        .into_iter()
+        .zip([0x3f80_d400, 0x3fb2_a18e, 0x3e74_0000, 0x3f80_0000].map(|bits| Value::Float(f32::from_bits(bits))))
+        .collect();
+    let context = EvaluationContext {
+        scope: super::FunctionScope::PixelProcessor,
+        position: [0.5; 2],
+        size: [1.0; 2],
+        images: &[],
+        image_formats: &[],
+        tile: true,
+        variables: &variables,
+    };
+    let mut normalize = FunctionGraph::default();
+    let vector = normalize.add("get_float3", &[], Some(Value::Text("v".into())));
+    let squared = normalize.add("dot", &[vector, vector], None);
+    let length = normalize.add("sqrt", &[squared], None);
+    let one = normalize.add_constant(Value::Float(1.0));
+    let reciprocal = normalize.add("div", &[one, length], None);
+    normalize.output = Some(normalize.add("mulscalar", &[vector, reciprocal], None));
+
+    let mut quotient = FunctionGraph::default();
+    let [a, v] = ["a", "v"].map(|name| quotient.add("get_float1", &[], Some(Value::Text(name.into()))));
+    quotient.output = Some(quotient.add("div", &[a, v], None));
+    for (constant_z, expected) in [(true, 0x3fdf_4c75), (false, 0x3fdf_4c76)] {
+        let mut graph = FunctionGraph::default();
+        let [c, b, z] = ["c", "b", "z"].map(|name| graph.add("get_float1", &[], Some(Value::Text(name.into()))));
+        let xy = graph.add("vector2", &[c, b], None);
+        let z = if constant_z { graph.add_constant(Value::Float(1.0)) } else { z };
+        let xyz = graph.add("vector3", &[xy, z], None);
+        let direction = call(&mut graph, normalize.clone(), xyz, 1024, Value::Float3([0.0; 3]));
+        let den = graph.add("swizzle1", &[direction], Some(Value::Int(2)));
+        let result = call(&mut graph, quotient.clone(), den, 256, Value::Float(0.0));
+        graph.output = Some(graph.add("vector2", &[result, den], None));
+        let value = compile(&graph, 0).unwrap().evaluate_pixel(&context, &mut EvaluationState::default()).unwrap();
+        assert_eq!(value, Value::Float2([expected, 0x3f13_b1cf].map(f32::from_bits)), "constant Z {constant_z}");
+    }
+}
