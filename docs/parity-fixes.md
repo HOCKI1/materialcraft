@@ -59,6 +59,133 @@ The first pass classifies all 546 roots: 166 Parity and 380 Too hard. These meas
 
 ## 2026-11-22 root comparisons
 
+### Patterns with an explicit reference worker count
+
+The desktop process affinity and the worker count chosen by the standalone renderer select different execution conditions. For the latter, use Direct3D 11, publish the normally saved SBS with optimization disabled, expose random seed, and inherit the graph seed from the render request. Set the final filter to the desired storage precision before publishing each of the four variants. Request the graph output as a 32-bit floating-point TIFF and convert back to its declared storage for comparison. Integer maxima are stored levels. For floating-point images compare component bit patterns and report absolute error. [Overlap repeatability and desktop property inspection](#worker-count-and-repeatability-of-overlapping-patterns)
+
+For the isolated BNW Spots 1 generator, render at a 256² parent size, yielding a 128² generator. Use the default disorder with seed zero, .1875 with seed 1 and .640625 with seed 135071. Replay the 16,384 emitted MaterialCraft stamp contributions for each buffer, using one F32 addition per contribution. Both replays use the same positions and contributions. Only the order of addition changes. [Sixteen grandchild groups and independent markers](#compositing-complete-seven-level-additive-quadrant-trees)
+
+| Reference, three F32 buffers | Ordinary Quadrant traversal · exact / total · max | Measured desktop group order · exact / total · max |
+|---|---:|---:|
+| Desktop with one eligible host processor | 47,844/49,152 · 2.98023224e-08 | 49,152/49,152 · 0 |
+| Direct3D 11 with one worker | 49,152/49,152 · 0 | 47,844/49,152 · 2.98023224e-08 |
+| SSE2 with one worker | 15,227/49,152 · 1.57803297e-05 | 15,224/49,152 · 1.57654285e-05 |
+| Vulkan with one worker | 33,042/49,152 · 1.1920929e-07 | 32,763/49,152 · 1.1920929e-07 |
+
+For the isolated final Noise Clouds 1 pattern stage, repeat its eight-level tree two, three, four or five times. Disconnect the background, use black, and disable tiling. For two and four trees use four F32 requests in order. Start at 64² with defaults and seed zero. Use 128 × 64 with scale 2, disorder .46875, non-square expansion off and seed 337607. Use 64 × 128 with scale 1, disorder .71875, expansion on and seed 337649. Return to the first request. For three and five trees add 344023 to each seed. The current MaterialCraft cook uses ordinary traversal for these repeated trees. [Original tree controls](#worker-count-and-repeatability-of-overlapping-patterns)
+
+| Trees | MaterialCraft vs. 1 worker | MaterialCraft vs. 2 workers | MaterialCraft vs. 4 workers | MaterialCraft vs. 8 workers | 1 worker, second vs. first | 8 workers, second vs. first |
+|---:|---:|---:|---:|---:|---:|---:|
+| 2 | 24,576/24,576 · 0 | 21,261/24,576 · 1.1920929e-07 | 20,024/24,576 · 1.78813934e-07 | 17,806/24,576 · 1.78813934e-07 | 24,576/24,576 · 0 | 23,821/24,576 · 8.94069672e-08 |
+| 3 | 24,576/24,576 · 0 | 20,772/24,576 · 2.38418579e-07 | 19,484/24,576 · 2.38418579e-07 | 17,258/24,576 · 2.38418579e-07 | 24,576/24,576 · 0 | 24,353/24,576 · 1.1920929e-07 |
+| 4 | 24,576/24,576 · 0 | 20,487/24,576 · 2.38418579e-07 | 19,444/24,576 · 2.38418579e-07 | 17,137/24,576 · 2.38418579e-07 | 24,576/24,576 · 0 | 24,576/24,576 · 0 |
+| 5 | 24,576/24,576 · 0 | 20,248/24,576 · 3.57627869e-07 | 18,651/24,576 · 4.76837158e-07 | 16,971/24,576 · 2.38418579e-07 | 24,576/24,576 · 0 | 23,342/24,576 · 2.38418579e-07 |
+
+For the whole graphs, compare the current MaterialCraft release cook and a diagnostic cook that submits grayscale procedural stamps directly in Quadrant traversal order. The diagnostic uses the same traversal for every graph, with the same expressions, seed evolution, stamp samples, compositing and downstream filters. The five comparisons cover 24 settings each. The desktop column uses the original graph with process affinity restricted to one eligible host processor. The standalone columns use the saved graph and an explicit worker count. [Existing spot graph settings](#whole-root-precision-and-saved-comparisons-for-the-three-neighboring-spot-graphs) · [Cloud graph settings](#repeated-cloud-renders-and-two-generator-texels)
+
+| Whole graph and comparison | U8 exact / total · max | U16 exact / total · max | F16 exact / total · max | F32 exact / total · max |
+|---|---:|---:|---:|---:|
+| BNW Spots 1 · MaterialCraft vs. desktop | 82,432/82,432 · 0 | 82,432/82,432 · 0 | 82,432/82,432 · 0 | 81,152/81,152 · 0 |
+| BNW Spots 1 · MaterialCraft vs. 1 worker | 82,432/82,432 · 0 | 82,418/82,432 · 2 | 82,431/82,432 · 0.000244140625 | 81,146/81,152 · 2.16364861e-05 |
+| BNW Spots 1 · MaterialCraft vs. 8 workers | 82,432/82,432 · 0 | 82,432/82,432 · 0 | 82,432/82,432 · 0 | 81,152/81,152 · 0 |
+| BNW Spots 1 · ordinary traversal vs. 1 worker | 82,432/82,432 · 0 | 82,432/82,432 · 0 | 82,432/82,432 · 0 | 81,152/81,152 · 0 |
+| BNW Spots 1 · ordinary traversal vs. 8 workers | 82,432/82,432 · 0 | 82,418/82,432 · 2 | 82,431/82,432 · 0.000244140625 | 81,146/81,152 · 2.16364861e-05 |
+| BNW Spots 1 · 1 worker repeat | 8,704/8,704 · 0 | 2,048/2,048 · 0 | 8,704/8,704 · 0 | 2,048/2,048 · 0 |
+| BNW Spots 1 · 8 worker repeat | 8,704/8,704 · 0 | 2,048/2,048 · 0 | 8,704/8,704 · 0 | 2,048/2,048 · 0 |
+| Clouds 1 · MaterialCraft vs. desktop | 92,672/92,672 · 0 | 113,152/113,152 · 0 | 92,672/92,672 · 0 | 113,152/113,152 · 0 |
+| Clouds 1 · MaterialCraft vs. 1 worker | 92,672/92,672 · 0 | 113,145/113,152 · 4 | 92,672/92,672 · 0 | 113,145/113,152 · 5.57303429e-05 |
+| Clouds 1 · MaterialCraft vs. 8 workers | 92,672/92,672 · 0 | 113,147/113,152 · 7 | 92,672/92,672 · 0 | 113,149/113,152 · 5.55515289e-05 |
+| Clouds 1 · ordinary traversal vs. 1 worker | 92,672/92,672 · 0 | 113,152/113,152 · 0 | 92,672/92,672 · 0 | 113,152/113,152 · 0 |
+| Clouds 1 · ordinary traversal vs. 8 workers | 92,672/92,672 · 0 | 113,144/113,152 · 7 | 92,672/92,672 · 0 | 113,146/113,152 · 5.57303429e-05 |
+| Clouds 1 · 1 worker repeat | 16,896/16,896 · 0 | 4,096/4,096 · 0 | 16,896/16,896 · 0 | 4,096/4,096 · 0 |
+| Clouds 1 · 8 worker repeat | 16,896/16,896 · 0 | 4,096/4,096 · 0 | 16,896/16,896 · 0 | 4,096/4,096 · 0 |
+| Clouds 2 · MaterialCraft vs. desktop | 92,672/92,672 · 0 | 113,152/113,152 · 0 | 92,672/92,672 · 0 | 113,152/113,152 · 0 |
+| Clouds 2 · MaterialCraft vs. 1 worker | 92,672/92,672 · 0 | 113,134/113,152 · 2 | 92,670/92,672 · 0.00048828125 | 113,134/113,152 · 2.29477882e-05 |
+| Clouds 2 · MaterialCraft vs. 8 workers | 92,672/92,672 · 0 | 113,146/113,152 · 2 | 92,672/92,672 · 0 | 113,149/113,152 · 2.29179859e-05 |
+| Clouds 2 · ordinary traversal vs. 1 worker | 92,672/92,672 · 0 | 113,152/113,152 · 0 | 92,672/92,672 · 0 | 113,152/113,152 · 0 |
+| Clouds 2 · ordinary traversal vs. 8 workers | 92,672/92,672 · 0 | 113,136/113,152 · 2 | 92,670/92,672 · 0.00048828125 | 113,137/113,152 · 2.29477882e-05 |
+| Clouds 2 · 1 worker repeat | 16,896/16,896 · 0 | 4,096/4,096 · 0 | 16,896/16,896 · 0 | 4,096/4,096 · 0 |
+| Clouds 2 · 8 worker repeat | 16,896/16,896 · 0 | 4,096/4,096 · 0 | 16,896/16,896 · 0 | 4,096/4,096 · 0 |
+| Noise BNW Spots 1 · MaterialCraft vs. desktop | 75,008/75,008 · 0 | 93,410/93,440 · 1 | 75,007/75,008 · 0.00048828125 | 75,725/81,152 · 2.38418579e-07 |
+| Noise BNW Spots 1 · MaterialCraft vs. 1 worker | 75,007/75,008 · 1 | 93,374/93,440 · 1 | 75,006/75,008 · 0.000244140625 | 50,809/81,152 · 1.1920929e-07 |
+| Noise BNW Spots 1 · MaterialCraft vs. 8 workers | 75,007/75,008 · 1 | 93,420/93,440 · 1 | 75,005/75,008 · 0.00048828125 | 75,567/81,152 · 1.78813934e-07 |
+| Noise BNW Spots 1 · ordinary traversal vs. 1 worker | 75,008/75,008 · 0 | 93,440/93,440 · 0 | 75,008/75,008 · 0 | 81,152/81,152 · 0 |
+| Noise BNW Spots 1 · ordinary traversal vs. 8 workers | 75,006/75,008 · 1 | 93,360/93,440 · 1 | 75,005/75,008 · 0.00048828125 | 48,724/81,152 · 2.38418579e-07 |
+| Noise BNW Spots 1 · 1 worker repeat | 4,352/4,352 · 0 | 2,048/2,048 · 0 | 4,352/4,352 · 0 | 2,048/2,048 · 0 |
+| Noise BNW Spots 1 · 8 worker repeat | 4,351/4,352 · 1 | 2,047/2,048 · 1 | 4,351/4,352 · 0.000244140625 | 1,806/2,048 · 1.1920929e-07 |
+| Noise BNW Spots 1 v2 · MaterialCraft vs. desktop | 89,344/89,344 · 0 | 81,151/81,152 · 1 | 75,004/75,008 · 0.00048828125 | 80,898/81,152 · 1.1920929e-07 |
+| Noise BNW Spots 1 v2 · MaterialCraft vs. 1 worker | 89,344/89,344 · 0 | 81,152/81,152 · 0 | 75,008/75,008 · 0 | 81,152/81,152 · 0 |
+| Noise BNW Spots 1 v2 · MaterialCraft vs. 8 workers | 89,344/89,344 · 0 | 81,152/81,152 · 0 | 75,007/75,008 · 0.00048828125 | 80,892/81,152 · 1.1920929e-07 |
+| Noise BNW Spots 1 v2 · ordinary traversal vs. 1 worker | 89,344/89,344 · 0 | 81,152/81,152 · 0 | 75,008/75,008 · 0 | 81,152/81,152 · 0 |
+| Noise BNW Spots 1 v2 · ordinary traversal vs. 8 workers | 89,344/89,344 · 0 | 81,152/81,152 · 0 | 75,007/75,008 · 0.00048828125 | 80,892/81,152 · 1.1920929e-07 |
+| Noise BNW Spots 1 v2 · 1 worker repeat | 16,640/16,640 · 0 | 2,048/2,048 · 0 | 4,352/4,352 · 0 | 2,048/2,048 · 0 |
+| Noise BNW Spots 1 v2 · 8 worker repeat | 16,640/16,640 · 0 | 2,048/2,048 · 0 | 4,352/4,352 · 0 | 1,911/2,048 · 5.96046448e-08 |
+
+The traversal diagnostic matched **1,803,008/1,803,008** complete output pixels with one reference worker. The current release matched **1,797,291/1,803,008** against the desktop. The repeated standalone settings used format order U8, U16, F16 and F32 and the positions 1, 5, 9, 13, 17 and 21 in the combined 24-request series. Eight-worker repeat differences are present in the table. Renderer-specific matches and diagnostic results leave the five roots in progress.
+
+The table gives the six requests in order for each format. A setting number refers to the dimensions, seed and exposed values immediately below. Omitted parameters use the graph default. Every graph uses its original procedural inputs.
+
+| Graph | U8 | U16 | F16 | F32 |
+|---|---|---|---|---|
+| BNW Spots 1 | 1, 2, 3, 4, 5, 6 | 1, 2, 7, 4, 8, 6 | 1, 2, 3, 9, 5, 6 | 10, 11, 2, 12, 13, 6 |
+| Clouds 1 | 1, 14, 15, 16, 17, 18 | 1, 14, 19, 20, 21, 18 | 1, 14, 15, 16, 17, 18 | 1, 14, 19, 20, 21, 18 |
+| Clouds 2 | 1, 22, 23, 24, 25, 26 | 1, 22, 27, 28, 29, 26 | 1, 22, 23, 24, 25, 26 | 1, 22, 27, 28, 29, 26 |
+| Noise BNW Spots 1 | 30, 31, 32, 33, 34, 35 | 30, 36, 33, 37, 38, 39 | 30, 31, 32, 33, 34, 35 | 30, 31, 40, 34, 41, 39 |
+| Noise BNW Spots 1 v2 | 30, 42, 43, 44, 45, 35 | 30, 42, 43, 46, 47, 48 | 30, 42, 49, 50, 46, 35 | 30, 42, 49, 46, 47, 48 |
+
+| Setting | Width × height | Seed | Changed parameters |
+|---:|---:|---:|---|
+| 1 | 16 × 32 | 0 | Defaults |
+| 2 | 32 × 64 | 9707 | disorder 0.15625 |
+| 3 | 64 × 32 | 371994 | disorder 0.5625 |
+| 4 | 64 × 64 | 223 | disorder 0.4375 |
+| 5 | 64 × 128 | 349184 | disorder 0.21875 |
+| 6 | 256 × 256 | 372421 | disorder 0.96875 |
+| 7 | 32 × 64 | 372055 | disorder 0.875 |
+| 8 | 128 × 64 | 372177 | disorder 1 |
+| 9 | 64 × 64 | 349122 | disorder 0.421875 |
+| 10 | 16 × 16 | 83 | Defaults |
+| 11 | 32 × 32 | 8852 | Defaults |
+| 12 | 32 × 128 | 9712 | disorder 0.84375 |
+| 13 | 64 × 128 | 372116 | disorder 0 |
+| 14 | 32 × 64 | 382191 | disorder 0.53125 |
+| 15 | 64 × 64 | 382232 | Defaults |
+| 16 | 64 × 64 | 42 | disorder 0.4 |
+| 17 | 256 × 64 | 382355 | disorder 0.3984375 |
+| 18 | 512 × 128 | 382478 | disorder 0.671875 |
+| 19 | 128 × 32 | 382273 | disorder 0.875 |
+| 20 | 64 × 128 | 382314 | disorder 1 |
+| 21 | 128 × 256 | 382396 | disorder 0.921875 |
+| 22 | 32 × 64 | 382192 | Defaults |
+| 23 | 64 × 64 | 382233 | Defaults |
+| 24 | 64 × 64 | 42 | Defaults |
+| 25 | 256 × 64 | 382356 | Defaults |
+| 26 | 512 × 128 | 382479 | Defaults |
+| 27 | 128 × 32 | 382274 | Defaults |
+| 28 | 64 × 128 | 382315 | Defaults |
+| 29 | 128 × 256 | 382397 | Defaults |
+| 30 | 16 × 16 | 0 | Defaults |
+| 31 | 32 × 32 | 113 | disorder 0.37, roughness 0.6, scale 2 |
+| 32 | 32 × 64 | 456747 | disorder 0.84375, roughness 1, scale 2 |
+| 33 | 32 × 64 | 194489 | disorder 0.1875, non square expansion true, roughness 0.1875, scale 1 |
+| 34 | 64 × 64 | 42 | disorder 0.37, roughness 0.6, scale 2 |
+| 35 | 256 × 256 | 0 | Defaults |
+| 36 | 64 × 16 | 42 | disorder 0.03125, non square expansion true, roughness 0.03125, scale 2 |
+| 37 | 128 × 64 | 456809 | disorder 0.953125, roughness 0.96875, scale 2 |
+| 38 | 128 × 128 | 42 | Defaults |
+| 39 | 512 × 128 | 411930 | disorder 0.09375, non square expansion true, roughness 0.09375, scale 1 |
+| 40 | 64 × 32 | 194442 | disorder 0.34375, non square expansion true, roughness 0.34375, scale 3 |
+| 41 | 64 × 128 | 411686 | disorder 0.1875, non square expansion true, roughness 0.1875, scale 1 |
+| 42 | 32 × 32 | 113 | disorder 0.37, disorder anisotropy 0.185, disorder anisotropy angle -0.005, disorder speed 0.32375, roughness 0.6, scale 2, tile offset (0.0925,-0.04625) |
+| 43 | 64 × 32 | 194473 | disorder 0.34375, disorder anisotropy 0.34375, disorder anisotropy angle 0.09375, disorder speed 0.34375, non square expansion true, roughness 0.34375, scale 3, tile offset (0,0.10546875) |
+| 44 | 64 × 64 | 411571 | disorder 0.34375, disorder anisotropy 0.34375, disorder anisotropy angle 0.09375, disorder speed 0.34375, non square expansion true, roughness 0.34375, scale 3, tile offset (0,0.10546875) |
+| 45 | 128 × 128 | 0 | Defaults |
+| 46 | 64 × 64 | 42 | disorder 0.37, disorder anisotropy 0.3, disorder anisotropy angle 0.125, disorder speed 0.6, roughness 0.6, scale 2, tile offset (0.17,0.29) |
+| 47 | 64 × 128 | 411693 | disorder 0.1875, disorder anisotropy 0.1875, disorder anisotropy angle -0.0625, disorder speed 0.1875, non square expansion true, roughness 0.1875, scale 1, tile offset (-0.15625,0.2421875) |
+| 48 | 512 × 128 | 411937 | disorder 0.09375, disorder anisotropy 0.09375, disorder anisotropy angle -0.15625, disorder speed 0.09375, non square expansion true, roughness 0.09375, scale 1, tile offset (-0.25,0.32421875) |
+| 49 | 32 × 64 | 456747 | disorder 0.84375, disorder anisotropy 0.421875, disorder anisotropy angle 0.46875, disorder speed 0.73828125, roughness 1, scale 2, tile offset (0.2109375,-0.10546875) |
+| 50 | 32 × 64 | 194520 | disorder 0.1875, disorder anisotropy 0.1875, disorder anisotropy angle -0.0625, disorder speed 0.1875, non square expansion true, roughness 0.1875, scale 1, tile offset (-0.15625,0.2421875) |
+
 ### Scalar Quadrant luminosity in saved packages
 
 A Quadrant accepts a scalar luminosity in MaterialCraft. Saving that value as a one-component literal swatch produced an SBS that the reference renderer could not compile. The native swatch takes four components. A single constant scalar function is also a valid property representation, and retains the scalar’s meaning in both grayscale and color. The writer now uses that representation for a scalar literal on a Quadrant. Existing four-component swatches and authored functions retain their representations. [Writer and regression](../crates/formats/src/sbs/pattern_graph.rs)
