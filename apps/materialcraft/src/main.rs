@@ -290,7 +290,7 @@ fn main() {
                     "MaterialCraft Nightly could not record session health in its private profile. You can still edit, but abnormal-exit detection is unavailable."
                 };
                 app.toast(message, false);
-                unclean_notice_shown.store(previous_nightly_unclean, std::sync::atomic::Ordering::Relaxed);
+                exit_notice.store(previous_nightly_unclean, std::sync::atomic::Ordering::Relaxed);
             }
             Ok(Box::new(app))
         }),
