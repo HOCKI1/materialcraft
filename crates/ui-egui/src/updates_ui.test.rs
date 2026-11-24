@@ -18,7 +18,7 @@ fn no_pins() -> std::path::PathBuf {
 
 fn app() -> MaterialCraftApp {
     let mut app = MaterialCraftApp::headless(sample_session(), UiState::default());
-    app.updates_rt.updater = Updater::new(&crate::UPDATE_APP, "0.1.0").with_pins_path(no_pins());
+    app.updates_rt.updater = Some(Updater::new(&crate::UPDATE_APP, "0.1.0").with_pins_path(no_pins()));
 
     app
 }
@@ -35,7 +35,7 @@ fn app_with_source() -> (MaterialCraftApp, Receiver<()>, Arc<AtomicUsize>) {
         let _ = tx.send(());
         Ok(None)
     });
-    app.updates_rt.updater = Updater::new(&crate::UPDATE_APP, "0.1.0").with_pins_path(no_pins()).with_source(source);
+    app.updates_rt.updater = Some(Updater::new(&crate::UPDATE_APP, "0.1.0").with_pins_path(no_pins()).with_source(source));
     (app, rx, calls)
 }
 
@@ -66,9 +66,9 @@ fn offer(updater: &mut Updater) {
 }
 
 pub(super) fn open_prompt(app: &mut MaterialCraftApp) {
-    app.updates_rt.updater = Updater::new(&crate::UPDATE_APP, "0.1.0").with_pins_path(no_pins());
-
-    offer(&mut app.updates_rt.updater);
+    app.updates_rt.updater = Some(Updater::new(&crate::UPDATE_APP, "0.1.0").with_pins_path(no_pins()));
+    let Some(updater) = app.updates_rt.updater.as_mut() else { return };
+    offer(updater);
 }
 
 #[test]
@@ -94,8 +94,9 @@ fn a_new_app_is_idle_and_does_not_check_at_start() {
     let rt = Runtime::default();
     assert!(!rt.startup_check);
     assert!(!rt.check_requested);
-    assert!(!rt.updater.prompt_open());
-    assert_eq!(rt.updater.status(), &Status::Idle);
+    let updater = rt.updater.as_ref().expect("a stable build has its own updater");
+    assert!(!updater.prompt_open());
+    assert_eq!(updater.status(), &Status::Idle);
 }
 
 /// One whole frame of the app; the first one only installs the fonts
@@ -114,11 +115,11 @@ fn the_menu_command_starts_a_check_on_the_next_frame() {
     frame(&mut app, &ctx);
     menus::invoke(&mut app, &ctx, COMMAND);
     assert!(app.updates_rt.check_requested);
-    assert_eq!(app.updates_rt.updater.status(), &Status::Idle, "the check waits for the frame");
+    assert_eq!(app.updates_rt.updater.as_ref().unwrap().status(), &Status::Idle, "the check waits for the frame");
 
     frame(&mut app, &ctx);
     assert!(!app.updates_rt.check_requested);
-    assert_ne!(app.updates_rt.updater.status(), &Status::Idle);
+    assert_ne!(app.updates_rt.updater.as_ref().unwrap().status(), &Status::Idle);
     // Dropping the app ends the wait with an error if no check was started
     drop(app);
     checks.recv().unwrap();
@@ -133,7 +134,7 @@ fn the_check_at_start_runs_only_when_turned_on() {
 
     app.set_startup_update_check(true);
     tick(&mut app, &ctx);
-    assert_eq!(app.updates_rt.updater.status(), &Status::Idle, "the check at start is quiet");
+    assert_eq!(app.updates_rt.updater.as_ref().unwrap().status(), &Status::Idle, "the check at start is quiet");
     // Dropping the app ends the wait with an error if no check was started
     drop(app);
     checks.recv().unwrap();
@@ -163,7 +164,7 @@ fn result_window_shows_every_status_but_idle() {
 fn an_offered_release_opens_the_prompt_over_the_window() {
     let mut app = app();
 
-    offer(&mut app.updates_rt.updater);
+    offer(app.updates_rt.updater.as_mut().unwrap());
 
     assert!(blocks_input(&app));
 
@@ -172,7 +173,7 @@ fn an_offered_release_opens_the_prompt_over_the_window() {
     harness.run_steps(3);
 
     let _ = harness.get_by_label("LATER");
-    assert!(harness.state().updates_rt.updater.prompt_open());
+    assert!(harness.state().updates_rt.updater.as_ref().unwrap().prompt_open());
 }
 
 #[test]
@@ -187,7 +188,7 @@ fn a_requested_check_shows_its_progress() {
         }
         Ok(None)
     });
-    app.updates_rt.updater = Updater::new(&crate::UPDATE_APP, "0.1.0").with_pins_path(no_pins()).with_source(source);
+    app.updates_rt.updater = Some(Updater::new(&crate::UPDATE_APP, "0.1.0").with_pins_path(no_pins()).with_source(source));
     check(&mut app);
     tick(&mut app, &egui::Context::default());
 
@@ -229,9 +230,23 @@ fn shortcuts_wait_while_the_prompt_is_open() {
     assert!(idle.ui.windows.export, "the shortcut works without the prompt");
 
     let mut prompted = app();
-    offer(&mut prompted.updates_rt.updater);
+    offer(prompted.updates_rt.updater.as_mut().unwrap());
 
     press_export(&mut prompted);
 
     assert!(!prompted.ui.windows.export);
+}
+
+#[test]
+fn a_nightly_build_has_no_updater_and_points_at_the_launcher() {
+    // The Nightly channel never constructs the updater: its installs belong to ArtCraft Launcher.
+    let mut app = app();
+    app.updates_rt.updater = None;
+    assert!(!app.updates_enabled());
+    let ctx = egui::Context::default();
+    menus::invoke(&mut app, &ctx, COMMAND);
+    assert!(!app.updates_rt.check_requested, "no check may start without an updater");
+    assert_eq!(app.status, crate::i18n::tr("Updates are managed by ArtCraft Launcher"));
+    // A frame without an updater must not panic or touch the pins file.
+    tick(&mut app, &ctx);
 }

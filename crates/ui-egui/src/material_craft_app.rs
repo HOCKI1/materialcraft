@@ -71,6 +71,14 @@ pub struct MaterialCraftApp {
     /// The icon font is installed (it takes effect on the frame after `set_fonts`)
     fonts_ready: bool,
     ui_gesture_active: bool,
+    /// The version this build names itself with: the Launcher's feed identity for a Nightly.
+    pub build_version: String,
+    /// The commit this build was made from, empty when the build could not tell.
+    pub build_commit: String,
+    /// The app binary's last step as the app leaves, run once at the end of `on_exit`. On macOS
+    /// every quit ends the process inside AppKit's terminate, after `on_exit`, so code after
+    /// `eframe::run_native` never runs there.
+    pub at_exit: Option<Box<dyn FnOnce()>>,
 }
 
 impl MaterialCraftApp {
@@ -145,6 +153,9 @@ impl MaterialCraftApp {
             fonts: fonts::UiFonts::default(),
             fonts_ready: false,
             ui_gesture_active: false,
+            build_version: materialcraft_engine::VERSION.to_owned(),
+            build_commit: String::new(),
+            at_exit: None,
         };
         i18n::set_language(&app.ui.prefs.language);
         app.apply_prefs();
@@ -450,6 +461,13 @@ impl eframe::App for MaterialCraftApp {
         }
     }
 
+    /// The one exit path macOS has: its quit ends the process before `run_native` returns.
+    fn on_exit(&mut self) {
+        if let Some(at_exit) = self.at_exit.take() {
+            at_exit();
+        }
+    }
+
     fn raw_input_hook(&mut self, _ctx: &egui::Context, raw: &mut egui::RawInput) {
         control::feed_input(self, raw);
     }
@@ -582,6 +600,10 @@ impl MaterialCraftApp {
         self.ui_ms = if self.ui_ms == 0.0 { dt } else { self.ui_ms * 0.9 + dt * 0.1 };
     }
 }
+
+#[cfg(test)]
+#[path = "material_craft_app.exit_hook_test.rs"]
+mod exit_hook_tests;
 
 #[cfg(test)]
 #[path = "material_craft_app.test.rs"]

@@ -19,6 +19,7 @@ egui = { workspace = true }
 image = { workspace = true }
 serde_json = { workspace = true }
 log = { workspace = true }
+thiserror = { workspace = true }
 # A start that never opens a window says why in an error dialog (src/start_failure.rs).
 rfd = { workspace = true }
 
@@ -28,6 +29,8 @@ craft-window = { workspace = true, features = ["egui"] }
 # The Windows update helper is a copy of this program started with `--finish-update`.
 [target.'cfg(windows)'.dependencies]
 craft-update = { workspace = true }
+# Safe Win32 wrappers for the Nightly taskbar identity (no `unsafe` in this crate).
+winsafe = { version = "=0.0.29", default-features = false, features = ["user", "shell"] }
 
 # The macOS app menu whose Quit asks before unsaved work is lost.
 [target.'cfg(target_os = "macos")'.dependencies]

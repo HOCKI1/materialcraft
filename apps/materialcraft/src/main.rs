@@ -1,14 +1,26 @@
 //! MaterialCraft desktop app
 //! Usage: `materialcraft [package.sbs] [--control <port>] [--empty] [--version]`
+//!
+//! A Nightly build takes the Launcher's protocol instead:
+//! `materialcraft --launch-profile nightly-v1 --profile-root <abs> -- [files…]`, and answers
+//! `… --version` before any profile, window or logging work.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 #![forbid(unsafe_code)]
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 
+#[cfg(test)]
+mod build_channel;
+mod build_flavor;
 mod control_server;
+mod launch_profile;
+mod nightly_session;
+mod process_identity;
+mod profile_root;
 mod start_failure;
 
 use materialcraft_engine::Session;
 use materialcraft_ui_egui::MaterialCraftApp;
+use materialcraft_ui_egui::os_window;
 
 /// The window's size when it opens, in points.
 const DEFAULT_SIZE: [f32; 2] = [1600.0, 960.0];
@@ -16,15 +28,24 @@ const DEFAULT_SIZE: [f32; 2] = [1600.0, 960.0];
 const MIN_SIZE: [f32; 2] = [960.0, 600.0];
 
 const ICON_PNG: &[u8] = include_bytes!("../../../assets/app-icon/hicolor/256x256/apps/ai.storyteller.materialcraft.png");
+const ICON_NIGHTLY_PNG: &[u8] = include_bytes!("../../../assets/app-icon/materialcraft-nightly.png");
+
+/// The version this build names itself with (the Launcher's feed identity for a Nightly).
+const BUILT_VERSION: &str = env!("MATERIALCRAFT_BUILT_VERSION");
+/// The commit this build was made from, empty when the build could not tell.
+const BUILD_SHA: &str = env!("MATERIALCRAFT_BUILD_SHA");
 
 fn version() -> String {
-    let sha = env!("MATERIALCRAFT_BUILD_SHA");
-    let short = sha.get(..7).unwrap_or(sha);
     let date = env!("MATERIALCRAFT_BUILD_DATE");
+    let short = BUILD_SHA.get(..7).unwrap_or(BUILD_SHA);
+    // A Nightly answers with its exact feed identity and channel, as the Launcher expects.
+    if build_flavor::COMPILED == build_flavor::BuildFlavor::NightlyV1 {
+        return format!("MaterialCraft {}", build_flavor::version(build_flavor::COMPILED, BUILT_VERSION));
+    }
     match (short.is_empty(), date.is_empty()) {
-        (true, true) => format!("MaterialCraft {}", materialcraft_engine::VERSION),
-        (true, false) => format!("MaterialCraft {} ({date})", materialcraft_engine::VERSION),
-        _ => format!("MaterialCraft {} ({short} {date})", materialcraft_engine::VERSION),
+        (true, true) => format!("MaterialCraft {BUILT_VERSION}"),
+        (true, false) => format!("MaterialCraft {BUILT_VERSION} ({date})"),
+        _ => format!("MaterialCraft {BUILT_VERSION} ({short} {date})"),
     }
 }
 
@@ -33,11 +54,21 @@ struct Args {
     control: Option<u16>,
 }
 
-fn parse_args() -> Result<Option<Args>, String> {
+fn parse_args(argv: &[std::ffi::OsString]) -> Result<Option<Args>, String> {
     let mut args = Args { file: None, control: None };
-    let mut it = std::env::args().skip(1);
+    let argv: Vec<String> = argv.iter().map(|arg| arg.to_string_lossy().into_owned()).collect();
+    let mut it = argv.into_iter();
+    let mut files_only = false;
     while let Some(a) = it.next() {
+        if files_only {
+            if args.file.is_none() {
+                args.file = Some(a);
+            }
+            continue;
+        }
         match a.as_str() {
+            // Everything after the Launcher's `--` is a file, even when it looks like a flag.
+            "--" => files_only = true,
             "--version" | "-V" => {
                 println!("{}", version());
                 return Ok(None);
@@ -56,6 +87,9 @@ fn parse_args() -> Result<Option<Args>, String> {
             other => return Err(format!("unknown option `{other}`")),
         }
     }
+    if launch_profile::current().is_nightly() && args.control.is_some() {
+        return Err("MaterialCraft Nightly does not open the automation control server".into());
+    }
     Ok(Some(args))
 }
 
@@ -71,7 +105,8 @@ fn initial_session(args: &Args) -> Session {
 }
 
 fn icon() -> Option<egui::IconData> {
-    let img = image::load_from_memory(ICON_PNG).ok()?.into_rgba8();
+    let bytes = if launch_profile::current().is_nightly() { ICON_NIGHTLY_PNG } else { ICON_PNG };
+    let img = image::load_from_memory(bytes).ok()?.into_rgba8();
     let (w, h) = img.dimensions();
     Some(egui::IconData { rgba: img.into_raw(), width: w, height: h })
 }
@@ -81,13 +116,89 @@ fn checks_for_updates_at_start(control: Option<u16>, throwaway_prefs: bool) -> b
     control.is_none() && !throwaway_prefs
 }
 
+fn initialize_nightly_process_identity() -> Result<(), process_identity::IdentityError> {
+    process_identity::initialize(build_flavor::COMPILED == build_flavor::BuildFlavor::NightlyV1, os_window::id_for(os_window::LaunchIdentity::NightlyV1))
+}
+
+fn report_launch_profile_error(error: &str) {
+    eprintln!("MaterialCraft launch profile: {error}");
+    let desktop_session = cfg!(windows)
+        || cfg!(target_os = "macos")
+        || (cfg!(target_os = "linux") && ["DISPLAY", "WAYLAND_DISPLAY"].into_iter().any(|key| std::env::var_os(key).is_some_and(|v| !v.is_empty())));
+    if build_flavor::needs_native_error(build_flavor::COMPILED, desktop_session) {
+        if let Err(error) = initialize_nightly_process_identity() {
+            eprintln!("MaterialCraft launch profile: {error}");
+            return;
+        }
+        #[cfg(any(windows, target_os = "linux", target_os = "macos"))]
+        let _ = rfd::MessageDialog::new()
+            .set_title("MaterialCraft Nightly")
+            .set_description(error)
+            .set_level(rfd::MessageLevel::Error)
+            .set_buttons(rfd::MessageButtons::Ok)
+            .show();
+    }
+}
+
+/// Select the immutable launch profile before any startup service or side effect.
+fn prepare_launch() -> Option<Vec<std::ffi::OsString>> {
+    // The trusted Launcher protocol is decided before logging, updates, fonts or saved state.
+    let argv: Vec<_> = std::env::args_os().skip(1).collect();
+    if build_flavor::COMPILED == build_flavor::BuildFlavor::NightlyV1 && launch_profile::version_query(&argv) {
+        println!("{}", version());
+        return None;
+    }
+    let early = launch_profile::parse(argv)
+        .and_then(|launch| {
+            build_flavor::require_profile(build_flavor::COMPILED, &launch.profile)?;
+            initialize_nightly_process_identity().map_err(|error| error.to_string())?;
+            Ok(launch)
+        })
+        .and_then(|launch| {
+            launch_profile::prepare(launch, |root| launch_profile::validate_root(root, |key| std::env::var_os(key), std::env::current_exe().ok().as_deref()))
+        })
+        .unwrap_or_else(|error| {
+            report_launch_profile_error(&error);
+            std::process::exit(2)
+        });
+    let identity = if early.profile.is_nightly() { os_window::LaunchIdentity::NightlyV1 } else { os_window::LaunchIdentity::Stable };
+    if let Err(error) = os_window::select_identity(identity).and_then(|()| match early.profile.root() {
+        Some(root) => materialcraft_ui_egui::data_root::install(root.to_path_buf()),
+        None => Ok(()),
+    }) {
+        report_launch_profile_error(&error);
+        std::process::exit(2);
+    }
+    if let Err(error) = launch_profile::install(early.profile) {
+        report_launch_profile_error(&error);
+        std::process::exit(2);
+    }
+
+    Some(early.args)
+}
+
+/// Where this launch keeps its window layout and settings: the private profile for a Nightly,
+/// eframe's own folder (or the scripted throwaway file) for stable.
+fn persistence_path() -> Option<std::path::PathBuf> {
+    if launch_profile::current().is_nightly() {
+        return materialcraft_ui_egui::data_root::sub("app.ron");
+    }
+    std::env::var_os("MATERIALCRAFT_NO_PREFS")
+        .map(|_| std::env::temp_dir().join(format!("materialcraft-noprefs-{}.ron", std::process::id())))
+        .or_else(|| std::env::var_os("MATERIALCRAFT_DATA_DIR").filter(|v| !v.is_empty()).map(|dir| std::path::PathBuf::from(dir).join("app.ron")))
+}
+
 fn main() {
+    let Some(arguments) = prepare_launch() else { return };
+    let nightly = launch_profile::current().is_nightly();
+
     // Windows: the update helper is a copy of this program started with `--finish-update`.
     #[cfg(windows)]
-    if let Some(result) = craft_update::self_update::finish(&materialcraft_ui_egui::UPDATE_APP, &std::env::args_os().skip(1).collect::<Vec<_>>()) {
+    if !nightly && let Some(result) = craft_update::self_update::finish(&materialcraft_ui_egui::UPDATE_APP, &std::env::args_os().skip(1).collect::<Vec<_>>()) {
         std::process::exit(i32::from(result.is_err()));
     }
-    let args = match parse_args() {
+    // The Launcher protocol's own tokens are consumed here, so parse what it left.
+    let args = match parse_args(&arguments) {
         Ok(Some(a)) => a,
         Ok(None) => return,
         Err(e) => {
@@ -104,40 +215,78 @@ fn main() {
     let session = initial_session(&args);
     let window_frame = craft_window::Choice::probe(craft_window::Prefix::new("MATERIALCRAFT")).into_frame();
     let mut viewport = craft_window::decorate(
-        egui::ViewportBuilder::default().with_title("MaterialCraft").with_inner_size(DEFAULT_SIZE).with_min_inner_size(MIN_SIZE),
+        egui::ViewportBuilder::default().with_title(os_window::name_for(os_window::identity())).with_inner_size(DEFAULT_SIZE).with_min_inner_size(MIN_SIZE),
         &window_frame,
     );
-    if matches!(option_env!("MATERIALCRAFT_BUILD_CHANNEL"), Some("nightly-v1")) {
-        viewport = viewport.with_app_id("ai.storyteller.materialcraft.nightly-v1");
+    // Stable keeps eframe's implicit app id, so its saved layout stays where it is; a Nightly
+    // carries its own id so docks, compositor rules and the taskbar list it separately.
+    if nightly {
+        viewport = viewport.with_app_id(os_window::app_id());
     }
     if let Some(i) = icon() {
         viewport = viewport.with_icon(i);
     }
     // Scripted runs (agents, tests) set MATERIALCRAFT_NO_PREFS so they neither read nor overwrite the user's saved layout and settings: state goes to a throwaway file
-    let persistence_path = std::env::var_os("MATERIALCRAFT_NO_PREFS")
-        .map(|_| std::env::temp_dir().join(format!("materialcraft-noprefs-{}.ron", std::process::id())))
-        .or_else(|| std::env::var_os("MATERIALCRAFT_DATA_DIR").filter(|v| !v.is_empty()).map(|dir| std::path::PathBuf::from(dir).join("app.ron")));
+    let persistence_path = persistence_path();
     let control = args.control;
-    let startup_update_check = checks_for_updates_at_start(control, persistence_path.is_some());
+    let startup_update_check = !nightly && checks_for_updates_at_start(control, persistence_path.is_some());
     let options = eframe::NativeOptions { viewport, renderer: eframe::Renderer::Wgpu, persistence_path, ..Default::default() };
+
+    // After the primary claim, before entering the window loop. No document names, paths or
+    // diagnostic payload is collected.
+    let (nightly_session, session_health_warning) =
+        match nightly_session::Session::begin_with_health(launch_profile::current().root(), BUILT_VERSION, (!BUILD_SHA.is_empty()).then_some(BUILD_SHA)) {
+            Ok(state) => state,
+            Err(error) => {
+                log::warn!("Nightly session health is unavailable: {error}");
+                (None, true)
+            }
+        };
+    let previous_nightly_unclean = nightly_session.as_ref().is_some_and(nightly_session::Session::previous_unclean);
+    let shared_session: nightly_session::Shared = std::sync::Arc::new(std::sync::Mutex::new(nightly_session));
+    // Set once a window has posted the interruption notice; until then the record must survive.
+    let unclean_notice_shown = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let exit_session = shared_session.clone();
+    let exit_notice = unclean_notice_shown.clone();
+
     let r = eframe::run_native(
-        "MaterialCraft",
+        os_window::name_for(os_window::identity()),
         options,
         Box::new(move |cc| {
             let mut app = MaterialCraftApp::new(cc, session);
+            app.build_version = BUILT_VERSION.to_owned();
+            app.build_commit = BUILD_SHA.to_owned();
+            // macOS quits inside AppKit's terminate, so the record is finished from the exit hook.
+            let hook_session = exit_session.clone();
+            let hook_notice = exit_notice.clone();
+            app.at_exit = Some(Box::new(move || {
+                nightly_session::finish_once(&hook_session, hook_notice.load(std::sync::atomic::Ordering::Relaxed));
+            }));
             app.window_layout = window_frame.layout().cloned();
             // Called from the creator: winit installs its default menu before this runs. On error winit's menu stays, whose Quit does not ask
             #[cfg(target_os = "macos")]
-            if let Err(error) = craft_menu::mac::install_app_menu(&cc.egui_ctx, "MaterialCraft") {
+            if let Err(error) = craft_menu::mac::install_app_menu(&cc.egui_ctx, os_window::name_for(os_window::identity())) {
                 log::warn!("could not install the app menu: {error}");
             }
             app.set_startup_update_check(startup_update_check);
             if let Some(port) = control {
                 app.control = Some(control_server::start(port, cc.egui_ctx.clone()));
             }
+            if previous_nightly_unclean || session_health_warning {
+                let message = if previous_nightly_unclean {
+                    "The previous MaterialCraft Nightly session did not finish normally. You can report a problem from About. No diagnostics have been sent."
+                } else {
+                    "MaterialCraft Nightly could not record session health in its private profile. You can still edit, but abnormal-exit detection is unavailable."
+                };
+                app.toast(message, false);
+                unclean_notice_shown.store(previous_nightly_unclean, std::sync::atomic::Ordering::Relaxed);
+            }
             Ok(Box::new(app))
         }),
     );
+    // This is a controlled return: a handled startup error is not an abnormal exit. The exit hook
+    // normally already finished the record; this covers a start that created no window.
+    nightly_session::finish_once(&shared_session, unclean_notice_shown.load(std::sync::atomic::Ordering::Relaxed));
     if let Err(e) = r {
         eprintln!("materialcraft: {e}");
         // Say why instead of exiting silently (`start_failure`).

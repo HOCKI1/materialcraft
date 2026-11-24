@@ -33,6 +33,8 @@ impl PreviewDiskCache {
             Some(path) if path.is_empty() => return None,
             Some(path) => PathBuf::from(path),
             None if cfg!(test) || std::env::var_os("MATERIALCRAFT_NO_PREFS").is_some() => return None,
+            // A Nightly profile owns its previews, never the stable per-user cache.
+            None if crate::data_root::root().is_some() => crate::data_root::sub("cache")?,
             // The shared resolver honors redirected Windows profiles and absolute XDG paths
             None => craft_update::Paths::per_user("materialcraft").ok()?.cache,
         };

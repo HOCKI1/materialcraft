@@ -23,7 +23,6 @@ nightly_init() {
     nightly_die 'declared CRAFT_FONTS_DIR has no fonts directory'
   fi
   # env.sh retains the established notice copier. Required values above prohibit its stable fallbacks.
-  # shellcheck source=env.sh
   . "$ROOT/packaging/env.sh"
   export CARGO_TARGET_DIR="$CARGO_TARGET_DIR/nightly-v1/$os-$arch"
   NIGHTLY_RUST_TARGET="$target"
@@ -32,9 +31,11 @@ nightly_init() {
   trap 'rm -rf -- "$NIGHTLY_WORK"' EXIT
 }
 
-# Compile only: macOS runs the version query after signing.
+# Compile only: macOS runs the version query after signing (packaging/macos/nightly-verify.sh).
 nightly_compile_gui() {
-  (cd "$ROOT" && MATERIALCRAFT_OVERRIDE_VERSION="$VERSION" cargo build --release --locked -p materialcraft --target "$NIGHTLY_RUST_TARGET")
+  # MaterialCraft has no optional codec feature to add to an official build; the version the
+  # executable names itself with comes from MATERIALCRAFT_VERSION (env.sh exports VERSION from it).
+  (cd "$ROOT" && MATERIALCRAFT_VERSION="$VERSION" cargo build --release --locked -p materialcraft --target "$NIGHTLY_RUST_TARGET")
   NIGHTLY_GUI="$CARGO_TARGET_DIR/$NIGHTLY_RUST_TARGET/release/materialcraft"
   [[ -f "$NIGHTLY_GUI" && ! -L "$NIGHTLY_GUI" ]] || nightly_die 'the owned GUI build did not produce a regular executable'
   [[ "$(git -C "$ROOT" rev-parse HEAD)" == "$MATERIALCRAFT_BUILD_SHA" && -z "$(git -C "$ROOT" status --porcelain)" ]] || nightly_die 'source changed during the build'
@@ -44,7 +45,7 @@ nightly_build_gui() {
   nightly_compile_gui
   local actual
   actual="$("$NIGHTLY_GUI" --version)" || nightly_die 'side-effect-free nightly version verification failed'
-  [[ "$actual" == "MaterialCraft "*" (${MATERIALCRAFT_BUILD_SHA:0:7} $MATERIALCRAFT_BUILD_DATE)" ]] || nightly_die 'the built version/provenance is not the prepared identity'
+  [[ "$actual" == "MaterialCraft $VERSION (nightly-v1)" ]] || nightly_die 'the built version/flavor is not the prepared identity'
   [[ "$(git -C "$ROOT" rev-parse HEAD)" == "$MATERIALCRAFT_BUILD_SHA" && -z "$(git -C "$ROOT" status --porcelain)" ]] || nightly_die 'source changed during the version query'
 }
 
