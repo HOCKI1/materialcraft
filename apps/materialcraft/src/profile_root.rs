@@ -279,8 +279,9 @@ fn validate_for(
 /// differ on purpose, as they do for stable.
 pub const NIGHTLY_FLATPAK_ID: &str = "ai.storyteller.materialcraft.nightly";
 
-/// The nightly autosave folder: numbered recovery copies of the open package.
-#[cfg(test)]
+/// The nightly autosave folder: numbered recovery copies of the open package. Only the unix
+/// symlink test reads it, so a Windows test build would have no caller (`-D dead-code`).
+#[cfg(all(test, unix))]
 pub fn recovery_dir(root: &Path) -> Result<PathBuf, String> {
     private_subdirectory(root, RECOVERY, "recovery folder")
 }
