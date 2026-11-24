@@ -231,7 +231,9 @@ fn validate_for(
             return Err(format!("nightly-v1 cannot be combined with {key}, which would take {why} outside its private profile"));
         }
     }
-    if platform != Platform::Windows && let Some(id) = env("FLATPAK_ID").filter(|v| !v.is_empty()) {
+    if platform != Platform::Windows
+        && let Some(id) = env("FLATPAK_ID").filter(|v| !v.is_empty())
+    {
         // A Flatpak's data folder and runtime socket namespace belong to its app id. The nightly
         // bundle has an id of its own ([`NIGHTLY_FLATPAK_ID`], named by
         // `packaging/linux/flatpak-bundle.sh`), so its profile is already the sandbox's own; any
@@ -278,6 +280,7 @@ fn validate_for(
 pub const NIGHTLY_FLATPAK_ID: &str = "ai.storyteller.materialcraft.nightly";
 
 /// The nightly autosave folder: numbered recovery copies of the open package.
+#[cfg(test)]
 pub fn recovery_dir(root: &Path) -> Result<PathBuf, String> {
     private_subdirectory(root, RECOVERY, "recovery folder")
 }

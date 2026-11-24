@@ -71,10 +71,12 @@ if [[ "$FLATPAK_ID" != "$APP_ID" ]]; then
 # Start the Nightly GUI with this channel's own launch profile.
 set -eu
 case "${1-}" in
-  # The Launcher already named the profile (its version query does too); never pass it twice. A
-  # plain version query answers without touching any profile.
-  --launch-profile | --version | -V) exec /app/libexec/materialcraft "$@" ;;
+  # The Launcher already named the profile (its version query does too), in either accepted order;
+  # never pass it a second pair. A plain version or help query is answered without any profile.
+  --launch-profile | --profile-root | --version | -V | --help | -h) exec /app/libexec/materialcraft "$@" ;;
 esac
+# A caller-written `--` is ours to strip: the app receives exactly one, from here.
+if [ "${1-}" = "--" ]; then shift; fi
 profile_base="${XDG_DATA_HOME:-${HOME:?HOME is required}/.var/app/ai.storyteller.materialcraft.nightly/data}"
 exec /app/libexec/materialcraft \
   --launch-profile nightly-v1 --profile-root "$profile_base/materialcraft-nightly" -- "$@"

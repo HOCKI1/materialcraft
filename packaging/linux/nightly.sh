@@ -18,11 +18,11 @@ OUTPUT="$DIST/materialcraft-$VERSION-linux-x86_64-nightly.tar.gz"
 nightly_build_gui
 STAGE="$NIGHTLY_WORK/stage"
 mkdir -p "$STAGE"
-cp "$NIGHTLY_GUI" "$STAGE/materialcraft"
-chmod 755 "$STAGE/materialcraft"
-# An unpacked tar is isolated too: this launcher starts the GUI with the channel's own profile.
-cp "$ROOT/packaging/linux/nightly-launch.sh" "$STAGE/materialcraft-nightly"
-chmod 755 "$STAGE/materialcraft-nightly"
+# The standard layout: `<app>` is the launcher an unpacked tar starts, and `<app>-bin` the GUI it
+# hands the channel's own profile to, so a copy outside a package is isolated too.
+cp "$NIGHTLY_GUI" "$STAGE/materialcraft-bin"
+chmod 755 "$STAGE/materialcraft-bin"
+install -m 755 "$ROOT/packaging/linux/nightly-launch.sh" "$STAGE/materialcraft"
 NIGHTLY_ICON="$ROOT/assets/app-icon/materialcraft-nightly.png"
 [[ -f "$NIGHTLY_ICON" ]] || NIGHTLY_ICON="$ROOT/assets/app-icon/hicolor/256x256/apps/ai.storyteller.materialcraft.png"
 cp "$NIGHTLY_ICON" "$STAGE/materialcraft-nightly.png"

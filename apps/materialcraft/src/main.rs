@@ -61,6 +61,10 @@ fn parse_args(argv: &[std::ffi::OsString]) -> Result<Option<Args>, String> {
     let mut files_only = false;
     while let Some(a) = it.next() {
         if files_only {
+            // A repeated delimiter is still a separator, never a file named `--`.
+            if a == "--" {
+                continue;
+            }
             if args.file.is_none() {
                 args.file = Some(a);
             }
@@ -140,11 +144,18 @@ fn report_launch_profile_error(error: &str) {
     }
 }
 
+/// A Nightly answers a version query before any profile work: the plain `--version`/`-V` that
+/// packaging scripts and workflows run, or the Launcher's own
+/// `--launch-profile nightly-v1 --profile-root <dir> --version`. Stable keeps its own startup.
+fn early_version_query(flavor: build_flavor::BuildFlavor, argv: &[std::ffi::OsString]) -> bool {
+    flavor == build_flavor::BuildFlavor::NightlyV1 && (build_flavor::version_query(argv) || launch_profile::version_query(argv))
+}
+
 /// Select the immutable launch profile before any startup service or side effect.
 fn prepare_launch() -> Option<Vec<std::ffi::OsString>> {
     // The trusted Launcher protocol is decided before logging, updates, fonts or saved state.
     let argv: Vec<_> = std::env::args_os().skip(1).collect();
-    if build_flavor::COMPILED == build_flavor::BuildFlavor::NightlyV1 && launch_profile::version_query(&argv) {
+    if early_version_query(build_flavor::COMPILED, &argv) {
         println!("{}", version());
         return None;
     }
@@ -298,6 +309,43 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A caller-written `--` separates files; it never becomes one, however many arrive.
+    #[test]
+    fn the_file_delimiter_is_never_opened_as_a_path() {
+        let args = |values: &[&str]| values.iter().map(std::ffi::OsString::from).collect::<Vec<_>>();
+        let parsed = parse_args(&args(&["--", "--version"])).expect("a file after the delimiter").expect("startup");
+        assert_eq!(parsed.file.as_deref(), Some("--version"));
+        assert_eq!(parsed.control, None);
+        let parsed = parse_args(&args(&["--", "--", "graph.sbs"])).expect("one path").expect("startup");
+        assert_eq!(parsed.file.as_deref(), Some("graph.sbs"));
+        let parsed = parse_args(&args(&["a.sbs", "--", "b.sbs"])).expect("the first path wins").expect("startup");
+        assert_eq!(parsed.file.as_deref(), Some("a.sbs"));
+        assert!(parse_args(&args(&["--control", "nonsense"])).is_err());
+        assert!(parse_args(&args(&["--unknown"])).is_err());
+    }
+
+    /// The one line every packaging script and workflow compares, in both accepted forms.
+    #[test]
+    fn a_nightly_answers_plain_and_launcher_version_queries() {
+        let args = |values: &[&str]| values.iter().map(std::ffi::OsString::from).collect::<Vec<_>>();
+        let nightly = build_flavor::BuildFlavor::NightlyV1;
+        assert!(early_version_query(nightly, &args(&["--version"])));
+        assert!(early_version_query(nightly, &args(&["-V"])));
+        let launcher = args(&["--launch-profile", "nightly-v1", "--profile-root", "/nightly-data/profiles/materialcraft"]);
+        for flag in ["--version", "-V"] {
+            let mut argv = launcher.clone();
+            argv.push(flag.into());
+            assert!(early_version_query(nightly, &argv), "{flag}");
+        }
+        // Everything else keeps the ordinary startup: another build channel, a file named
+        // `--version`, an incomplete protocol, and the option that only looks like a query.
+        assert!(!early_version_query(build_flavor::BuildFlavor::Stable, &args(&["--version"])));
+        assert!(!early_version_query(nightly, &args(&["--", "--version"])));
+        assert!(!early_version_query(nightly, &args(&["--version", "graph.sbs"])));
+        assert!(!early_version_query(nightly, &args(&["--launch-profile", "nightly-v1", "--version"])));
+        assert!(!early_version_query(nightly, &[]));
+    }
 
     #[test]
     fn only_a_run_a_person_started_checks_for_updates_at_start() {

@@ -2854,6 +2854,7 @@ checksum = "5d15f86d12da44cd8d4ec3c73984537eb7f4cadcb9776a575a0a8a05ca11005c"
 name = "materialcraft"
 version = "0.4.1"
 dependencies = [
+ "craft-atomic",
  "craft-menu",
  "craft-update",
  "craft-window",
@@ -2866,7 +2867,9 @@ dependencies = [
  "materialcraft-ui-egui",
  "rfd",
  "serde_json",
+ "thiserror 2.0.21",
  "winresource",
+ "winsafe",
 ]
 
 [[package]]

@@ -76,15 +76,24 @@ class Launcher(unittest.TestCase):
             launcher,
         )
         self.assertEqual(self.recording(launcher, env=env), ["--launch-profile", "nightly-v1", "--profile-root", root, "--"])
-        for flag in ("--version", "-V"):
+        for flag in ("--version", "-V", "--help", "-h"):
             self.assertEqual(self.recording(launcher, flag, env=env), [flag], launcher)
         query = ["--launch-profile", "nightly-v1", "--profile-root", str(self.root / "launcher root"), "--version"]
         self.assertEqual(self.recording(launcher, *query, env=env), query, "a Launcher query is passed through once")
+        reversed_order = query[2:] + query[:2]
+        self.assertEqual(self.recording(launcher, *reversed_order, env=env), reversed_order, "the reversed profile order too")
+        # A caller-written `--` is stripped, never doubled: the app sees exactly one.
+        self.assertEqual(
+            self.recording(launcher, "--", "after the delimiter.mcraft", env=env),
+            ["--launch-profile", "nightly-v1", "--profile-root", root, "--", "after the delimiter.mcraft"],
+            launcher,
+        )
 
     def test_the_plain_tar_launcher_starts_the_profile(self):
-        (self.root / "materialcraft").write_text(RECORDER, encoding="utf-8")
-        (self.root / "materialcraft").chmod(0o755)
-        installed = self.launcher("materialcraft-nightly", (LINUX / "nightly-launch.sh").read_text(encoding="utf-8"))
+        # The standard layout: the GUI beside the launcher is `<app>-bin`.
+        (self.root / "materialcraft-bin").write_text(RECORDER, encoding="utf-8")
+        (self.root / "materialcraft-bin").chmod(0o755)
+        installed = self.launcher("materialcraft", (LINUX / "nightly-launch.sh").read_text(encoding="utf-8"))
         self.assert_starts_the_profile(installed)
         self.assert_starts_the_profile(installed, {"XDG_DATA_HOME": str(self.root / "xdg with space")})
 

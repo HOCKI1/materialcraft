@@ -29,7 +29,7 @@ class ArchivePolicy(unittest.TestCase):
         self.stage = self.root / "stage"
         self.stage.mkdir()
         self.output = self.root / "nightly.tar.gz"
-        self.required = {"materialcraft", "materialcraft-nightly", "materialcraft-nightly.png", "README.md", "LICENSE-MIT", "LICENSE-APACHE", "NOTICE", "ATTRIBUTION.md"}
+        self.required = {"materialcraft", "materialcraft-bin", "materialcraft-nightly.png", "README.md", "LICENSE-MIT", "LICENSE-APACHE", "NOTICE", "ATTRIBUTION.md"}
         for name in self.required:
             (self.stage / name).write_bytes(b"generated fixture: " + name.encode())
         (self.stage / "materialcraft").chmod(0o755)

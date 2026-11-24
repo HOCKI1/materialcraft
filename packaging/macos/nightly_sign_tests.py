@@ -338,7 +338,7 @@ class Sign(unittest.TestCase):
         fifo = zipfile.ZipInfo(f"{APP}/Contents/Resources/fifo")
         fifo.external_attr = (stat.S_IFIFO | 0o644) << 16
         for label, info in (("link", link), ("special", fifo), ("traversal", zipfile.ZipInfo(f"{APP}/../outside")),
-                            ("absolute", zipfile.ZipInfo("/tmp/outside")), ("foreign root", zipfile.ZipInfo("Other.app/x"))):
+                            ("absolute", zipfile.ZipInfo(os.path.join(os.sep, "outside"))), ("foreign root", zipfile.ZipInfo("Other.app/x"))):
             with self.subTest(label=label):
                 self.f.bundle()
                 self.f.add_entry(info, b"/etc/passwd")

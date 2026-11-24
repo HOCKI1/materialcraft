@@ -456,11 +456,6 @@ mod tests {
         assert!(parse("mcp", &strings(&["--automation-read-root"])).is_err());
         assert!(parse("cook", &strings(&["--automation-read-root", "/r"])).is_err());
     }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
 
     #[test]
     fn the_launcher_nightly_protocol_is_refused_before_any_subcommand() {

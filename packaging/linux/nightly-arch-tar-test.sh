@@ -54,8 +54,12 @@ expect "$(launch "$XDG_DATA_HOME/materialcraft-nightly" 'material with spaces.mc
 # A version query answers with the plain argument, so it needs no profile at all.
 expect '<--version>' --version
 expect '<-V>' -V
-# The Launcher's own form is passed through once, never doubled.
+# The Launcher's own form is passed through once, never doubled, in either accepted order.
 expect "$(printf '<--launch-profile>\n<nightly-v1>\n<--profile-root>\n<%s>\n<--version>\n' "$work/launcher root")" \
   --launch-profile nightly-v1 --profile-root "$work/launcher root" --version
+expect "$(printf '<--profile-root>\n<%s>\n<--launch-profile>\n<nightly-v1>\n<--version>\n' "$work/launcher root")" \
+  --profile-root "$work/launcher root" --launch-profile nightly-v1 --version
+# A caller-written `--` is stripped, never doubled: the app receives exactly one.
+expect "$(launch "$XDG_DATA_HOME/materialcraft-nightly" 'after the delimiter.mcraft')" -- 'after the delimiter.mcraft'
 
 echo "PASS: Arch Nightly handoff starts the flavor's profile and preserves launch arguments"

@@ -95,16 +95,26 @@ jobs:
           archive="$RUNNER_TEMP/nightly-dist/materialcraft-$MATERIALCRAFT_VERSION-linux-x86_64-nightly.tar.gz"
           mkdir -p "$RUNNER_TEMP/unpacked" "$RUNNER_TEMP/home" "$RUNNER_TEMP/tmp" "$RUNNER_TEMP/profile"
           tar -xzf "$archive" -C "$RUNNER_TEMP/unpacked"
+          # The standard layout: the launcher an unpacked tar starts, and the GUI beside it.
           test -x "$RUNNER_TEMP/unpacked/materialcraft"
-          # The launcher that makes an unpacked tar use its own profile instead of stable's.
-          test -x "$RUNNER_TEMP/unpacked/materialcraft-nightly"
+          test -x "$RUNNER_TEMP/unpacked/materialcraft-bin"
           test -f "$RUNNER_TEMP/unpacked/materialcraft-nightly.png"
           for notice in README.md LICENSE-MIT LICENSE-APACHE NOTICE ATTRIBUTION.md; do
             test -f "$RUNNER_TEMP/unpacked/$notice"
           done
           # GUI only: no CLI, portable marker, desktop entry, MIME database or helper scripts; only the
           # GUI, its launcher, the icon and the notices.
-          test -z "$(ls "$RUNNER_TEMP/unpacked" | grep -v -x -e materialcraft -e materialcraft-nightly -e materialcraft-nightly.png -e README.md -e LICENSE-MIT -e LICENSE-APACHE -e NOTICE -e ATTRIBUTION.md -e 'OFL-.*\.txt' || true)"
+          # The allowlist is a glob loop rather than `ls | grep -v`, which shellcheck refuses (SC2010).
+          shopt -s nullglob dotglob
+          for entry in "$RUNNER_TEMP"/unpacked/*; do
+            case "${entry##*/}" in
+              materialcraft | materialcraft-bin | materialcraft-nightly.png | README.md | LICENSE-MIT | LICENSE-APACHE | NOTICE | ATTRIBUTION.md | OFL-*.txt) ;;
+              *)
+                echo "unexpected archive member ${entry##*/}"
+                exit 1
+                ;;
+            esac
+          done
           query() {
             local out
             out="$(env -i HOME="$RUNNER_TEMP/home" TMPDIR="$RUNNER_TEMP/tmp/" PATH=/usr/bin:/bin \
@@ -116,7 +126,7 @@ jobs:
           query --launch-profile nightly-v1 --profile-root "$RUNNER_TEMP/profile" --version
           # The shipped launcher answers the same query, and needs no profile to do it.
           launcher_out="$(env -i HOME="$RUNNER_TEMP/home" TMPDIR="$RUNNER_TEMP/tmp/" PATH=/usr/bin:/bin \
-            timeout 15 "$RUNNER_TEMP/unpacked/materialcraft-nightly" --version)"
+            timeout 15 "$RUNNER_TEMP/unpacked/materialcraft" --version)"
           test "$launcher_out" = "MaterialCraft $MATERIALCRAFT_VERSION (nightly-v1)" \
             || { echo "the tar launcher reports '$launcher_out'"; exit 1; }
           test ! -e "$RUNNER_TEMP/home/.local/share/materialcraft-nightly" \
