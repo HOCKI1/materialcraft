@@ -19,11 +19,12 @@ const ICON: &str = "../../assets/app-icon/materialcraft.ico";
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-changed={ICON}");
-    for var in ["MATERIALCRAFT_BUILD_SHA", "MATERIALCRAFT_BUILD_DATE", "MATERIALCRAFT_REQUIRE_WINRES", "SOURCE_DATE_EPOCH"] {
+    for var in ["MATERIALCRAFT_BUILD_SHA", "MATERIALCRAFT_BUILD_DATE", "MATERIALCRAFT_BUILD_CHANNEL", "MATERIALCRAFT_REQUIRE_WINRES", "SOURCE_DATE_EPOCH"] {
         println!("cargo:rerun-if-env-changed={var}");
     }
     println!("cargo:rustc-env=MATERIALCRAFT_BUILD_SHA={}", env_or("MATERIALCRAFT_BUILD_SHA", git_sha));
     println!("cargo:rustc-env=MATERIALCRAFT_BUILD_DATE={}", env_or("MATERIALCRAFT_BUILD_DATE", today));
+    println!("cargo:rustc-env=MATERIALCRAFT_BUILD_CHANNEL={}", std::env::var("MATERIALCRAFT_BUILD_CHANNEL").unwrap_or_default().trim());
 
     if std::env::var("CARGO_CFG_TARGET_OS").as_deref() == Ok("windows") {
         windows_resources();

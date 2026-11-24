@@ -50,7 +50,11 @@ if [[ "${MATERIALCRAFT_BUILD_CHANNEL:-}" == nightly-v1 || "$VERSION" == *-nightl
   export MATERIALCRAFT_BUILD_CHANNEL=nightly-v1
   export MATERIALCRAFT_OVERRIDE_VERSION="$VERSION"
 fi
-BASENAME="materialcraft-$VERSION-linux-$ARCH"
+ARTIFACT_VERSION="$VERSION"
+if [[ "$IS_NIGHTLY" = 1 && "$ARTIFACT_VERSION" != *-nightly* ]]; then
+  ARTIFACT_VERSION="${ARTIFACT_VERSION}-nightly"
+fi
+BASENAME="materialcraft-$ARTIFACT_VERSION-linux-$ARCH"
 
 if [[ -n "$ARCH_TAR_DIR" && "$IS_NIGHTLY" != 1 ]]; then
   echo "error: --arch-tar-dir is only for Nightly builds" >&2

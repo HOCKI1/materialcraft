@@ -107,6 +107,9 @@ fn main() {
         egui::ViewportBuilder::default().with_title("MaterialCraft").with_inner_size(DEFAULT_SIZE).with_min_inner_size(MIN_SIZE),
         &window_frame,
     );
+    if env!("MATERIALCRAFT_BUILD_CHANNEL") == "nightly-v1" {
+        viewport = viewport.with_app_id("ai.storyteller.materialcraft.nightly-v1");
+    }
     if let Some(i) = icon() {
         viewport = viewport.with_icon(i);
     }
