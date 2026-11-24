@@ -141,13 +141,18 @@ if has deb || has rpm; then
     cat >"$NFPM_STAGE/usr/bin/$NFPM_BIN" <<'WRAPPER'
 #!/bin/sh
 set -eu
+data_home="${XDG_DATA_HOME:-${HOME}/.local/share}"
+cache_home="${XDG_CACHE_HOME:-${HOME}/.cache}"
+: "${MATERIALCRAFT_DATA_DIR:=${data_home}/materialcraft-nightly}"
+: "${MATERIALCRAFT_CACHE_DIR:=${cache_home}/materialcraft-nightly}"
+export MATERIALCRAFT_DATA_DIR MATERIALCRAFT_CACHE_DIR
 exec /usr/lib/materialcraft-nightly/materialcraft "$@"
 WRAPPER
     chmod 755 "$NFPM_STAGE/usr/bin/$NFPM_BIN"
     rm -f "$NFPM_STAGE/usr/bin/materialcraft"
     mv "$NFPM_STAGE/usr/bin/materialcraft-cli" "$NFPM_STAGE/usr/bin/$NFPM_CLI"
     mv "$NFPM_STAGE/usr/share/doc/materialcraft" "$NFPM_STAGE/usr/share/doc/$NFPM_NAME"
-    sed -e "s|^Exec=materialcraft\([[:space:]]\|$\)|Exec=$NFPM_BIN\1|" \
+    sed -e "s#^Exec=materialcraft\([[:space:]]\|$\)#Exec=$NFPM_BIN\1#" \
         -e "s|^TryExec=materialcraft$|TryExec=$NFPM_BIN|" \
         -e "s|^Icon=$APP_ID$|Icon=$NIGHTLY_DESK_ID|" \
         -e "s|^Name=MaterialCraft$|Name=MaterialCraft Nightly|" \

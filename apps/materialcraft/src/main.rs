@@ -107,15 +107,16 @@ fn main() {
         egui::ViewportBuilder::default().with_title("MaterialCraft").with_inner_size(DEFAULT_SIZE).with_min_inner_size(MIN_SIZE),
         &window_frame,
     );
-    if env!("MATERIALCRAFT_BUILD_CHANNEL") == "nightly-v1" {
+    if matches!(option_env!("MATERIALCRAFT_BUILD_CHANNEL"), Some("nightly-v1")) {
         viewport = viewport.with_app_id("ai.storyteller.materialcraft.nightly-v1");
     }
     if let Some(i) = icon() {
         viewport = viewport.with_icon(i);
     }
     // Scripted runs (agents, tests) set MATERIALCRAFT_NO_PREFS so they neither read nor overwrite the user's saved layout and settings: state goes to a throwaway file
-    let persistence_path =
-        std::env::var_os("MATERIALCRAFT_NO_PREFS").map(|_| std::env::temp_dir().join(format!("materialcraft-noprefs-{}.ron", std::process::id())));
+    let persistence_path = std::env::var_os("MATERIALCRAFT_NO_PREFS")
+        .map(|_| std::env::temp_dir().join(format!("materialcraft-noprefs-{}.ron", std::process::id())))
+        .or_else(|| std::env::var_os("MATERIALCRAFT_DATA_DIR").filter(|v| !v.is_empty()).map(|dir| std::path::PathBuf::from(dir).join("app.ron")));
     let control = args.control;
     let startup_update_check = checks_for_updates_at_start(control, persistence_path.is_some());
     let options = eframe::NativeOptions { viewport, renderer: eframe::Renderer::Wgpu, persistence_path, ..Default::default() };
