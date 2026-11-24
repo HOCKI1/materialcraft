@@ -48,7 +48,9 @@ IS_NIGHTLY=0
 if [[ "${MATERIALCRAFT_BUILD_CHANNEL:-}" == nightly-v1 || "$VERSION" == *-nightly* ]]; then
   IS_NIGHTLY=1
   export MATERIALCRAFT_BUILD_CHANNEL=nightly-v1
-  export MATERIALCRAFT_OVERRIDE_VERSION="$VERSION"
+  # build.rs compiles the nightly channel of `MATERIALCRAFT_BUILD_CHANNEL` and embeds
+  # `MATERIALCRAFT_VERSION`; there is no `_OVERRIDE_VERSION` on this app.
+  export MATERIALCRAFT_VERSION="$VERSION"
 fi
 ARTIFACT_VERSION="$VERSION"
 if [[ "$IS_NIGHTLY" = 1 && "$ARTIFACT_VERSION" != *-nightly* ]]; then
@@ -140,13 +142,17 @@ if has deb || has rpm; then
     install -Dm755 "$NFPM_STAGE/usr/bin/materialcraft" "$NFPM_STAGE/usr/lib/materialcraft-nightly/materialcraft"
     cat >"$NFPM_STAGE/usr/bin/$NFPM_BIN" <<'WRAPPER'
 #!/bin/sh
+# Start the Nightly GUI the flavor's way: this channel's own launch profile, so an installed
+# nightly never reads or writes stable's settings, window state or recovery copies.
 set -eu
-data_home="${XDG_DATA_HOME:-${HOME}/.local/share}"
-cache_home="${XDG_CACHE_HOME:-${HOME}/.cache}"
-: "${MATERIALCRAFT_DATA_DIR:=${data_home}/materialcraft-nightly}"
-: "${MATERIALCRAFT_CACHE_DIR:=${cache_home}/materialcraft-nightly}"
-export MATERIALCRAFT_DATA_DIR MATERIALCRAFT_CACHE_DIR
-exec /usr/lib/materialcraft-nightly/materialcraft "$@"
+case "${1-}" in
+  # The Launcher already named the profile (its version query does too); never pass it twice. A
+  # plain version query answers without touching any profile.
+  --launch-profile | --version | -V) exec /usr/lib/materialcraft-nightly/materialcraft "$@" ;;
+esac
+profile_base="${XDG_DATA_HOME:-${HOME:?HOME is required}/.local/share}"
+exec /usr/lib/materialcraft-nightly/materialcraft \
+  --launch-profile nightly-v1 --profile-root "$profile_base/materialcraft-nightly" -- "$@"
 WRAPPER
     chmod 755 "$NFPM_STAGE/usr/bin/$NFPM_BIN"
     rm -f "$NFPM_STAGE/usr/bin/materialcraft"
@@ -164,6 +170,7 @@ WRAPPER
         -e "s|<launchable type=\"desktop-id\">$APP_ID.desktop</launchable>|<launchable type=\"desktop-id\">$NIGHTLY_DESK_ID.desktop</launchable>|g" \
         -e "s|<icon type=\"stock\">$APP_ID</icon>|<icon type=\"stock\">$NIGHTLY_DESK_ID</icon>|g" \
         -e "s|<binary>materialcraft</binary>|<binary>$NFPM_BIN</binary>|g" \
+        -e '/<mediatype>application\/x-materialcraft<\/mediatype>/d' \
         "$NFPM_STAGE/usr/share/metainfo/$APP_ID.metainfo.xml" >"$NFPM_STAGE/usr/share/metainfo/$NIGHTLY_DESK_ID.metainfo.xml"
     rm -f "$NFPM_STAGE/usr/share/metainfo/$APP_ID.metainfo.xml"
     rm -rf "$NFPM_STAGE/usr/share/mime"

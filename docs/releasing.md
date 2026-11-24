@@ -115,7 +115,17 @@ again.
 
 The Windows, Linux and macOS source preparation is documented in
 [`nightly-release-preparation.md`](nightly-release-preparation.md). It is not an activated
-signing or publication pipeline. Stable `release.yml`, its schedule, tags, concurrency,
+signing or publication pipeline.
+
+A Nightly build only starts with the Launcher's protocol (`--launch-profile nightly-v1
+--profile-root <dir> -- files...`), and every Linux nightly format starts it that way: the deb/rpm
+wrapper (`/usr/bin/materialcraft-nightly`), the AppImage `AppRun`, the Arch launcher, the Flatpak
+command and the `materialcraft-nightly` launcher inside the plain nightly `.tar.gz`. They all use
+`$XDG_DATA_HOME/materialcraft-nightly` (the nightly Flatpak uses the same folder inside its own
+sandbox), so an installed, integrated, extracted or unpacked nightly keeps its autosaves, saved
+layout and preview cache out of `~/Documents/MaterialCraft` and the stable cache. A plain
+`--version` (and the Launcher's query form) is passed straight to the binary, which answers it
+without creating the profile. Stable `release.yml`, its schedule, tags, concurrency,
 environment values and environment rules are unchanged.
 
 Initial installation **and later signer/policy updates** ride an already-intended reviewed

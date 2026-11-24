@@ -334,12 +334,31 @@ fn ambiguous_environment_and_non_native_sandbox_are_refused_before_creation() {
     fixture.env.insert("MATERIALCRAFT_NO_PREFS".into(), "1".into());
     assert!(fixture.check(Platform::Linux, &candidate).unwrap_err().contains("MATERIALCRAFT_NO_PREFS"));
     fixture.env.remove("MATERIALCRAFT_NO_PREFS");
-    fixture.env.insert("FLATPAK_ID".into(), "ai.storyteller.materialcraft".into());
-    assert!(fixture.check(Platform::Linux, &candidate).unwrap_err().contains("Flatpak"));
-    fixture.env.remove("FLATPAK_ID");
+    // The stable build accepts this variable; a nightly profile must not be moved by it.
+    fixture.env.insert("MATERIALCRAFT_DATA_DIR".into(), fixture.home().join("custom-data").into_os_string());
+    assert!(fixture.check(Platform::Linux, &candidate).unwrap_err().contains("MATERIALCRAFT_DATA_DIR"));
+    fixture.env.remove("MATERIALCRAFT_DATA_DIR");
+    for inherited in ["ai.storyteller.materialcraft", "org.freedesktop.other"] {
+        fixture.env.insert("FLATPAK_ID".into(), inherited.into());
+        assert!(fixture.check(Platform::Linux, &candidate).unwrap_err().contains("Flatpak"), "{inherited}");
+        fixture.env.remove("FLATPAK_ID");
+    }
     fixture.env.remove("HOME");
     assert!(fixture.check(Platform::Linux, &candidate).unwrap_err().contains("HOME"));
     assert!(!candidate.exists());
+}
+
+/// The nightly bundle runs under an app id of its own, so its sandbox data folder is this channel's
+/// data root; that one instance is accepted, and its profile stays inside it.
+#[test]
+fn the_nightly_flatpaks_own_instance_accepts_its_own_profile() {
+    let mut fixture = Fixture::new();
+    fixture.env.insert("FLATPAK_ID".into(), NIGHTLY_FLATPAK_ID.into());
+    let private = fixture.home().join(".var/app/ai.storyteller.materialcraft.nightly/data/materialcraft-nightly");
+    assert_eq!(fixture.check(Platform::Linux, &private).unwrap(), private);
+    // Stable's Flatpak folder is still fenced even inside the nightly instance.
+    let stable = fixture.home().join(".var/app/ai.storyteller.materialcraft");
+    assert!(fixture.check(Platform::Linux, &stable).unwrap_err().contains("overlap"));
 }
 
 #[test]

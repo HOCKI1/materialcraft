@@ -23,6 +23,7 @@ nightly_init() {
     nightly_die 'declared CRAFT_FONTS_DIR has no fonts directory'
   fi
   # env.sh retains the established notice copier. Required values above prohibit its stable fallbacks.
+  # shellcheck source=env.sh
   . "$ROOT/packaging/env.sh"
   export CARGO_TARGET_DIR="$CARGO_TARGET_DIR/nightly-v1/$os-$arch"
   NIGHTLY_RUST_TARGET="$target"
@@ -31,21 +32,33 @@ nightly_init() {
   trap 'rm -rf -- "$NIGHTLY_WORK"' EXIT
 }
 
-# Compile only: macOS runs the version query after signing (packaging/macos/nightly-verify.sh).
+# Compile only: macOS runs the version query after signing (packaging/macos/nightly-verify.sh). The
+# flavor's `build.rs` compiles the nightly channel from MATERIALCRAFT_BUILD_CHANNEL and embeds
+# MATERIALCRAFT_VERSION (it does not read a PhotoCraft-style `_OVERRIDE_VERSION`), so both are passed
+# explicitly rather than inherited, and MaterialCraft has no optional codec feature to add.
 nightly_compile_gui() {
-  # MaterialCraft has no optional codec feature to add to an official build; the version the
-  # executable names itself with comes from MATERIALCRAFT_VERSION (env.sh exports VERSION from it).
-  (cd "$ROOT" && MATERIALCRAFT_VERSION="$VERSION" cargo build --release --locked -p materialcraft --target "$NIGHTLY_RUST_TARGET")
+  (cd "$ROOT" && MATERIALCRAFT_BUILD_CHANNEL=nightly-v1 MATERIALCRAFT_VERSION="$VERSION" \
+    cargo build --release --locked -p materialcraft --target "$NIGHTLY_RUST_TARGET")
   NIGHTLY_GUI="$CARGO_TARGET_DIR/$NIGHTLY_RUST_TARGET/release/materialcraft"
   [[ -f "$NIGHTLY_GUI" && ! -L "$NIGHTLY_GUI" ]] || nightly_die 'the owned GUI build did not produce a regular executable'
   [[ "$(git -C "$ROOT" rev-parse HEAD)" == "$MATERIALCRAFT_BUILD_SHA" && -z "$(git -C "$ROOT" status --porcelain)" ]] || nightly_die 'source changed during the build'
 }
 
+# The flavor prints exactly what it is -- `MaterialCraft <prepared version> (nightly-v1)` -- so the
+# check compares that line, not a substring a stable binary could also print. The Launcher's query
+# form is answered from the same parse before any root is validated, so it must leave the root
+# uncreated.
 nightly_build_gui() {
   nightly_compile_gui
-  local actual
+  local actual expected query_root
+  expected="MaterialCraft $VERSION (nightly-v1)"
   actual="$("$NIGHTLY_GUI" --version)" || nightly_die 'side-effect-free nightly version verification failed'
-  [[ "$actual" == "MaterialCraft $VERSION (nightly-v1)" ]] || nightly_die 'the built version/flavor is not the prepared identity'
+  [[ "$actual" == "$expected" ]] || nightly_die "the built identity is not the prepared nightly: $actual"
+  query_root="$NIGHTLY_WORK/launcher-query-profile"
+  actual="$("$NIGHTLY_GUI" --launch-profile nightly-v1 --profile-root "$query_root" --version)" \
+    || nightly_die 'the Launcher version query did not answer'
+  [[ "$actual" == "$expected" ]] || nightly_die "the Launcher version query did not report the prepared identity: $actual"
+  [[ ! -e "$query_root" && ! -L "$query_root" ]] || nightly_die 'the Launcher version query touched the profile root'
   [[ "$(git -C "$ROOT" rev-parse HEAD)" == "$MATERIALCRAFT_BUILD_SHA" && -z "$(git -C "$ROOT" status --porcelain)" ]] || nightly_die 'source changed during the version query'
 }
 

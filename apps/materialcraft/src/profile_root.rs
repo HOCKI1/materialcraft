@@ -222,15 +222,24 @@ fn validate_for(
 ) -> Result<PathBuf, String> {
     absolute(root.to_path_buf(), "the nightly profile root")?;
     // Each of these redirects or disables state the profile is supposed to own.
-    for (key, why) in [("MATERIALCRAFT_CACHE_DIR", "the preview cache"), ("MATERIALCRAFT_NO_PREFS", "the saved preferences and window layout")] {
+    for (key, why) in [
+        ("MATERIALCRAFT_DATA_DIR", "the autosaves, recovery copies and saved layout"),
+        ("MATERIALCRAFT_CACHE_DIR", "the preview cache"),
+        ("MATERIALCRAFT_NO_PREFS", "the saved preferences and window layout"),
+    ] {
         if env(key).is_some_and(|v| !v.is_empty()) {
             return Err(format!("nightly-v1 cannot be combined with {key}, which would take {why} outside its private profile"));
         }
     }
-    if platform != Platform::Windows && env("FLATPAK_ID").is_some_and(|v| !v.is_empty()) {
-        // These rows are native tar/app-bundle launches, not a Flatpak package. Inheriting its
-        // runtime socket namespace could point another profile at the stable app's socket.
-        return Err("nightly-v1 native packages cannot inherit a Flatpak instance; launch through the native Launcher".into());
+    if platform != Platform::Windows && let Some(id) = env("FLATPAK_ID").filter(|v| !v.is_empty()) {
+        // A Flatpak's data folder and runtime socket namespace belong to its app id. The nightly
+        // bundle has an id of its own ([`NIGHTLY_FLATPAK_ID`], named by
+        // `packaging/linux/flatpak-bundle.sh`), so its profile is already the sandbox's own; any
+        // other instance is the stable app's (or another app's), whose socket this profile must
+        // not inherit.
+        if id.to_string_lossy().as_ref() != NIGHTLY_FLATPAK_ID {
+            return Err("nightly-v1 cannot inherit another Flatpak app's instance; launch through the native Launcher".into());
+        }
     }
     let chosen = canonical_future(root)?;
     if is_portable_layout(root, platform) || is_portable_layout(&chosen, platform) {
@@ -262,6 +271,11 @@ fn validate_for(
     writable(&confirmed).map_err(|e| format!("the nightly profile is not writable: {e}"))?;
     Ok(confirmed)
 }
+
+/// The app id of the nightly Flatpak bundle (`packaging/linux/flatpak-bundle.sh`): the one Flatpak
+/// instance whose sandbox is this channel's own. The window identity (`os_window`) and the bundle id
+/// differ on purpose, as they do for stable.
+pub const NIGHTLY_FLATPAK_ID: &str = "ai.storyteller.materialcraft.nightly";
 
 /// The nightly autosave folder: numbered recovery copies of the open package.
 pub fn recovery_dir(root: &Path) -> Result<PathBuf, String> {

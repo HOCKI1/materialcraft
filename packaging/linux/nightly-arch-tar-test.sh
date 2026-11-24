@@ -40,10 +40,22 @@ expect() {
     exit 1
   fi
 }
-expect '<>'
-expect "$(printf '<%s>\n' 'material with spaces.mcraft' '--other-name.mcraft')" \
+# The launcher names the profile the flavor's way and keeps every argument after the delimiter.
+launch() {
+  local profile="$1"
+  shift
+  printf '<--launch-profile>\n<nightly-v1>\n<--profile-root>\n<%s>\n<-->\n' "$profile"
+  for file in "$@"; do printf '<%s>\n' "$file"; done
+}
+export XDG_DATA_HOME="$work/xdg with space"
+expect "$(launch "$XDG_DATA_HOME/materialcraft-nightly")"
+expect "$(launch "$XDG_DATA_HOME/materialcraft-nightly" 'material with spaces.mcraft' '--other-name.mcraft')" \
   'material with spaces.mcraft' '--other-name.mcraft'
+# A version query answers with the plain argument, so it needs no profile at all.
 expect '<--version>' --version
 expect '<-V>' -V
+# The Launcher's own form is passed through once, never doubled.
+expect "$(printf '<--launch-profile>\n<nightly-v1>\n<--profile-root>\n<%s>\n<--version>\n' "$work/launcher root")" \
+  --launch-profile nightly-v1 --profile-root "$work/launcher root" --version
 
-echo "PASS: Arch Nightly handoff preserves launch arguments"
+echo "PASS: Arch Nightly handoff starts the flavor's profile and preserves launch arguments"

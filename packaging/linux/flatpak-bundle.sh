@@ -63,6 +63,23 @@ mkdir -p "$WORK/stage"
 tar -xzf "$TARBALL" -C "$WORK/stage" --strip-components=1
 [[ -x "$WORK/stage/bin/materialcraft" ]] || { echo "error: $TARBALL has no bin/materialcraft" >&2; exit 1; }
 if [[ "$FLATPAK_ID" != "$APP_ID" ]]; then
+  # The bundled nightly starts the GUI the flavor's way. The sandbox data folder belongs to the
+  # nightly app id, so the profile stays inside this channel's own instance.
+  mv "$WORK/stage/bin/materialcraft" "$WORK/stage/bin/materialcraft-bin"
+  cat >"$WORK/stage/bin/materialcraft" <<'WRAPPER'
+#!/bin/sh
+# Start the Nightly GUI with this channel's own launch profile.
+set -eu
+case "${1-}" in
+  # The Launcher already named the profile (its version query does too); never pass it twice. A
+  # plain version query answers without touching any profile.
+  --launch-profile | --version | -V) exec /app/libexec/materialcraft "$@" ;;
+esac
+profile_base="${XDG_DATA_HOME:-${HOME:?HOME is required}/.var/app/ai.storyteller.materialcraft.nightly/data}"
+exec /app/libexec/materialcraft \
+  --launch-profile nightly-v1 --profile-root "$profile_base/materialcraft-nightly" -- "$@"
+WRAPPER
+  chmod 755 "$WORK/stage/bin/materialcraft"
   NIGHTLY_ICON="$ROOT/assets/app-icon/materialcraft-nightly.png"
   [[ -f "$NIGHTLY_ICON" ]] || NIGHTLY_ICON="$ROOT/assets/app-icon/hicolor/256x256/apps/$APP_ID.png"
   sed -e "s|^Icon=$APP_ID$|Icon=$FLATPAK_ID|" \
@@ -75,13 +92,18 @@ if [[ "$FLATPAK_ID" != "$APP_ID" ]]; then
       -e "s|<name>MaterialCraft</name>|<name>MaterialCraft Nightly</name>|g" \
       -e "s|<launchable type=\"desktop-id\">$APP_ID.desktop</launchable>|<launchable type=\"desktop-id\">$FLATPAK_ID.desktop</launchable>|g" \
       -e "s|<icon type=\"stock\">$APP_ID</icon>|<icon type=\"stock\">$FLATPAK_ID</icon>|g" \
+      -e '/<mediatype>application\/x-materialcraft<\/mediatype>/d' \
       "$WORK/stage/share/metainfo/$APP_ID.metainfo.xml" >"$WORK/stage/share/metainfo/$FLATPAK_ID.metainfo.xml"
   rm -f "$WORK/stage/share/metainfo/$APP_ID.metainfo.xml"
-  mv "$WORK/stage/share/mime/packages/$APP_ID.xml" "$WORK/stage/share/mime/packages/$FLATPAK_ID.xml"
+  # The nightly registers no MIME type, so it installs no MIME database file either.
+  rm -rf "$WORK/stage/share/mime"
   rm -rf "$WORK/stage/share/icons/hicolor"
   install -Dm644 "$NIGHTLY_ICON" \
     "$WORK/stage/share/icons/hicolor/256x256/apps/$FLATPAK_ID.png"
   sed -e "s|ai\.storyteller\.materialcraft|$FLATPAK_ID|g" \
+      -e 's|- install -Dm755 bin/materialcraft /app/bin/materialcraft|- install -Dm755 bin/materialcraft-bin /app/libexec/materialcraft\n      - install -Dm755 bin/materialcraft /app/bin/materialcraft|' \
+      -e '\|# .mcraft, plus mesh types|d' \
+      -e '\|share/mime/packages|d' \
       "$HERE/flatpak/ai.storyteller.MaterialCraft.bundle.yml" >"$WORK/$FLATPAK_ID.yml"
 else
   cp "$HERE/flatpak/ai.storyteller.MaterialCraft.bundle.yml" "$WORK/$FLATPAK_ID.yml"
@@ -116,7 +138,14 @@ if [[ "$TEST" = 1 ]]; then
   flatpak install --user -y --noninteractive --reinstall "$OUT"
   flatpak info --user "$FLATPAK_ID"
   flatpak run --command=materialcraft-cli "$FLATPAK_ID" --version
-  flatpak run --command=sh "$FLATPAK_ID" -c 'ls /app/share/applications /app/share/metainfo /app/share/mime/packages /app/share/icons/hicolor/*/apps'
+  # A nightly registers no MIME type, so it has no mime database directory to list.
+  if [[ "$FLATPAK_ID" = "$APP_ID" ]]; then
+    flatpak run --command=sh "$FLATPAK_ID" -c 'ls /app/share/applications /app/share/metainfo /app/share/mime/packages /app/share/icons/hicolor/*/apps'
+  else
+    flatpak run --command=sh "$FLATPAK_ID" -c 'ls /app/share/applications /app/share/metainfo /app/share/icons/hicolor/*/apps'
+    # The installed command is the profile launcher, and the real GUI sits beside it.
+    flatpak run --command=sh "$FLATPAK_ID" -c 'test -x /app/bin/materialcraft && test -x /app/libexec/materialcraft'
+  fi
 fi
 echo "==> done"
 ls -lh "$OUT"
