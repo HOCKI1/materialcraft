@@ -64,6 +64,7 @@ fn the_stable_documents_folder_holding_autosaves_is_fenced_everywhere() {
     std::fs::write(documents.join("autosave").join("1.mcraft"), b"stable autosave bytes").unwrap();
     for platform in [Platform::Windows, Platform::Linux, Platform::Mac] {
         for candidate in [documents.clone(), documents.join("nightly"), documents.join("autosave/nightly")] {
+            let existed = candidate.exists();
             let probed = std::cell::Cell::new(false);
             let result = validate_for(
                 platform,
@@ -77,7 +78,9 @@ fn the_stable_documents_folder_holding_autosaves_is_fenced_everywhere() {
             );
             assert!(result.unwrap_err().contains("overlap"));
             assert!(!probed.get(), "reject stable data before the writable probe");
-            assert!(!candidate.exists());
+            // The stable folder itself exists (the fixture made it); validation must never create
+            // the ones below it.
+            assert_eq!(candidate.exists(), existed, "{}", candidate.display());
         }
     }
     assert_eq!(std::fs::read(documents.join("autosave").join("1.mcraft")).unwrap(), b"stable autosave bytes");
