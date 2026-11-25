@@ -124,13 +124,16 @@ signing or publication pipeline.
 
 A Nightly build only starts with the Launcher's protocol (`--launch-profile nightly-v1
 --profile-root <dir> -- files...`), and every Linux nightly format starts it that way: the deb/rpm
-wrapper (`/usr/bin/materialcraft-nightly`), the AppImage `AppRun`, the Arch launcher, the Flatpak
-command and the `materialcraft-nightly` launcher inside the plain nightly `.tar.gz`. They all use
-`$XDG_DATA_HOME/materialcraft-nightly` (the nightly Flatpak uses the same folder inside its own
-sandbox), so an installed, integrated, extracted or unpacked nightly keeps its autosaves, saved
-layout and preview cache out of `~/Documents/MaterialCraft` and the stable cache. A plain
+wrapper (`/usr/bin/materialcraft-nightly`), the AppImage `AppRun`, the Arch launcher and the Flatpak
+command use `$XDG_DATA_HOME/materialcraft-nightly` (the nightly Flatpak uses the same folder inside
+its own sandbox), so an installed, integrated, extracted or unpacked nightly keeps its autosaves,
+saved layout and preview cache out of `~/Documents/MaterialCraft` and the stable cache. A plain
 `--version` (and the Launcher's query form) is passed straight to the binary, which answers it
-without creating the profile. Stable `release.yml`, its schedule, tags, concurrency,
+without creating the profile. The plain nightly `.tar.gz` is the one format whose launcher is not
+ours: its `materialcraft` is craft-common-actions' shared template (craft-common-actions #363,
+rendered for this app), which always adds its own profile tokens, names the GUI `materialcraft-bin`
+beside it and uses `$XDG_DATA_HOME/ai.storyteller.materialcraft.nightly`, and which asks a bare
+`--version`/`-V` in the Launcher's own form. Stable `release.yml`, its schedule, tags, concurrency,
 environment values and environment rules are unchanged.
 
 Initial installation **and later signer/policy updates** ride an already-intended reviewed
