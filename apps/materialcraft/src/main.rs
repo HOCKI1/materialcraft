@@ -78,7 +78,7 @@ fn parse_args(argv: &[std::ffi::OsString]) -> Result<Option<Args>, String> {
                 return Ok(None);
             }
             "--help" | "-h" => {
-                println!("{}\n\nUsage: materialcraft [package.sbs] [--control <port>] [--empty]", version());
+                print_usage();
                 return Ok(None);
             }
             "--control" => {
@@ -151,12 +151,27 @@ fn early_version_query(flavor: build_flavor::BuildFlavor, argv: &[std::ffi::OsSt
     flavor == build_flavor::BuildFlavor::NightlyV1 && (build_flavor::version_query(argv) || launch_profile::version_query(argv))
 }
 
+/// The usage text a plain `--help`/`-h` prints, before anything needs a profile.
+fn print_usage() {
+    println!("{}\n\nUsage: materialcraft [package.sbs] [--control <port>] [--empty]", version());
+}
+
+/// A bare help query, which the Linux launchers pass through without a profile, exactly as the
+/// version query above is answered: help is not a file name and needs no data folder.
+fn early_help_query(argv: &[std::ffi::OsString]) -> bool {
+    matches!(argv, [only] if matches!(only.to_str(), Some("--help" | "-h")))
+}
+
 /// Select the immutable launch profile before any startup service or side effect.
 fn prepare_launch() -> Option<Vec<std::ffi::OsString>> {
     // The trusted Launcher protocol is decided before logging, updates, fonts or saved state.
     let argv: Vec<_> = std::env::args_os().skip(1).collect();
     if early_version_query(build_flavor::COMPILED, &argv) {
         println!("{}", version());
+        return None;
+    }
+    if early_help_query(&argv) {
+        print_usage();
         return None;
     }
     let early = launch_profile::parse(argv)
@@ -332,7 +347,9 @@ mod tests {
         let nightly = build_flavor::BuildFlavor::NightlyV1;
         assert!(early_version_query(nightly, &args(&["--version"])));
         assert!(early_version_query(nightly, &args(&["-V"])));
-        let launcher = args(&["--launch-profile", "nightly-v1", "--profile-root", "/nightly-data/profiles/materialcraft"]);
+        // A profile root is an absolute path on its own platform; `/...` is not absolute on Windows.
+        let root = if cfg!(windows) { r"C:\nightly-data\profiles\materialcraft" } else { "/nightly-data/profiles/materialcraft" };
+        let launcher = args(&["--launch-profile", "nightly-v1", "--profile-root", root]);
         for flag in ["--version", "-V"] {
             let mut argv = launcher.clone();
             argv.push(flag.into());

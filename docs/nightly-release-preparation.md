@@ -37,7 +37,9 @@ producer run ID and attempt, by a listed manual actor.
 
 **Manual actors.** `bflatastic`, `dylanmtaylor`, `echelon`, `FredApps` and `skylartaylor`, in the
 producer's `manual-actors` and the policy's `manual_actors`. The list mirrors the release-managers
-team (id 19837241), leaving out `echelon-robot`; update it by PR in both places when the team changes.
+team (id 19837241), leaving out `echelon-robot`; when the team changes, update it by PR in **three**
+places: the caller, the policy, and `RELEASE_MANAGERS` in `packaging/nightly-release-tests.py`, whose
+`reviewed_manual_actors` check rejects a caller and policy that no longer match it.
 
 **Admission timing.** The candidate check reads the newest CI run on the candidate commit and
 main's latest finished Sonar analysis, so pick a quiet `main`, wait for its CI and SonarCloud

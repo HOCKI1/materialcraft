@@ -67,11 +67,16 @@ main and release after promotion; actual top-level repository/event/branch check
 existing environment restrictions provide authority, not permanent branch divergence. Main CI
 changes do not need a separate blanket review gate.
 
-Then fast-forward `release` to `main` and push it (only the `release-managers` team and org admins can):
+Then fast-forward `release` to the commit that was reviewed and push **that commit** (only the
+`release-managers` team and org admins can). Record the SHA before the review starts: pushing
+`origin/main` after a later fetch would promote whatever `main` became in the meantime, which nobody
+reviewed.
 
 ```sh
 git fetch origin
-git push origin origin/main:refs/heads/release
+reviewed=$(git rev-parse origin/main)   # record this before the review above, at that commit
+# ...review the closure above while it is still $reviewed...
+git push origin "$reviewed:refs/heads/release"
 ```
 
 That push runs `release.yml`, and also `freebsd.yml` and `windows-arm64.yml` (build, test, install

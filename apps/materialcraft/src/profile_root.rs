@@ -178,6 +178,9 @@ fn entries_stay_inside(root: &Path) -> Result<(), String> {
         let entry = entry.map_err(|e| format!("cannot inspect the nightly profile: {e}"))?;
         private_subdirectory(root, entry.file_name(), "profile entry")?;
     }
+    // The preview cache is the one nested destination Nightly writes and clears on its own: a link
+    // at cache/previews would put its thumbnails in, and clear, the stable app's cache instead.
+    private_subdirectory(root, std::path::Path::new("cache").join("previews"), "preview cache")?;
     Ok(())
 }
 
