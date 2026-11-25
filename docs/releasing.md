@@ -131,7 +131,8 @@ saved layout and preview cache out of `~/Documents/MaterialCraft` and the stable
 `--version` (and the Launcher's query form) is passed straight to the binary, which answers it
 without creating the profile. The plain nightly `.tar.gz` is the one format whose launcher is not
 ours: its `materialcraft` is craft-common-actions' shared template (craft-common-actions #363,
-rendered for this app), which always adds its own profile tokens, names the GUI `materialcraft-bin`
+rendered for this app), which adds its own profile tokens unless the first argument is already a `--launch-profile` pair,
+names the GUI `materialcraft-bin`
 beside it and uses `$XDG_DATA_HOME/ai.storyteller.materialcraft.nightly`, and which asks a bare
 `--version`/`-V` in the Launcher's own form. Stable `release.yml`, its schedule, tags, concurrency,
 environment values and environment rules are unchanged.
