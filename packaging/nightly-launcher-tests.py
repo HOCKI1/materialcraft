@@ -21,7 +21,7 @@ LINUX = HERE / "linux"
 PROFILE = "materialcraft-nightly"
 # The plain tar's launcher is craft-common-actions' template rendered for this app; these are its bytes.
 TAR_PROFILE = "ai.storyteller.materialcraft.nightly"
-TAR_SHA256 = "639e2d56b64d6d3a32601fa846addd6188060080c8e9c5d8254861d0e8514ac7"
+TAR_SHA256 = "ab578db5556368f1cbfdf2f098c46c3edbbd1a23f072b938a46c021e31bbcad2"
 STABLE_DESK_ID = "ai.storyteller.materialcraft"
 NIGHTLY_DESK_ID = "ai.storyteller.materialcraft.nightly-v1"
 RECORDER = '#!/bin/sh\nfor arg in "$@"; do printf "<%s>\\n" "$arg"; done\n'
@@ -116,6 +116,9 @@ class Launcher(unittest.TestCase):
                 # A version query is asked in the Launcher's own form, so the GUI answers first.
                 for flag in ("--version", "-V"):
                     self.assertEqual(self.recording(installed, flag, env=env), [*tokens, "--version"])
+                # The ArtCraft Launcher names its own profile and per-install root: passed unchanged.
+                launcher_argv = ["--launch-profile", "nightly-v1", "--profile-root", str(self.root / "launcher root"), "--", "graph.mcraft"]
+                self.assertEqual(self.recording(installed, *launcher_argv, env=env), launcher_argv)
 
     def test_the_arch_launcher_starts_the_profile(self):
         (self.root / ".materialcraft-nightly").mkdir()
