@@ -2,11 +2,14 @@
 """Every Linux Nightly launcher starts the GUI the flavor's way; no build, no window.
 
 The deb/rpm wrapper and the Flatpak wrapper are generated inside package.sh and
-flatpak-bundle.sh; the AppImage ships `AppRun` with its desktop id rewritten; the plain tar and the
-Arch handoff ship a launcher file. All of them must hand the binary the one protocol the flavor
-accepts -- `--launch-profile nightly-v1 --profile-root <dir> -- files...` -- and pass a version
-query through untouched, because a nightly that starts without its profile is refused.
+flatpak-bundle.sh; the AppImage ships `AppRun` with its desktop id rewritten; the Arch handoff ships
+its own launcher file. All of them must hand the binary the one protocol the flavor accepts --
+`--launch-profile nightly-v1 --profile-root <dir> -- files...` -- and pass a version query through
+untouched, because a nightly that starts without its profile is refused. The plain tar's launcher is
+not one of ours: it is craft-common-actions' template rendered for this app, so it is checked against
+the bytes it must have and the exact tokens that template passes.
 """
+import hashlib
 from pathlib import Path
 import shutil
 import subprocess
@@ -16,6 +19,9 @@ import unittest
 HERE = Path(__file__).resolve().parent
 LINUX = HERE / "linux"
 PROFILE = "materialcraft-nightly"
+# The plain tar's launcher is craft-common-actions' template rendered for this app; these are its bytes.
+TAR_PROFILE = "ai.storyteller.materialcraft.nightly"
+TAR_SHA256 = "639e2d56b64d6d3a32601fa846addd6188060080c8e9c5d8254861d0e8514ac7"
 STABLE_DESK_ID = "ai.storyteller.materialcraft"
 NIGHTLY_DESK_ID = "ai.storyteller.materialcraft.nightly-v1"
 RECORDER = '#!/bin/sh\nfor arg in "$@"; do printf "<%s>\\n" "$arg"; done\n'
@@ -89,13 +95,27 @@ class Launcher(unittest.TestCase):
             launcher,
         )
 
-    def test_the_plain_tar_launcher_starts_the_profile(self):
-        # The standard layout: the GUI beside the launcher is `<app>-bin`.
+    def test_the_plain_tar_launcher_is_the_shared_template(self):
+        # The plain tar's `materialcraft` is the shared template, so it names the GUI beside it and
+        # the package identity's profile folder, and it always passes exactly one `--`.
         (self.root / "materialcraft-bin").write_text(RECORDER, encoding="utf-8")
         (self.root / "materialcraft-bin").chmod(0o755)
-        installed = self.launcher("materialcraft", (LINUX / "nightly-launch.sh").read_text(encoding="utf-8"))
-        self.assert_starts_the_profile(installed)
-        self.assert_starts_the_profile(installed, {"XDG_DATA_HOME": str(self.root / "xdg with space")})
+        source = (LINUX / "nightly-launch.sh").read_bytes()
+        self.assertEqual(hashlib.sha256(source).hexdigest(), TAR_SHA256,
+                         "the tar launcher must stay byte for byte scripts/nightly-launcher.sh.in rendered for materialcraft")
+        installed = self.launcher("materialcraft", source.decode("utf-8"))
+        for env in (None, {"XDG_DATA_HOME": str(self.root / "xdg with space")}):
+            with self.subTest(env=env):
+                root = str(Path((env or {}).get("XDG_DATA_HOME") or self.home / ".local/share") / TAR_PROFILE)
+                tokens = ["--launch-profile", "nightly-v1", "--profile-root", root]
+                self.assertEqual(
+                    self.recording(installed, "graph.mcraft", "--dashes.mcraft", env=env),
+                    [*tokens, "--", "graph.mcraft", "--dashes.mcraft"],
+                )
+                self.assertEqual(self.recording(installed, env=env), [*tokens, "--"])
+                # A version query is asked in the Launcher's own form, so the GUI answers first.
+                for flag in ("--version", "-V"):
+                    self.assertEqual(self.recording(installed, flag, env=env), [*tokens, "--version"])
 
     def test_the_arch_launcher_starts_the_profile(self):
         (self.root / ".materialcraft-nightly").mkdir()
