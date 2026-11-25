@@ -255,7 +255,10 @@ fn main() {
     // Scripted runs (agents, tests) set MATERIALCRAFT_NO_PREFS so they neither read nor overwrite the user's saved layout and settings: state goes to a throwaway file
     let persistence_path = persistence_path();
     let control = args.control;
-    let startup_update_check = !nightly && checks_for_updates_at_start(control, persistence_path.is_some());
+    // Throwaway preferences are MATERIALCRAFT_NO_PREFS, not "a persistence path exists": a stable
+    // run that only redirects MATERIALCRAFT_DATA_DIR keeps its storage and its update prompt.
+    let throwaway_prefs = std::env::var_os("MATERIALCRAFT_NO_PREFS").is_some();
+    let startup_update_check = !nightly && checks_for_updates_at_start(control, throwaway_prefs);
     let options = eframe::NativeOptions { viewport, renderer: eframe::Renderer::Wgpu, persistence_path, ..Default::default() };
 
     // After the primary claim, before entering the window loop. No document names, paths or
