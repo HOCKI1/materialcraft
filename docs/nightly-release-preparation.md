@@ -42,14 +42,16 @@ that producer run ID and attempt, by a listed manual actor.
 
 **Signer branch.** The signer runs on `refs/heads/nightly-signer`, not on the stable `release` branch,
 so nightly signer files never need a stable release sync. The policy's `release_branch` names it and
-the signer's guard requires it; this app has no `nightly-dispatch.yml` at all, so nothing transports a
-run automatically. The branch only fast-forwards to reviewed main commits, through the settings
+the signer's guard requires it; this app has no `nightly-dispatch.yml` at all, so nothing transports
+a run automatically. The branch only fast-forwards to reviewed main commits, through the settings
 script's `advance` (no queued signer run, a trust-closure scan, then the full diff of `.github/` and
-`packaging/`), and the existing `release` environment trusts it alongside `release`. Its trust closure
-is all of `.github/` and `packaging/`, including `packaging/env.sh`, which `import-cert.sh` sources with
-the Apple keys. On that branch only the pinned `nightly-sign.yml` caller may reach an environment: no
-app workflow binds one and nothing else calls `nightly-release.yml`. `packaging/nightly-release-tests.py`
-checks that in-repo part on every main PR. Stable releases still come only from `refs/heads/release`.
+`packaging/`), and the existing `release` environment must admit `nightly-signer` alongside
+`release` before the first dispatch (a repository settings change, not a workflow one). Its trust
+closure is all of `.github/` and `packaging/`, including `packaging/env.sh`, which `import-cert.sh`
+sources with the Apple keys. On that branch only the pinned `nightly-sign.yml` caller may reach an
+environment: no app workflow binds one and nothing else calls `nightly-release.yml`.
+`packaging/nightly-release-tests.py` checks that in-repo part on every main PR. Stable releases
+still come only from `refs/heads/release`.
 
 **Manual actors.** `bflatastic`, `dylanmtaylor`, `echelon`, `FredApps` and `skylartaylor`, in the
 producer's `manual-actors` and the policy's `manual_actors`. The list mirrors the release-managers
