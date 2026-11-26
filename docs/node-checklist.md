@@ -249,36 +249,36 @@
 
 ---
 
-## 6. Morphology & Normal Maps (40.0%)
+## 6. Morphology & Normal Maps (100.0%)
 - `[+]` Ambient Occlusion (HBAO) (`ambient_occlusion`)
-- `[-]` Ambient Occlusion (RTAO)
+- `[+]` Ambient Occlusion (RTAO) (`ambient_occlusion_rtao`)
 - `[+]` Bevel (`bevel`)
-- `[-]` Cross Section
+- `[+]` Cross Section (`cross_section`)
 - `[+]` Curvature (`curvature`)
-- `[-]` Curvature Smooth
-- `[-]` Curvature Sobel
-- `[-]` Diffusion Color
-- `[-]` Diffusion Grayscale
-- `[-]` Diffusion UV
+- `[+]` Curvature Smooth (`curvature_smooth`)
+- `[+]` Curvature Sobel (`curvature_sobel`)
+- `[+]` Diffusion Color (`diffusion_color`)
+- `[+]` Diffusion Grayscale (`diffusion_grayscale`)
+- `[+]` Diffusion UV (`diffusion_uv`)
 - `[+]` Distance (`distance`)
 - `[+]` Edge Detect (`edge_detect`)
 - `[+]` Emboss (`emboss`)
-- `[-]` Emboss With Gloss
-- `[-]` Extend Shape
+- `[+]` Emboss With Gloss (`emboss_with_gloss`)
+- `[+]` Extend Shape (`extend_shape`)
 - `[+]` Normal (`normal`)
-- `[-]` Facing Normal
-- `[-]` Height Normal Blender
-- `[-]` Height to Normal World Units
-- `[-]` Normal Blend
+- `[+]` Facing Normal (`facing_normal`)
+- `[+]` Height Normal Blender (`height_normal_blender`)
+- `[+]` Height to Normal World Units (`height_to_normal_world_units`)
+- `[+]` Normal Blend (`normal_blend`)
 - `[+]` Normal Combine (`normal_combine`)
 - `[+]` Normal Invert (`normal_invert`)
 - `[+]` Normal Normalize (`normal_normalize`)
-- `[-]` Normal Sobel
+- `[+]` Normal Sobel (`normal_sobel`)
 - `[+]` Normal to Height (`normal_to_height`)
-- `[-]` Normal To Height HQ
-- `[-]` Normal Transform
-- `[-]` Normal Vector Rotation
-- `[-]` Bent Normal
+- `[+]` Normal To Height HQ (`normal_to_height_hq`)
+- `[+]` Normal Transform (`normal_transform`)
+- `[+]` Normal Vector Rotation (`normal_vector_rotation`)
+- `[+]` Bent Normal (`bent_normal`)
 - `[+]` Sharpen (`sharpen`)
 
 ---
@@ -295,37 +295,37 @@
 
 ---
 
-## 8. Material Filters & PBR (23.1%)
-- `[-]` Bitmap to Material Light
+## 8. Material Filters & PBR (100.0%)
+- `[+]` Bitmap to Material Light (`bitmap_to_material_light`)
 - `[+]` Height Blend (`height_blend`)
-- `[-]` Material Height Blend
-- `[-]` Season Filter
-- `[-]` Snow Cover
-- `[-]` Water Level
-- `[-]` Material Transform
-- `[-]` Material Adjustment Blend
+- `[+]` Material Height Blend (`material_height_blend`)
+- `[+]` Season Filter (`season_filter`)
+- `[+]` Snow Cover (`snow_cover`)
+- `[+]` Water Level (`water_level`)
+- `[+]` Material Transform (`material_transform`)
+- `[+]` Material Adjustment Blend (`material_adjustment_blend`)
 - `[+]` Material Blend (`material_blend`)
-- `[-]` Material Color Blend
-- `[-]` Material Switch
-- `[-]` Multi-Material Blend
+- `[+]` Material Color Blend (`material_color_blend`)
+- `[+]` Material Switch (`material_switch`)
+- `[+]` Multi-Material Blend (`multi_material_blend`)
 - `[+]` Water Drops (`water_drops`)
 
 ---
 
-## 9. Transforms & Utility (7.7%)
+## 9. Transforms & Utility (100.0%)
 - `[+]` Transformation 2D (`transformation`)
-- `[-]` Cartesian To Polar
-- `[-]` Polar to Cartesian
-- `[-]` Clone
-- `[-]` Mirror
-- `[-]` Safe Transform
-- `[-]` Non-Square Transform
-- `[-]` Non-Uniform Rotation
-- `[-]` Skew
-- `[-]` Symmetry
-- `[-]` Symmetry Slice
-- `[-]` Trapezoid Transform
-- `[-]` Quad Transform
+- `[+]` Cartesian To Polar (`cartesian_to_polar`)
+- `[+]` Polar to Cartesian (`polar_to_cartesian`)
+- `[+]` Clone (`clone`)
+- `[+]` Mirror (`mirror`)
+- `[+]` Safe Transform (`safe_transform`)
+- `[+]` Non-Square Transform (`non_square_transform`)
+- `[+]` Non-Uniform Rotation (`non_uniform_rotation`)
+- `[+]` Skew (`skew`)
+- `[+]` Symmetry (`symmetry`)
+- `[+]` Symmetry Slice (`symmetry_slice`)
+- `[+]` Trapezoid Transform (`trapezoid_transform`)
+- `[+]` Quad Transform (`quad_transform`)
 
 ---
 

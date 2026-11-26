@@ -14,6 +14,7 @@ pub fn catalog() -> &'static [NodeDefinition] {
         defs.extend(crate::noises::defs());
         defs.extend(crate::normals::defs());
         defs.extend(crate::patterns::defs());
+        defs.extend(crate::transforms::defs());
         defs.extend(crate::warps::defs());
         defs
     })

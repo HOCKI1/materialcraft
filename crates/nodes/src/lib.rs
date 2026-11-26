@@ -15,6 +15,7 @@ pub mod ops;
 pub mod pattern;
 pub mod patterns;
 mod raster;
+pub mod transforms;
 pub mod warps;
 
 mod cook_context;
