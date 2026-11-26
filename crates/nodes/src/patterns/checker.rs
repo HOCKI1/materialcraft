@@ -13,6 +13,17 @@ pub(crate) fn definition() -> NodeDefinition {
         .cook(cook)
 }
 
+pub(crate) fn definition_1() -> NodeDefinition {
+    node("checker_1", "Checker 1", CATEGORY)
+        .desc("Standard alternating 2-color checkerboard tile pattern.")
+        .generator()
+        .int("tiling_x", "Tiling X", 2, 1, 64)
+        .int("tiling_y", "Tiling Y", 2, 1, 64)
+        .boolean("invert", "Invert", false)
+        .gray_out()
+        .cook(cook)
+}
+
 fn cook(context: &CookContext<'_>) -> CookResult {
     let tx = context.i("tiling_x").max(1);
     let ty = context.i("tiling_y").max(1);

@@ -14,6 +14,16 @@ pub(crate) fn definition() -> NodeDefinition {
         .cook(cook)
 }
 
+pub(crate) fn definition_1() -> NodeDefinition {
+    node("waveform_1", "Waveform 1", CATEGORY)
+        .desc("Primary harmonic sine wave generator with angle and frequency controls.")
+        .int("frequency", "Frequency", 8, 1, 64)
+        .angle("angle", "Angle", 0.0)
+        .float("phase", "Phase Offset", 0.0, 0.0, 1.0)
+        .gray_out()
+        .cook(cook)
+}
+
 fn cook(context: &CookContext<'_>) -> CookResult {
     let (w, h) = (context.w, context.h);
     let wave_type = context.i("wave_type");

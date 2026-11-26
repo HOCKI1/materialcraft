@@ -19,6 +19,38 @@ pub(crate) fn definition() -> NodeDefinition {
         .cook(cook)
 }
 
+pub(crate) fn definition_1() -> NodeDefinition {
+    node("brick_1", "Brick 1", CATEGORY)
+        .desc("Standard running bond brick masonry pattern.")
+        .int("x_amount", "X Amount", 4, 1, 64)
+        .int("y_amount", "Y Amount", 8, 1, 64)
+        .float("gap_x", "Gap X", 0.05, 0.0, 0.5)
+        .float("gap_y", "Gap Y", 0.05, 0.0, 0.5)
+        .float("bevel", "Bevel", 0.1, 0.0, 0.5)
+        .float("offset", "Row Offset", 0.5, 0.0, 1.0)
+        .float("luminance_random", "Luminance Random", 0.3, 0.0, 1.0)
+        .int("seed", "Random Seed", 1234, 0, 100000)
+        .gray_out()
+        .named_gray_out("mask", "Mortar Mask")
+        .cook(cook)
+}
+
+pub(crate) fn definition_2() -> NodeDefinition {
+    node("brick_2", "Brick 2", CATEGORY)
+        .desc("Flemish / stack bond brick masonry pattern with narrow mortar.")
+        .int("x_amount", "X Amount", 6, 1, 64)
+        .int("y_amount", "Y Amount", 12, 1, 64)
+        .float("gap_x", "Gap X", 0.03, 0.0, 0.5)
+        .float("gap_y", "Gap Y", 0.03, 0.0, 0.5)
+        .float("bevel", "Bevel", 0.08, 0.0, 0.5)
+        .float("offset", "Row Offset", 0.25, 0.0, 1.0)
+        .float("luminance_random", "Luminance Random", 0.4, 0.0, 1.0)
+        .int("seed", "Random Seed", 1234, 0, 100000)
+        .gray_out()
+        .named_gray_out("mask", "Mortar Mask")
+        .cook(cook)
+}
+
 fn cook(context: &CookContext<'_>) -> CookResult {
     let (w, h) = (context.w, context.h);
     let x_count = context.i("x_amount").max(1);

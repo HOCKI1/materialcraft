@@ -15,6 +15,42 @@ pub(crate) fn definition() -> NodeDefinition {
         .cook(cook)
 }
 
+pub(crate) fn definition_1() -> NodeDefinition {
+    node("fur_1", "Fur 1", CATEGORY)
+        .desc("Straight short coat fur fibers.")
+        .float("scale", "Scale", 20.0, 1.0, 64.0)
+        .float("length", "Strand Length", 8.0, 1.0, 32.0)
+        .angle("angle", "Comb Angle", 0.25)
+        .float("curl", "Curl", 0.1, 0.0, 1.0)
+        .int("seed", "Random Seed", 1234, 0, 100000)
+        .gray_out()
+        .cook(cook)
+}
+
+pub(crate) fn definition_2() -> NodeDefinition {
+    node("fur_2", "Fur 2", CATEGORY)
+        .desc("Medium wavy pelt with curved strands.")
+        .float("scale", "Scale", 16.0, 1.0, 64.0)
+        .float("length", "Strand Length", 14.0, 1.0, 32.0)
+        .angle("angle", "Comb Angle", 0.25)
+        .float("curl", "Curl", 0.4, 0.0, 1.0)
+        .int("seed", "Random Seed", 1234, 0, 100000)
+        .gray_out()
+        .cook(cook)
+}
+
+pub(crate) fn definition_3() -> NodeDefinition {
+    node("fur_3", "Fur 3", CATEGORY)
+        .desc("Long tangled shaggy fur fleece.")
+        .float("scale", "Scale", 12.0, 1.0, 64.0)
+        .float("length", "Strand Length", 20.0, 1.0, 32.0)
+        .angle("angle", "Comb Angle", 0.25)
+        .float("curl", "Curl", 0.7, 0.0, 1.0)
+        .int("seed", "Random Seed", 1234, 0, 100000)
+        .gray_out()
+        .cook(cook)
+}
+
 fn cook(context: &CookContext<'_>) -> CookResult {
     let (w, h) = (context.w, context.h);
     let scale = context.f("scale").clamp(1.0, 128.0);

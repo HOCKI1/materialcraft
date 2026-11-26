@@ -19,49 +19,49 @@
 - `[+]` Anisotropic Noise (`anisotropic_noise`)
 - `[+]` Blue Noise Fast (`blue_noise_fast`)
 - `[+]` BnW Spots (`bnw_spots`)
-- `[-]` BnW Spots 1
-- `[-]` BnW Spots 2
-- `[-]` BnW Spots 3
+- `[+]` BnW Spots 1 (`bnw_spots_1`)
+- `[+]` BnW Spots 2 (`bnw_spots_2`)
+- `[+]` BnW Spots 3 (`bnw_spots_3`)
 - `[+]` Cells / Voronoi (`cells`)
-- `[-]` Cells 1
-- `[-]` Cells 2
-- `[-]` Cells 3
-- `[-]` Cells 4
+- `[+]` Cells 1 (`cells_1`)
+- `[+]` Cells 2 (`cells_2`)
+- `[+]` Cells 3 (`cells_3`)
+- `[+]` Cells 4 (`cells_4`)
 - `[+]` Clouds (`clouds`)
-- `[-]` Clouds 1
-- `[-]` Clouds 2
-- `[-]` Clouds 3
+- `[+]` Clouds 1 (`clouds_1`)
+- `[+]` Clouds 2 (`clouds_2`)
+- `[+]` Clouds 3 (`clouds_3`)
 - `[+]` Creased (`creased`)
 - `[+]` Crystal (`crystal`)
-- `[-]` Crystal 1
-- `[-]` Crystal 2
+- `[+]` Crystal 1 (`crystal_1`)
+- `[+]` Crystal 2 (`crystal_2`)
 - `[+]` Directional Noise (`directional_noise`)
-- `[-]` Directional Noise 1
-- `[-]` Directional Noise 2
-- `[-]` Directional Noise 3
-- `[-]` Directional Noise 4
+- `[+]` Directional Noise 1 (`directional_noise_1`)
+- `[+]` Directional Noise 2 (`directional_noise_2`)
+- `[+]` Directional Noise 3 (`directional_noise_3`)
+- `[+]` Directional Noise 4 (`directional_noise_4`)
 - `[+]` Directional Scratches (`directional_scratches`)
 - `[+]` Dirt (`dirt`)
-- `[-]` Dirt 1
-- `[-]` Dirt 2
-- `[-]` Dirt 3
-- `[-]` Dirt 4
-- `[-]` Dirt 5
-- `[-]` Dirt Gradient
+- `[+]` Dirt 1 (`dirt_1`)
+- `[+]` Dirt 2 (`dirt_2`)
+- `[+]` Dirt 3 (`dirt_3`)
+- `[+]` Dirt 4 (`dirt_4`)
+- `[+]` Dirt 5 (`dirt_5`)
+- `[+]` Dirt Gradient (`dirt_gradient`)
 - `[+]` Fluid (`fluid`)
-- `[-]` Fractal Sum 1
-- `[-]` Fractal Sum 2
-- `[-]` Fractal Sum 3
-- `[-]` Fractal Sum 4
+- `[+]` Fractal Sum 1 (`fractal_sum_1`)
+- `[+]` Fractal Sum 2 (`fractal_sum_2`)
+- `[+]` Fractal Sum 3 (`fractal_sum_3`)
+- `[+]` Fractal Sum 4 (`fractal_sum_4`)
 - `[+]` Fractal Sum (`fractal_sum`)
-- `[-]` Fractal Sum Base
+- `[+]` Fractal Sum Base (`fractal_sum_base`)
 - `[+]` Fur (`fur`)
-- `[-]` Fur 1
-- `[-]` Fur 2
-- `[-]` Fur 3
+- `[+]` Fur 1 (`fur_1`)
+- `[+]` Fur 2 (`fur_2`)
+- `[+]` Fur 3 (`fur_3`)
 - `[+]` Gaussian Noise (`gaussian_noise`)
-- `[-]` Gaussian Spots 1
-- `[-]` Gaussian Spots 2
+- `[+]` Gaussian Spots 1 (`gaussian_spots_1`)
+- `[+]` Gaussian Spots 2 (`gaussian_spots_2`)
 - `[-]` Grunge Concrete
 - `[-]` Grunge Damas
 - `[-]` Grunge Galvanic Large
@@ -93,9 +93,9 @@
 - `[-]` Grunge Spots
 - `[-]` Grunge Spots Dirty
 - `[-]` Liquid
-- `[-]` Messy Fibers 1
-- `[-]` Messy Fibers 2
-- `[-]` Messy Fibers 3
+- `[+]` Messy Fibers 1 (`messy_fibers_1`)
+- `[+]` Messy Fibers 2 (`messy_fibers_2`)
+- `[+]` Messy Fibers 3 (`messy_fibers_3`)
 - `[+]` Microscope View (`microscope_view`)
 - `[+]` Moisture Noise (`moisture_noise`)
 - `[+]` Perlin Noise (`perlin_noise`)
@@ -105,7 +105,7 @@
 - `[+]` Cracks (`cracks`)
 - `[+]` Voronoi Fractal (`voronoi_fractal`)
 - `[+]` Waveform (`waveform`)
-- `[-]` Waveform 1
+- `[+]` Waveform 1 (`waveform_1`)
 - `[+]` White Noise (`white_noise`)
 - `[+]` White Noise Fast (`white_noise_fast`)
 - `[+]` Simplex Noise (`simplex_noise`)
@@ -119,28 +119,32 @@
 - `[-]` Alveolus
 - `[-]` Arc Pavement
 - `[+]` Brick (`brick`)
-- `[-]` Brick 1
-- `[-]` Brick 2
+- `[+]` Brick 1 (`brick_1`)
+- `[+]` Brick 2 (`brick_2`)
 - `[-]` Brick Generator
 - `[+]` Checker (`checker`)
+- `[+]` Checker 1 (`checker_1`)
 - `[-]` Cube 3D
 - `[-]` Cube 3D GBuffers
-- `[-]` Fibers 1
-- `[-]` Fibers 2
-- `[-]` Gaussian 1
-- `[-]` Gaussian 2
+- `[+]` Fibers 1 (`fibers_1`)
+- `[+]` Fibers 2 (`fibers_2`)
+- `[+]` Gaussian 1 (`gaussian_1`)
+- `[+]` Gaussian 2 (`gaussian_2`)
 - `[+]` Gradient Axial (`gradient_axial`)
 - `[-]` Gradient Axial Reflected
 - `[+]` Gradient Circular (`gradient_circular`)
 - `[+]` Gradient Linear (`gradient_linear`)
+- `[+]` Gradient Linear 1 (`gradient_linear_1`)
+- `[+]` Gradient Linear 2 (`gradient_linear_2`)
+- `[+]` Gradient Linear 3 (`gradient_linear_3`)
 - `[-]` Gradient Radial
 - `[-]` Height Extrude
-- `[-]` Mesh 1
-- `[-]` Mesh 2
+- `[+]` Mesh 1 (`mesh_1`)
+- `[+]` Mesh 2 (`mesh_2`)
 - `[-]` Panorama Shape
 - `[+]` Polygon (`polygon`)
-- `[-]` Polygon 1
-- `[-]` Polygon 2
+- `[+]` Polygon 1 (`polygon_1`)
+- `[+]` Polygon 2 (`polygon_2`)
 - `[+]` Scratches Generator (`scratches`)
 - `[+]` Shape (`shape`)
 - `[-]` Shape Extrude
@@ -163,7 +167,8 @@
 - `[+]` Triangle Grid (`triangle_grid`)
 - `[-]` Triangle Grid
 - `[+]` Weave (`weave`)
-- `[-]` Weave 2
+- `[+]` Weave 1 (`weave_1`)
+- `[+]` Weave 2 (`weave_2`)
 - `[-]` Weave Generator
 - `[+]` Hexagon (`hexagon`)
 

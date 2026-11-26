@@ -23,6 +23,41 @@ pub(crate) fn definition() -> NodeDefinition {
         .cook(cook)
 }
 
+pub(crate) fn definition_1() -> NodeDefinition {
+    node("weave_1", "Weave 1", CATEGORY)
+        .desc("Plain 1x1 criss-cross over-under fabric weave.")
+        .int("x_amount", "X Amount", 8, 1, 64)
+        .int("y_amount", "Y Amount", 8, 1, 64)
+        .float("thread_width", "Thread Width", 0.85, 0.1, 1.0)
+        .float("thread_profile", "Thread Profile", 0.5, 0.0, 1.0)
+        .float("gap_depth", "Gap Depth", 0.8, 0.0, 1.0)
+        .float("thread_warp_curl", "Warp Curve", 0.5, 0.0, 1.0)
+        .float("thread_weft_curl", "Weft Curve", 0.5, 0.0, 1.0)
+        .int("thread_subdivision", "Thread Strands", 1, 1, 8)
+        .gray_out()
+        .named_gray_out("warp_mask", "Warp Mask")
+        .named_gray_out("weft_mask", "Weft Mask")
+        .cook(cook)
+}
+
+pub(crate) fn definition_2() -> NodeDefinition {
+    node("weave_2", "Weave 2", CATEGORY)
+        .desc("Twill 2x2 diagonal ribbed denim/canvas weave.")
+        .int("x_amount", "X Amount", 8, 1, 64)
+        .int("y_amount", "Y Amount", 8, 1, 64)
+        .choice("weave_type", "Weave Type", WEAVE_TYPE_OPTIONS, 1)
+        .float("thread_width", "Thread Width", 0.9, 0.1, 1.0)
+        .float("thread_profile", "Thread Profile", 0.5, 0.0, 1.0)
+        .float("gap_depth", "Gap Depth", 0.8, 0.0, 1.0)
+        .float("thread_warp_curl", "Warp Curve", 0.5, 0.0, 1.0)
+        .float("thread_weft_curl", "Weft Curve", 0.5, 0.0, 1.0)
+        .int("thread_subdivision", "Thread Strands", 1, 1, 8)
+        .gray_out()
+        .named_gray_out("warp_mask", "Warp Mask")
+        .named_gray_out("weft_mask", "Weft Mask")
+        .cook(cook)
+}
+
 fn is_warp_on_top(x_cell: i32, y_cell: i32, weave_type: usize) -> bool {
     match weave_type {
         // Plain 1x1: alternating checkerboard

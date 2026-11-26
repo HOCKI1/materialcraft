@@ -13,11 +13,60 @@ pub(crate) fn definition() -> NodeDefinition {
         .cook(cook)
 }
 
+pub(crate) fn definition_1() -> NodeDefinition {
+    node("cells_1", "Cells 1", CATEGORY)
+        .desc("Voronoi F1 closest distance cellular gradient cones.")
+        .generator()
+        .float("scale", "Scale", 8.0, 1.0, 64.0)
+        .float("disorder", "Disorder", 1.0, 0.0, 1.0)
+        .gray_out()
+        .cook(|ctx| cook_fixed_mode(ctx, 0))
+}
+
+pub(crate) fn definition_2() -> NodeDefinition {
+    node("cells_2", "Cells 2", CATEGORY)
+        .desc("Voronoi F2 - F1 cell boundary ridges and crack network.")
+        .generator()
+        .float("scale", "Scale", 8.0, 1.0, 64.0)
+        .float("disorder", "Disorder", 1.0, 0.0, 1.0)
+        .gray_out()
+        .cook(|ctx| cook_fixed_mode(ctx, 2))
+}
+
+pub(crate) fn definition_3() -> NodeDefinition {
+    node("cells_3", "Cells 3", CATEGORY)
+        .desc("Voronoi F2 second closest distance rounded pebble shapes.")
+        .generator()
+        .float("scale", "Scale", 8.0, 1.0, 64.0)
+        .float("disorder", "Disorder", 1.0, 0.0, 1.0)
+        .gray_out()
+        .cook(|ctx| cook_fixed_mode(ctx, 1))
+}
+
+pub(crate) fn definition_4() -> NodeDefinition {
+    node("cells_4", "Cells 4", CATEGORY)
+        .desc("Voronoi random flat luminance value per cell.")
+        .generator()
+        .float("scale", "Scale", 8.0, 1.0, 64.0)
+        .float("disorder", "Disorder", 1.0, 0.0, 1.0)
+        .gray_out()
+        .cook(|ctx| cook_fixed_mode(ctx, 3))
+}
+
+fn cook_fixed_mode(context: &CookContext<'_>, mode: i32) -> CookResult {
+    let scale = context.f("scale").clamp(1.0, 64.0);
+    let disorder = context.f("disorder").clamp(0.0, 1.0);
+    cook_internal(context, scale, disorder, mode)
+}
+
 fn cook(context: &CookContext<'_>) -> CookResult {
     let scale = context.f("scale").clamp(1.0, 64.0);
     let disorder = context.f("disorder").clamp(0.0, 1.0);
     let mode = context.i("mode");
+    cook_internal(context, scale, disorder, mode)
+}
 
+fn cook_internal(context: &CookContext<'_>, scale: f32, disorder: f32, mode: i32) -> CookResult {
     let period = scale.round().max(1.0) as i32;
 
     Ok(vec![Image::generate_uv(context.w, context.h, Kind::Gray, |u, v| {

@@ -17,12 +17,55 @@ pub(crate) fn definition() -> NodeDefinition {
         .cook(cook)
 }
 
+pub(crate) fn definition_1() -> NodeDefinition {
+    node("gradient_linear_1", "Gradient Linear 1", CATEGORY)
+        .desc("Standard linear ramp gradient (0 to 1).")
+        .generator()
+        .angle("angle", "Angle", 0.0)
+        .int("tiling", "Tiling", 1, 1, 64)
+        .boolean("reverse", "Reverse", false)
+        .gray_out()
+        .cook(|ctx| cook_fixed_cycle(ctx, 0))
+}
+
+pub(crate) fn definition_2() -> NodeDefinition {
+    node("gradient_linear_2", "Gradient Linear 2", CATEGORY)
+        .desc("Symmetric reflected linear gradient mirrored from center.")
+        .generator()
+        .angle("angle", "Angle", 0.0)
+        .int("tiling", "Tiling", 1, 1, 64)
+        .boolean("reverse", "Reverse", false)
+        .gray_out()
+        .cook(|ctx| cook_fixed_cycle(ctx, 2))
+}
+
+pub(crate) fn definition_3() -> NodeDefinition {
+    node("gradient_linear_3", "Gradient Linear 3", CATEGORY)
+        .desc("Periodic repeating linear sawtooth ramp.")
+        .generator()
+        .angle("angle", "Angle", 0.0)
+        .int("tiling", "Tiling", 2, 1, 64)
+        .boolean("reverse", "Reverse", false)
+        .gray_out()
+        .cook(|ctx| cook_fixed_cycle(ctx, 1))
+}
+
+fn cook_fixed_cycle(context: &CookContext<'_>, cycle: i32) -> CookResult {
+    let angle = context.f("angle") * PI;
+    let tiling = context.i("tiling").max(1) as f32;
+    let reverse = context.b("reverse");
+    cook_internal(context, angle, tiling, cycle, reverse)
+}
+
 fn cook(context: &CookContext<'_>) -> CookResult {
     let angle = context.f("angle") * PI;
     let tiling = context.i("tiling").max(1) as f32;
     let cycle = context.i("cycle");
     let reverse = context.b("reverse");
+    cook_internal(context, angle, tiling, cycle, reverse)
+}
 
+fn cook_internal(context: &CookContext<'_>, angle: f32, tiling: f32, cycle: i32, reverse: bool) -> CookResult {
     let cos_a = angle.cos();
     let sin_a = angle.sin();
 
