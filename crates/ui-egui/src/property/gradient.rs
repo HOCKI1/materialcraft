@@ -19,6 +19,8 @@ pub fn gradient_editor(ui: &mut Ui, id: &str, gradient: &Gradient) -> Option<Gra
         painter.rect_filled(r, 0.0, Color32::from_rgb(q(c[0]), q(c[1]), q(c[2])));
     }
     painter.rect_stroke(bar, 2.0, Stroke::new(1.0, tokens.field_border), egui::StrokeKind::Inside);
+    let drag_id = ui.make_persistent_id(id).with("drag");
+    let mut dragging: Option<usize> = ui.data(|d| d.get_temp(drag_id));
     let selection_id = ui.make_persistent_id(id).with("sel");
     let mut selected: usize = ui.data(|d| d.get_temp(selection_id)).unwrap_or(0);
     let key_x = |pos: f32| bar.left() + pos * bar.width();
@@ -29,7 +31,7 @@ pub fn gradient_editor(ui: &mut Ui, id: &str, gradient: &Gradient) -> Option<Gra
             .iter()
             .enumerate()
             .map(|(i, k)| (i, (key_x(k.pos) - q.x).abs()))
-            .filter(|(_, d)| *d < 7.0)
+            .filter(|(_, d)| *d < 10.0)
             .min_by(|a, b| a.1.total_cmp(&b.1))
             .map(|(i, _)| i)
     });
@@ -39,26 +41,32 @@ pub fn gradient_editor(ui: &mut Ui, id: &str, gradient: &Gradient) -> Option<Gra
         painter.add(egui::Shape::convex_polygon(triangle, if i == selected { tokens.accent } else { tokens.text }, Stroke::NONE));
     }
     let mut edited_gradient: Option<Gradient> = None;
-    if response.drag_started()
-        && let Some(i) = nearest
-    {
-        selected = i;
+    if response.drag_started() {
+        dragging = nearest;
+        if let Some(i) = nearest {
+            selected = i;
+        }
     }
     if response.dragged()
-        && let Some(q) = pointer
-        && nearest.is_some()
+        && let (Some(drag_idx), Some(q)) = (dragging, pointer)
     {
         let mut updated_gradient = gradient.clone();
-        if let Some(k) = updated_gradient.keys.get_mut(selected) {
+        if let Some(k) = updated_gradient.keys.get_mut(drag_idx) {
             k.pos = ((q.x - bar.left()) / bar.width()).clamp(0.0, 1.0);
         }
-        let moved = updated_gradient.keys.get(selected).copied();
+        let moved = updated_gradient.keys.get(drag_idx).copied();
         updated_gradient.sort();
         if let Some(m) = moved {
-            selected = updated_gradient.keys.iter().position(|k| k.pos == m.pos && k.color == m.color).unwrap_or(selected);
+            let new_pos = updated_gradient.keys.iter().position(|k| k.pos == m.pos && k.color == m.color).unwrap_or(drag_idx);
+            dragging = Some(new_pos);
+            selected = new_pos;
         }
         edited_gradient = Some(updated_gradient);
     }
+    if response.drag_stopped() {
+        dragging = None;
+    }
+    ui.data_mut(|d| d.insert_temp(drag_id, dragging));
     if response.clicked()
         && let Some(q) = pointer
     {
