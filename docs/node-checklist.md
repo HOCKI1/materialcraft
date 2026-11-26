@@ -9,15 +9,15 @@
 ---
 
 ## 1. Texture Generators / Noises
-- `[-]` 3D Perlin Noise
+- `[+]` 3D Perlin Noise (`perlin_3d`)
 - `[-]` 3D Perlin Noise Fractal
 - `[-]` 3D Ridged Noise Fractal
 - `[-]` 3D Simplex Noise
-- `[-]` 3D Voronoi
+- `[+]` 3D Voronoi (`voronoi_3d`)
 - `[-]` 3D Voronoi Fractal
 - `[-]` 3D Worley Noise
-- `[-]` Anisotropic Noise
-- `[-]` Blue Noise Fast
+- `[+]` Anisotropic Noise (`anisotropic_noise`)
+- `[+]` Blue Noise Fast (`blue_noise_fast`)
 - `[+]` BnW Spots (`bnw_spots`)
 - `[-]` BnW Spots 1
 - `[-]` BnW Spots 2
@@ -31,15 +31,16 @@
 - `[-]` Clouds 1
 - `[-]` Clouds 2
 - `[-]` Clouds 3
-- `[-]` Creased
+- `[+]` Creased (`creased`)
 - `[+]` Crystal (`crystal`)
 - `[-]` Crystal 1
 - `[-]` Crystal 2
+- `[+]` Directional Noise (`directional_noise`)
 - `[-]` Directional Noise 1
 - `[-]` Directional Noise 2
 - `[-]` Directional Noise 3
 - `[-]` Directional Noise 4
-- `[-]` Directional Scratches
+- `[+]` Directional Scratches (`directional_scratches`)
 - `[+]` Dirt (`dirt`)
 - `[-]` Dirt 1
 - `[-]` Dirt 2
@@ -47,16 +48,18 @@
 - `[-]` Dirt 4
 - `[-]` Dirt 5
 - `[-]` Dirt Gradient
-- `[-]` Fluid
+- `[+]` Fluid (`fluid`)
 - `[-]` Fractal Sum 1
 - `[-]` Fractal Sum 2
 - `[-]` Fractal Sum 3
 - `[-]` Fractal Sum 4
+- `[+]` Fractal Sum (`fractal_sum`)
 - `[-]` Fractal Sum Base
+- `[+]` Fur (`fur`)
 - `[-]` Fur 1
 - `[-]` Fur 2
 - `[-]` Fur 3
-- `[-]` Gaussian Noise
+- `[+]` Gaussian Noise (`gaussian_noise`)
 - `[-]` Gaussian Spots 1
 - `[-]` Gaussian Spots 2
 - `[-]` Grunge Concrete
@@ -93,17 +96,18 @@
 - `[-]` Messy Fibers 1
 - `[-]` Messy Fibers 2
 - `[-]` Messy Fibers 3
-- `[-]` Microscope View
-- `[-]` Moisture Noise
+- `[+]` Microscope View (`microscope_view`)
+- `[+]` Moisture Noise (`moisture_noise`)
 - `[+]` Perlin Noise (`perlin_noise`)
-- `[-]` Plasma
-- `[-]` Caustics
+- `[+]` Plasma (`plasma`)
+- `[+]` Caustics (`caustics`)
 - `[+]` Voronoi (`cells`)
 - `[+]` Cracks (`cracks`)
-- `[-]` Voronoi Fractal
+- `[+]` Voronoi Fractal (`voronoi_fractal`)
+- `[+]` Waveform (`waveform`)
 - `[-]` Waveform 1
 - `[+]` White Noise (`white_noise`)
-- `[-]` White Noise Fast
+- `[+]` White Noise Fast (`white_noise_fast`)
 - `[+]` Simplex Noise (`simplex_noise`)
 - `[+]` Turbulence (`turbulence`)
 
