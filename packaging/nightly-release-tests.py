@@ -596,6 +596,11 @@ def workflow_keys(source):
 
 
 SHARED_CALLEE = re.compile(r"storytold/craft-common-actions/\.github/workflows/([\w.-]+\.ya?ml)@(\S+)", re.IGNORECASE)
+# A reusable workflow can bind an environment inside its own jobs, so the caller needs no
+# `environment:` key for that route. Only this app's own workflows (`./...`) and the shared suite's
+# are reachable; any other reusable destination is a review decision this scan refuses.
+REUSABLE_DESTINATION = re.compile(r"/?\.github/workflows/", re.IGNORECASE)
+REVIEWED_REUSABLE = re.compile(r"(?:\./|storytold/craft-common-actions/)\.github/workflows/", re.IGNORECASE)
 INSPECTED_KEYS = {"environment", "uses"}
 
 
@@ -621,6 +626,10 @@ def trust_closure_problems(workflows):
             if callee is None:
                 if re.search(r"craft-common-actions", value, re.IGNORECASE) and re.search(r"workflows/(nightly-)?release\.ya?ml", value, re.IGNORECASE):
                     problems.append(f"{name} has an unrecognised shared release caller (line {number})")
+                elif REUSABLE_DESTINATION.search(value) and not REVIEWED_REUSABLE.match(value):
+                    # A reusable callee can bind an environment in its own jobs; the caller needs no
+                    # `environment:` key for that route, so an unreviewed destination is reported.
+                    problems.append(f"{name} calls an unreviewed reusable workflow (line {number})")
                 continue
             workflow, ref = callee.group(1), callee.group(2)
             if workflow.lower() in ("nightly-release.yml", "nightly-release.yaml"):
@@ -678,6 +687,8 @@ class NightlySignerBranchTrustClosure(unittest.TestCase):
             "another caller of the signer": {**tree, "extra.yml": "jobs:\n  x:\n    uses: " + SHARED + "nightly-release.yml@" + "a" * 40 + "\n"},
             "a mutable signer pin": {**tree, "nightly-sign.yml": re.sub(r"nightly-release\.yml@[0-9a-f]{40}", "nightly-release.yml@main", tree["nightly-sign.yml"])},
             "a new stable release caller": {**tree, "extra.yml": "jobs:\n  x:\n    uses: " + SHARED + "release.yml@main\n"},
+            "an unreviewed external reusable workflow": {**tree, "extra.yml": "jobs:\n  x:\n    uses: other/repo/.github/workflows/sign.yml@" + "a" * 40 + "\n"},
+            "a shared suite workflow outside the reviewed paths": {**tree, "extra.yml": "jobs:\n  x:\n    uses: other/.github/workflows/sign.yml@" + "a" * 40 + "\n"},
             "a stable caller on a branch or tag ref": {**tree, "release.yml": tree["release.yml"].replace(SHARED + "release.yml@main", SHARED + "release.yml@v1")},
         }
         for label, workflows in bad.items():
