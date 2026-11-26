@@ -7,6 +7,7 @@ pub mod blurs;
 pub mod catalog;
 pub mod flood_fill;
 pub mod function;
+pub mod material_filters;
 pub mod morphology;
 pub mod noises;
 pub mod normals;

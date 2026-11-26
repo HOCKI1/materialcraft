@@ -38,12 +38,17 @@ fn cook(context: &CookContext<'_>) -> CookResult {
         let proj = dx * cos_a - dy * sin_a + 0.5 + shift;
         let phase = (proj * tiling).rem_euclid(1.0);
 
-        let val = if softness <= 1e-4 {
+        let val = if width <= 1e-6 {
+            0.0
+        } else if width >= 1.0 - 1e-6 {
+            1.0
+        } else if softness <= 1e-4 {
             if phase < width { 1.0 } else { 0.0 }
         } else {
             let half = softness * 0.5;
-            // Rising edge at 0, falling edge at width
-            let rise = ((phase - 0.0 + half) / softness).clamp(0.0, 1.0);
+            // Rising edge at 0: wrap around 1.0 to ensure smoothness on both sides of 0
+            let phase_wrap = if phase > 1.0 - half { phase - 1.0 } else { phase };
+            let rise = ((phase_wrap + half) / softness).clamp(0.0, 1.0);
             let fall = 1.0 - ((phase - width + half) / softness).clamp(0.0, 1.0);
             let combined = rise.min(fall);
             combined * combined * (3.0 - 2.0 * combined)

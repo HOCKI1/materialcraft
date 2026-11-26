@@ -70,9 +70,30 @@ fn perlin_2d_periodic(u: f32, v: f32, period_x: i32, period_y: i32, seed: u32) -
     nx0 + wy * (nx1 - nx0)
 }
 
+pub(crate) fn sample_perlin_fbm(u: f32, v: f32, base_scale: f32, octaves: usize, persistence: f32, lacunarity: f32, seed: u32) -> f32 {
+    let mut total = 0.0f32;
+    let mut max_amp = 0.0f32;
+    let mut amp = 1.0f32;
+    let mut freq = base_scale;
+
+    for oct in 0..octaves {
+        let period = freq.round().max(1.0) as i32;
+        let octave_seed = seed.wrapping_add((oct as u32).wrapping_mul(0x27d4_eb2d));
+        let val = perlin_2d_periodic(u, v, period, period, octave_seed);
+
+        total += val * amp;
+        max_amp += amp;
+
+        amp *= persistence;
+        freq *= lacunarity;
+    }
+
+    if max_amp > 0.0 { 0.5 + 0.5 * (total / max_amp) } else { 0.5 }
+}
+
 fn cook(context: &CookContext<'_>) -> CookResult {
     let base_scale = context.f("scale").clamp(1.0, 64.0);
-    let octaves = context.i("octaves").clamp(1, 10);
+    let octaves = context.i("octaves").clamp(1, 10) as usize;
     let persistence = context.f("persistence").clamp(0.0, 1.0);
     let lacunarity = context.f("lacunarity").clamp(1.0, 4.0);
     let disorder = context.f("disorder");
@@ -80,25 +101,7 @@ fn cook(context: &CookContext<'_>) -> CookResult {
     let seed = ((disorder * 1000.0).round() as i64).rem_euclid(u32::MAX as i64) as u32;
 
     Ok(vec![Image::generate_uv(context.w, context.h, Kind::Gray, |u, v| {
-        let mut total = 0.0f32;
-        let mut max_amp = 0.0f32;
-        let mut amp = 1.0f32;
-        let mut freq = base_scale;
-
-        for oct in 0..octaves {
-            let period = freq.round().max(1.0) as i32;
-            let octave_seed = seed.wrapping_add((oct as u32).wrapping_mul(0x27d4_eb2d));
-            let val = perlin_2d_periodic(u, v, period, period, octave_seed);
-
-            total += val * amp;
-            max_amp += amp;
-
-            amp *= persistence;
-            freq *= lacunarity;
-        }
-
-        let normalized = if max_amp > 0.0 { 0.5 + 0.5 * (total / max_amp) } else { 0.5 };
-
+        let normalized = sample_perlin_fbm(u, v, base_scale, octaves, persistence, lacunarity, seed);
         [normalized.clamp(0.0, 1.0), 0.0, 0.0, 0.0]
     })])
 }

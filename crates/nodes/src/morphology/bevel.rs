@@ -28,6 +28,7 @@ fn cook(context: &CookContext<'_>) -> CookResult {
 
     let dist_param = context.f("distance");
     let smoothing_param = context.f("smoothing");
+    let corner_type = context.i("corner_type");
     let curve_type = context.i("curve_type");
     let invert = context.b("invert");
 
@@ -60,7 +61,7 @@ fn cook(context: &CookContext<'_>) -> CookResult {
         if invert { val > 0.5 } else { val <= 0.5 }
     };
 
-    let dist_sq = ops::distance_sq(w, h, is_outside, tile);
+    let (dist_sq, nearest_sites) = ops::distance_sq_with_sites(w, h, is_outside, tile);
 
     let mut out_data = vec![0.0f32; total_pixels];
     let inv_dist = 1.0 / dist_pixels;
@@ -77,7 +78,26 @@ fn cook(context: &CookContext<'_>) -> CookResult {
                 continue;
             }
 
-            let d = dist_sq.get(idx).copied().unwrap_or(0.0).sqrt();
+            let d = if corner_type == 1 {
+                // Angular (L-infinity Chebychev distance to boundary site)
+                let site_idx = nearest_sites.get(idx).copied().unwrap_or(usize::MAX);
+                if site_idx != usize::MAX {
+                    let sx = (site_idx % (w as usize)) as f32;
+                    let sy = (site_idx / (w as usize)) as f32;
+                    let mut dx = (x as f32 - sx).abs();
+                    let mut dy = (y as f32 - sy).abs();
+                    if tile {
+                        dx = dx.min(w as f32 - dx);
+                        dy = dy.min(h as f32 - dy);
+                    }
+                    dx.max(dy)
+                } else {
+                    dist_sq.get(idx).copied().unwrap_or(0.0).sqrt()
+                }
+            } else {
+                dist_sq.get(idx).copied().unwrap_or(0.0).sqrt()
+            };
+
             let t = (d * inv_dist).clamp(0.0, 1.0);
 
             let profile = match curve_type {

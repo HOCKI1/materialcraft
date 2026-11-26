@@ -3,26 +3,10 @@ use crate::{CookContext, CookResult, NodeDefinition, node};
 use craft_texture::{Image, Kind};
 use std::f32::consts::PI;
 
-pub const PATTERN_OPTIONS: &[&str] = &[
-    "Image Input",
-    "Square",
-    "Disc",
-    "Paraboloid",
-    "Bell",
-    "Gaussian",
-    "Thorn",
-    "Pyramid",
-    "Brick",
-    "Gradation",
-    "Waves",
-    "Capsule",
-    "Cone",
-];
+pub const PATTERN_OPTIONS: &[&str] =
+    &["Image Input", "Square", "Disc", "Paraboloid", "Bell", "Gaussian", "Thorn", "Pyramid", "Brick", "Gradation", "Waves", "Capsule", "Cone"];
 
-pub const DISTRIBUTION_OPTIONS: &[&str] = &[
-    "Random",
-    "By Pattern Number",
-];
+pub const DISTRIBUTION_OPTIONS: &[&str] = &["Random", "By Pattern Number"];
 
 pub(crate) fn definition() -> NodeDefinition {
     node("tile_sampler", "Tile Sampler", CATEGORY)
@@ -75,16 +59,7 @@ fn cook(context: &CookContext<'_>) -> CookResult {
         if context.inputs.len() >= 13 && context.inputs.len() > pattern_input_number + 6 {
             // Full definition inputs (6 pattern inputs + 7 map inputs)
             let pat_imgs: Vec<Option<&Image>> = (0..6).map(|i| context.input(i)).collect();
-            (
-                pat_imgs,
-                context.sized(6),
-                context.sized(7),
-                context.sized(8),
-                context.sized(9),
-                context.sized(10),
-                context.sized(11),
-                context.sized(12),
-            )
+            (pat_imgs, context.sized(6), context.sized(7), context.sized(8), context.sized(9), context.sized(10), context.sized(11), context.sized(12))
         } else {
             // Filtered ports: pattern_input_number pattern inputs, followed by the 7 maps
             let pat_count = pattern_input_number.min(context.inputs.len());
@@ -127,8 +102,9 @@ fn cook(context: &CookContext<'_>) -> CookResult {
     let available_pattern_images: Vec<&Image> = pattern_inputs.iter().filter_map(|&opt| opt).collect();
     let has_image = !available_pattern_images.is_empty() && pattern_choice == 0;
 
+    let any_pattern_color = available_pattern_images.iter().any(|img| img.kind() == Kind::Color);
     let kind = if has_image {
-        available_pattern_images.first().map_or(Kind::Gray, |img| img.kind())
+        if any_pattern_color { Kind::Color } else { Kind::Gray }
     } else if let Some(bg) = &background_input {
         bg.kind()
     } else if let Some(cm) = &color_map {
@@ -144,27 +120,28 @@ fn cook(context: &CookContext<'_>) -> CookResult {
     let inv_ny = 1.0 / n_y;
     let tiling = context.tiling_axes();
 
+    let max_eff_s = (size_x.max(size_y) * global_scale).max(0.5);
+    let search_r = ((max_eff_s * 1.5 + position_random + displacement_map_multiplier).ceil() as i64).clamp(1, 4);
+
     Ok(vec![Image::generate_uv(context.w, context.h, kind, |u, v| {
         let mut best_pixel = [0.0f32; 4];
         let mut hit = false;
+        let mut best_cov = -1.0f32;
 
         let base_cy = (v * n_y).floor() as i64;
 
-        for dy in -1..=1 {
+        for dy in -search_r..=search_r {
             let cy_raw = base_cy + dy;
             let cy = cy_raw.rem_euclid(y_amount as i64) as usize;
 
             let row_offset = (cy % 2) as f32 * offset;
             let base_cx = ((u - row_offset * inv_nx) * n_x).floor() as i64;
 
-            for dx in -1..=1 {
+            for dx in -search_r..=search_r {
                 let cx_raw = base_cx + dx;
                 let cx = cx_raw.rem_euclid(x_amount as i64) as usize;
 
-                let h0 = (cx as u32)
-                    .wrapping_mul(0x85eb_ca6b)
-                    ^ (cy as u32).wrapping_mul(0xc2b2_ae35)
-                    ^ user_seed.wrapping_mul(0x27d4_eb2d);
+                let h0 = (cx as u32).wrapping_mul(0x85eb_ca6b) ^ (cy as u32).wrapping_mul(0xc2b2_ae35) ^ user_seed.wrapping_mul(0x27d4_eb2d);
                 let h1 = crate::random::hash(h0);
                 let h2 = crate::random::hash(h1);
                 let h3 = crate::random::hash(h2);
@@ -200,10 +177,7 @@ fn cook(context: &CookContext<'_>) -> CookResult {
                 // Displacement map
                 let (disp_u, disp_v) = if let Some(disp) = &displacement_map {
                     let disp_val = disp.sample_axes(norm_cu, norm_cv, tiling)[0];
-                    (
-                        r_j1 * disp_val * displacement_map_multiplier,
-                        r_j2 * disp_val * displacement_map_multiplier,
-                    )
+                    (r_j1 * disp_val * displacement_map_multiplier, r_j2 * disp_val * displacement_map_multiplier)
                 } else {
                     (0.0, 0.0)
                 };
@@ -293,70 +267,81 @@ fn cook(context: &CookContext<'_>) -> CookResult {
                         }
                     }
                 } else if tx.abs() <= 0.5 && ty.abs() <= 0.5 {
-                    let shape_val = match pattern_choice {
+                    let (shape_cov, shape_val) = match pattern_choice {
                         // Disc (with hole cutout controlled by pattern_specific)
                         2 => {
                             let r = (tx * tx + ty * ty).sqrt();
                             let inner_r = eff_ps * 0.45;
-                            if r >= inner_r && r <= 0.5 { 1.0 } else { 0.0 }
+                            let inside = r >= inner_r && r <= 0.5;
+                            (inside, if inside { 1.0 } else { 0.0 })
                         }
                         // Paraboloid
                         3 => {
                             let r2 = (tx * tx + ty * ty) * 4.0;
                             let p = 1.0 + eff_ps * 3.0;
-                            (1.0 - r2).max(0.0).powf(p)
+                            let inside = r2 <= 1.0;
+                            (inside, if inside { (1.0 - r2).max(0.0).powf(p) } else { 0.0 })
                         }
                         // Bell
                         4 => {
                             let r2 = (tx * tx + ty * ty) * 4.0;
                             let k = 2.0 + eff_ps * 6.0;
-                            (-r2 * k).exp()
+                            let inside = r2 <= 1.0;
+                            (inside, if inside { (-r2 * k).exp() } else { 0.0 })
                         }
                         // Gaussian
                         5 => {
                             let r2 = (tx * tx + ty * ty) * 4.0;
                             let sigma = 0.5 - eff_ps * 0.35;
-                            (-r2 / (2.0 * sigma * sigma)).exp()
+                            let inside = r2 <= 1.0;
+                            (inside, if inside { (-r2 / (2.0 * sigma * sigma)).exp() } else { 0.0 })
                         }
                         // Thorn
                         6 => {
                             let exponent = 0.5 + eff_ps * 0.5;
-                            (1.0 - (tx.abs().powf(exponent) + ty.abs().powf(exponent)) * 1.5).max(0.0)
+                            let v = (1.0 - (tx.abs().powf(exponent) + ty.abs().powf(exponent)) * 1.5).max(0.0);
+                            (v > 0.0, v)
                         }
                         // Pyramid
                         7 => {
                             let d = tx.abs().max(ty.abs()) * 2.0;
                             let plateau = eff_ps * 0.8;
-                            if d <= plateau { 1.0 } else { (1.0 - (d - plateau) / (1.0 - plateau).max(0.001)).max(0.0) }
+                            let v = if d <= plateau { 1.0 } else { (1.0 - (d - plateau) / (1.0 - plateau).max(0.001)).max(0.0) };
+                            (v > 0.0, v)
                         }
                         // Brick
                         8 => {
                             let bevel = 0.05 + eff_ps * 0.4;
                             let bx = ((0.5 - tx.abs()) / bevel).clamp(0.0, 1.0);
                             let by = ((0.5 - ty.abs()) / bevel).clamp(0.0, 1.0);
-                            bx.min(by)
+                            let v = bx.min(by);
+                            (v > 0.0, v)
                         }
                         // Gradation
                         9 => {
                             let angle = eff_ps * PI * 2.0;
-                            (tx * angle.cos() + ty * angle.sin() + 0.5).clamp(0.0, 1.0)
+                            let v = (tx * angle.cos() + ty * angle.sin() + 0.5).clamp(0.0, 1.0);
+                            (true, v)
                         }
                         // Waves
                         10 => {
                             let freq = 1.0 + eff_ps * 5.0;
-                            (tx * PI * 2.0 * freq).sin() * 0.5 + 0.5
+                            let v = (tx * PI * 2.0 * freq).sin() * 0.5 + 0.5;
+                            (true, v)
                         }
                         // Capsule
                         11 => {
                             let cap_r = 0.25 - eff_ps * 0.1;
                             let hx = (tx.abs() - 0.25).max(0.0);
                             let d = (hx * hx + ty * ty).sqrt();
-                            if d <= cap_r { 1.0 } else { 0.0 }
+                            let inside = d <= cap_r;
+                            (inside, if inside { 1.0 } else { 0.0 })
                         }
                         // Cone
                         12 => {
                             let r = (tx * tx + ty * ty).sqrt() * 2.0;
-                            (1.0 - r).max(0.0)
+                            let v = (1.0 - r).max(0.0);
+                            (v > 0.0, v)
                         }
                         // Square (with corner rounding controlled by pattern_specific)
                         _ => {
@@ -365,31 +350,32 @@ fn cook(context: &CookContext<'_>) -> CookResult {
                                 let qx = tx.abs() - (0.5 - r);
                                 let qy = ty.abs() - (0.5 - r);
                                 let d = qx.max(qy).min(0.0) + ((qx.max(0.0)).powi(2) + (qy.max(0.0)).powi(2)).sqrt() - r;
-                                if d <= 0.0 { 1.0 } else { 0.0 }
+                                (d <= 0.0, if d <= 0.0 { 1.0 } else { 0.0 })
                             } else {
-                                1.0
+                                (true, 1.0)
                             }
                         }
                     };
 
-                    let val = (shape_val * tile_tint[0]).clamp(0.0, 1.0);
-                    hit = true;
-                    if val > best_pixel[0] {
-                        best_pixel = [val * tile_tint[0], val * tile_tint[1], val * tile_tint[2], 1.0];
+                    if shape_cov {
+                        hit = true;
+                        let cov_metric = shape_val.max(0.001);
+                        if cov_metric > best_cov {
+                            best_cov = cov_metric;
+                            best_pixel = [
+                                (shape_val * tile_tint[0]).clamp(0.0, 1.0),
+                                (shape_val * tile_tint[1]).clamp(0.0, 1.0),
+                                (shape_val * tile_tint[2]).clamp(0.0, 1.0),
+                                1.0,
+                            ];
+                        }
                     }
                 }
             }
         }
 
-        let mut final_pixel = if !hit {
-            if let Some(bg) = &background_input {
-                bg.sample_axes(u, v, tiling)
-            } else {
-                [0.0, 0.0, 0.0, 1.0]
-            }
-        } else {
-            best_pixel
-        };
+        let mut final_pixel =
+            if !hit { if let Some(bg) = &background_input { bg.sample_axes(u, v, tiling) } else { [0.0, 0.0, 0.0, 1.0] } } else { best_pixel };
 
         if invert {
             for c in 0..channels.min(3) {

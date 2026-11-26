@@ -89,3 +89,19 @@ fn test_turbulence() {
     let data = images[0].data();
     assert!(data.iter().all(|v| (0.0..=1.0).contains(v)));
 }
+
+#[test]
+fn test_cracks() {
+    let images = cook("cracks", &[("scale", Value::Float(4.0)), ("crack_width", Value::Float(0.1)), ("mode", Value::Enum(0))], 32);
+    assert_eq!(images.len(), 1);
+    let data = images[0].data();
+    assert!(data.iter().all(|v| (0.0..=1.0).contains(v)));
+}
+
+#[test]
+fn test_grunge_map() {
+    let images = cook("grunge_map", &[("scale", Value::Float(4.0)), ("contrast", Value::Float(1.2)), ("balance", Value::Float(0.5))], 32);
+    assert_eq!(images.len(), 1);
+    let data = images[0].data();
+    assert!(data.iter().all(|v| (0.0..=1.0).contains(v)));
+}

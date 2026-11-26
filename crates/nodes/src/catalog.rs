@@ -9,6 +9,7 @@ pub fn catalog() -> &'static [NodeDefinition] {
         defs.extend(crate::adjustments::defs());
         defs.extend(crate::blurs::defs());
         defs.extend(crate::flood_fill::defs());
+        defs.extend(crate::material_filters::defs());
         defs.extend(crate::morphology::defs());
         defs.extend(crate::noises::defs());
         defs.extend(crate::normals::defs());

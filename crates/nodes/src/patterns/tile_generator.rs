@@ -49,8 +49,8 @@ fn cook(context: &CookContext<'_>) -> CookResult {
     let user_seed = context.i("seed").max(0) as u32;
 
     let has_image = input_pattern.is_some() && pattern_choice == 0;
-    let kind = if let Some(img) = input_pattern {
-        if pattern_choice == 0 { img.kind() } else { Kind::Gray }
+    let kind = if has_image {
+        input_pattern.map_or(Kind::Gray, |img| img.kind())
     } else if let Some(bg) = &background_input {
         bg.kind()
     } else {
@@ -64,22 +64,26 @@ fn cook(context: &CookContext<'_>) -> CookResult {
     let inv_ny = 1.0 / n_y;
     let tiling = context.tiling_axes();
 
+    let max_eff_s = (size_x.max(size_y) * global_scale).max(0.5);
+    let search_r = ((max_eff_s * 1.5 + position_random).ceil() as i64).clamp(1, 4);
+
     Ok(vec![Image::generate_uv(context.w, context.h, kind, |u, v| {
         let mut best_pixel = [0.0f32; 4];
         let mut hit = false;
+        let mut best_val = -1.0f32;
 
         // Primary base row
         let base_cy = (v * n_y).floor() as i64;
 
-        // Search 3x3 candidate cells around current pixel to support jitter & overlap
-        for dy in -1..=1 {
+        // Search candidate cells around current pixel to support jitter & overlap
+        for dy in -search_r..=search_r {
             let cy_raw = base_cy + dy;
             let cy = cy_raw.rem_euclid(y_amount as i64) as usize;
 
             let row_offset = (cy % 2) as f32 * offset;
             let base_cx = ((u - row_offset * inv_nx) * n_x).floor() as i64;
 
-            for dx in -1..=1 {
+            for dx in -search_r..=search_r {
                 let cx_raw = base_cx + dx;
                 let cx = cx_raw.rem_euclid(x_amount as i64) as usize;
 
@@ -147,37 +151,46 @@ fn cook(context: &CookContext<'_>) -> CookResult {
                         }
                     }
                 } else if tx.abs() <= 0.5 && ty.abs() <= 0.5 {
-                    let shape_val = match pattern_choice {
+                    let shape_cov = match pattern_choice {
                         // Disc
                         2 => {
                             let r = (tx * tx + ty * ty).sqrt();
-                            if r <= 0.5 { 1.0 } else { 0.0 }
+                            r <= 0.5
                         }
-                        // Paraboloid
-                        3 => (1.0 - 4.0 * (tx * tx + ty * ty)).max(0.0),
-                        // Bell
-                        4 => {
-                            let r2 = 4.0 * (tx * tx + ty * ty);
-                            (-r2 * 2.0).exp()
-                        }
-                        // Pyramid
-                        5 => (1.0 - 2.0 * tx.abs().max(ty.abs())).max(0.0),
-                        // Brick
-                        6 => {
-                            let bx = (0.5 - tx.abs()) * 10.0;
-                            let by = (0.5 - ty.abs()) * 10.0;
-                            bx.min(by).clamp(0.0, 1.0)
-                        }
-                        // Waves
-                        7 => (tx * PI * 2.0).sin() * 0.5 + 0.5,
-                        // Square (default)
-                        _ => 1.0,
+                        _ => true,
                     };
 
-                    let val = (shape_val * lum).clamp(0.0, 1.0);
-                    hit = true;
-                    if val > best_pixel[0] {
-                        best_pixel = [val, val, val, 1.0];
+                    if shape_cov {
+                        hit = true;
+                        let shape_val = match pattern_choice {
+                            // Disc
+                            2 => 1.0,
+                            // Paraboloid
+                            3 => (1.0 - 4.0 * (tx * tx + ty * ty)).max(0.0),
+                            // Bell
+                            4 => {
+                                let r2 = 4.0 * (tx * tx + ty * ty);
+                                (-r2 * 2.0).exp()
+                            }
+                            // Pyramid
+                            5 => (1.0 - 2.0 * tx.abs().max(ty.abs())).max(0.0),
+                            // Brick
+                            6 => {
+                                let bx = (0.5 - tx.abs()) * 10.0;
+                                let by = (0.5 - ty.abs()) * 10.0;
+                                bx.min(by).clamp(0.0, 1.0)
+                            }
+                            // Waves
+                            7 => (tx * PI * 2.0).sin() * 0.5 + 0.5,
+                            // Square (default)
+                            _ => 1.0,
+                        };
+
+                        let val = (shape_val * lum).clamp(0.0, 1.0);
+                        if val > best_val {
+                            best_val = val;
+                            best_pixel = [val, val, val, 1.0];
+                        }
                     }
                 }
             }

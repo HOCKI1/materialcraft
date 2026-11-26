@@ -73,34 +73,65 @@ fn cook(context: &CookContext<'_>) -> CookResult {
         let p1_x = mid_x - ang.sin() * curve_offset;
         let p1_y = mid_y + ang.cos() * curve_offset;
 
-        // Number of sample steps along the scratch
-        let num_steps = (scratch_len.ceil() as usize).max(4);
-        let inv_steps = 1.0 / num_steps as f32;
-        let r_ceil = width_pixels.ceil() as i64;
+        // Bounding box of the entire curve + brush footprint
+        let min_bx = p0_x.min(p1_x).min(p2_x) - width_pixels;
+        let max_bx = p0_x.max(p1_x).max(p2_x) + width_pixels;
+        let min_by = p0_y.min(p1_y).min(p2_y) - width_pixels;
+        let max_by = p0_y.max(p1_y).max(p2_y) + width_pixels;
 
+        // Number of sample segments along the scratch
+        let num_steps = ((scratch_len / 2.0).ceil() as usize).max(4);
+        let inv_steps = 1.0 / num_steps as f32;
+
+        let mut pts = Vec::with_capacity(num_steps + 1);
         for s in 0..=num_steps {
             let t = s as f32 * inv_steps;
             let omt = 1.0 - t;
             let cur_x = omt * omt * p0_x + 2.0 * omt * t * p1_x + t * t * p2_x;
             let cur_y = omt * omt * p0_y + 2.0 * omt * t * p1_y + t * t * p2_y;
+            pts.push((cur_x, cur_y));
+        }
 
-            let cx = cur_x.round() as i64;
-            let cy = cur_y.round() as i64;
+        let i_min_x = min_bx.floor() as i64;
+        let i_max_x = max_bx.ceil() as i64;
+        let i_min_y = min_by.floor() as i64;
+        let i_max_y = max_by.ceil() as i64;
 
-            // Draw circular brush footprint with anti-aliasing
-            for ry in -r_ceil..=r_ceil {
-                for rx in -r_ceil..=r_ceil {
-                    let d = ((rx * rx + ry * ry) as f32).sqrt();
-                    if d <= width_pixels {
-                        let brush = (1.0 - d / width_pixels).max(0.0) * intensity;
-                        let px = (cx + rx).rem_euclid(w as i64) as usize;
-                        let py = (cy + ry).rem_euclid(h as i64) as usize;
-                        let idx = py * w as usize + px;
-                        if let Some(target) = data.get_mut(idx)
-                            && brush > *target
-                        {
-                            *target = brush;
-                        }
+        for py in i_min_y..=i_max_y {
+            let y_f = py as f32;
+            let wrap_y = py.rem_euclid(h as i64) as usize;
+            for px in i_min_x..=i_max_x {
+                let x_f = px as f32;
+                let wrap_x = px.rem_euclid(w as i64) as usize;
+
+                // Distance to piecewise linear segment curve
+                let mut min_d_sq = f32::MAX;
+                for i in 0..num_steps {
+                    let (ax, ay) = pts[i];
+                    let (bx, by) = pts[i + 1];
+                    let abx = bx - ax;
+                    let aby = by - ay;
+                    let apx = x_f - ax;
+                    let apy = y_f - ay;
+                    let seg_len_sq = (abx * abx + aby * aby).max(1e-6);
+                    let t = (apx * abx + apy * aby) / seg_len_sq;
+                    let t_clamped = t.clamp(0.0, 1.0);
+                    let qx = ax + t_clamped * abx;
+                    let qy = ay + t_clamped * aby;
+                    let d_sq = (x_f - qx) * (x_f - qx) + (y_f - qy) * (y_f - qy);
+                    if d_sq < min_d_sq {
+                        min_d_sq = d_sq;
+                    }
+                }
+
+                let d = min_d_sq.sqrt();
+                if d <= width_pixels {
+                    let brush = (1.0 - d / width_pixels).max(0.0) * intensity;
+                    let idx = wrap_y * w as usize + wrap_x;
+                    if let Some(target) = data.get_mut(idx)
+                        && brush > *target
+                    {
+                        *target = brush;
                     }
                 }
             }

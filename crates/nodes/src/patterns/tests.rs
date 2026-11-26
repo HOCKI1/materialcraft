@@ -159,12 +159,7 @@ fn test_tile_sampler_mask_culling() {
     let tiles = cook_with_inputs(
         "tile_sampler",
         &inputs,
-        &[
-            ("x_amount", Value::Int(2)),
-            ("y_amount", Value::Int(2)),
-            ("pattern_input_number", Value::Int(1)),
-            ("mask_map_threshold", Value::Float(0.5)),
-        ],
+        &[("x_amount", Value::Int(2)), ("y_amount", Value::Int(2)), ("pattern_input_number", Value::Int(1)), ("mask_map_threshold", Value::Float(0.5))],
         32,
     );
     assert_eq!(tiles.len(), 1);
@@ -223,4 +218,28 @@ fn test_tile_sampler_pattern_specific() {
         32,
     );
     assert!(c[0].data().iter().all(|v| v.is_finite()));
+}
+
+#[test]
+fn test_weave_pattern() {
+    let images =
+        cook("weave", &[("x_amount", Value::Int(4)), ("y_amount", Value::Int(4)), ("weave_type", Value::Enum(0)), ("thread_width", Value::Float(0.8))], 32);
+    assert_eq!(images.len(), 3);
+    for img in &images {
+        assert_eq!((img.width(), img.height()), (32, 32));
+        assert!(img.data().iter().all(|v| v.is_finite() && (0.0..=1.0).contains(v)));
+    }
+}
+
+#[test]
+fn test_splatter_circular() {
+    let images = cook(
+        "splatter_circular",
+        &[("rings", Value::Int(3)), ("pattern_amount", Value::Int(8)), ("radius", Value::Float(0.4)), ("pattern_size", Value::Float(0.08))],
+        32,
+    );
+    assert_eq!(images.len(), 1);
+    let img = &images[0];
+    assert_eq!((img.width(), img.height()), (32, 32));
+    assert!(img.data().iter().all(|v| v.is_finite() && (0.0..=1.0).contains(v)));
 }

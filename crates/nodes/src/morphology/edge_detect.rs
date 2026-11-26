@@ -57,7 +57,14 @@ fn cook(context: &CookContext<'_>) -> CookResult {
     let has_any_edges = is_edge.par_iter().any(|&e| e);
     if !has_any_edges {
         let flat_val = if invert { 1.0 } else { 0.0 };
-        return Ok(vec![Image::filled(w, h, Kind::Gray, [flat_val; 4])]);
+        return if let Some(m_img) = &mask_img {
+            Ok(vec![Image::generate(w, h, Kind::Gray, |x, y| {
+                let m = m_img.get_gray(x as i64, y as i64, tile).clamp(0.0, 1.0);
+                [flat_val * m, 0.0, 0.0, 1.0]
+            })])
+        } else {
+            Ok(vec![Image::filled(w, h, Kind::Gray, [flat_val; 4])])
+        };
     }
 
     let dist_sq = ops::distance_sq(w, h, |idx| is_edge.get(idx).copied().unwrap_or(false), tile);

@@ -82,12 +82,11 @@ pub fn ports_with_connections<'a>(
     inputs.extend(definition.inputs.iter().map(catalog_port));
     if node.def == "tile_sampler" {
         let pattern_number = node.params.get("pattern_input_number").and_then(Value::as_i32).unwrap_or(1).clamp(1, 6) as usize;
-        let incoming_ports: std::collections::HashSet<&str> = incoming.into_iter().map(|c| c.to_port.as_str()).collect();
         inputs.retain(|p| {
             if let Some(num_str) = p.id.strip_prefix("pattern_input_")
                 && let Ok(num) = num_str.parse::<usize>()
             {
-                return num <= pattern_number || incoming_ports.contains(p.id.as_str());
+                return num <= pattern_number;
             }
             true
         });

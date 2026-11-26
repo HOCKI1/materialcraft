@@ -134,3 +134,19 @@ fn test_auto_levels_color_preserves_alpha() {
     assert!((p0[3] - 0.77).abs() < 1e-5);
     assert!((p1[3] - 0.77).abs() < 1e-5);
 }
+
+#[test]
+fn test_quantize() {
+    let input = Image::gray(4, 4, |x, _| x as f32 / 3.0);
+    let out = cook("quantize", &[Some(input)], &[("levels", Value::Int(4)), ("softness", Value::Float(0.0))]);
+    let data = out[0].data();
+    assert!(data.iter().all(|v| v.is_finite() && (0.0..=1.0).contains(v)));
+}
+
+#[test]
+fn test_highpass() {
+    let input = Image::gray(16, 16, |x, _| if x > 8 { 1.0 } else { 0.0 });
+    let out = cook("highpass", &[Some(input)], &[("radius", Value::Float(4.0)), ("contrast", Value::Float(1.0))]);
+    let data = out[0].data();
+    assert!(data.iter().all(|v| v.is_finite() && (0.0..=1.0).contains(v)));
+}

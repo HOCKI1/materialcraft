@@ -48,31 +48,33 @@ fn sample_noise(x: f32, y: f32, period: i64, seed: u32) -> f32 {
     top * (1.0 - sy) + bottom * sy
 }
 
+pub(crate) fn sample_turbulence_fbm(u: f32, v: f32, scale: f32, octaves: usize, persistence: f32, seed: u32) -> f32 {
+    let mut val = 0.0f32;
+    let mut amp = 1.0f32;
+    let mut total_amp = 0.0f32;
+    let mut freq = scale;
+
+    for oct in 0..octaves {
+        let period = freq.round() as i64;
+        let n_val = sample_noise(u * freq, v * freq, period, seed.wrapping_add(oct as u32 * 1337)).abs();
+        val += n_val * amp;
+        total_amp += amp;
+        amp *= persistence;
+        freq = (freq * 2.0).round();
+    }
+
+    let norm = if total_amp > 0.0 { val / total_amp } else { 0.0 };
+    (norm * 1.6).clamp(0.0, 1.0)
+}
+
 fn cook(context: &CookContext<'_>) -> CookResult {
     let scale = context.f("scale").round().max(1.0);
-    let octaves = context.i("octaves").clamp(1, 8);
+    let octaves = context.i("octaves").clamp(1, 8) as usize;
     let persistence = context.f("persistence").clamp(0.0, 1.0);
     let seed = context.i("seed").max(0) as u32;
 
     Ok(vec![Image::generate_uv(context.w, context.h, Kind::Gray, |u, v| {
-        let mut val = 0.0f32;
-        let mut amp = 1.0f32;
-        let mut total_amp = 0.0f32;
-        let mut freq = scale;
-
-        for oct in 0..octaves {
-            let period = freq.round() as i64;
-            // Absolute value creates the turbulence creases
-            let n_val = sample_noise(u * freq, v * freq, period, seed.wrapping_add(oct as u32 * 1337)).abs();
-            val += n_val * amp;
-            total_amp += amp;
-            amp *= persistence;
-            freq = (freq * 2.0).round();
-        }
-
-        let norm = if total_amp > 0.0 { val / total_amp } else { 0.0 };
-        // Scale to [0, 1]
-        let out = (norm * 1.6).clamp(0.0, 1.0);
+        let out = sample_turbulence_fbm(u, v, scale, octaves, persistence, seed);
         [out, 0.0, 0.0, 1.0]
     })])
 }

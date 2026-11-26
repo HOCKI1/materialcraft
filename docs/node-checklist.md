@@ -1,0 +1,340 @@
+# MaterialCraft Node Library Checklist
+
+Трекер реализации процедурных нод в MaterialCraft на основе стандартной библиотеки генераторов и фильтров.
+
+**Легенда:**
+- `[+]` — Реализовано и протестировано в проекте
+- `[-]` — Пока не реализовано
+
+---
+
+## 1. Texture Generators / Noises
+- `[-]` 3D Perlin Noise
+- `[-]` 3D Perlin Noise Fractal
+- `[-]` 3D Ridged Noise Fractal
+- `[-]` 3D Simplex Noise
+- `[-]` 3D Voronoi
+- `[-]` 3D Voronoi Fractal
+- `[-]` 3D Worley Noise
+- `[-]` Anisotropic Noise
+- `[-]` Blue Noise Fast
+- `[+]` BnW Spots (`bnw_spots`)
+- `[-]` BnW Spots 1
+- `[-]` BnW Spots 2
+- `[-]` BnW Spots 3
+- `[+]` Cells / Voronoi (`cells`)
+- `[-]` Cells 1
+- `[-]` Cells 2
+- `[-]` Cells 3
+- `[-]` Cells 4
+- `[+]` Clouds (`clouds`)
+- `[-]` Clouds 1
+- `[-]` Clouds 2
+- `[-]` Clouds 3
+- `[-]` Creased
+- `[-]` Crystal 1
+- `[-]` Crystal 2
+- `[-]` Directional Noise 1
+- `[-]` Directional Noise 2
+- `[-]` Directional Noise 3
+- `[-]` Directional Noise 4
+- `[-]` Directional Scratches
+- `[-]` Dirt 1
+- `[-]` Dirt 2
+- `[-]` Dirt 3
+- `[-]` Dirt 4
+- `[-]` Dirt 5
+- `[-]` Dirt Gradient
+- `[-]` Fluid
+- `[-]` Fractal Sum 1
+- `[-]` Fractal Sum 2
+- `[-]` Fractal Sum 3
+- `[-]` Fractal Sum 4
+- `[-]` Fractal Sum Base
+- `[-]` Fur 1
+- `[-]` Fur 2
+- `[-]` Fur 3
+- `[-]` Gaussian Noise
+- `[-]` Gaussian Spots 1
+- `[-]` Gaussian Spots 2
+- `[-]` Grunge Concrete
+- `[-]` Grunge Damas
+- `[-]` Grunge Galvanic Large
+- `[-]` Grunge Galvanic Small
+- `[-]` Grunge Leaks
+- `[-]` Grunge Leaky Paint
+- `[+]` Grunge Map 001 (`grunge_map`)
+- `[-]` Grunge Map 002
+- `[-]` Grunge Map 003
+- `[-]` Grunge Map 004
+- `[-]` Grunge Map 005
+- `[-]` Grunge Map 006
+- `[-]` Grunge Map 007
+- `[-]` Grunge Map 008
+- `[-]` Grunge Map 009
+- `[-]` Grunge Map 010
+- `[-]` Grunge Map 011
+- `[-]` Grunge Map 012
+- `[-]` Grunge Map 013
+- `[-]` Grunge Map 014
+- `[-]` Grunge Map 015
+- `[-]` Grunge Rough Dirty
+- `[-]` Grunge Rust Fine
+- `[-]` Grunge Scratches Dirty
+- `[-]` Grunge Scratches Fine
+- `[-]` Grunge Scratches Rough
+- `[-]` Grunge Shavings
+- `[-]` Grunge Splashes Dusty
+- `[-]` Grunge Spots
+- `[-]` Grunge Spots Dirty
+- `[-]` Liquid
+- `[-]` Messy Fibers 1
+- `[-]` Messy Fibers 2
+- `[-]` Messy Fibers 3
+- `[-]` Microscope View
+- `[-]` Moisture Noise
+- `[+]` Perlin Noise (`perlin_noise`)
+- `[-]` Plasma
+- `[-]` Caustics
+- `[+]` Voronoi (`cells`)
+- `[+]` Cracks (`cracks`)
+- `[-]` Voronoi Fractal
+- `[-]` Waveform 1
+- `[+]` White Noise (`white_noise`)
+- `[-]` White Noise Fast
+- `[+]` Simplex Noise (`simplex_noise`)
+- `[+]` Turbulence (`turbulence`)
+
+---
+
+## 2. Texture Generators / Patterns
+- `[-]` 3D Linear Gradient
+- `[-]` 3D Volume Mask
+- `[-]` Alveolus
+- `[-]` Arc Pavement
+- `[+]` Brick (`brick`)
+- `[-]` Brick 1
+- `[-]` Brick 2
+- `[-]` Brick Generator
+- `[+]` Checker (`checker`)
+- `[-]` Cube 3D
+- `[-]` Cube 3D GBuffers
+- `[-]` Fibers 1
+- `[-]` Fibers 2
+- `[-]` Gaussian 1
+- `[-]` Gaussian 2
+- `[+]` Gradient Axial (`gradient_axial`)
+- `[-]` Gradient Axial Reflected
+- `[+]` Gradient Circular (`gradient_circular`)
+- `[+]` Gradient Linear (`gradient_linear`)
+- `[-]` Gradient Radial
+- `[-]` Height Extrude
+- `[-]` Mesh 1
+- `[-]` Mesh 2
+- `[-]` Panorama Shape
+- `[+]` Polygon (`polygon`)
+- `[-]` Polygon 1
+- `[-]` Polygon 2
+- `[+]` Scratches Generator (`scratches`)
+- `[+]` Shape (`shape`)
+- `[-]` Shape Extrude
+- `[-]` Shape Mapper
+- `[-]` Shape Splatter
+- `[-]` Shape Splatter Blend
+- `[-]` Shape Splatter Data Extract
+- `[-]` Shape Splatter to Mask
+- `[-]` Splatter
+- `[+]` Splatter Circular (`splatter_circular`)
+- `[+]` Star (`star`)
+- `[-]` Star
+- `[-]` Starburst
+- `[+]` Stripes (`stripes`)
+- `[+]` Tile Generator (`tile_generator`)
+- `[-]` Tile Random
+- `[-]` Tile Random 2
+- `[+]` Tile Sampler (`tile_sampler`)
+- `[-]` Triangle Grid
+- `[+]` Weave (`weave`)
+- `[-]` Weave 2
+- `[-]` Weave Generator
+- `[+]` Hexagon (`hexagon`)
+
+---
+
+## 3. Adjustments & Color
+- `[+]` Auto Levels (`auto_levels`)
+- `[-]` Channel Mixer
+- `[-]` Chrominance Extract
+- `[+]` Clamp (`clamp`)
+- `[-]` Color Match
+- `[-]` Color To Mask
+- `[+]` Contrast / Luminosity (`contrast_luminosity`)
+- `[-]` Convert To Linear
+- `[-]` Convert to sRGB
+- `[+]` Grayscale Conversion (`grayscale_conversion`)
+- `[-]` Grayscale Conversion Advanced
+- `[-]` Hald CLUT
+- `[-]` HDR Range Viewer
+- `[-]` Height Map Frequencies Mapper
+- `[+]` Highpass (`highpass`)
+- `[+]` Histogram Range (`histogram_range`)
+- `[+]` Histogram Scan (`histogram_scan`)
+- `[-]` Histogram Scan Non-Uniform
+- `[-]` Histogram Select
+- `[-]` Histogram Shift
+- `[+]` Invert (`invert`)
+- `[-]` Lighting Cancel High Frequencies
+- `[-]` Lighting Cancel Low Frequencies
+- `[-]` Luminance Highpass
+- `[-]` Min Max
+- `[-]` Pow
+- `[+]` Quantize (`quantize`)
+- `[+]` Replace Color (`replace_color`)
+- `[-]` Replace Color
+- `[-]` Replace Color Range
+- `[+]` Threshold (`threshold`)
+- `[+]` HSL (`hsl`)
+- `[+]` Levels (`levels`)
+- `[+]` Curve (`curve`)
+- `[+]` Gradient Map (`gradient_map`)
+- `[+]` Gradient (Dynamic) (`gradient_dynamic`)
+
+---
+
+## 4. Blending & Math
+- `[+]` Blend (`blend`)
+- `[-]` Color (Blend Node)
+- `[-]` Color Burn
+- `[-]` Color Dodge
+- `[-]` Difference
+- `[-]` Dissolve
+- `[-]` Linear Burn
+- `[-]` Luminosity (Blend Node)
+- `[-]` Multi Switch
+- `[-]` Switch
+- `[+]` Channels Shuffle (`channels_shuffle`)
+- `[+]` Uniform Color (`uniform`)
+
+---
+
+## 5. Blurs & Warps
+- `[-]` Anisotropic Blur
+- `[-]` Blur HQ
+- `[+]` Blur (`blur`)
+- `[+]` Directional Blur (`directional_blur`)
+- `[+]` Non Uniform Blur Grayscale (`non_uniform_blur_grayscale`)
+- `[+]` Non Uniform Blur Color (`non_uniform_blur_color`)
+- `[+]` Radial Blur (`radial_blur`)
+- `[-]` Radial Blur
+- `[+]` Slope Blur Grayscale (`slope_blur`)
+- `[+]` Slope Blur Color (`slope_blur_color`)
+- `[+]` Warp (`warp`)
+- `[+]` Directional Warp (`directional_warp`)
+- `[+]` Multi Directional Warp Grayscale (`multi_directional_warp`)
+- `[+]` Multi Directional Warp Color (`multi_directional_warp_color`)
+- `[+]` Vector Warp Grayscale (`vector_warp_grayscale`)
+- `[+]` Vector Warp Color (`vector_warp_color`)
+- `[-]` Non Uniform Directional Warp
+- `[-]` Swirl
+
+---
+
+## 6. Morphology & Normal Maps
+- `[+]` Ambient Occlusion (HBAO) (`ambient_occlusion`)
+- `[-]` Ambient Occlusion (RTAO)
+- `[+]` Bevel (`bevel`)
+- `[-]` Cross Section
+- `[+]` Curvature (`curvature`)
+- `[-]` Curvature Smooth
+- `[-]` Curvature Sobel
+- `[-]` Diffusion Color
+- `[-]` Diffusion Grayscale
+- `[-]` Diffusion UV
+- `[+]` Distance (`distance`)
+- `[+]` Edge Detect (`edge_detect`)
+- `[+]` Emboss (`emboss`)
+- `[-]` Emboss With Gloss
+- `[-]` Extend Shape
+- `[+]` Normal (`normal`)
+- `[-]` Facing Normal
+- `[-]` Height Normal Blender
+- `[-]` Height to Normal World Units
+- `[-]` Normal Blend
+- `[+]` Normal Combine (`normal_combine`)
+- `[+]` Normal Invert (`normal_invert`)
+- `[+]` Normal Normalize (`normal_normalize`)
+- `[-]` Normal Normalize
+- `[-]` Normal Sobel
+- `[-]` Normal to Height
+- `[-]` Normal To Height HQ
+- `[-]` Normal Transform
+- `[-]` Normal Vector Rotation
+- `[-]` Bent Normal
+- `[+]` Sharpen (`sharpen`)
+
+---
+
+## 7. Flood Fill
+- `[+]` Flood Fill (`flood_fill`)
+- `[-]` Flood Fill Mapper
+- `[+]` Flood Fill to BBox Size (`flood_fill_to_bbox_size`)
+- `[+]` Flood Fill to Gradient (`flood_fill_to_gradient`)
+- `[-]` Flood Fill to Index
+- `[-]` Flood Fill to Position
+- `[+]` Flood Fill to Random Color (`flood_fill_to_random_color`)
+- `[+]` Flood Fill to Random Grayscale (`flood_fill_to_random_grayscale`)
+
+---
+
+## 8. Material Filters & PBR
+- `[-]` Bitmap to Material Light
+- `[+]` Height Blend (`height_blend`)
+- `[-]` Material Height Blend
+- `[-]` Season Filter
+- `[-]` Snow Cover
+- `[-]` Water Level
+- `[-]` Material Transform
+- `[-]` Material Adjustment Blend
+- `[+]` Material Blend (`material_blend`)
+- `[-]` Material Color Blend
+- `[-]` Material Switch
+- `[-]` Multi-Material Blend
+- `[+]` Water Drops (`water_drops`)
+
+---
+
+## 9. Transforms & Utility
+- `[+]` Transformation 2D (`transformation`)
+- `[-]` Cartesian To Polar
+- `[-]` Polar to Cartesian
+- `[-]` Clone
+- `[-]` Mirror
+- `[-]` Safe Transform
+- `[-]` Non-Square Transform
+- `[-]` Non-Uniform Rotation
+- `[-]` Skew
+- `[-]` Symmetry
+- `[-]` Symmetry Slice
+- `[-]` Trapezoid Transform
+- `[-]` Quad Transform
+
+---
+
+## 10. Weathering, Effects & Lighting
+- `[-]` Edge Wear
+- `[-]` Metal Edge Wear
+- `[-]` Dirt
+- `[-]` Dripping Rust
+- `[-]` Dust
+- `[-]` Edge Blur
+- `[-]` Edge Damages
+- `[-]` Edge Dirt
+- `[-]` Grease
+- `[-]` Ground Dirt
+- `[-]` Leaks
+- `[-]` Light
+- `[-]` Shadows
+- `[-]` Sun Bleach
+- `[-]` Cracks Weathering
+- `[-]` Rock Weathering
+- `[-]` Rust Weathering
