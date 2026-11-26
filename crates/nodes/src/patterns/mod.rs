@@ -7,12 +7,16 @@ mod gaussian;
 mod gradient_axial;
 mod gradient_circular;
 mod gradient_linear;
+mod gradients_shapes;
 mod hexagon;
+mod masonry_pavement;
 mod mesh;
+mod patterns_3d;
 mod polygon;
 mod scratches;
 mod shape;
 mod splatter_circular;
+mod splatters;
 mod star;
 mod stripes;
 mod tile_generator;
@@ -58,6 +62,28 @@ pub(crate) fn defs() -> Vec<NodeDefinition> {
         gaussian::definition_2(),
         mesh::definition_1(),
         mesh::definition_2(),
+        // Category 2 additions
+        patterns_3d::gradient_3d_linear_definition(),
+        patterns_3d::volume_mask_3d_definition(),
+        patterns_3d::cube_3d_definition(),
+        patterns_3d::cube_3d_gbuffers_definition(),
+        patterns_3d::panorama_shape_definition(),
+        masonry_pavement::alveolus_definition(),
+        masonry_pavement::arc_pavement_definition(),
+        masonry_pavement::brick_generator_definition(),
+        masonry_pavement::weave_generator_definition(),
+        masonry_pavement::tile_random_2_definition(),
+        gradients_shapes::gradient_axial_reflected_definition(),
+        gradients_shapes::gradient_radial_definition(),
+        gradients_shapes::starburst_definition(),
+        gradients_shapes::height_extrude_definition(),
+        gradients_shapes::shape_extrude_definition(),
+        gradients_shapes::shape_mapper_definition(),
+        splatters::splatter_definition(),
+        splatters::shape_splatter_definition(),
+        splatters::shape_splatter_blend_definition(),
+        splatters::shape_splatter_data_extract_definition(),
+        splatters::shape_splatter_to_mask_definition(),
     ]
 }
 

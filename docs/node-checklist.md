@@ -113,96 +113,96 @@
 
 ---
 
-## 2. Texture Generators / Patterns (61.1%)
-- `[-]` 3D Linear Gradient
-- `[-]` 3D Volume Mask
-- `[-]` Alveolus
-- `[-]` Arc Pavement
+## 2. Texture Generators / Patterns (100.0%)
+- `[+]` 3D Linear Gradient (`gradient_3d_linear`)
+- `[+]` 3D Volume Mask (`volume_mask_3d`)
+- `[+]` Alveolus (`alveolus`)
+- `[+]` Arc Pavement (`arc_pavement`)
 - `[+]` Brick (`brick`)
 - `[+]` Brick 1 (`brick_1`)
 - `[+]` Brick 2 (`brick_2`)
-- `[-]` Brick Generator
+- `[+]` Brick Generator (`brick_generator`)
 - `[+]` Checker (`checker`)
 - `[+]` Checker 1 (`checker_1`)
-- `[-]` Cube 3D
-- `[-]` Cube 3D GBuffers
+- `[+]` Cube 3D (`cube_3d`)
+- `[+]` Cube 3D GBuffers (`cube_3d_gbuffers`)
 - `[+]` Fibers 1 (`fibers_1`)
 - `[+]` Fibers 2 (`fibers_2`)
 - `[+]` Gaussian 1 (`gaussian_1`)
 - `[+]` Gaussian 2 (`gaussian_2`)
 - `[+]` Gradient Axial (`gradient_axial`)
-- `[-]` Gradient Axial Reflected
+- `[+]` Gradient Axial Reflected (`gradient_axial_reflected`)
 - `[+]` Gradient Circular (`gradient_circular`)
 - `[+]` Gradient Linear (`gradient_linear`)
 - `[+]` Gradient Linear 1 (`gradient_linear_1`)
 - `[+]` Gradient Linear 2 (`gradient_linear_2`)
 - `[+]` Gradient Linear 3 (`gradient_linear_3`)
-- `[-]` Gradient Radial
-- `[-]` Height Extrude
+- `[+]` Gradient Radial (`gradient_radial`)
+- `[+]` Height Extrude (`height_extrude`)
 - `[+]` Mesh 1 (`mesh_1`)
 - `[+]` Mesh 2 (`mesh_2`)
-- `[-]` Panorama Shape
+- `[+]` Panorama Shape (`panorama_shape`)
 - `[+]` Polygon (`polygon`)
 - `[+]` Polygon 1 (`polygon_1`)
 - `[+]` Polygon 2 (`polygon_2`)
 - `[+]` Scratches Generator (`scratches`)
 - `[+]` Shape (`shape`)
-- `[-]` Shape Extrude
-- `[-]` Shape Mapper
-- `[-]` Shape Splatter
-- `[-]` Shape Splatter Blend
-- `[-]` Shape Splatter Data Extract
-- `[-]` Shape Splatter to Mask
-- `[-]` Splatter
+- `[+]` Shape Extrude (`shape_extrude`)
+- `[+]` Shape Mapper (`shape_mapper`)
+- `[+]` Shape Splatter (`shape_splatter`)
+- `[+]` Shape Splatter Blend (`shape_splatter_blend`)
+- `[+]` Shape Splatter Data Extract (`shape_splatter_data_extract`)
+- `[+]` Shape Splatter to Mask (`shape_splatter_to_mask`)
+- `[+]` Splatter (`splatter`)
 - `[+]` Splatter Circular (`splatter_circular`)
 - `[+]` Star (`star`)
-- `[-]` Starburst
+- `[+]` Starburst (`starburst`)
 - `[+]` Stripes (`stripes`)
 - `[+]` Tile Generator (`tile_generator`)
 - `[+]` Tile Random (`tile_random`)
-- `[-]` Tile Random 2
+- `[+]` Tile Random 2 (`tile_random_2`)
 - `[+]` Tile Sampler (`tile_sampler`)
 - `[+]` Triangle Grid (`triangle_grid`)
 - `[+]` Weave (`weave`)
 - `[+]` Weave 1 (`weave_1`)
 - `[+]` Weave 2 (`weave_2`)
-- `[-]` Weave Generator
+- `[+]` Weave Generator (`weave_generator`)
 - `[+]` Hexagon (`hexagon`)
 
 ---
 
-## 3. Adjustments & Color (48.6%)
+## 3. Adjustments & Color (100.0%)
 - `[+]` Auto Levels (`auto_levels`)
-- `[-]` Channel Mixer
-- `[-]` Chrominance Extract
+- `[+]` Channel Mixer (`channel_mixer`)
+- `[+]` Chrominance Extract (`chrominance_extract`)
 - `[+]` Clamp (`clamp`)
-- `[-]` Color Match
-- `[-]` Color To Mask
+- `[+]` Color Match (`color_match`)
+- `[+]` Color To Mask (`color_to_mask`)
 - `[+]` Contrast / Luminosity (`contrast_luminosity`)
-- `[-]` Convert To Linear
-- `[-]` Convert to sRGB
+- `[+]` Convert To Linear (`convert_to_linear`)
+- `[+]` Convert to sRGB (`convert_to_srgb`)
 - `[+]` Grayscale Conversion (`grayscale_conversion`)
-- `[-]` Grayscale Conversion Advanced
-- `[-]` Hald CLUT
-- `[-]` HDR Range Viewer
-- `[-]` Height Map Frequencies Mapper
+- `[+]` Grayscale Conversion Advanced (`grayscale_conversion_advanced`)
+- `[+]` Hald CLUT (`hald_clut`)
+- `[+]` HDR Range Viewer (`hdr_range_viewer`)
+- `[+]` Height Map Frequencies Mapper (`height_map_frequencies_mapper`)
 - `[+]` Highpass (`highpass`)
 - `[+]` Histogram Range (`histogram_range`)
 - `[+]` Histogram Scan (`histogram_scan`)
-- `[-]` Histogram Scan Non-Uniform
-- `[-]` Histogram Select
-- `[-]` Histogram Shift
+- `[+]` Histogram Scan Non-Uniform (`histogram_scan_non_uniform`)
+- `[+]` Histogram Select (`histogram_select`)
+- `[+]` Histogram Shift (`histogram_shift`)
 - `[+]` Invert (`invert`)
-- `[-]` Lighting Cancel High Frequencies
-- `[-]` Lighting Cancel Low Frequencies
-- `[-]` Luminance Highpass
+- `[+]` Lighting Cancel High Frequencies (`lighting_cancel_high_frequencies`)
+- `[+]` Lighting Cancel Low Frequencies (`lighting_cancel_low_frequencies`)
+- `[+]` Luminance Highpass (`luminance_highpass`)
 - `[+]` Min Max (`min_max`)
 - `[+]` Color Temperature (`color_temperature`)
-- `[-]` Color Temperature Adjustment
-- `[-]` Pow
+- `[+]` Color Temperature Adjustment (`color_temperature_adjustment`)
+- `[+]` Pow (`pow`)
 - `[+]` Quantize (`quantize`)
 - `[+]` Replace Color (`replace_color`)
-- `[-]` Replace Color Range
+- `[+]` Replace Color Range (`replace_color_range`)
 - `[+]` Threshold (`threshold`)
 - `[+]` HSL (`hsl`)
 - `[+]` Levels (`levels`)
