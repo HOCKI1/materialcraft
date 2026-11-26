@@ -8,7 +8,7 @@
 
 ---
 
-## 1. Texture Generators / Noises
+## 1. Texture Generators / Noises (65.3%)
 - `[+]` 3D Perlin Noise (`perlin_3d`)
 - `[-]` 3D Perlin Noise Fractal
 - `[-]` 3D Ridged Noise Fractal
@@ -113,7 +113,7 @@
 
 ---
 
-## 2. Texture Generators / Patterns
+## 2. Texture Generators / Patterns (61.1%)
 - `[-]` 3D Linear Gradient
 - `[-]` 3D Volume Mask
 - `[-]` Alveolus
@@ -156,16 +156,13 @@
 - `[-]` Splatter
 - `[+]` Splatter Circular (`splatter_circular`)
 - `[+]` Star (`star`)
-- `[-]` Star
 - `[-]` Starburst
 - `[+]` Stripes (`stripes`)
 - `[+]` Tile Generator (`tile_generator`)
 - `[+]` Tile Random (`tile_random`)
-- `[-]` Tile Random
 - `[-]` Tile Random 2
 - `[+]` Tile Sampler (`tile_sampler`)
 - `[+]` Triangle Grid (`triangle_grid`)
-- `[-]` Triangle Grid
 - `[+]` Weave (`weave`)
 - `[+]` Weave 1 (`weave_1`)
 - `[+]` Weave 2 (`weave_2`)
@@ -174,7 +171,7 @@
 
 ---
 
-## 3. Adjustments & Color
+## 3. Adjustments & Color (48.6%)
 - `[+]` Auto Levels (`auto_levels`)
 - `[-]` Channel Mixer
 - `[-]` Chrominance Extract
@@ -200,13 +197,11 @@
 - `[-]` Lighting Cancel Low Frequencies
 - `[-]` Luminance Highpass
 - `[+]` Min Max (`min_max`)
-- `[-]` Min Max
 - `[+]` Color Temperature (`color_temperature`)
 - `[-]` Color Temperature Adjustment
 - `[-]` Pow
 - `[+]` Quantize (`quantize`)
 - `[+]` Replace Color (`replace_color`)
-- `[-]` Replace Color
 - `[-]` Replace Color Range
 - `[+]` Threshold (`threshold`)
 - `[+]` HSL (`hsl`)
@@ -217,7 +212,7 @@
 
 ---
 
-## 4. Blending & Math
+## 4. Blending & Math (25.0%)
 - `[+]` Blend (`blend`)
 - `[-]` Color (Blend Node)
 - `[-]` Color Burn
@@ -233,17 +228,14 @@
 
 ---
 
-## 5. Blurs & Warps
+## 5. Blurs & Warps (100.0%)
 - `[+]` Anisotropic Blur (`anisotropic_blur`)
-- `[-]` Anisotropic Blur
 - `[+]` Blur HQ (`blur_hq`)
-- `[-]` Blur HQ
 - `[+]` Blur (`blur`)
 - `[+]` Directional Blur (`directional_blur`)
 - `[+]` Non Uniform Blur Grayscale (`non_uniform_blur_grayscale`)
 - `[+]` Non Uniform Blur Color (`non_uniform_blur_color`)
 - `[+]` Radial Blur (`radial_blur`)
-- `[-]` Radial Blur
 - `[+]` Slope Blur Grayscale (`slope_blur`)
 - `[+]` Slope Blur Color (`slope_blur_color`)
 - `[+]` Warp (`warp`)
@@ -253,13 +245,11 @@
 - `[+]` Vector Warp Grayscale (`vector_warp_grayscale`)
 - `[+]` Vector Warp Color (`vector_warp_color`)
 - `[+]` Non Uniform Directional Warp (`non_uniform_directional_warp`)
-- `[-]` Non Uniform Directional Warp
 - `[+]` Swirl (`swirl`)
-- `[-]` Swirl
 
 ---
 
-## 6. Morphology & Normal Maps
+## 6. Morphology & Normal Maps (40.0%)
 - `[+]` Ambient Occlusion (HBAO) (`ambient_occlusion`)
 - `[-]` Ambient Occlusion (RTAO)
 - `[+]` Bevel (`bevel`)
@@ -283,10 +273,8 @@
 - `[+]` Normal Combine (`normal_combine`)
 - `[+]` Normal Invert (`normal_invert`)
 - `[+]` Normal Normalize (`normal_normalize`)
-- `[-]` Normal Normalize
 - `[-]` Normal Sobel
 - `[+]` Normal to Height (`normal_to_height`)
-- `[-]` Normal to Height
 - `[-]` Normal To Height HQ
 - `[-]` Normal Transform
 - `[-]` Normal Vector Rotation
@@ -295,7 +283,7 @@
 
 ---
 
-## 7. Flood Fill
+## 7. Flood Fill (62.5%)
 - `[+]` Flood Fill (`flood_fill`)
 - `[-]` Flood Fill Mapper
 - `[+]` Flood Fill to BBox Size (`flood_fill_to_bbox_size`)
@@ -307,7 +295,7 @@
 
 ---
 
-## 8. Material Filters & PBR
+## 8. Material Filters & PBR (23.1%)
 - `[-]` Bitmap to Material Light
 - `[+]` Height Blend (`height_blend`)
 - `[-]` Material Height Blend
@@ -324,7 +312,7 @@
 
 ---
 
-## 9. Transforms & Utility
+## 9. Transforms & Utility (7.7%)
 - `[+]` Transformation 2D (`transformation`)
 - `[-]` Cartesian To Polar
 - `[-]` Polar to Cartesian
@@ -341,10 +329,10 @@
 
 ---
 
-## 10. Weathering, Effects & Lighting
+## 10. Weathering, Effects & Lighting (0.0%)
 - `[-]` Edge Wear
 - `[-]` Metal Edge Wear
-- `[-]` Dirt
+- `[-]` Weathering Dirt
 - `[-]` Dripping Rust
 - `[-]` Dust
 - `[-]` Edge Blur
