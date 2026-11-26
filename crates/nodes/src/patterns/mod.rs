@@ -13,7 +13,9 @@ mod splatter_circular;
 mod star;
 mod stripes;
 mod tile_generator;
+mod tile_random;
 mod tile_sampler;
+mod triangle_grid;
 mod weave;
 
 use crate::NodeDefinition;
@@ -35,6 +37,8 @@ pub(crate) fn defs() -> Vec<NodeDefinition> {
         brick::definition(),
         polygon::definition(),
         star::definition(),
+        tile_random::definition(),
+        triangle_grid::definition(),
     ]
 }
 

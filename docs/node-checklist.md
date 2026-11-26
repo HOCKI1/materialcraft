@@ -32,6 +32,7 @@
 - `[-]` Clouds 2
 - `[-]` Clouds 3
 - `[-]` Creased
+- `[+]` Crystal (`crystal`)
 - `[-]` Crystal 1
 - `[-]` Crystal 2
 - `[-]` Directional Noise 1
@@ -39,6 +40,7 @@
 - `[-]` Directional Noise 3
 - `[-]` Directional Noise 4
 - `[-]` Directional Scratches
+- `[+]` Dirt (`dirt`)
 - `[-]` Dirt 1
 - `[-]` Dirt 2
 - `[-]` Dirt 3
@@ -150,9 +152,11 @@
 - `[-]` Starburst
 - `[+]` Stripes (`stripes`)
 - `[+]` Tile Generator (`tile_generator`)
+- `[+]` Tile Random (`tile_random`)
 - `[-]` Tile Random
 - `[-]` Tile Random 2
 - `[+]` Tile Sampler (`tile_sampler`)
+- `[+]` Triangle Grid (`triangle_grid`)
 - `[-]` Triangle Grid
 - `[+]` Weave (`weave`)
 - `[-]` Weave 2
@@ -186,7 +190,10 @@
 - `[-]` Lighting Cancel High Frequencies
 - `[-]` Lighting Cancel Low Frequencies
 - `[-]` Luminance Highpass
+- `[+]` Min Max (`min_max`)
 - `[-]` Min Max
+- `[+]` Color Temperature (`color_temperature`)
+- `[-]` Color Temperature Adjustment
 - `[-]` Pow
 - `[+]` Quantize (`quantize`)
 - `[+]` Replace Color (`replace_color`)
@@ -218,7 +225,9 @@
 ---
 
 ## 5. Blurs & Warps
+- `[+]` Anisotropic Blur (`anisotropic_blur`)
 - `[-]` Anisotropic Blur
+- `[+]` Blur HQ (`blur_hq`)
 - `[-]` Blur HQ
 - `[+]` Blur (`blur`)
 - `[+]` Directional Blur (`directional_blur`)
@@ -234,7 +243,9 @@
 - `[+]` Multi Directional Warp Color (`multi_directional_warp_color`)
 - `[+]` Vector Warp Grayscale (`vector_warp_grayscale`)
 - `[+]` Vector Warp Color (`vector_warp_color`)
+- `[+]` Non Uniform Directional Warp (`non_uniform_directional_warp`)
 - `[-]` Non Uniform Directional Warp
+- `[+]` Swirl (`swirl`)
 - `[-]` Swirl
 
 ---
@@ -265,6 +276,7 @@
 - `[+]` Normal Normalize (`normal_normalize`)
 - `[-]` Normal Normalize
 - `[-]` Normal Sobel
+- `[+]` Normal to Height (`normal_to_height`)
 - `[-]` Normal to Height
 - `[-]` Normal To Height HQ
 - `[-]` Normal Transform
