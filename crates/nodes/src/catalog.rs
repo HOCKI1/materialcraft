@@ -7,6 +7,7 @@ pub fn catalog() -> &'static [NodeDefinition] {
     CAT.get_or_init(|| {
         let mut defs = crate::atomic::defs();
         defs.extend(crate::adjustments::defs());
+        defs.extend(crate::blending::defs());
         defs.extend(crate::blurs::defs());
         defs.extend(crate::flood_fill::defs());
         defs.extend(crate::material_filters::defs());
@@ -16,6 +17,7 @@ pub fn catalog() -> &'static [NodeDefinition] {
         defs.extend(crate::patterns::defs());
         defs.extend(crate::transforms::defs());
         defs.extend(crate::warps::defs());
+        defs.extend(crate::weathering::defs());
         defs
     })
 }

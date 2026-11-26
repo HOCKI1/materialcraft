@@ -3,6 +3,7 @@
 
 pub mod adjustments;
 pub mod atomic;
+pub mod blending;
 pub mod blurs;
 pub mod catalog;
 pub mod flood_fill;
@@ -17,6 +18,7 @@ pub mod patterns;
 mod raster;
 pub mod transforms;
 pub mod warps;
+pub mod weathering;
 
 mod cook_context;
 pub mod graph_interface;

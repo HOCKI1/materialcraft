@@ -212,17 +212,17 @@
 
 ---
 
-## 4. Blending & Math (25.0%)
+## 4. Blending & Math (100.0%)
 - `[+]` Blend (`blend`)
-- `[-]` Color (Blend Node)
-- `[-]` Color Burn
-- `[-]` Color Dodge
-- `[-]` Difference
-- `[-]` Dissolve
-- `[-]` Linear Burn
-- `[-]` Luminosity (Blend Node)
-- `[-]` Multi Switch
-- `[-]` Switch
+- `[+]` Color (Blend Node) (`color_blend_node`)
+- `[+]` Color Burn (`color_burn`)
+- `[+]` Color Dodge (`color_dodge`)
+- `[+]` Difference (`difference`)
+- `[+]` Dissolve (`dissolve`)
+- `[+]` Linear Burn (`linear_burn`)
+- `[+]` Luminosity (Blend Node) (`luminosity_blend_node`)
+- `[+]` Multi Switch (`multi_switch`)
+- `[+]` Switch (`switch`)
 - `[+]` Channels Shuffle (`channels_shuffle`)
 - `[+]` Uniform Color (`uniform`)
 
@@ -329,21 +329,21 @@
 
 ---
 
-## 10. Weathering, Effects & Lighting (0.0%)
-- `[-]` Edge Wear
-- `[-]` Metal Edge Wear
-- `[-]` Weathering Dirt
-- `[-]` Dripping Rust
-- `[-]` Dust
-- `[-]` Edge Blur
-- `[-]` Edge Damages
-- `[-]` Edge Dirt
-- `[-]` Grease
-- `[-]` Ground Dirt
-- `[-]` Leaks
-- `[-]` Light
-- `[-]` Shadows
-- `[-]` Sun Bleach
-- `[-]` Cracks Weathering
-- `[-]` Rock Weathering
-- `[-]` Rust Weathering
+## 10. Weathering, Effects & Lighting (100.0%)
+- `[+]` Edge Wear (`edge_wear`)
+- `[+]` Metal Edge Wear (`metal_edge_wear`)
+- `[+]` Weathering Dirt (`weathering_dirt`)
+- `[+]` Dripping Rust (`dripping_rust`)
+- `[+]` Dust (`dust`)
+- `[+]` Edge Blur (`edge_blur`)
+- `[+]` Edge Damages (`edge_damages`)
+- `[+]` Edge Dirt (`edge_dirt`)
+- `[+]` Grease (`grease`)
+- `[+]` Ground Dirt (`ground_dirt`)
+- `[+]` Leaks (`leaks`)
+- `[+]` Light (`light`)
+- `[+]` Shadows (`shadows`)
+- `[+]` Sun Bleach (`sun_bleach`)
+- `[+]` Cracks Weathering (`cracks_weathering`)
+- `[+]` Rock Weathering (`rock_weathering`)
+- `[+]` Rust Weathering (`rust_weathering`)
