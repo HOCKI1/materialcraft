@@ -321,15 +321,11 @@ impl DockContent<Panel> for Panels<'_> {
             Panel::Graph => crate::graph::show(app, ui),
             Panel::View3d => crate::view3d::show(app, ui),
             Panel::View2d => crate::view2d::show(app, ui),
-            Panel::Properties => {
-                egui::Frame::new().inner_margin(Margin { left: 6, right: 12, top: 4, bottom: 4 }).show(ui, |ui| {
-                    crate::properties::show(app, ui);
-                });
-            }
             _ => {
                 egui::Frame::new().inner_margin(Margin::symmetric(6, 4)).show(ui, |ui| match panel {
                     Panel::Explorer => crate::explorer::show(app, ui),
                     Panel::Library => crate::library::show(app, ui),
+                    Panel::Properties => crate::properties::show(app, ui),
                     Panel::Console => crate::windows::console(app, ui),
                     Panel::History => crate::windows::history(app, ui),
                     _ => {}
