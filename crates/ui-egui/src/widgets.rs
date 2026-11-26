@@ -274,12 +274,13 @@ pub fn color_swatch(ui: &mut Ui, id: &str, linear: &mut [f32; 3], width: f32) ->
     let mut changed = false;
     egui::Popup::menu(&resp)
         .id(popup)
-        .align(egui::RectAlign::BOTTOM_END)
-        .align_alternatives(&[egui::RectAlign::TOP_END, egui::RectAlign::BOTTOM_START, egui::RectAlign::TOP_START])
+        .align(egui::RectAlign::TOP_END)
+        .align_alternatives(&[egui::RectAlign::BOTTOM_END])
+        .gap(8.0)
         .close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside)
         .show(|ui| {
-            ui.set_width(240.0);
-            ui.spacing_mut().slider_width = 230.0;
+            ui.set_width(200.0);
+            ui.spacing_mut().slider_width = 192.0;
             if egui::color_picker::color_picker_color32(ui, &mut c, egui::color_picker::Alpha::Opaque) {
                 let lin = [c.r(), c.g(), c.b()].map(|v| materialcraft_engine::image::srgb_to_linear(v as f32 / 255.0));
                 *linear = lin;
