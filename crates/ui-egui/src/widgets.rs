@@ -281,7 +281,7 @@ pub fn color_swatch(ui: &mut Ui, id: &str, linear: &mut [f32; 3], width: f32) ->
         .show(|ui| {
             ui.set_width(200.0);
             ui.spacing_mut().slider_width = 192.0;
-            if egui::color_picker::color_picker_color32(ui, &mut c, egui::color_picker::Alpha::Opaque) {
+            if crate::color_picker::color_picker_color32(ui, &mut c, crate::color_picker::Alpha::Opaque) {
                 let lin = [c.r(), c.g(), c.b()].map(|v| materialcraft_engine::image::srgb_to_linear(v as f32 / 255.0));
                 *linear = lin;
                 changed = true;
